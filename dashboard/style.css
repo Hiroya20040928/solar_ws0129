@@ -1,0 +1,319 @@
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=Space+Grotesk:wght@400;600&display=swap');
+
+:root {
+  --bg: #0b0f14;
+  --bg2: #121826;
+  --panel: #0f1624;
+  --panel-2: #0c111b;
+  --accent: #ff2d2d;
+  --accent-2: #2de2e6;
+  --accent-3: #f7c14a;
+  --text: #e9eef5;
+  --muted: #8b97a8;
+  --grid-gap: 18px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  overflow-x: hidden;
+}
+
+.bg {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(1200px 600px at 80% -10%, rgba(45, 226, 230, 0.15), transparent 60%),
+              radial-gradient(900px 500px at -10% 20%, rgba(247, 193, 74, 0.12), transparent 60%),
+              linear-gradient(180deg, #090c11, #111824 60%, #0a0e14);
+  z-index: -2;
+}
+
+.bg .scan {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.03) 0px,
+    rgba(255, 255, 255, 0.03) 1px,
+    transparent 1px,
+    transparent 6px
+  );
+  opacity: 0.3;
+}
+
+.bg .glow {
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  top: 10%;
+  right: -20%;
+  background: radial-gradient(circle, rgba(255, 45, 45, 0.2), transparent 60%);
+  filter: blur(40px);
+}
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  gap: 16px;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: linear-gradient(120deg, rgba(255,45,45,0.18), transparent 60%),
+              rgba(15, 22, 36, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  backdrop-filter: blur(6px);
+}
+
+.brand .tag {
+  font-family: 'Oxanium', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  font-size: 11px;
+  color: var(--accent-3);
+  text-transform: uppercase;
+}
+
+.brand .title {
+  font-family: 'Oxanium', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  margin-top: 6px;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(45, 226, 230, 0.4);
+  color: var(--accent-2);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.right {
+  text-align: right;
+}
+
+.clock {
+  font-family: 'Oxanium', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.state {
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: minmax(140px, auto);
+  gap: var(--grid-gap);
+}
+
+.card {
+  background: linear-gradient(160deg, rgba(19, 27, 43, 0.95), rgba(12, 16, 26, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+
+.label {
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.speed-card { grid-column: span 5; }
+.soc-card { grid-column: span 3; }
+.env-card { grid-column: span 4; }
+.battery-card { grid-column: span 3; }
+.motor-card { grid-column: span 3; }
+.solar-card { grid-column: span 3; }
+.speedpower-card { grid-column: span 3; }
+.plan-card { grid-column: span 6; }
+.lower-card { grid-column: span 6; }
+.sys-card { grid-column: span 6; }
+
+.speed-main {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.speed {
+  font-family: 'Oxanium', sans-serif;
+  font-size: 72px;
+  font-weight: 700;
+  color: var(--accent);
+  text-shadow: 0 0 18px rgba(255, 45, 45, 0.35);
+}
+
+.unit {
+  font-size: 18px;
+  color: var(--muted);
+}
+
+.mode-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.mode {
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(45, 226, 230, 0.15);
+  color: var(--accent-2);
+  font-family: 'Oxanium', sans-serif;
+  letter-spacing: 0.08em;
+}
+
+.throttle {
+  color: var(--accent-3);
+  font-weight: 600;
+}
+
+.plot {
+  width: 100%;
+  height: 120px;
+  margin-top: 12px;
+  background: rgba(8, 12, 18, 0.7);
+  border-radius: 12px;
+}
+
+.soc-ring {
+  width: 160px;
+  height: 160px;
+  margin: 6px auto 10px;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent-2) calc(var(--soc, 0.0) * 360deg), rgba(255,255,255,0.08) 0deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.soc-ring::after {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  background: var(--panel);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.soc-text {
+  position: relative;
+  text-align: center;
+  z-index: 1;
+}
+
+.soc-value {
+  font-family: 'Oxanium', sans-serif;
+  font-size: 32px;
+  color: var(--accent-2);
+}
+
+.soc-sub { color: var(--muted); font-size: 12px; }
+
+.metrics {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.metrics span { color: var(--text); font-weight: 600; }
+
+.env-grid, .sys-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.env-grid span, .sys-grid span {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.plan-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.badges {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 0 6px;
+}
+
+@media (max-width: 1100px) {
+  .topbar {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .right { text-align: center; }
+  .grid { grid-template-columns: repeat(6, 1fr); }
+  .speed-card, .soc-card, .env-card, .battery-card, .motor-card, .solar-card, .speedpower-card, .plan-card, .lower-card, .sys-card {
+    grid-column: span 6;
+  }
+}
