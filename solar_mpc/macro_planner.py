@@ -1883,9 +1883,8 @@ from datetime import datetime, timezone
 
 
 
-class WeatherFetchNode(Node):                                      # [クラス定義] WeatherFetchNode オブジェクトの設計
+class WeatherFetchNode:                                      # [クラス定義] WeatherFetchNode オブジェクトの設計
     def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
-        super().__init__('weather_fetch_node')
         self.declare_parameter('provider', 'openmeteo')
         self.declare_parameter('forecast_csv', 'data/weather/live_forecast.csv')
         self.declare_parameter('gps_topic', '/chase/gps')

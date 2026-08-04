@@ -52,7 +52,7 @@ from scipy.optimize import minimize
 
 
 
-class MPCNode(Node):                                               # [ローカルMPCノード] 周期的(10s)に後退ホライズン最適化を実行する主ROS2ノード
+class MPCNode:                                               # [ローカルMPCノード] 周期的(10s)に後退ホライズン最適化を実行する主ROS2ノード
     """
     MPC node with two modes:
       - Default: solarcar MPC (forecast-driven)
@@ -60,7 +60,6 @@ class MPCNode(Node):                                               # [ローカ�
     """
 
     def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
-        super().__init__('mpc_node')
         self.declare_parameter('passo_mode', False)
         self.passo_mode = bool(self.get_parameter('passo_mode').value)
         if self.passo_mode:
@@ -3392,11 +3391,10 @@ import time
 
 
 
-class SolarStateNode(Node):                                        # [状態推定ノード] バッテリーSoC・電圧・過渡分極(V1)の状態推定ノード
+class SolarStateNode:                                        # [状態推定ノード] バッテリーSoC・電圧・過渡分極(V1)の状態推定ノード
     """Mirror planner outputs into vehicle/system topics for solar-only simulation."""
 
     def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
-        super().__init__('solar_state_node')
         self.declare_parameter('publish_rate_hz', 5.0)
         self.declare_parameter('stale_timeout_sec', 5.0)
 
@@ -4031,9 +4029,8 @@ def as_float(value, default=math.nan):                             # [関数定�
     return finite_float(value, default=default)                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-class TelemetryTextBridgeNode(Node):                               # [クラス定義] TelemetryTextBridgeNode オブジェクトの設計
+class TelemetryTextBridgeNode:                               # [クラス定義] TelemetryTextBridgeNode オブジェクトの設計
     def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
-        super().__init__('telemetry_text_bridge_node')
         self.declare_parameter('enable_inbound', True)
         self.declare_parameter('enable_outbound', True)
         self.declare_parameter('bind_host', '0.0.0.0')
@@ -4667,9 +4664,8 @@ import time
 
 
 
-class SpeedCommandBridgeNode(Node):                                # [クラス定義] SpeedCommandBridgeNode オブジェクトの設計
+class SpeedCommandBridgeNode:                                # [クラス定義] SpeedCommandBridgeNode オブジェクトの設計
     def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
-        super().__init__('speed_command_bridge_node')
         self.declare_parameter('output_speed_topic', '/vehicle/speed_cmd_kmh')
         self.declare_parameter('output_drive_mode_topic', '/vehicle/drive_mode_cmd')
         self.declare_parameter('udp_enabled', False)
