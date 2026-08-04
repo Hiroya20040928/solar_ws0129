@@ -1,0 +1,60 @@
+\contentsline {section}{\numberline {1}まず最初に押さえるべき事実}{4}{section.1}%
+\contentsline {subsection}{\numberline {1.1}入口は 1 つではなく 3 層ある}{4}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}入口と実装本体は source 側で対応している}{4}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}本書の根拠ファイル}{4}{subsection.1.3}%
+\contentsline {section}{\numberline {2}全体フローの骨格}{5}{section.2}%
+\contentsline {subsection}{\numberline {2.1}PowerShell から見た action と mode}{5}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}WSL 側ルータでの mode -> launch 対応}{6}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}graph exporter が mode ごとに期待する core node}{6}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}問題 1: 入口の穴埋め}{6}{subsection.2.4}%
+\contentsline {section}{\numberline {3}profile.yaml の読み方}{6}{section.3}%
+\contentsline {subsection}{\numberline {3.1}改良版 profile のトップレベル構造}{6}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}mode ごとに読む profile ブロック}{7}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}問題 2: profile の対応づけ}{7}{subsection.3.3}%
+\contentsline {section}{\numberline {4}sim モード}{8}{section.4}%
+\contentsline {subsection}{\numberline {4.1}sim モードには 2 種類ある}{8}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}launch 型 sim の流れ}{8}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}launch 型 sim で直接確認できる node}{8}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}offline 型 sim の流れ}{8}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}offline 型 sim で出る主成果物}{9}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}sim で最重要な topic}{9}{subsection.4.6}%
+\contentsline {subsection}{\numberline {4.7}問題 3: sim フロー追跡}{9}{subsection.4.7}%
+\contentsline {section}{\numberline {5}measure モード}{9}{section.5}%
+\contentsline {subsection}{\numberline {5.1}measure モードの位置づけ}{9}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}measure の想定 runtime}{10}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}distance\_node がしていること}{10}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}grade\_node がしていること}{10}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}solar\_logger\_node が残す列}{10}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}問題 4: measure の要点}{11}{subsection.5.6}%
+\contentsline {section}{\numberline {6}live モード}{11}{section.6}%
+\contentsline {subsection}{\numberline {6.1}live モードの位置づけ}{11}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}live の想定流れ}{11}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}mpc\_node が live で受ける実測}{11}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}command bridge に期待される役割}{12}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}weather / autocal / wind model の役割}{12}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}問題 5: live の穴埋め}{12}{subsection.6.6}%
+\contentsline {section}{\numberline {7}live\_wifi モード}{13}{section.7}%
+\contentsline {subsection}{\numberline {7.1}live\_wifi は live に WiFi 受送信層を足したもの}{13}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}profile 上での主役}{13}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}live\_wifi の設計フロー}{13}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}WiFi bridge の source と責務}{13}{subsection.7.4}%
+\contentsline {subsection}{\numberline {7.5}live\_wifi で追うべき代表 topic / データ}{14}{subsection.7.5}%
+\contentsline {subsection}{\numberline {7.6}問題 6: live\_wifi の要点}{14}{subsection.7.6}%
+\contentsline {section}{\numberline {8}forecast action}{14}{section.8}%
+\contentsline {subsection}{\numberline {8.1}forecast は launch ではなく utility 実行}{14}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}何をしているか}{14}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}forecast で触る代表パラメータ}{14}{subsection.8.3}%
+\contentsline {subsection}{\numberline {8.4}問題 7: forecast の穴埋め}{14}{subsection.8.4}%
+\contentsline {section}{\numberline {9}identify action と改良版 vehicle identification}{15}{section.9}%
+\contentsline {subsection}{\numberline {9.1}identify action の軽量 pipeline}{15}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}改良版 vehicle identification の主戦力}{15}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}template と入力雛形}{15}{subsection.9.3}%
+\contentsline {subsection}{\numberline {9.4}問題 8: identification}{15}{subsection.9.4}%
+\contentsline {section}{\numberline {10}dashboard と logger の見方}{16}{section.10}%
+\contentsline {subsection}{\numberline {10.1}dashboard\_node が受けるもの}{16}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}solar\_logger\_node が担うこと}{16}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}問題 9: dashboard / logger}{16}{subsection.10.3}%
+\contentsline {section}{\numberline {11}source ファイルと役割の対応表}{16}{section.11}%
+\contentsline {section}{\numberline {12}実装監査結果と読むべき姿勢}{17}{section.12}%
+\contentsline {section}{\numberline {13}総合問題}{18}{section.13}%
+\contentsline {section}{\numberline {14}最後に}{18}{section.14}%

@@ -1,0 +1,500 @@
+\begin{document}
+\begin{titlepage}
+\centering
+{\Huge\bfseries 車両同定MLE 完全手計算体験書\par}
+\vspace{7mm}
+{\Large \editionlabel\par}
+\vspace{10mm}
+\begin{tcolorbox}[colback=white,colframe=black,width=0.92\textwidth]
+実走ログを入力してから、grounded base map、センサ品質判定、PV fit、battery fit、
+motion fit、11次元joint refinement、map shape correction、2831 km終端anchor、
+day/segment別replay検証、採用map/profile出力までを、実装と同じ順序で数値計算する。
+\end{tcolorbox}
+\vfill
+対象: \texttt{scripts/run\_vehicle\_identification.py}\\
+数値核: \texttt{scripts/build\_bwsc2025\_fitted\_package.py}\\
+演習用固定係数: 数値計算の再現用（最新採用係数はfit summaryを参照）
+\end{titlepage}
+\tableofcontents
+\newpage
+
+\section{同定は何を最小化しているか}
+観測 $y_i$、予測 $\hat y_i(\theta)$、標準偏差 $\sigma_i$ に対し、
+独立Gaussian誤差なら負対数尤度は
+\[
+-\log L(\theta)=\frac12\sum_i
+\left(\frac{y_i-\hat y_i(\theta)}{\sigma_i}\right)^2
++\sum_i\log\sigma_i+\mathrm{const}.
+\]
+実装は外れ値に対して二乗誤差が過大支配しないようHuber損失
+\[
+\rho_\delta(r)=
+\begin{cases}\tfrac12r^2,&|r|\le\delta,\\
+\delta(|r|-\tfrac12\delta),&|r|>\delta
+\end{cases}
+\]
+と、仕様値近傍を表すprior、rest/stage/terminal anchorを組み合わせる。
+
+\question{M1}{残差 $r=[2,-1,3]$ V、$\sigma=2$ VのGaussian二乗項を求めよ。}
+\answer{$\frac12\sum(r_i/2)^2=\frac12(1+0.25+2.25)=1.75$。}
+
+\question{M2}{$\delta=3$、残差 $r=8$ のHuber損失を求め、二乗損失と比較せよ。}
+\answer{$\rho_3(8)=3(8-1.5)=19.5$。単純な$\tfrac12r^2=32$より影響を抑える。}
+
+\section{入力CSVからfit対象を作る}
+最低限の列は時刻、距離、速度、pack電圧・電流、PV電力、battery温度、位置である。
+実装はactual event YAML、control stop、トラブル、欠測、範囲外、Hampel spikeを
+列ごとの除外flagへ変換する。ある点をpower fitから除外しても、根拠があれば
+voltage fitには残せる。
+
+Hampel判定はwindow中央値 $m$、MADから
+\[
+s=1.4826\,\mathrm{median}|x_i-m|,
+\qquad |x_k-m|>n_\sigma s
+\]
+を用いる。
+
+\question{M3}{window $[9.8,10.0,10.1,9.9,25.0]$ Aで中央値、MAD、
+$n_\sigma=4$の閾値を求め、25 Aを判定せよ。}
+\answer{中央値10.0、絶対偏差$[0.2,0,0.1,0.1,15]$の中央値0.1、
+$s=0.14826$、閾値0.59304 A。$|25-10|=15$なのでspike。}
+
+\section{grounded base mapを先に固定する}
+MLEの初期mapは任意の滑らかな表ではない。motor公式試験、panel仕様、battery放電曲線、
+MPPT仕様、実測OCVから軸と値を作る。fit後mapは例として
+\[
+M_{fit}(x,y)=\mathrm{clip}\{M_{base}(x,y)
+\exp(b+a(x)+c(y))\}
+\]
+とし、全体scale $b$ と軸方向の小さなshape補正だけを許す。
+
+根拠の強さを混同しないため、現行YATA基底mapを次のように分類する。
+
+\begin{longtable}{p{0.20\linewidth}p{0.25\linewidth}p{0.47\linewidth}}
+\toprule
+map & 根拠区分 & 作成法と限界\\\midrule\endhead
+drive ECO/POWER & メーカー実測試験 & M2096のECO/PWM試験表の$\eta_t=P_m/P_{in}$を速度--トルク平面へ補間する。$P_{in}$はコントローラDC入力なので、別のinverter損失は掛けない。\\
+regen & 理論外挿 & drive実測効率を基礎に充電側損失を加える。直接回生試験ではないため、利用率を別係数として同定する。\\
+panel & 商品仕様+現地検算 & STC効率と温度係数から$G$--$T_{cell}$面を作る。セル温度を欠く現地試験は総合chain検算にのみ使う。\\
+MPPT & 取扱説明書+理論補間 & 記載された変換損失と自己消費を基礎に、低電力・高温域を滑らかに補間する。\\
+OCV & 負荷放電試験+DC補正 & 負荷電圧へDCIR priorによる電圧降下を戻すpseudo-OCV。静置多SoC試験で置換する余地がある。\\
+Rint & 放電曲線+工学prior & SoC形状と温度依存を作り、25\,$^\circ$C・SoC 0.5で0.04\,$\Omega$/cellのDC priorへ正規化する。仕様書の0.01\,$\Omega$は1 kHz AC値である。\\
+\bottomrule
+\end{longtable}
+
+したがって「すべて実測済み」とは扱わない。\texttt{grounded\_map\_sources.yaml}へ
+出典、作成式、置換に必要な試験を保存し、MLEはこの基底を無制限には書き換えない。
+
+効率倍率の実装契約は
+\[
+ \eta_{drive}=\mathrm{clip}(k_\eta M_{base}(v,\tau),0.55,0.99)
+\]
+である。同定開始時は入力profileに残る旧$k_\eta$を1へ中立化し、候補$k_\eta$を
+一度だけ掛ける。M2096の$M_{base}=P_m/P_{in}$はcontroller込みなので
+\texttt{inverter\_eta}=1とする。旧倍率と候補倍率、またはcontroller損失を二重に
+掛けると、fit内部と生成profileのreplayが別モデルになる。
+
+\question{M4}{$M_{base}=0.90,b=0.02,a=-0.01,c=0.015$の補正値を求めよ。}
+\answer{$0.90\exp(0.025)=0.92278$。効率上限が0.99ならclip不要。}
+
+\question{M4b}{入力profileの旧倍率1.04、候補倍率1.03を誤って二重適用した場合と、
+候補だけを適用した場合の$M_{base}=0.88$に対する効率を比較せよ。}
+\answer{誤りは$0.88\times1.04\times1.03=0.94266$、正しくは
+$0.88\times1.03=0.9064$。差3.626 percentage pointsは走行電力へ系統誤差を作る。}
+
+\section{PV基底と停止POAを分離して解く}
+PV基底fitでは、目的変数である実測PVから逆算した
+\texttt{GHI\_effective}を説明変数に戻してはならない。
+外部Open-Meteo archiveの\texttt{shortwave\_radiation\_instant}、かつ
+速度12 km/h以上の走行点だけでpanel chainを同定する。
+cell温度を
+\[
+T_{cell}=T_{amb}+k_TG
+\]
+とし、base map出力 $p_i$ にpanel gain $g_p$を掛ける。
+$k_T$を固定したとき、Gaussian MLEの$g_p$は
+\[
+g_p^*=\frac{\sum_i p_i y_i}{\sum_i p_i^2}.
+\]
+演習データを $p=[400,600,800]$ W、$y=[420,610,850]$ Wとする。
+
+\question{M5}{$g_p^*$、3残差、RMSEを求めよ。}
+\answer{$g_p=1.0465517$、残差$[1.3793,-17.9310,12.7586]$ W、
+RMSE $=12.7306$ W。}
+
+実装では $(g_p,k_T)$ をbound
+$g_p\in[0.6,1.25],k_T\in[0.015,0.05]$ 内でL-BFGS-B最適化する。
+夜間、トラブルPV、weather不整合点はfit対象から除く。
+
+停止充電は同じfitへ混ぜない。外部観測のDNI、DHI、GHIから
+\[
+\begin{split}
+\cos\theta_z&=\mathrm{clip}\left(\frac{GHI-DHI}{DNI},0,1\right),\\
+POA_{\mathrm{ideal}}&=DNI+
+\frac{DHI(1+\cos\theta_z)}{2}+
+\frac{\rho_gGHI(1-\cos\theta_z)}{2},\\
+POA_{\mathrm{stop}}&=GHI+
+f_{\mathrm{tilt}}(POA_{\mathrm{ideal}}-GHI),\quad
+0\le f_{\mathrm{tilt}}\le1
+\end{split}
+\]
+を作り、停止点だけで$f_{\mathrm{tilt}}$を別にfitする。
+
+\question{M5b}{$GHI=700$, $DNI=900$, $DHI=100$ W/m$^2$,
+$\rho_g=0.2$, $f_{\mathrm{tilt}}=0.4$のとき
+$\cos\theta_z$, $POA_{\mathrm{ideal}}$, $POA_{\mathrm{stop}}$を求めよ。}
+\answer{$\cos\theta_z=2/3$,
+$POA_{\mathrm{ideal}}=900+83.333+23.333=1006.667$ W/m$^2$,
+$POA_{\mathrm{stop}}=822.667$ W/m$^2$。}
+
+Open-Meteoの通常の日射変数は直前1時間平均であり、現行pipelineでは
+\texttt{*\_instant}を使う。通常変数10:00の600 W/m$^2$と、
+同時刻の瞬時値520 W/m$^2$を比較する。
+
+\question{M5c}{通常変数の平均対象時刻、中心時刻、瞬時値との差と
+瞬時値基準の相対差を求めよ。}
+\answer{対象は09:00--10:00、中心は09:30。
+差は$600-520=80$ W/m$^2$、相対差は$80/520=15.38\%$。
+平均値を10:00瞬時値とみなすと時刻位相と振幅の両方を誤る。}
+
+\subsection{DC bus発電計測のゲインを独立に同定する}
+日中停車かつ駆動電力がほぼゼロなら、未補正の発電計測値
+$P_{\mathrm{solar,raw}}$ とバッテリー電力は
+\[
+P_{\mathrm{batt},i}=P_{\mathrm{aux}}
+-g_{\mathrm{solar}}P_{\mathrm{solar,raw},i}+\varepsilon_i
+\]
+で結ばれる。切片を0へ固定した二乗誤差解は
+\[
+\hat g_{\mathrm{solar}}=
+\frac{\sum_iP_{\mathrm{solar,raw},i}
+(P_{\mathrm{aux}}-P_{\mathrm{batt},i})}
+{\sum_iP_{\mathrm{solar,raw},i}^2}
+\]
+であり、実装は切片も診断しつつ、有界Huber M推定で外れ値を抑える。
+
+\question{M5d}{$P_{\mathrm{aux}}=21$ W、
+$P_{\mathrm{solar,raw}}=[300,500,700]$ W、
+$P_{\mathrm{batt}}=[-255,-439,-623]$ Wから$\hat g_{\mathrm{solar}}$を求めよ。
+さらにraw 410 Wに対する補正後発電量と、送信側・受信側の双方で同じ係数を
+掛けた場合の値および誤差を求めよ。}
+\answer{$P_{\mathrm{aux}}-P_{\mathrm{batt}}=[276,460,644]$ Wなので
+$\hat g=(300\times276+500\times460+700\times644)/(300^2+500^2+700^2)
+=0.92$。一度だけなら$410\times0.92=377.2$ W。
+二重補正では$410\times0.92^2=347.024$ Wとなり、$30.176$ W過小評価する。}
+
+\question{M5e}{25直列、race-use上限4.35 V/cellのpack上限を求めよ。
+OCV map最大値106.889 Vに対する余裕を求め、profileの
+$V_{\max}=108.75$ Vが採用可能か判定せよ。}
+\answer{$V_{\max}=25\times4.35=108.75$ V、OCV map最大値までの余裕は
+$108.75-106.889=1.861$ V。profile値はhardware上限と一致し、OCV mapも
+上限以下なので採用可能である。}
+
+\section{一行のmotion powerを再現する}
+速度60 km/h、headwind 2 m/s、勾配1\%、
+$m=235$ kg、$C_dA=0.111167$ m$^2$、$C_{rr}=0.006262$、
+勾配補正$k_g=0.830737$、$P_{aux}=21.021$ W、$P_{pv}=500$ W、
+MLE35 map補間・倍率適用後$\eta_d=0.939917$、$\eta_{inv}=1.0$ とする。
+\[
+P_{pack}^{pred}=\frac{(F_{aero}+F_{roll}+F_{grade})v}
+{\eta_d\eta_{inv}}+P_{aux}-P_{pv}.
+\]
+
+\question{M6}{$F_{aero},F_{roll},F_{grade},P_{wheel},P_{pack}^{pred}$を求めよ。}
+\answer{$22.8540$ N、$14.4307$ N、$19.1442$ N、
+$940.4805$ W、$521.6205$ W。勾配力には$k_g$を一度だけ適用する。}
+
+次に実ログの「70 km/hで約800 W」を独立に検算する。
+$v=70/3.6$ m/s、$m=235$ kg、$\rho=1.18$ kg/m$^3$、
+$C_dA=0.111167$ m$^2$、$C_{rr}=0.006262$、平坦・無風、
+map補間値$0.897351$にMLE35の倍率$1.034296$を一度だけ掛けた
+$\eta_d=0.928126$、$\eta_{inv}=1.0$、$P_{aux}=21.021$ Wとする。
+
+\question{M6b}{$F_{aero}$、$F_{roll}$、$P_{wheel}$、
+$P_{vehicle}=P_{wheel}/(\eta_d\eta_{inv})+P_{aux}$を求めよ。}
+\answer{$24.7981$ N、$14.4312$ N、$762.7920$ W、$842.8834$ W。
+観測68--72 km/hの平坦・低風中央値826--846 W内である。
+これはPV差引後の電池電力ではなく、車両総負荷である。}
+
+上位予測と1 Hz実行では、定速road loadとは別に速度変化の運動エネルギーを
+\[
+\Delta E_k=\tfrac12m(v_k^2-v_{k-1}^2),\qquad
+P_{inertia}=\Delta E_k/\Delta t
+\]
+としてwheel powerへ一度だけ加える。目的関数のsmooth penaltyはこの物理エネルギーの代用ではない。
+
+\question{M6c}{$m=235$ kg、$v_{k-1}=60$ km/h、$v_k=70$ km/h、
+$\Delta t=10$ sのとき、$\Delta E_k$ [J]、[Wh]、$P_{inertia}$ [W]を求めよ。}
+\answer{$\Delta E_k=11786.27$ J $=3.27396$ Wh、
+$P_{inertia}=1178.63$ W。減速時は符号が負となり、実回生分だけ
+$u_{regen}\eta_{regen}\eta_{gear}\eta_{inv}$を通して電池へ戻る。}
+
+motion fitの6変数は
+\[
+\theta_M=[C_dA,C_{rr},P_{aux},k_{grade},k_{\eta d},k_{wind}]
+\]
+で、実装boundは概ね
+\[
+[0.07,0.15]\times[0.002,0.02]\times[10,40]\times
+[0.65,1.15]\times[0.85,1.12]\times[0,0.40].
+\]
+
+\question{M7}{$C_dA$とheadwind gain、$C_{rr}$とgrade scaleが相殺し得る理由を述べよ。}
+\answer{いずれも同じpack power残差へ寄与し、速度・風・勾配の励起が不足すると
+説明変数が共線になるため。仕様prior、広い運転領域、独立coast-down/風観測が必要。}
+
+\subsection{回生効率と回生利用率を分離する}
+負の機械仕事が発生しても、惰性走行・機械ブレーキ・電池の受入制約により、
+その全量を電気回生するとは限らない。そこでmapの回生効率
+$\eta_{\mathrm{regen}}$とは別に、回生利用率$u_{\mathrm{regen}}\in[0,1]$を置く。
+\[
+P_{\mathrm{regen,dc}}=
+u_{\mathrm{regen}}\eta_{\mathrm{regen}}\eta_{\mathrm{gear}}
+\eta_{\mathrm{inv}}\max(-P_{\mathrm{mech}},0),
+\]
+\[
+P_{\mathrm{pack}}=P_{\mathrm{aux}}-P_{\mathrm{pv}}-P_{\mathrm{regen,dc}}.
+\]
+
+\question{M7b}{$P_{\mathrm{mech}}=-600$ W、$u_{\mathrm{regen}}=0.20$、
+$\eta_{\mathrm{regen}}=0.75$、$\eta_{\mathrm{gear}}=\eta_{\mathrm{inv}}=0.98$、
+$P_{\mathrm{aux}}=21$ W、$P_{\mathrm{pv}}=100$ Wのとき、
+$P_{\mathrm{regen,dc}}$と$P_{\mathrm{pack}}$を求めよ。}
+\answer{$P_{\mathrm{regen,dc}}=
+0.20\times0.75\times0.98\times0.98\times600=86.436$ W。
+$P_{\mathrm{pack}}=21-100-86.436=-165.436$ Wであり、負号は充電を表す。}
+
+回生なし予測を$b_i$、利用率1のときに追加回収できる電力を$g_i$、
+観測pack電力を$y_i$とすれば、$y_i\simeq b_i-u_{\mathrm{regen}}g_i$である。
+二乗誤差の制約なし解は
+\[
+\hat u_{\mathrm{regen}}=
+\frac{\sum_i g_i(b_i-y_i)}{\sum_i g_i^2}
+\]
+で、実装はこれを$[0,1]$へ制約しHuber損失で解く。
+
+\question{M7c}{$b=[20,40]$ W、$g=[300,200]$ W、
+$y=[-40,0]$ Wのとき、二乗誤差解$\hat u_{\mathrm{regen}}$を求めよ。}
+\answer{分子は$300(20+40)+200(40-0)=26000$、分母は
+$300^2+200^2=130000$なので、$\hat u_{\mathrm{regen}}=0.20$。}
+
+\subsection{5秒同期誤差と区間エネルギーを区別する}
+ZPログは記録開始時刻が不明で、control stop時刻から逆算された区間を含む。
+また5秒標本は電流過渡を取り逃す。このため、速度・DEM勾配・電池電力の一行比較を
+唯一の精度指標にせず、120秒平均と10/25 km区間エネルギーも必ず検証する。
+
+\question{M7d}{5秒ごとの電力残差が$[300,-300,200,-200]$ Wのとき、
+点RMSE、20秒平均残差、20秒の積算エネルギー残差を求めよ。}
+\answer{点RMSEは
+$\sqrt{(300^2+300^2+200^2+200^2)/4}=254.95$ W。
+平均残差は0 W、積算残差は
+$(300-300+200-200)\times5/3600=0$ Wh。
+したがって点RMSEだけで経路エネルギーモデルを棄却してはならない一方、
+同期補正で点RMSEを人為的に下げただけでも高精度とは言えない。}
+
+遅延候補またはDEM平滑化候補の最良値が探索範囲の最小・最大に一致した場合、
+それは収束証明ではなく範囲不足の診断である。実装は探索端flagをsummaryへ保存し、
+範囲を拡張して独立日hold-outを再実行するまでoperational昇格を許可しない。
+
+\section{battery 5変数fit}
+電池変数は
+\[
+\theta_B=[z_0,Q_{nom},k_R,R_{line},\eta_{chg}].
+\]
+各行で観測pack電力を積分し、
+\[
+z_{k+1}=z_k-\eta(I_k)\frac{I_k\Delta t_k}{3600Q_{nom}},
+\]
+\[
+R_k=k_RR_{map}(T_k,z_k)+R_{line},\quad
+I_k=\frac{OCV(z_k)-\sqrt{OCV(z_k)^2-4R_kP_k}}{2R_k},
+\]
+\[
+V_k^{pred}=OCV(z_k)-I_kR_k
+\]
+を計算する。
+
+$OCV=96$ V、$R=0.20\,\Omega$、$P=604.415$ W、
+$z_0=0.8,Q_{nom}=33.0$ Ah、$\Delta t=600$ sとする。
+
+\question{M8}{判別式、電流、端子電圧、$z_1$を求めよ。}
+\answer{$D=8732.468$ V$^2$、$I=6.38081$ A、$V=94.7238$ V、
+$z_1=0.7677737$。}
+
+\question{M9}{観測電圧95.10 Vなら、この一点の電圧残差と$\sigma_V=1$ Vの二乗正規化残差を求めよ。}
+\answer{$r_V=95.10-94.7238=0.3762$ V、$(r_V/1)^2=0.14150$。}
+
+\section{battery 1-RC分極枝}
+静的DCIRで説明できない電圧遅れは
+\[
+\alpha=\exp(-\Delta t/\tau_p),\qquad
+V_{p,k+1}=\alpha V_{p,k}+(1-\alpha)R_pI_k,
+\]
+\[
+V_k=OCV(z_k)-I_kR_0-V_{p,k}
+\]
+で分離する。$R_p=0.060\,\Omega$、$\tau_p=60$ s、$\Delta t=5$ s、
+$V_{p,0}=0$ V、$I_0=10$ Aとする。
+
+\question{M9A}{$\alpha$、$V_{p,1}$、分極による端子電圧低下を求めよ。}
+\answer{$\alpha=e^{-5/60}=0.920044$、
+$V_{p,1}=(1-0.920044)\times0.060\times10=0.04797$ V。
+同じ電流が続けば$V_p$は定常値$R_pI=0.600$ Vへ滑らかに収束する。}
+
+$\tau_p$候補ごとにDay1--Day5の分極状態$x_i(\tau_p)$を計算し、
+\[
+ \hat R_p(\tau_p)=\mathrm{clip}\!\left(
+ -\frac{\sum_{i\in\mathcal D_{tr}}r_i x_i}
+ {\sum_{i\in\mathcal D_{tr}}x_i^2},0,0.12\right)
+\]
+を閉形式で求める。ここで$r_i=V_i^{obs}-V_i^{static}$である。
+Day6は$R_p,\tau_p$の選択に使わず、同日の電圧RMSEが悪化しない場合だけ
+1-RC枝を採用する。悪化時は$R_p=0$へ戻し、静的DCIRモデルを維持する。
+
+\question{M9B}{Day1--Day5のRMSEが1.05 Vから0.96 Vへ改善したが、
+Day6が0.90 Vから0.94 Vへ悪化した。$R_p$補正を採用するか。Day6 RMSE比も求めよ。}
+\answer{比は$0.94/0.90=1.0444>1$なので棄却し、$R_p=0$へ戻す。
+training改善だけでは採用しない。}
+
+\section{2831 km終端anchor}
+事故地点は全コース終端ではないが、実ログreplayの強い同定anchorである。
+終端観測 $V=88.3$ V、$I=6.3$ A、$T=11^\circ$Cと、grounded OCV/Rintから
+\[
+OCV(z)=V+I\{k_RR_{map}(T,z)+R_{line}\}
+\]
+を満たす$z$を逆算する。電圧だけのinverse OCVでは負荷電圧降下をSoC低下と誤認する。
+
+\question{M10}{$R_{total}=0.25\,\Omega$と仮定したとき、推定OCVを求めよ。}
+\answer{$OCV=88.3+6.3\times0.25=89.875$ V。この値をOCV--SoC mapへ逆補間する。}
+
+\section{11次元joint refinement}
+\[
+\theta=[z_0,Q_{nom},k_R,R_{line},\eta_{chg},
+C_dA,C_{rr},P_{aux},k_{grade},k_{\eta d},k_{wind}].
+\]
+実装のjoint objectiveは、scaleを揃えたpower RMSE、voltage RMSE、power bias、
+25 km区間エネルギーRMSE、rest/stage/terminal anchor、prior、SoC boundを加える。
+\[
+J= w_P(RMSE_P/180)^2+w_V(RMSE_V/4)^2
++w_b(\bar r_P/75)^2+w_E(RMSE_{E,25}/35)^2
++J_{anchor}+J_{prior}+J_{bound}.
+\]
+例として$RMSE_P=300$ W、$RMSE_V=5$ V、$\bar r_P=60$ W、
+$RMSE_{E,25}=28$ Wh、$w_P=w_V=w_b=w_E=1$、追加項0なら計算する。
+
+\question{M11}{この$J$を求めよ。}
+\answer{$J=(300/180)^2+(5/4)^2+(60/75)^2+(28/35)^2
+=2.77778+1.5625+0.64+0.64=5.62028$。}
+
+\section{有限差分とparameter update}
+一変数$C_dA$について、$J(0.107)=5.20$、$J(0.108)=5.05$、
+$J(0.106)=5.41$とする。中心差分は
+\[
+\frac{\partial J}{\partial C_dA}\simeq
+\frac{J(0.108)-J(0.106)}{0.002}.
+\]
+
+\question{M12}{勾配と、学習率$10^{-4}$の単純gradient stepを求めよ。}
+\answer{勾配$-180$、更新$0.107-10^{-4}(-180)=0.125$。
+実装はこのような単純stepではなく、scale、bound、L-BFGS memory、line searchを使う。}
+
+\section{multi-startと採否}
+11次元非凸問題なので、仕様seed、段階fit seed、摂動seedを先に評価し、
+上位だけをL-BFGS-Bへ渡す。fit後map/scalarは、同じデータの目的関数だけでなく
+full replay scoreと独立日検証が悪化しない場合だけ採用する。
+
+map形状補正はDay1--Day5のtraining集合$\mathcal D_{tr}$だけで
+\[
+ \hat\alpha=\arg\min_{\alpha}
+ \sum_{i\in\mathcal D_{tr}}\rho\!\left(y_i-M_{base}(x_i)S_\alpha(x_i)\right)
+ +\lambda_s\|D\alpha\|_2^2+\lambda_a\|\alpha\|_2^2
+\]
+を解く。Day6集合$\mathcal D_{ho}$にはoptimizerから一度も触れず、
+\[
+ r_{ho}=\frac{\operatorname{RMSE}_{\mathcal D_{ho}}
+ (M_{base}S_{\hat\alpha})}
+ {\operatorname{RMSE}_{\mathcal D_{ho}}(M_{base})}\le1
+\]
+かつ最小標本数を満たす場合だけ採用する。不合格なら$S\equiv1$へ戻す。
+panelとMPPTは実ログだけでは分離識別できないため、積の総合chain補正を検証し、
+log補正を仕様根拠に基づく固定比で配分する。OCV補正候補は診断できても、
+同じOCVから推定したSoCを教師にすると循環するため、独立クーロン積算または静置SoCが
+ない限り採用しない。
+
+\question{M13}{seed Aの目的4.2、seed Bの3.8、seed Cの5.1でlocal topk=2なら、どれを局所最適化へ渡すか。}
+\answer{BとA。seed Cはこの段階では渡さない。}
+
+\question{M14}{map shape補正後の点RMSEだけ改善し、day6 replay、25 km区間Wh、2831 km anchorが悪化した場合の採否を書け。}
+\answer{棄却。base map/scalar cycleへ戻し、summaryへrejectedと両scoreを保存する。
+現行map形状fitではDay6をoptimizerから除外した独立hold-outとして扱い、
+Day6 RMSE比が1以下でない補正は恒等写像へ戻す。scalar joint fitの全体指標と、
+このmap採否用hold-outを同じ意味の指標として混同しない。}
+
+\section{profileへの投入経路}
+成功時は次を出力する。
+\begin{longtable}{p{0.37\linewidth}p{0.56\linewidth}}
+\toprule
+成果物&用途\\\midrule\endhead
+\nolinkurl{outputs/identification/}\newline
+\nolinkurl{adopted_maps/*.csv}&fit後drive/regen/Rint/panel/MPPT/OCV\\
+\texttt{replay\_validation.csv}&各時刻の観測/予測/残差/flag\\
+\texttt{*\_generic\_fit\_summary.yaml}&変数、bound、RMSE、anchor、day別結果\\
+\texttt{profile.yaml}&live/simが読む採用scalarとmap path\\
+\texttt{profile\_fullsim\_selflearned.yaml}&同じ車両modelを使うfullsim profile\\
+\texttt{current\_maps\_and\_coefficients.md}&人が確認する出典・係数一覧\\
+\bottomrule
+\end{longtable}
+
+\question{M15}{MLE成功後、simだけ新mapを使いliveが旧mapを使う状態が危険な理由を述べよ。}
+\answer{事前計画と実運用の予測モデルが別物になり、SoC予測・速度指令・autocalの基準が再現不能になるため。
+canonical profileを一箇所で更新し、resolved profileとhashを保存する。}
+
+\section{実行コマンドと検証順}
+\begin{lstlisting}
+powershell -ExecutionPolicy Bypass -File .\SolarSim.ps1 `
+  -Action fit `
+  -Profile project_packages\<vehicle>\profile.yaml
+
+powershell -ExecutionPolicy Bypass -File .\SolarSim.ps1 `
+  -Action simulate `
+  -Profile project_packages\<vehicle>\profile.yaml
+\end{lstlisting}
+順序はmanifest確認、入力QA、fit、replay、map形状の独立日hold-out、terminal anchor、
+fullsim、shadow live、採用である。
+
+\question{M16}{fit summaryで最低限確認する5項目を書け。}
+\answer{power RMSE/bias、voltage RMSE/bias、day別残差、終端SoC/電圧anchor誤差、
+parameterがboundへ張り付いていないか。加えて残差自己相関と除外率も確認する。}
+
+\question{M17}{RMSEが小さくてもモデルが高精度と言えない三つの例を書け。}
+\answer{時刻同期ずれを別係数が吸収、$C_dA$と風gainの相殺、同一日への過適合、
+トラブル点の誤分類、非物理mapへのscale補正のうち三つ。}
+
+\question{M18}{入力から運用までを一行で書け。}
+\answer{仕様・試験からbase map作成 $\rightarrow$ 実走CSV/event/weather QA
+$\rightarrow$ PV/battery/motion段階fit $\rightarrow$ 11D joint fit
+$\rightarrow$ map shape再fit $\rightarrow$ replay/anchor/day・segment gate
+$\rightarrow$ canonical profile/map更新 $\rightarrow$ fullsim/shadow/live。}
+
+\section{根拠文献}
+\begin{thebibliography}{9}
+\bibitem{huber} P. J. Huber, Robust Estimation of a Location Parameter,
+\textit{Annals of Mathematical Statistics}, 1964.
+\bibitem{lbfgsb} R. H. Byrd, P. Lu, J. Nocedal, C. Zhu,
+A Limited Memory Algorithm for Bound Constrained Optimization,
+\textit{SIAM Journal on Scientific Computing}, 1995.
+\bibitem{plett} G. L. Plett, \textit{Battery Management Systems, Vol. I}, 2015.
+\bibitem{ljung} L. Ljung, \textit{System Identification: Theory for the User}, 2nd ed., 1999.
+\bibitem{liu-grade} H. Liu et al.,
+Evaluation of mobile vehicle emissions and their contribution to air quality,
+\textit{Atmospheric Environment}, 2014,
+doi:10.1016/j.atmosenv.2013.12.025.
+\bibitem{wang-sync} J. Wang et al.,
+Energy consumption decomposition with synchronized vehicle data,
+University of California eScholarship, \url{https://escholarship.org/uc/item/2bp8x04q}.
+\end{thebibliography}
+
+\section*{修了条件}
+M1--M18（枝番を含む）の80\%以上、かつ
+M3、M5c、M6、M6b、M7b、M7c、M7d、M8、M10、M14、M15を正答すること。
+\end{document}

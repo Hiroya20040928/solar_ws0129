@@ -1,0 +1,1231 @@
+{
+  "pdf": "C:\\Users\\user\\OneDrive - 和歌山大学\\ソーラー\\エネマネ\\solar_ws0129-main\\exports\\solarcar_only_package_20260712\\docs\\live_low_level_reference\\solarcar_live_low_level_reference.pdf",
+  "pages": 153,
+  "blank_candidates": [],
+  "page_stats": [
+    {
+      "page": 1,
+      "text_chars": 118,
+      "drawings": 0,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 2,
+      "text_chars": 3487,
+      "drawings": 0,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 3,
+      "text_chars": 4753,
+      "drawings": 1,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 4,
+      "text_chars": 5327,
+      "drawings": 1,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 5,
+      "text_chars": 1461,
+      "drawings": 16,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 6,
+      "text_chars": 854,
+      "drawings": 3,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 7,
+      "text_chars": 1005,
+      "drawings": 21,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 8,
+      "text_chars": 815,
+      "drawings": 18,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 9,
+      "text_chars": 281,
+      "drawings": 2,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 10,
+      "text_chars": 518,
+      "drawings": 1,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 11,
+      "text_chars": 810,
+      "drawings": 6,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 12,
+      "text_chars": 214,
+      "drawings": 2,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 13,
+      "text_chars": 950,
+      "drawings": 1,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 14,
+      "text_chars": 531,
+      "drawings": 1,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 15,
+      "text_chars": 397,
+      "drawings": 0,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 16,
+      "text_chars": 463,
+      "drawings": 0,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 17,
+      "text_chars": 616,
+      "drawings": 3,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 18,
+      "text_chars": 446,
+      "drawings": 3,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 19,
+      "text_chars": 720,
+      "drawings": 3,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 20,
+      "text_chars": 1614,
+      "drawings": 2,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 21,
+      "text_chars": 174,
+      "drawings": 4,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 22,
+      "text_chars": 31,
+      "drawings": 0,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 23,
+      "text_chars": 5554,
+      "drawings": 3,
+      "images": 0,
+      "width_pt": 841.8900146484375,
+      "height_pt": 595.280029296875
+    },
+    {
+      "page": 24,
+      "text_chars": 4740,
+      "drawings": 3,
+      "images": 0,
+      "width_pt": 841.8900146484375,
+      "height_pt": 595.280029296875
+    },
+    {
+      "page": 25,
+      "text_chars": 5714,
+      "drawings": 3,
+      "images": 0,
+      "width_pt": 841.8900146484375,
+      "height_pt": 595.280029296875
+    },
+    {
+      "page": 26,
+      "text_chars": 6492,
+      "drawings": 3,
+      "images": 0,
+      "width_pt": 841.8900146484375,
+      "height_pt": 595.280029296875
+    },
+    {
+      "page": 27,
+      "text_chars": 5532,
+      "drawings": 4,
+      "images": 0,
+      "width_pt": 841.8900146484375,
+      "height_pt": 595.280029296875
+    },
+    {
+      "page": 28,
+      "text_chars": 1369,
+      "drawings": 110,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 29,
+      "text_chars": 2139,
+      "drawings": 167,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 30,
+      "text_chars": 1419,
+      "drawings": 163,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 31,
+      "text_chars": 1552,
+      "drawings": 163,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 32,
+      "text_chars": 1947,
+      "drawings": 167,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 33,
+      "text_chars": 1580,
+      "drawings": 145,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 34,
+      "text_chars": 1935,
+      "drawings": 153,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 35,
+      "text_chars": 2022,
+      "drawings": 151,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 36,
+      "text_chars": 1844,
+      "drawings": 163,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 37,
+      "text_chars": 1936,
+      "drawings": 163,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 38,
+      "text_chars": 2602,
+      "drawings": 153,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 39,
+      "text_chars": 2365,
+      "drawings": 165,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 40,
+      "text_chars": 3098,
+      "drawings": 165,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 41,
+      "text_chars": 3060,
+      "drawings": 173,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 42,
+      "text_chars": 2342,
+      "drawings": 167,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 43,
+      "text_chars": 4010,
+      "drawings": 167,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 44,
+      "text_chars": 1850,
+      "drawings": 149,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 45,
+      "text_chars": 2034,
+      "drawings": 167,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 46,
+      "text_chars": 2111,
+      "drawings": 165,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 47,
+      "text_chars": 2216,
+      "drawings": 151,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 48,
+      "text_chars": 2329,
+      "drawings": 169,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 49,
+      "text_chars": 1773,
+      "drawings": 165,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 50,
+      "text_chars": 2107,
+      "drawings": 149,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 51,
+      "text_chars": 2316,
+      "drawings": 153,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 52,
+      "text_chars": 2196,
+      "drawings": 151,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 53,
+      "text_chars": 3532,
+      "drawings": 167,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 54,
+      "text_chars": 2437,
+      "drawings": 171,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 55,
+      "text_chars": 2087,
+      "drawings": 153,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 56,
+      "text_chars": 2102,
+      "drawings": 151,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 57,
+      "text_chars": 2130,
+      "drawings": 153,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 58,
+      "text_chars": 2504,
+      "drawings": 169,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 59,
+      "text_chars": 946,
+      "drawings": 59,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 60,
+      "text_chars": 2209,
+      "drawings": 153,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 61,
+      "text_chars": 3040,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 62,
+      "text_chars": 3962,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 63,
+      "text_chars": 3001,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 64,
+      "text_chars": 2835,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 65,
+      "text_chars": 2024,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 66,
+      "text_chars": 2554,
+      "drawings": 193,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 67,
+      "text_chars": 4269,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 68,
+      "text_chars": 3405,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 69,
+      "text_chars": 3010,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 70,
+      "text_chars": 3653,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 71,
+      "text_chars": 3562,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 72,
+      "text_chars": 3999,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 73,
+      "text_chars": 5524,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 74,
+      "text_chars": 4892,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 75,
+      "text_chars": 6130,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 76,
+      "text_chars": 4858,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 77,
+      "text_chars": 5494,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 78,
+      "text_chars": 4240,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 79,
+      "text_chars": 4104,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 80,
+      "text_chars": 3889,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 81,
+      "text_chars": 3743,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 82,
+      "text_chars": 4458,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 83,
+      "text_chars": 4363,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 84,
+      "text_chars": 3809,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 85,
+      "text_chars": 3429,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 86,
+      "text_chars": 3627,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 87,
+      "text_chars": 3690,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 88,
+      "text_chars": 3890,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 89,
+      "text_chars": 4537,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 90,
+      "text_chars": 4599,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 91,
+      "text_chars": 3381,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 92,
+      "text_chars": 4636,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 93,
+      "text_chars": 4483,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 94,
+      "text_chars": 3940,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 95,
+      "text_chars": 3149,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 96,
+      "text_chars": 4099,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 97,
+      "text_chars": 3779,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 98,
+      "text_chars": 4106,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 99,
+      "text_chars": 3983,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 100,
+      "text_chars": 3382,
+      "drawings": 193,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 101,
+      "text_chars": 3695,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 102,
+      "text_chars": 2776,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 103,
+      "text_chars": 3504,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 104,
+      "text_chars": 2762,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 105,
+      "text_chars": 3461,
+      "drawings": 196,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 106,
+      "text_chars": 3761,
+      "drawings": 206,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 107,
+      "text_chars": 3529,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 108,
+      "text_chars": 3707,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 109,
+      "text_chars": 3300,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 110,
+      "text_chars": 3535,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 111,
+      "text_chars": 3741,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 112,
+      "text_chars": 3900,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 113,
+      "text_chars": 3561,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 114,
+      "text_chars": 4846,
+      "drawings": 208,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 115,
+      "text_chars": 2753,
+      "drawings": 206,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 116,
+      "text_chars": 3148,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 117,
+      "text_chars": 3064,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 118,
+      "text_chars": 3810,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 119,
+      "text_chars": 2891,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 120,
+      "text_chars": 3367,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 121,
+      "text_chars": 2610,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 122,
+      "text_chars": 3933,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 123,
+      "text_chars": 3464,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 124,
+      "text_chars": 4359,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 125,
+      "text_chars": 3332,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 126,
+      "text_chars": 5060,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 127,
+      "text_chars": 2903,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 128,
+      "text_chars": 2959,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 129,
+      "text_chars": 6578,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 130,
+      "text_chars": 4734,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 131,
+      "text_chars": 3617,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 132,
+      "text_chars": 4965,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 133,
+      "text_chars": 3938,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 134,
+      "text_chars": 4022,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 135,
+      "text_chars": 2734,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 136,
+      "text_chars": 4334,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 137,
+      "text_chars": 4944,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 138,
+      "text_chars": 3470,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 139,
+      "text_chars": 2953,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 140,
+      "text_chars": 3361,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 141,
+      "text_chars": 3286,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 142,
+      "text_chars": 4000,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 143,
+      "text_chars": 2528,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 144,
+      "text_chars": 2374,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 145,
+      "text_chars": 2117,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 146,
+      "text_chars": 2608,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 147,
+      "text_chars": 2260,
+      "drawings": 179,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 148,
+      "text_chars": 6977,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 149,
+      "text_chars": 5822,
+      "drawings": 201,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 150,
+      "text_chars": 2839,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 151,
+      "text_chars": 2655,
+      "drawings": 207,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 152,
+      "text_chars": 2910,
+      "drawings": 193,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    },
+    {
+      "page": 153,
+      "text_chars": 1194,
+      "drawings": 68,
+      "images": 0,
+      "width_pt": 595.280029296875,
+      "height_pt": 841.8900146484375
+    }
+  ]
+}

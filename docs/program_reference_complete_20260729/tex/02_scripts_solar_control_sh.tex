@@ -1,0 +1,426 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={WSL側 実行ルータ},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{02. WSL側 実行ルータ}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|scripts/solar_control.sh| \\
+        ソースSHA-256 & \path|3a3beda8fd115e6a5f5ce0974d68273fb14f341f19bd1ad72a72fcad44d5ebca| \\
+        種別 & Bash \\
+        区分 & 入口 \\
+        役割 & ROS 2 build、launch、offline simulation、forecast、identification、learn を mode 別に振り分ける。 \\
+        起動文脈 & SolarSim.ps1 から WSL 内で呼ばれる実行ルータ。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        ROS 2 build、launch、offline simulation、forecast、identification、learn を mode 別に振り分ける。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item mode から launch file を決める。
+\item ROS 環境を source する。
+\item 起動 PID 管理と stop/status/graph を一括で持つ。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|SolarSim.ps1|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|launch/solarcar_sim.launch.py|
+\item \path|launch/solar_race_live.launch.py|
+\item \path|scripts/solar_sim.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+RUN_DIR="${ROOT_DIR}/.run"
+DISTRO_NAME="${ROS_DISTRO:-humble}"
+
+mkdir -p "${RUN_DIR}"
+export AMENT_TRACE_SETUP_FILES="${AMENT_TRACE_SETUP_FILES-}"
+
+action="${1:-up}"
+mode="${2:-sim}"
+profile="${3:-config/solar/bwsc_2027_demo.yaml}"
+
+case "${mode}" in
+  sim)
+    launch_file="solarcar_sim.launch.py"
+    ;;
+  measure)
+    launch_file="solar_measurement.launch.py"
+    ;;
+  live)
+    launch_file="solar_race_live.launch.py"
+    ;;
+  live_wifi)
+    launch_file="solar_race_live_wifi.launch.py"
+    ;;
+  *)
+    echo "unknown mode: ${mode}" >&2
+    exit 2
+    ;;
+esac
+
+PID_FILE="${RUN_DIR}/solar_${mode}.pid"
+LOG_FILE="${RUN_DIR}/solar_${mode}.log"
+GRAPH_BASE="${ROOT_DIR}/rqt_graph_solar_${mode}"
+
+source_ros() {
+  set +u
+  # shellcheck disable=SC1091
+  source "/opt/ros/${DISTRO_NAME}/setup.bash"
+  if [[ -f "${ROOT_DIR}/install/setup.bash" ]]; then
+    # shellcheck disable=SC1091
+    source "${ROOT_DIR}/install/setup.bash"
+  fi
+  set -u
+}
+
+is_running() {
+  [[ -f "${PID_FILE}" ]] || return 1
+  local pid
+  pid="$(cat "${PID_FILE}")"
+  [[ -n "${pid}" ]] || return 1
+  ps -p "${pid}" -o pid= 2>/dev/null | grep -q .
+}
+
+find_matching_pids() {
+  ps -eo pid=,args= | awk '
+    $0 ~ /\/opt\/ros\/humble\/bin\/ros2 launch mpc_solarcar solar(car_sim|_measurement|_race_live|_race_live_wifi)\.launch\.py/ || $0 ~ /install\/mpc_solarcar\/lib\/mpc_solarcar\/(gps_sim_node|mpc_node|solar_state_node|dashboard_node|solar_logger_node|distance_node|grade_node|weather_fetch_node|solar_autocal_node|speed_command_bridge_node|telemetry_text_bridge_node|wind_correction_node)/ {
+      print $1
+    }
+  '
+}
+
+has_matching_processes() {
+  [[ -n "$(find_matching_pids)" ]]
+}
+
+kill_matching_processes() {
+  local pid
+  while read -r pid; do
+    [[ -n "${pid}" ]] || continue
+    kill -TERM "${pid}" 2>/dev/null || true
+  done < <(find_matching_pids)
+}
+
+stop_launch() {
+  if is_running; then
+    local pid
+    pid="$(cat "${PID_FILE}")"
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        action 分岐は 20 件。
+
+
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            2 & set -euo pipefail \\
+4 & ROOT\_DIR="\$(cd "\$(dirname "\$\{BASH\_SOURCE[0]\}")/.." \&\& pwd)" \\
+5 & RUN\_DIR="\$\{ROOT\_DIR\}/.run" \\
+6 & DISTRO\_NAME="\$\{ROS\_DISTRO:-humble\}" \\
+8 & mkdir -p "\$\{RUN\_DIR\}" \\
+9 & export AMENT\_TRACE\_SETUP\_FILES="\$\{AMENT\_TRACE\_SETUP\_FILES-\}" \\
+11 & action="\$\{1:-up\}" \\
+12 & mode="\$\{2:-sim\}" \\
+13 & profile="\$\{3:-config/solar/bwsc\_2027\_demo.yaml\}" \\
+15 & case "\$\{mode\}" in \\
+16 & sim) \\
+17 & launch\_file="solarcar\_sim.launch.py" \\
+18 & ;; \\
+19 & measure) \\
+20 & launch\_file="solar\_measurement.launch.py" \\
+21 & ;; \\
+22 & live) \\
+23 & launch\_file="solar\_race\_live.launch.py" \\
+24 & ;; \\
+25 & live\_wifi) \\
+26 & launch\_file="solar\_race\_live\_wifi.launch.py" \\
+27 & ;; \\
+28 & *) \\
+29 & echo "unknown mode: \$\{mode\}" >\&2 \\
+30 & exit 2 \\
+31 & ;; \\
+32 & esac \\
+34 & PID\_FILE="\$\{RUN\_DIR\}/solar\_\$\{mode\}.pid" \\
+35 & LOG\_FILE="\$\{RUN\_DIR\}/solar\_\$\{mode\}.log" \\
+36 & GRAPH\_BASE="\$\{ROOT\_DIR\}/rqt\_graph\_solar\_\$\{mode\}" \\
+38 & source\_ros() \{ \\
+39 & set +u \\
+41 & source "/opt/ros/\$\{DISTRO\_NAME\}/setup.bash" \\
+42 & if [[ -f "\$\{ROOT\_DIR\}/install/setup.bash" ]]; then \\
+44 & source "\$\{ROOT\_DIR\}/install/setup.bash" \\
+45 & fi \\
+46 & set -u \\
+47 & \} \\
+49 & is\_running() \{ \\
+50 & [[ -f "\$\{PID\_FILE\}" ]] || return 1 \\
+            \bottomrule
+            \end{longtable}
+
+
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{CLI、PowerShell、Bash、環境変数、終了コード}
+CLIは端末からプログラム名と引数を渡す操作界面である。`argparse`は文字列として届く引数を名前、型、既定値、必須性に従って解析する。
+
+
+PowerShellとBashは別のshellであり、変数記法、改行継続、引用、パス表記が異なる。このプロジェクトではWindows側のSolarSim.ps1がWSL側のsolar\_control.shへ処理を渡す。
+
+
+環境変数は親プロセスから子プロセスへ受け渡される名前付き文字列である。ROS\_DOMAIN\_ID、RMW\_IMPLEMENTATION、Pythonの数値スレッド数などはコード外から動作を変えるため、実行記録へ残す必要がある。
+
+
+終了コード0は一般に成功、0以外は失敗を示す。shellルータは子プロセスの終了コードを握り潰さず上位へ返すことで、自動運用が失敗を検知できる。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{天候、route、補間、時刻、単位}
+予報は時刻だけの系列か、時刻とroute距離の2次元gridになり得る。現在時刻tと距離sがgrid点の間なら、周囲の値から補間して日射、温度、風を求める。
+
+
+UTC、現地timezone、naive datetimeを混ぜると数時間のずれが発生する。入力でtimezoneを確定し、内部比較はUTC、表示は現地時刻という役割分担が安全である。
+
+
+route距離のkm、速度のkm/hとm/s、時間の秒、energyのWhとJを跨ぐため、変換係数3.6、3600、1000の意味を各式で確認する。
+
+
+
+\subsection{launch Action、Node Action、実行可能名、remapping}
+`launch\_ros.actions.Node(...)`はrclpyのNode基底クラスではなく、指定したpackageのexecutableをプロセスとして起動するlaunch Actionである。
+
+
+`DeclareLaunchArgument`はlaunch実行時に受け取る入力欄を宣言し、`LaunchConfiguration`はその値を後で解決するsubstitutionを表す。`perform(context)`は実行時contextから確定文字列を取り出す。
+
+
+launchの`name`はNode名override、`parameters`は起動時parameter、`remappings`はNodeやtopicの既定名を別名へ対応付ける。launchはPythonファイルからmainという名前を推測せず、executableとしてインストールされたconsole scriptを起動する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\end{itemize}
+
+\subsection{rqt\_graph、ros2 CLI、rosbag2をいつ使うか}
+rqt\_graphは接続関係を見る道具であり、数値の正しさや更新周期までは保証しない。起動直後、topic名変更後、publisherが複数存在する疑いがある時に使う。
+
+
+\begin{lstlisting}[language=bash]
+ros2 node list
+ros2 node info /mpc_node
+ros2 topic list -t
+ros2 topic info -v /planner/speed_cmd
+ros2 topic hz /planner/speed_cmd
+ros2 topic echo /planner/status
+rqt_graph
+\end{lstlisting}
+
+
+rosbag2はtopicメッセージを時系列のまま記録・再生する。通信不具合、freshness、再計画trigger、実車とSILSの差を再現可能にするため、本番前試験では制御入力だけでなく原因となる全telemetry、status、parameter情報を記録する。
+
+
+\begin{lstlisting}[language=bash]
+ros2 bag record -o outputs/bags/preflight \
+  /vehicle/s_km /vehicle/speed_kmh /vehicle/batt_soc \
+  /vehicle/batt_temp_c /vehicle/batt_current_a /vehicle/batt_voltage_v \
+  /planner/upper_speed_cmd /planner/speed_cmd /planner/status
+
+ros2 bag info outputs/bags/preflight
+ros2 bag play outputs/bags/preflight --clock
+\end{lstlisting}
+
+
+bag再生時はQoS互換性、simulation time、外部publisherとの二重入力に注意する。実車Nodeを同時に動かす場合はnamespaceまたはremappingで入力源を明確に分離する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/ros2_packages/humble/api/rqt_graph/index.html}{ROS 2 Humble公式: rqt\_graph}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html}{ROS 2 Humble公式: Recording and playing back data}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        このファイルでは独立した関数・クラス定義が少ない。
+
+
+
+
+
+
+
+
+
+        \subsection{shell 分岐と外部コマンド}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.67\linewidth}}
+            \toprule
+            行 & 種別 & 内容 \\
+            \midrule
+            16 & action & \path|sim| \\
+19 & action & \path|measure| \\
+22 & action & \path|live| \\
+25 & action & \path|live_wifi| \\
+222 & action & \path|build| \\
+225 & action & \path|start| \\
+228 & action & \path|stop| \\
+231 & action & \path|restart| \\
+235 & action & \path|status| \\
+238 & action & \path|graph| \\
+241 & action & \path|up| \\
+246 & action & \path|simulate| \\
+250 & action & \path|historical-weather| \\
+254 & action & \path|historical-simulate| \\
+258 & action & \path|forecast| \\
+262 & action & \path|identify| \\
+266 & action & \path|fit| \\
+270 & action & \path|learn| \\
+274 & action & \path|audit| \\
+277 & action & \path|log| \\
+59 & command & \path!$0 ~ /\/opt\/ros\/humble\/bin\/ros2 launch mpc_solarcar solar(car_sim|_measurement|_race_live|_race_live_wifi)\.launch\.py/ || $0 ~ /install\/mpc_solarcar\/lib\/mpc_solarcar\/(gps_sim_node|mpc_node|solar_state_node|dashboard_node|solar_logger_node|distance_node|grade_node|weather_fetch_node|solar_autocal_node|speed_command_bridge_node|telemetry_text_bridge_node|wind_correction_node)/ {! \\
+108 & command & \path|colcon build --packages-select mpc_solarcar| \\
+122 & command & \path|launch_cmd="export AMENT_TRACE_SETUP_FILES=\${AMENT_TRACE_SETUP_FILES-}; cd ${root_q} && set +u && source /opt/ros/${DISTRO_NAME}/setup.bash && source ${root_q}/install/setup.bash && set -u && exec ros2 launch mpc_solarcar ${launch_file} profile_yaml:=${profile_q}"| \\
+123 & command & \path|nohup setsid bash -lc "${launch_cmd}" >> "${LOG_FILE}" 2>&1 < /dev/null &| \\
+128 & command & \path|echo "launch failed: ros2 launch exited immediately" >&2| \\
+152 & command & \path|python3 "${ROOT_DIR}/scripts/export_rqt_graph.py" --output-base "${GRAPH_BASE}" --wait-sec 20 --mode "${mode}"| \\
+158 & command & \path|python3 "${ROOT_DIR}/scripts/solar_sim.py" --profile_yaml "${profile}"| \\
+164 & command & \path|python3 "${ROOT_DIR}/scripts/build_historical_weather_counterfactual_grid.py" \| \\
+173 & command & \path|python3 "${ROOT_DIR}/scripts/solar_sim.py" --profile_yaml "${historical_profile}"| \\
+179 & command & \path|python3 "${ROOT_DIR}/scripts/fetch_weather_forecast.py" --profile_yaml "${profile}"| \\
+185 & command & \path|python3 "${ROOT_DIR}/scripts/run_identification_pipeline.py" --profile_yaml "${profile}"| \\
+196 & command & \path|python3 "${ROOT_DIR}/scripts/run_vehicle_identification.py" \| \\
+204 & command & \path|python3 "${ROOT_DIR}/scripts/tune_upper_planner_weights.py" \| \\
+210 & command & \path|python3 "${ROOT_DIR}/scripts/generate_package_inventory.py"| \\
+211 & command & \path|python3 "${ROOT_DIR}/scripts/audit_solar_package.py"| \\
+212 & command & \path|python3 -m pytest -q| \\
+            \bottomrule
+            \end{longtable}
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item action と mode を受け取る。
+\item ROS 環境と install/setup.bash を読む。
+\item launch 実行か offline script 実行かを分岐する。
+\item 必要に応じて PID 管理、graph 出力、log tail を行う。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|scripts/solar_control.sh| を
+        \textbf{入口}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

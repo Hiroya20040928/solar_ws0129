@@ -1,0 +1,1603 @@
+===== xelatex pass 1 =====
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/11_mpc_solarcar_mpc_node_py.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.out)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.toc [1] [2] [3]) [4] [5]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+Underfull \hbox (badness 10000) in paragraph at lines 145--145
+[]|$[][][][][][] [] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 155--155
+[]|$[][][] [] [][][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 168--168
+[]|$[][][][][][][] [] [][][][] [] [][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 173--173
+[]|$[][][][] [] [][][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 176--176
+[]|$[][][][][][][][][] [] [][][][][][][][][][] []
+
+Underfull \hbox (badness 2744) in paragraph at lines 192--193
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: self, v0_ms, u_seq, env, z0, Tb0,
+
+Underfull \hbox (badness 1953) in paragraph at lines 193--194
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: self, v0_ms, s0_km, z0, Tb0, env,
+
+Underfull \hbox (badness 10000) in paragraph at lines 197--197
+[]|$[][][][][][][][] [] [][][][][] []
+ignored error: Infinite glue shrinkage found in box being split [6]
+ignored error: Infinite glue shrinkage found in box being split [7]
+Underfull \hbox (badness 10000) in paragraph at lines 223--223
+[]|$[][][][][][][][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 225--225
+[]|$[][][][][][][][][] [] [][][][][][][][] []
+
+Overfull \hbox (85.7225pt too wide) in paragraph at lines 225--225
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][
+][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 226--226
+[]|$[][][][][][][][][] []
+
+Overfull \hbox (49.60037pt too wide) in paragraph at lines 226--226
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 228--228
+[]|$[][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 232--232
+[]|$[][][][][][][] [] [][][][] [] [][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 232--232
+[][][][][][][] [][] [][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 234--234
+[]|$[][][][][][][][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 235--235
+[]|$[][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 236--236
+[]|$[][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 236--236
+[][][][][][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 237--237
+[]|$[][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 238--238
+[]|$[][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 238--238
+[][][][][][][][][][][][][][][][][][] [] [][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 239--239
+[]|$[][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 240--240
+[]|$[][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 240--240
+[][][][][][][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 241--241
+[]|$[][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 241--241
+[][][][][][][][][][][][][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 241--241
+[][][][] [] [][][][][][][] [][] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 242--242
+[]|$[][][][] [] [][][][][][] []
+
+Overfull \hbox (13.97824pt too wide) in paragraph at lines 242--242
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 242--242
+[][][][][][] [] [][][][][] [][] [][][][][] [] [][][][][][] [][]
+
+Underfull \hbox (badness 7291) in paragraph at lines 242--243
+[]|\TU/TimesNewRoman(0)/m/n/10.95 signal_utils.py \TU/YuGothic(0)/m/n/10.95 か ら
+ \TU/TimesNewRoman(0)/m/n/10.95 RobustScalarFilter, finite_float,
+
+Underfull \hbox (badness 10000) in paragraph at lines 243--243
+[]|$[][][][] [] [][][][][] [] [][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 243--243
+[][][][][] [] [][][][] [] [][][][][][] [][] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 243--243
+[][][][][] [] [][][][] [][] [][][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--244
+[]|$[][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--244
+[][][][][][][][][][][][][][][][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--244
+[][][][][][][][] [] [][][][][][][] [][] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--245
+[]|\TU/YuGothic(0)/m/n/10.95 上 位 \TU/TimesNewRoman(0)/m/n/10.95 MPC \TU/YuGothi
+c(0)/m/n/10.95 距 離 メ ッ シ ュ 生 成 か ら
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--245
+\TU/TimesNewRoman(0)/m/n/10.95 build_upper_distance_horizon, plan_segment_index
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[]|$[][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][][][][][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][][][][] [] [][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][][][][][][][][] [] [][][][][] [] [][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][] [] [][][][][] [] [][][][][][] [] [][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][][] [] [][][][][] [] [][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 3417) in paragraph at lines 245--246
+[]|\TU/YuGothic(0)/m/n/10.95 上 位 速 度 計 画 の 補 間 と \TU/TimesNewRoman(0)/m/n/10.95
+ warm start \TU/YuGothic(0)/m/n/10.95 か ら \TU/TimesNewRoman(0)/m/n/10.95 ab-
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--246
+\TU/TimesNewRoman(0)/m/n/10.95 solute_control_distances, interpolate_upper_poli
+cy,
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--246
+\TU/TimesNewRoman(0)/m/n/10.95 load_upper_policy_csv, shift_upper_policy_warm_s
+tart
+
+Underfull \hbox (badness 10000) in paragraph at lines 246--246
+[]|$[][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 246--246
+[][][][][][][][][][][][][][][][][][] [] [][][][][][][] []
+ignored error: Infinite glue shrinkage found in box being split [8]
+ignored error: Infinite glue shrinkage found in box being split [9]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 268.
+
+[10] [11] [12] [13]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[14] [15] [16] [17] [18]
+Overfull \hbox (4.48563pt too wide) in paragraph at lines 769--770
+[]\TU/YuGothic(0)/m/n/10.95 上 位 \TU/TimesNewRoman(0)/m/n/10.95 solve \TU/YuGoth
+ic(0)/m/n/10.95 中 は \TU/TimesNewRoman(0)/m/n/10.95 option \TU/YuGothic(0)/m/n/1
+0.95 に よ り 下 位 \TU/TimesNewRoman(0)/m/n/10.95 refine \TU/YuGothic(0)/m/n/10.95 
+を 省 略 し、|  決 定 論 的 入 力 を 使 う。| \TU/TimesNewRoman(0)/m/n/10.95 ‘_publish_lower_c
+ommand_cycle‘\TU/YuGothic(0)/m/n/10.95 は
+[19] [20] [21]
+Overfull \hbox (0.63358pt too wide) in paragraph at lines 907--908
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._init_passo, self._init_solar, self.declare_parameter, self.get_p
+arameter,
+
+Overfull \hbox (3.59846pt too wide) in paragraph at lines 908--909
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.command_callback_group, self.lower_callback_group, self.params_cf
+g,
+[22] [23] [24] [25] [26] [27] [28]
+Underfull \hbox (badness 1320) in paragraph at lines 1182--1183
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._load_forecast_file, self.forecast_mtime, self.forecast_path,
+[29] [30] [31] [32] [33] [34] [35] [36]
+Underfull \hbox (badness 2922) in paragraph at lines 1499--1500
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.distance_meas_timeout_sec, self.get_clock, self.s_meas,
+
+Underfull \hbox (badness 3128) in paragraph at lines 1534--1535
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._measured_distance_km, self.battery_meas_timeout_sec,
+[37] [38] [39] [40]
+Underfull \hbox (badness 10000) in paragraph at lines 1694--1695
+\TU/TimesNewRoman(0)/m/n/10.95 self._on_calib_aux_power, self._on_calib_drive_p
+ower_gain, self._on_calib_solar_gain, self._on_i_solar,
+
+Overfull \hbox (112.52144pt too wide) in paragraph at lines 1694--1695
+\TU/TimesNewRoman(0)/m/n/10.95 self._on_s_km_solar, self._on_soc_solar, self._o
+n_speed_solar, self._on_tb_solar, self._on_v_solar, self._publish_lower_command
+_cycle,
+
+Overfull \hbox (26.3946pt too wide) in paragraph at lines 1694--1695
+\TU/TimesNewRoman(0)/m/n/10.95 self._step_lower, self._step_solar, self._warned
+_lower_rate, self.base_drive_eff_scale, self.command_callback_group,
+[41]
+Overfull \hbox (23.2607pt too wide) in paragraph at lines 1695--1696
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Np, self.Tb, self._forecast_warned_out_of_range, self._lower_solv
+e_logged,
+
+Overfull \hbox (24.30148pt too wide) in paragraph at lines 1695--1696
+\TU/TimesNewRoman(0)/m/n/10.95 self._lower_upper_busy_logged, self._upper_solve
+_in_progress, self._upper_solve_logged, self._warned_lower_rate,
+
+Overfull \hbox (21.40364pt too wide) in paragraph at lines 1695--1696
+\TU/TimesNewRoman(0)/m/n/10.95 self.active_control_stop_index, self.base_drive_
+eff_scale, self.base_regen_eff_scale, self.battery_meas_timeout_sec,
+
+Overfull \hbox (65.10738pt too wide) in paragraph at lines 1695--1696
+\TU/TimesNewRoman(0)/m/n/10.95 self.completed_control_stops, self.control_stop_
+end_monotonic, self.control_stop_hold, self.control_stop_position_initialized,
+
+Overfull \hbox (33.84535pt too wide) in paragraph at lines 1695--1696
+\TU/TimesNewRoman(0)/m/n/10.95 self.distance_meas_filter, self.distance_meas_ma
+x_backtrack_km, self.distance_meas_timeout_sec, self.drive_schedule 
+[42] [43] [44] [45] [46] [47]
+Underfull \hbox (badness 1762) in paragraph at lines 1938--1939
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Np, self._forecast_at_time, self.current_forecast_time_utc,
+
+Underfull \hbox (badness 2951) in paragraph at lines 1938--1939
+\TU/TimesNewRoman(0)/m/n/10.95 self.df, self.drive_schedule, self.dt, self.fore
+cast_start_time, self.forecast_time_mode, self.forecast_times,
+[48] [49]
+Underfull \hbox (badness 6758) in paragraph at lines 2037--2038
+\TU/TimesNewRoman(0)/m/n/10.95 or 0.0), ’elev_m’, 0.0)) / dict(G_poa=0.0, Tcell
+_C=40.0, Tamb_C=30.0, headwind_ms=0.0, eleva-
+
+Underfull \hbox (badness 2617) in paragraph at lines 2037--2038
+\TU/TimesNewRoman(0)/m/n/10.95 tion_m=self._route_value(float(s_km or 0.0), ’el
+ev_m’, 0.0)) / dict(G_poa=(poa_drive + tilt_fraction *
+
+Overfull \hbox (74.27411pt too wide) in paragraph at lines 2037--2038
+\TU/TimesNewRoman(0)/m/n/10.95 tcell_drive), Tamb_C=tamb, headwind_ms=headwind,
+ panel_stop_mode=stop_mode, elevation_m=self._route_value(float(s_km
+[50]
+Underfull \hbox (badness 1092) in paragraph at lines 2039--2040
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._route_value, self.control_stop_tilt_fraction, self.df, self.dt,
+
+Overfull \hbox (40.76367pt too wide) in paragraph at lines 2039--2040
+\TU/TimesNewRoman(0)/m/n/10.95 self.forecast_grid, self.forecast_start_time, se
+lf.poa_gain_drive, self.poa_gain_stop, self.solar_gain, self.stop_tilt_fraction
+ 
+
+Overfull \hbox (49.08661pt too wide) in paragraph at lines 2058--2059
+[]\TU/TimesNewRoman(0)/m/n/10.95 tcell_drive \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 interp_forecast_grid(self.forecast_grid, ’Tcell_drive_
+C’, t_utc, s_km, interp_forecast_grid(self.forecast_grid,
+
+Overfull \hbox (8.58235pt too wide) in paragraph at lines 2069--2070
+[]\TU/TimesNewRoman(0)/m/n/10.95 dict(G_poa=(poa_drive + tilt_fraction * (poa_s
+top_ideal - poa_drive)) * self.solar_gain * gain, Tcell_C=tcell_drive
+
+Overfull \hbox (36.45065pt too wide) in paragraph at lines 2069--2070
+\TU/TimesNewRoman(0)/m/n/10.95 + tilt_fraction * (tcell_stop_ideal - tcell_driv
+e), Tamb_C=tamb, headwind_ms=headwind, panel_stop_mode=stop_mode,
+[51]
+Overfull \hbox (8.58235pt too wide) in paragraph at lines 2085--2086
+[]\TU/TimesNewRoman(0)/m/n/10.95 dict(G_poa=(poa_drive + tilt_fraction * (poa_s
+top_ideal - poa_drive)) * self.solar_gain * gain, Tcell_C=tcell_drive
+
+Overfull \hbox (99.33221pt too wide) in paragraph at lines 2085--2086
+\TU/TimesNewRoman(0)/m/n/10.95 + tilt_fraction * (tcell_stop_ideal - tcell_driv
+e), Tamb_C=float(row.get(’Tamb_C’, 30.0)), headwind_ms=float(row.get(’headwind_
+ms’,
+[52] [53] [54] [55]
+Underfull \hbox (badness 1990) in paragraph at lines 2267--2268
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : float(d
+efault_kmh) / float(interpolate_profile(self.speed_profile, s_km, ’v_max_kmh’,
+[56]
+Underfull \hbox (badness 1024) in paragraph at lines 2307--2308
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : float(l
+o) / self.model.soc_step(self.z, P_pack, self.model.p.dt, current_a=float(out[’
+I’]),
+
+Overfull \hbox (1.09055pt too wide) in paragraph at lines 2309--2310
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Tb, self._route_value, self.get_parameter, self.model, self.route
+_profile,
+[57] [58]
+Underfull \hbox (badness 10000) in paragraph at lines 2417--2418
+\TU/TimesNewRoman(0)/m/n/10.95 headwind_ms=headwind_ms, ambient_temp_c=d0.get(’
+Tamb_C’), elevation_m=self._route_value(s_km,
+[59] [60]
+Overfull \hbox (62.02696pt too wide) in paragraph at lines 2507--2508
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._control_stop_catalog, self.active_control_stop_index, self.compl
+eted_control_stops,
+[61] [62] [63] [64] [65] [66] [67] [68]
+Underfull \hbox (badness 3128) in paragraph at lines 2826--2827
+[]\TU/TimesNewRoman(0)/m/n/10.95 aux_power_w \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 self.model.scheduled_auxiliary_power(is_driving=False,
+ irradiance_wm2=d.get(’G_poa’,
+
+Overfull \hbox (11.25319pt too wide) in paragraph at lines 2828--2829
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(v_k, slope_pct, z, Tb, d[’G_poa’
+], d[’Tcell_C’], headwind_ms=headwind_ms,
+[69] [70] [71]
+Overfull \hbox (17.16014pt too wide) in paragraph at lines 2928--2929
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Tb, self._control_stop_catalog, self._forecast_at_time, self._rou
+te_average,
+
+Overfull \hbox (38.85486pt too wide) in paragraph at lines 2928--2929
+\TU/TimesNewRoman(0)/m/n/10.95 self._route_value, self._speed_limit_at, self.dr
+ive_schedule, self.get_logger, self.get_parameter, self.initial_upper_policy,
+
+Underfull \hbox (badness 10000) in paragraph at lines 2928--2929
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_upper_solve_ok, self.model, self.race_
+km, self.soc_day_end_max, self.soc_day_end_target,
+
+Underfull \hbox (badness 10000) in paragraph at lines 2928--2929
+\TU/TimesNewRoman(0)/m/n/10.95 self.soc_finish_target, self.soc_finish_tol, sel
+f.upper_adaptive_growth, self.upper_adaptive_max_ds_km,
+
+Underfull \hbox (badness 10000) in paragraph at lines 2928--2929
+\TU/TimesNewRoman(0)/m/n/10.95 self.upper_adaptive_min_ds_km, self.upper_cost_c
+fg, self.upper_ctrl_km, self.upper_day_end_soc_min,
+
+Overfull \hbox (17.7668pt too wide) in paragraph at lines 2941--2942
+[]\TU/TimesNewRoman(0)/m/n/10.95 horizon \TU/YuGothic(0)/m/n/10.95 に \TU/TimesN
+ewRoman(0)/m/n/10.95 build_upper_distance_horizon(mode=self.upper_horizon_mode,
+ s0_km=s0_km, race_km=self.race_km,
+
+Overfull \hbox (75.55263pt too wide) in paragraph at lines 2941--2942
+\TU/TimesNewRoman(0)/m/n/10.95 ds_km=self.upper_ds_km, horizon_km=self.upper_ho
+rizon_km, max_steps=self.upper_max_steps, ctrl_km=self.upper_ctrl_km,
+
+Overfull \hbox (11.74037pt too wide) in paragraph at lines 2941--2942
+\TU/TimesNewRoman(0)/m/n/10.95 adaptive_min_ds_km=self.upper_adaptive_min_ds_km
+, adaptive_max_ds_km=self.upper_adaptive_max_ds_km,
+[72]
+Overfull \hbox (9.72235pt too wide) in paragraph at lines 2965--2966
+[]\TU/YuGothic(0)/m/n/10.95 条 件 \TU/TimesNewRoman(0)/m/n/10.95 x0 is not None a
+nd previous_ctrl_s is not None and (len(x0) == len(previous_ctrl_s)) and (len(p
+revious_ctrl_s)
+
+Underfull \hbox (badness 2111) in paragraph at lines 2972--2973
+[]\TU/TimesNewRoman(0)/m/n/10.95 x0 \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRom
+an(0)/m/n/10.95 interpolate_upper_policy(self.initial_upper_policy, ctrl_s_abs,
+ minimum_speed_kmh=v_min_solver,
+[73]
+Underfull \hbox (badness 6125) in paragraph at lines 2999--3000
+[]\TU/TimesNewRoman(0)/m/n/10.95 (u_seq, solve_info) \TU/YuGothic(0)/m/n/10.95 
+に \TU/TimesNewRoman(0)/m/n/10.95 hybrid_bounded_minimize(cost, x0, bounds, maxi
+ter=int(self.upper_max_iter),
+
+Underfull \hbox (badness 4132) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 structured_seeds=structured_seeds, cem_enabled=g
+lobal_search_enabled, cem_mode=global_search_mode,
+
+Overfull \hbox (165.47874pt too wide) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 cem_generations=int(self.get_parameter(’upper_ce
+m_generations’).value), cem_population=int(self.get_parameter(’upper_cem_popula
+tion’).value),
+
+Overfull \hbox (115.58354pt too wide) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 cem_elite=int(self.get_parameter(’upper_cem_elit
+e’).value), local_refine_topk=int(self.get_parameter(’upper_local_refine_topk’)
+.value),
+
+Underfull \hbox (badness 10000) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 seed_library_mode=str(self.get_parameter(’upper_
+seed_library_mode’).value), rng_seed=int(max(0.0,
+
+Overfull \hbox (191.28258pt too wide) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 round(s0_km * 10.0))), shgo_samples=int(self.get
+_parameter(’upper_shgo_samples’).value), shgo_iters=int(self.get_parameter(’upp
+er_shgo_iters’).value),
+
+Overfull \hbox (209.24666pt too wide) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 cert_grid_levels=int(self.get_parameter(’upper_c
+ert_grid_levels’).value), cert_max_evaluations=int(self.get_parameter(’upper_ce
+rt_max_evaluations’).value),
+[74] [75] [76]
+Underfull \hbox (badness 10000) in paragraph at lines 3134--3135
+\TU/TimesNewRoman(0)/m/n/10.95 headwind_ms=headwind_ms, ambient_temp_c=env.get(
+’Tamb_C’), elevation_m=env.get(’elevation_m’,
+[77]
+Overfull \hbox (19.64934pt too wide) in paragraph at lines 3156--3157
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(best_v / 3.6, slope_leg, z_seed,
+ Tb_seed, env_leg[’G_poa’], env_leg[’Tcell_C’],
+
+Overfull \hbox (11.92926pt too wide) in paragraph at lines 3156--3157
+\TU/TimesNewRoman(0)/m/n/10.95 headwind_ms=headwind_leg, ambient_temp_c=env_leg
+.get(’Tamb_C’), elevation_m=env_leg.get(’elevation_m’,
+[78] [79]
+Overfull \hbox (29.18594pt too wide) in paragraph at lines 3238--3239
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(0.0, slope_pct, z, Tb, env[’G_po
+a’], env[’Tcell_C’], headwind_ms=headwind_ms,
+
+Underfull \hbox (badness 6493) in paragraph at lines 3238--3239
+\TU/TimesNewRoman(0)/m/n/10.95 bient_temp_c=env.get(’Tamb_C’), elevation_m=env.
+get(’elevation_m’, self._route_value(s_km, ’elev_m’,
+[80] [81] [82]
+Underfull \hbox (badness 5105) in paragraph at lines 3354--3355
+[]\TU/TimesNewRoman(0)/m/n/10.95 (t_utc, z, Tb, dt_stop, stop_cost) \TU/YuGothi
+c(0)/m/n/10.95 に \TU/TimesNewRoman(0)/m/n/10.95 integrate_stationary_duration(t
+_utc, z, Tb, float(stop[’s_km’]),
+
+Underfull \hbox (badness 2042) in paragraph at lines 3388--3389
+\TU/TimesNewRoman(0)/m/n/10.95 ds_step_km, dt_travel, dt_wait, elapsed_plan_sec
+, env, forces, headwind_ms, inertial_power_w, k, ki-
+
+Overfull \hbox (29.32709pt too wide) in paragraph at lines 3389--3390
+\TU/TimesNewRoman(0)/m/n/10.95 self._speed_limit_at, self.drive_schedule, self.
+model, self.soc_day_end_target, self.soc_finish_tol, self.upper_cost_cfg,
+[83] [84]
+Underfull \hbox (badness 2608) in paragraph at lines 3430--3431
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(v_k / 3.6, slope_pct, z, Tb, env
+[’G_poa’], env[’Tcell_C’], head-
+
+Underfull \hbox (badness 2486) in paragraph at lines 3430--3431
+\TU/TimesNewRoman(0)/m/n/10.95 wind_ms=headwind_ms, inertial_power_w=inertial_p
+ower_w, ambient_temp_c=env.get(’Tamb_C’), eleva-
+
+Overfull \hbox (61.69054pt too wide) in paragraph at lines 3441--3442
+[]\TU/TimesNewRoman(0)/m/n/10.95 forces \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.resistive_forces(v_k / 3.6, slope_pct, headwind_
+ms=headwind_ms, ambient_temp_c=env.get(’Tamb_C’),
+[85] [86] [87] [88] [89] [90]
+Underfull \hbox (badness 1701) in paragraph at lines 3686--3687
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(v_exec_kmh / 3.6, slope_pct, sel
+f.z, self.Tb, d0.get(’G_poa’, 0.0),
+
+Overfull \hbox (68.5335pt too wide) in paragraph at lines 3686--3687
+\TU/TimesNewRoman(0)/m/n/10.95 d0.get(’Tcell_C’, 40.0), headwind_ms=headwind_ms
+, ambient_temp_c=d0.get(’Tamb_C’), elevation_m=d0.get(’elevation_m’,
+
+Overfull \hbox (2.60153pt too wide) in paragraph at lines 3695--3696
+[]\TU/TimesNewRoman(0)/m/n/10.95 msg.data \TU/YuGothic(0)/m/n/10.95 に \TU/Times
+NewRoman(0)/m/n/10.95 [float(V), float(I), float(self.z), float(P_motor_elec), 
+float(I_motor), float(P_pv), float(v_exec_kmh),
+[91]
+Underfull \hbox (badness 2359) in paragraph at lines 3747--3748
+\TU/TimesNewRoman(0)/m/n/10.95 self.control_stop_hold, self.df, self.forecast_s
+tart_time, self.forecast_time_mode, self.forecast_time_offset,
+[92]
+Overfull \hbox (48.10608pt too wide) in paragraph at lines 3777--3778
+[]\TU/TimesNewRoman(0)/m/n/10.95 st.data \TU/YuGothic(0)/m/n/10.95 に \TU/TimesN
+ewRoman(0)/m/n/10.95 [float(self.z), float(self.Tb), float(self.s_km), float(se
+lf.k), float(sec_to_next), float(bool(self.control_stop_hold)),
+[93]
+Overfull \hbox (28.96362pt too wide) in paragraph at lines 3822--3823
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : float((
+1.0 - alpha) * self.v_plan_kmh[i] + alpha * self.v_plan_kmh[i + 1]) / float(sel
+f.v_plan_segments[-
+
+Overfull \hbox (23.89699pt too wide) in paragraph at lines 3824--3825
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.plan_dt_sec, self.upper_plan_mode, self.v_plan_kmh, self.v_plan_s
+egments,
+[94] [95] [96]
+Overfull \hbox (157.44987pt too wide) in paragraph at lines 3982--3983
+\TU/TimesNewRoman(0)/m/n/10.95 else self._tau_max_for_mode(self.model.maps_driv
+e, ’eco’) if ’eco’ in self.model.maps_drive else self._tau_max_for_mode(self.mo
+del.maps_drive,
+
+Underfull \hbox (badness 10000) in paragraph at lines 3983--3984
+\TU/TimesNewRoman(0)/m/n/10.95 else self._tau_max_for_mode(self.model.maps_rege
+n, ’eco’) if ’eco’ in self.model.maps_regen else
+[97] [98] [99] [100]
+Underfull \hbox (badness 1231) in paragraph at lines 4123--4124
+\TU/TimesNewRoman(0)/m/n/10.95 self.drive_schedule, self.get_parameter, self.lo
+wer_N, self.lower_dt, self.model, self.plan_start_monotonic,
+[101]
+Underfull \hbox (badness 10000) in paragraph at lines 4194--4195
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][] [
+] [][][][][][][][][][][][] [][] [][] [] [][] [] [][][][][] [][] [] [] [][][] []
+ [][] [] [][][][][][][] [][] [][][] [] [][][][] [][] [][] [] [][][][][] [][] []
+[][] []
+[102]
+Overfull \hbox (22.83797pt too wide) in paragraph at lines 4221--4222
+[]\TU/TimesNewRoman(0)/m/n/10.95 forces \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.resistive_forces(v, env[’slope_pct’], env[’headw
+ind_ms’], ambient_temp_c=env.get(’Tamb_C’),
+[103] [104]
+Underfull \hbox (badness 10000) in paragraph at lines 4277--4278
+\TU/TimesNewRoman(0)/m/n/10.95 self._tau_limits, self._traction_force, self._up
+per_solve_in_progress, self.get_logger, self.get_parameter,
+
+Overfull \hbox (117.71231pt too wide) in paragraph at lines 4277--4278
+\TU/TimesNewRoman(0)/m/n/10.95 self.lower_N, self.lower_dt, self.lower_last_u, 
+self.lower_max_iter, self.lower_maxfun, self.lower_skip_optimization_during_upp
+er_solve,
+[105]
+Overfull \hbox (48.48065pt too wide) in paragraph at lines 4311--4312
+[]\TU/TimesNewRoman(0)/m/n/10.95 forces \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.resistive_forces(v_seed, env[’slope_pct’], env[’
+headwind_ms’], ambient_temp_c=env.get(’Tamb_C’),
+
+Overfull \hbox (14.25906pt too wide) in paragraph at lines 4320--4321
+[]\TU/TimesNewRoman(0)/m/n/10.95 candidate_controls \TU/YuGothic(0)/m/n/10.95 に
+ \TU/TimesNewRoman(0)/m/n/10.95 np.unique(np.concatenate((np.linspace(u_min, u_
+max, 25, dtype=float), np.array([u_request,
+[106]
+Underfull \hbox (badness 10000) in paragraph at lines 4348--4349
+[]\TU/TimesNewRoman(0)/m/n/10.95 z_seed \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.soc_step(z_seed, float(pack[’P_pack’]), self.low
+er_dt, current_a=float(pack[’I’]),
+[107] [108]
+Overfull \hbox (22.83797pt too wide) in paragraph at lines 4440--4441
+[]\TU/TimesNewRoman(0)/m/n/10.95 forces \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.resistive_forces(v, env[’slope_pct’], env[’headw
+ind_ms’], ambient_temp_c=env.get(’Tamb_C’),
+[109] [110]
+Underfull \hbox (badness 1117) in paragraph at lines 4516--4517
+[]\TU/YuGothic(0)/m/n/10.95 こ の ブ ロ ッ ク が 直 接 呼 ぶ 主 な 関 数  |・|  メ ソ ッ ド\TU/Time
+sNewRoman(0)/m/n/10.95 : Float32, Float32MultiArray, MheInput, Mhe-
+
+Underfull \hbox (badness 1348) in paragraph at lines 4516--4517
+\TU/TimesNewRoman(0)/m/n/10.95 Meas, _current_bin_index, _distance_plan_speed, 
+_forecast_at_time, _horizon_data, _interp_upper_speed,
+
+Underfull \hbox (badness 3364) in paragraph at lines 4519--4520
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Tb, self._current_bin_index, self._distance_plan_speed,
+
+Overfull \hbox (74.29547pt too wide) in paragraph at lines 4519--4520
+\TU/TimesNewRoman(0)/m/n/10.95 self._forecast_at_time, self._horizon_data, self
+._interp_upper_speed, self._maybe_reload_forecast, self._measured_distance_km,
+
+Underfull \hbox (badness 10000) in paragraph at lines 4519--4520
+\TU/TimesNewRoman(0)/m/n/10.95 self._mpc_solve_solar, self._mpc_solve_solar_dis
+tance, self._publish_metrics, self._publish_plan_path,
+
+Overfull \hbox (46.30022pt too wide) in paragraph at lines 4519--4520
+\TU/TimesNewRoman(0)/m/n/10.95 self._publish_summary, self._publish_upper_plan,
+ self._route_value, self._sample_plan_segments, self._soc_guard_speed,
+
+Overfull \hbox (53.49437pt too wide) in paragraph at lines 4519--4520
+\TU/TimesNewRoman(0)/m/n/10.95 self._sync_measured_state, self._update_live_con
+trol_stop_hold, self._upper_solve_logged, self.battery_meas_timeout_sec,
+
+Underfull \hbox (badness 10000) in paragraph at lines 4520--4521
+\TU/TimesNewRoman(0)/m/n/10.95 self.control_stop_hold, self.forecast_reloaded, 
+self.k, self.last_bin, self.last_data, self.last_plan_time,
+
+Underfull \hbox (badness 10000) in paragraph at lines 4520--4521
+\TU/TimesNewRoman(0)/m/n/10.95 self.model_prev_speed_ms, self.plan_dt_sec, self
+.plan_start_monotonic, self.s_km, self.upper_plan_id,
+
+Overfull \hbox (19.63107pt too wide) in paragraph at lines 4520--4521
+\TU/TimesNewRoman(0)/m/n/10.95 self.upper_plan_mode, self.upper_plan_s_km, self
+.upper_plan_seq, self.upper_plan_soc, self.upper_plan_stop_hold,
+[111] [112]
+Underfull \hbox (badness 10000) in paragraph at lines 4582--4583
+[]\TU/YuGothic(0)/m/n/10.95 条 件 \TU/TimesNewRoman(0)/m/n/10.95 data and data[0]
+.get(’t_utc’) and ((data[0][’t_utc’] - self.upper_plan_time).total_seconds() >=
+
+
+Overfull \hbox (49.40352pt too wide) in paragraph at lines 4590--4591
+[]\TU/YuGothic(0)/m/n/10.95 条 件 \TU/TimesNewRoman(0)/m/n/10.95 self.upper_repla
+n_on_stop_transition and self.upper_plan_stop_hold is not None and bool(self.up
+per_plan_stop_hold)
+[113]
+Underfull \hbox (badness 10000) in paragraph at lines 4608--4609
+[]\TU/TimesNewRoman(0)/m/n/10.95 (self.v_upper_cmd, self.v_plan_segments, self.
+upper_plan_seq) \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRoman(0)/m/n/10.95 self
+._mpc_solve_solar_distance(t0,
+[114]
+Underfull \hbox (badness 1584) in paragraph at lines 4658--4659
+[]\TU/YuGothic(0)/m/n/10.95 こ の ブ ロ ッ ク が 直 接 呼 ぶ 主 な 関 数  |・|  メ ソ ッ ド\TU/Time
+sNewRoman(0)/m/n/10.95 : _build_lower_ref, _lower_mpc_solve, _pub-
+
+Overfull \hbox (27.53802pt too wide) in paragraph at lines 4661--4662
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Tb, self._build_lower_ref, self._lower_mpc_solve, self._lower_sol
+ve_logged,
+
+Underfull \hbox (badness 2269) in paragraph at lines 4661--4662
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_data, self.route_profile, self.s_km, s
+elf.s_meas, self.timer_lower, self.v_lower_cmd, self.v_now,
+[115]
+Underfull \hbox (badness 4441) in paragraph at lines 4687--4688
+[]\TU/TimesNewRoman(0)/m/n/10.95 env \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 dict(slope_pct=float(slope_pct), headwind_ms=float(headwind_ms
+), G_poa=float(d0.get(’G_poa’,
+[116]
+Overfull \hbox (12.6771pt too wide) in paragraph at lines 4761--4762
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._publish_lower_plan, self._publish_summary, self._sync_measured_s
+tate,
+
+Underfull \hbox (badness 10000) in paragraph at lines 4761--4762
+\TU/TimesNewRoman(0)/m/n/10.95 self.control_stop_hold, self.get_parameter, self
+.hierarchical, self.lower_last_mode, self.lower_last_u,
+
+Overfull \hbox (15.40971pt too wide) in paragraph at lines 4761--4762
+\TU/TimesNewRoman(0)/m/n/10.95 self.lower_last_v_pred, self.pub_drive_mode, sel
+f.pub_speed, self.pub_throttle, self.timer_lower, self.v_lower_cmd 
+[117] [118]
+Overfull \hbox (46.99254pt too wide) in paragraph at lines 4817--4818
+\TU/TimesNewRoman(0)/m/n/10.95 self._on_throttle, self._step_passo, self.create
+_publisher, self.create_subscription, self.create_timer, self.declare_parameter
+,
+
+Underfull \hbox (badness 10000) in paragraph at lines 4818--4819
+\TU/TimesNewRoman(0)/m/n/10.95 self.id_ema_alpha, self.id_min_samples, self.id_
+r2, self.id_rmse, self.id_samples, self.id_window_sec,
+
+Underfull \hbox (badness 10000) in paragraph at lines 4818--4819
+\TU/TimesNewRoman(0)/m/n/10.95 self.online_id_enabled, self.prev_speed_kmh, sel
+f.prev_speed_time, self.pub_mpc_state, self.pub_path,
+[119]
+Overfull \hbox (42.2307pt too wide) in paragraph at lines 4866--4867
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.model_coeffs \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 np.array([float(self.get_parameter(’model_a0’).v
+alue), float(self.get_parameter(’model_a1’).value),
+
+Overfull \hbox (107.35219pt too wide) in paragraph at lines 4866--4867
+\TU/TimesNewRoman(0)/m/n/10.95 float(self.get_parameter(’model_a2’).value), flo
+at(self.get_parameter(’model_a3’).value), float(self.get_parameter(’model_a4’).
+value)],
+[120] [121] [122] [123] [124] [125] [126] [127] [128] [129] [130] [131]
+[132] [133] [134]
+Underfull \hbox (badness 1009) in paragraph at lines 5512--5513
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Np, self._fuel_model_lph, self._stop_penalty_passo, self.dt,
+[135] [136] [137] [138]
+Underfull \hbox (badness 2150) in paragraph at lines 5706--5707
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Np, self._fuel_model_lph, self._publish_trajectory_passo,
+
+Underfull \hbox (badness 10000) in paragraph at lines 5706--5707
+\TU/TimesNewRoman(0)/m/n/10.95 self._solve_passo_mpc, self._update_identificati
+on, self.config_ready, self.fuel_rate_lph, self.get_clock,
+[139]
+Overfull \hbox (19.01546pt too wide) in paragraph at lines 5707--5708
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.last_step_time, self.mpc_state, self.prev_speed_kmh, self.prev_sp
+eed_time,
+
+Underfull \hbox (badness 6944) in paragraph at lines 5740--5741
+[]\TU/TimesNewRoman(0)/m/n/10.95 run_ready \TU/YuGothic(0)/m/n/10.95 に \TU/Time
+sNewRoman(0)/m/n/10.95 self.valid_obd_sec >= run_ready_sec and self.valid_speed
+_sec >= run_ready_sec and
+[140]
+Underfull \hbox (badness 5431) in paragraph at lines 5764--5765
+\TU/TimesNewRoman(0)/m/n/10.95 if np.isfinite(fuel_pred_lph) else math.nan, flo
+at(self.v_now) if np.isfinite(self.v_now) else math.nan,
+[141] [142]
+Underfull \hbox (badness 10000) in paragraph at lines 5901--5901
+[]|$[][][][][][][][] [] [][][][] [] [][][] [] [][][][][][][][][] []
+ignored error: Infinite glue shrinkage found in box being split [143]
+Overfull \hbox (5.05998pt too wide) in paragraph at lines 5938--5939
+[]|\TU/TimesNewRoman(0)/m/n/10.95 self._on_calib_drive_power_gain| 
+ignored error: Infinite glue shrinkage found in box being split [144] [145]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc
+_solarcar_mpc_node_py.pdf (145 pages).
+Transcript written on "C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-ma
+in\docs\program_reference_complete_20260729\build\11_mpc_solarcar_mpc_node_py\1
+1_mpc_solarcar_mpc_node_py.log".
+
+miktex-dvipdfmx: major issue: So far, you have not checked for MiKTeX updates.
+xelatex: major issue: So far, you have not checked for MiKTeX updates.
+
+
+===== xelatex pass 2 =====
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/11_mpc_solarcar_mpc_node_py.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.out)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.toc [1] [2] [3]) [4] [5]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+Underfull \hbox (badness 10000) in paragraph at lines 145--145
+[]|$[][][][][][] [] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 155--155
+[]|$[][][] [] [][][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 168--168
+[]|$[][][][][][][] [] [][][][] [] [][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 173--173
+[]|$[][][][] [] [][][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 176--176
+[]|$[][][][][][][][][] [] [][][][][][][][][][] []
+
+Underfull \hbox (badness 2744) in paragraph at lines 192--193
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: self, v0_ms, u_seq, env, z0, Tb0,
+
+Underfull \hbox (badness 1953) in paragraph at lines 193--194
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: self, v0_ms, s0_km, z0, Tb0, env,
+
+Underfull \hbox (badness 10000) in paragraph at lines 197--197
+[]|$[][][][][][][][] [] [][][][][] []
+ignored error: Infinite glue shrinkage found in box being split [6]
+ignored error: Infinite glue shrinkage found in box being split [7]
+Underfull \hbox (badness 10000) in paragraph at lines 223--223
+[]|$[][][][][][][][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 225--225
+[]|$[][][][][][][][][] [] [][][][][][][][] []
+
+Overfull \hbox (85.7225pt too wide) in paragraph at lines 225--225
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][
+][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 226--226
+[]|$[][][][][][][][][] []
+
+Overfull \hbox (49.60037pt too wide) in paragraph at lines 226--226
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 228--228
+[]|$[][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 232--232
+[]|$[][][][][][][] [] [][][][] [] [][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 232--232
+[][][][][][][] [][] [][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 234--234
+[]|$[][][][][][][][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 235--235
+[]|$[][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 236--236
+[]|$[][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 236--236
+[][][][][][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 237--237
+[]|$[][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 238--238
+[]|$[][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 238--238
+[][][][][][][][][][][][][][][][][][] [] [][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 239--239
+[]|$[][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 240--240
+[]|$[][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 240--240
+[][][][][][][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 241--241
+[]|$[][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 241--241
+[][][][][][][][][][][][][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 241--241
+[][][][] [] [][][][][][][] [][] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 242--242
+[]|$[][][][] [] [][][][][][] []
+
+Overfull \hbox (13.97824pt too wide) in paragraph at lines 242--242
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 242--242
+[][][][][][] [] [][][][][] [][] [][][][][] [] [][][][][][] [][]
+
+Underfull \hbox (badness 7291) in paragraph at lines 242--243
+[]|\TU/TimesNewRoman(0)/m/n/10.95 signal_utils.py \TU/YuGothic(0)/m/n/10.95 か ら
+ \TU/TimesNewRoman(0)/m/n/10.95 RobustScalarFilter, finite_float,
+
+Underfull \hbox (badness 10000) in paragraph at lines 243--243
+[]|$[][][][] [] [][][][][] [] [][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 243--243
+[][][][][] [] [][][][] [] [][][][][][] [][] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 243--243
+[][][][][] [] [][][][] [][] [][][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--244
+[]|$[][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--244
+[][][][][][][][][][][][][][][][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--244
+[][][][][][][][] [] [][][][][][][] [][] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--245
+[]|\TU/YuGothic(0)/m/n/10.95 上 位 \TU/TimesNewRoman(0)/m/n/10.95 MPC \TU/YuGothi
+c(0)/m/n/10.95 距 離 メ ッ シ ュ 生 成 か ら
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--245
+\TU/TimesNewRoman(0)/m/n/10.95 build_upper_distance_horizon, plan_segment_index
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[]|$[][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][][][][][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][][][][] [] [][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][][][][][][][][] [] [][][][][] [] [][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][] [] [][][][][] [] [][][][][][] [] [][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][][] [] [][][][][] [] [][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 3417) in paragraph at lines 245--246
+[]|\TU/YuGothic(0)/m/n/10.95 上 位 速 度 計 画 の 補 間 と \TU/TimesNewRoman(0)/m/n/10.95
+ warm start \TU/YuGothic(0)/m/n/10.95 か ら \TU/TimesNewRoman(0)/m/n/10.95 ab-
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--246
+\TU/TimesNewRoman(0)/m/n/10.95 solute_control_distances, interpolate_upper_poli
+cy,
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--246
+\TU/TimesNewRoman(0)/m/n/10.95 load_upper_policy_csv, shift_upper_policy_warm_s
+tart
+
+Underfull \hbox (badness 10000) in paragraph at lines 246--246
+[]|$[][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 246--246
+[][][][][][][][][][][][][][][][][][] [] [][][][][][][] []
+ignored error: Infinite glue shrinkage found in box being split [8]
+ignored error: Infinite glue shrinkage found in box being split [9]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 268.
+
+[10] [11] [12] [13]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[14] [15] [16] [17] [18]
+Overfull \hbox (4.48563pt too wide) in paragraph at lines 769--770
+[]\TU/YuGothic(0)/m/n/10.95 上 位 \TU/TimesNewRoman(0)/m/n/10.95 solve \TU/YuGoth
+ic(0)/m/n/10.95 中 は \TU/TimesNewRoman(0)/m/n/10.95 option \TU/YuGothic(0)/m/n/1
+0.95 に よ り 下 位 \TU/TimesNewRoman(0)/m/n/10.95 refine \TU/YuGothic(0)/m/n/10.95 
+を 省 略 し、|  決 定 論 的 入 力 を 使 う。| \TU/TimesNewRoman(0)/m/n/10.95 ‘_publish_lower_c
+ommand_cycle‘\TU/YuGothic(0)/m/n/10.95 は
+[19] [20] [21]
+Overfull \hbox (0.63358pt too wide) in paragraph at lines 907--908
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._init_passo, self._init_solar, self.declare_parameter, self.get_p
+arameter,
+
+Overfull \hbox (3.59846pt too wide) in paragraph at lines 908--909
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.command_callback_group, self.lower_callback_group, self.params_cf
+g,
+[22] [23] [24] [25] [26] [27] [28]
+Underfull \hbox (badness 1320) in paragraph at lines 1182--1183
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._load_forecast_file, self.forecast_mtime, self.forecast_path,
+[29] [30] [31] [32] [33] [34] [35] [36]
+Underfull \hbox (badness 2922) in paragraph at lines 1499--1500
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.distance_meas_timeout_sec, self.get_clock, self.s_meas,
+
+Underfull \hbox (badness 3128) in paragraph at lines 1534--1535
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._measured_distance_km, self.battery_meas_timeout_sec,
+[37] [38] [39] [40]
+Underfull \hbox (badness 10000) in paragraph at lines 1694--1695
+\TU/TimesNewRoman(0)/m/n/10.95 self._on_calib_aux_power, self._on_calib_drive_p
+ower_gain, self._on_calib_solar_gain, self._on_i_solar,
+
+Overfull \hbox (112.52144pt too wide) in paragraph at lines 1694--1695
+\TU/TimesNewRoman(0)/m/n/10.95 self._on_s_km_solar, self._on_soc_solar, self._o
+n_speed_solar, self._on_tb_solar, self._on_v_solar, self._publish_lower_command
+_cycle,
+
+Overfull \hbox (26.3946pt too wide) in paragraph at lines 1694--1695
+\TU/TimesNewRoman(0)/m/n/10.95 self._step_lower, self._step_solar, self._warned
+_lower_rate, self.base_drive_eff_scale, self.command_callback_group,
+[41]
+Overfull \hbox (23.2607pt too wide) in paragraph at lines 1695--1696
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Np, self.Tb, self._forecast_warned_out_of_range, self._lower_solv
+e_logged,
+
+Overfull \hbox (24.30148pt too wide) in paragraph at lines 1695--1696
+\TU/TimesNewRoman(0)/m/n/10.95 self._lower_upper_busy_logged, self._upper_solve
+_in_progress, self._upper_solve_logged, self._warned_lower_rate,
+
+Overfull \hbox (21.40364pt too wide) in paragraph at lines 1695--1696
+\TU/TimesNewRoman(0)/m/n/10.95 self.active_control_stop_index, self.base_drive_
+eff_scale, self.base_regen_eff_scale, self.battery_meas_timeout_sec,
+
+Overfull \hbox (65.10738pt too wide) in paragraph at lines 1695--1696
+\TU/TimesNewRoman(0)/m/n/10.95 self.completed_control_stops, self.control_stop_
+end_monotonic, self.control_stop_hold, self.control_stop_position_initialized,
+
+Overfull \hbox (33.84535pt too wide) in paragraph at lines 1695--1696
+\TU/TimesNewRoman(0)/m/n/10.95 self.distance_meas_filter, self.distance_meas_ma
+x_backtrack_km, self.distance_meas_timeout_sec, self.drive_schedule 
+[42] [43] [44] [45] [46] [47]
+Underfull \hbox (badness 1762) in paragraph at lines 1938--1939
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Np, self._forecast_at_time, self.current_forecast_time_utc,
+
+Underfull \hbox (badness 2951) in paragraph at lines 1938--1939
+\TU/TimesNewRoman(0)/m/n/10.95 self.df, self.drive_schedule, self.dt, self.fore
+cast_start_time, self.forecast_time_mode, self.forecast_times,
+[48] [49]
+Underfull \hbox (badness 6758) in paragraph at lines 2037--2038
+\TU/TimesNewRoman(0)/m/n/10.95 or 0.0), ’elev_m’, 0.0)) / dict(G_poa=0.0, Tcell
+_C=40.0, Tamb_C=30.0, headwind_ms=0.0, eleva-
+
+Underfull \hbox (badness 2617) in paragraph at lines 2037--2038
+\TU/TimesNewRoman(0)/m/n/10.95 tion_m=self._route_value(float(s_km or 0.0), ’el
+ev_m’, 0.0)) / dict(G_poa=(poa_drive + tilt_fraction *
+
+Overfull \hbox (74.27411pt too wide) in paragraph at lines 2037--2038
+\TU/TimesNewRoman(0)/m/n/10.95 tcell_drive), Tamb_C=tamb, headwind_ms=headwind,
+ panel_stop_mode=stop_mode, elevation_m=self._route_value(float(s_km
+[50]
+Underfull \hbox (badness 1092) in paragraph at lines 2039--2040
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._route_value, self.control_stop_tilt_fraction, self.df, self.dt,
+
+Overfull \hbox (40.76367pt too wide) in paragraph at lines 2039--2040
+\TU/TimesNewRoman(0)/m/n/10.95 self.forecast_grid, self.forecast_start_time, se
+lf.poa_gain_drive, self.poa_gain_stop, self.solar_gain, self.stop_tilt_fraction
+ 
+
+Overfull \hbox (49.08661pt too wide) in paragraph at lines 2058--2059
+[]\TU/TimesNewRoman(0)/m/n/10.95 tcell_drive \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 interp_forecast_grid(self.forecast_grid, ’Tcell_drive_
+C’, t_utc, s_km, interp_forecast_grid(self.forecast_grid,
+
+Overfull \hbox (8.58235pt too wide) in paragraph at lines 2069--2070
+[]\TU/TimesNewRoman(0)/m/n/10.95 dict(G_poa=(poa_drive + tilt_fraction * (poa_s
+top_ideal - poa_drive)) * self.solar_gain * gain, Tcell_C=tcell_drive
+
+Overfull \hbox (36.45065pt too wide) in paragraph at lines 2069--2070
+\TU/TimesNewRoman(0)/m/n/10.95 + tilt_fraction * (tcell_stop_ideal - tcell_driv
+e), Tamb_C=tamb, headwind_ms=headwind, panel_stop_mode=stop_mode,
+[51]
+Overfull \hbox (8.58235pt too wide) in paragraph at lines 2085--2086
+[]\TU/TimesNewRoman(0)/m/n/10.95 dict(G_poa=(poa_drive + tilt_fraction * (poa_s
+top_ideal - poa_drive)) * self.solar_gain * gain, Tcell_C=tcell_drive
+
+Overfull \hbox (99.33221pt too wide) in paragraph at lines 2085--2086
+\TU/TimesNewRoman(0)/m/n/10.95 + tilt_fraction * (tcell_stop_ideal - tcell_driv
+e), Tamb_C=float(row.get(’Tamb_C’, 30.0)), headwind_ms=float(row.get(’headwind_
+ms’,
+[52] [53] [54] [55]
+Underfull \hbox (badness 1990) in paragraph at lines 2267--2268
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : float(d
+efault_kmh) / float(interpolate_profile(self.speed_profile, s_km, ’v_max_kmh’,
+[56]
+Underfull \hbox (badness 1024) in paragraph at lines 2307--2308
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : float(l
+o) / self.model.soc_step(self.z, P_pack, self.model.p.dt, current_a=float(out[’
+I’]),
+
+Overfull \hbox (1.09055pt too wide) in paragraph at lines 2309--2310
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Tb, self._route_value, self.get_parameter, self.model, self.route
+_profile,
+[57] [58]
+Underfull \hbox (badness 10000) in paragraph at lines 2417--2418
+\TU/TimesNewRoman(0)/m/n/10.95 headwind_ms=headwind_ms, ambient_temp_c=d0.get(’
+Tamb_C’), elevation_m=self._route_value(s_km,
+[59] [60]
+Overfull \hbox (62.02696pt too wide) in paragraph at lines 2507--2508
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._control_stop_catalog, self.active_control_stop_index, self.compl
+eted_control_stops,
+[61] [62] [63] [64] [65] [66] [67] [68]
+Underfull \hbox (badness 3128) in paragraph at lines 2826--2827
+[]\TU/TimesNewRoman(0)/m/n/10.95 aux_power_w \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 self.model.scheduled_auxiliary_power(is_driving=False,
+ irradiance_wm2=d.get(’G_poa’,
+
+Overfull \hbox (11.25319pt too wide) in paragraph at lines 2828--2829
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(v_k, slope_pct, z, Tb, d[’G_poa’
+], d[’Tcell_C’], headwind_ms=headwind_ms,
+[69] [70] [71]
+Overfull \hbox (17.16014pt too wide) in paragraph at lines 2928--2929
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Tb, self._control_stop_catalog, self._forecast_at_time, self._rou
+te_average,
+
+Overfull \hbox (38.85486pt too wide) in paragraph at lines 2928--2929
+\TU/TimesNewRoman(0)/m/n/10.95 self._route_value, self._speed_limit_at, self.dr
+ive_schedule, self.get_logger, self.get_parameter, self.initial_upper_policy,
+
+Underfull \hbox (badness 10000) in paragraph at lines 2928--2929
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_upper_solve_ok, self.model, self.race_
+km, self.soc_day_end_max, self.soc_day_end_target,
+
+Underfull \hbox (badness 10000) in paragraph at lines 2928--2929
+\TU/TimesNewRoman(0)/m/n/10.95 self.soc_finish_target, self.soc_finish_tol, sel
+f.upper_adaptive_growth, self.upper_adaptive_max_ds_km,
+
+Underfull \hbox (badness 10000) in paragraph at lines 2928--2929
+\TU/TimesNewRoman(0)/m/n/10.95 self.upper_adaptive_min_ds_km, self.upper_cost_c
+fg, self.upper_ctrl_km, self.upper_day_end_soc_min,
+
+Overfull \hbox (17.7668pt too wide) in paragraph at lines 2941--2942
+[]\TU/TimesNewRoman(0)/m/n/10.95 horizon \TU/YuGothic(0)/m/n/10.95 に \TU/TimesN
+ewRoman(0)/m/n/10.95 build_upper_distance_horizon(mode=self.upper_horizon_mode,
+ s0_km=s0_km, race_km=self.race_km,
+
+Overfull \hbox (75.55263pt too wide) in paragraph at lines 2941--2942
+\TU/TimesNewRoman(0)/m/n/10.95 ds_km=self.upper_ds_km, horizon_km=self.upper_ho
+rizon_km, max_steps=self.upper_max_steps, ctrl_km=self.upper_ctrl_km,
+
+Overfull \hbox (11.74037pt too wide) in paragraph at lines 2941--2942
+\TU/TimesNewRoman(0)/m/n/10.95 adaptive_min_ds_km=self.upper_adaptive_min_ds_km
+, adaptive_max_ds_km=self.upper_adaptive_max_ds_km,
+[72]
+Overfull \hbox (9.72235pt too wide) in paragraph at lines 2965--2966
+[]\TU/YuGothic(0)/m/n/10.95 条 件 \TU/TimesNewRoman(0)/m/n/10.95 x0 is not None a
+nd previous_ctrl_s is not None and (len(x0) == len(previous_ctrl_s)) and (len(p
+revious_ctrl_s)
+
+Underfull \hbox (badness 2111) in paragraph at lines 2972--2973
+[]\TU/TimesNewRoman(0)/m/n/10.95 x0 \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRom
+an(0)/m/n/10.95 interpolate_upper_policy(self.initial_upper_policy, ctrl_s_abs,
+ minimum_speed_kmh=v_min_solver,
+[73]
+Underfull \hbox (badness 6125) in paragraph at lines 2999--3000
+[]\TU/TimesNewRoman(0)/m/n/10.95 (u_seq, solve_info) \TU/YuGothic(0)/m/n/10.95 
+に \TU/TimesNewRoman(0)/m/n/10.95 hybrid_bounded_minimize(cost, x0, bounds, maxi
+ter=int(self.upper_max_iter),
+
+Underfull \hbox (badness 4132) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 structured_seeds=structured_seeds, cem_enabled=g
+lobal_search_enabled, cem_mode=global_search_mode,
+
+Overfull \hbox (165.47874pt too wide) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 cem_generations=int(self.get_parameter(’upper_ce
+m_generations’).value), cem_population=int(self.get_parameter(’upper_cem_popula
+tion’).value),
+
+Overfull \hbox (115.58354pt too wide) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 cem_elite=int(self.get_parameter(’upper_cem_elit
+e’).value), local_refine_topk=int(self.get_parameter(’upper_local_refine_topk’)
+.value),
+
+Underfull \hbox (badness 10000) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 seed_library_mode=str(self.get_parameter(’upper_
+seed_library_mode’).value), rng_seed=int(max(0.0,
+
+Overfull \hbox (191.28258pt too wide) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 round(s0_km * 10.0))), shgo_samples=int(self.get
+_parameter(’upper_shgo_samples’).value), shgo_iters=int(self.get_parameter(’upp
+er_shgo_iters’).value),
+
+Overfull \hbox (209.24666pt too wide) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 cert_grid_levels=int(self.get_parameter(’upper_c
+ert_grid_levels’).value), cert_max_evaluations=int(self.get_parameter(’upper_ce
+rt_max_evaluations’).value),
+[74] [75] [76]
+Underfull \hbox (badness 10000) in paragraph at lines 3134--3135
+\TU/TimesNewRoman(0)/m/n/10.95 headwind_ms=headwind_ms, ambient_temp_c=env.get(
+’Tamb_C’), elevation_m=env.get(’elevation_m’,
+[77]
+Overfull \hbox (19.64934pt too wide) in paragraph at lines 3156--3157
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(best_v / 3.6, slope_leg, z_seed,
+ Tb_seed, env_leg[’G_poa’], env_leg[’Tcell_C’],
+
+Overfull \hbox (11.92926pt too wide) in paragraph at lines 3156--3157
+\TU/TimesNewRoman(0)/m/n/10.95 headwind_ms=headwind_leg, ambient_temp_c=env_leg
+.get(’Tamb_C’), elevation_m=env_leg.get(’elevation_m’,
+[78] [79]
+Overfull \hbox (29.18594pt too wide) in paragraph at lines 3238--3239
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(0.0, slope_pct, z, Tb, env[’G_po
+a’], env[’Tcell_C’], headwind_ms=headwind_ms,
+
+Underfull \hbox (badness 6493) in paragraph at lines 3238--3239
+\TU/TimesNewRoman(0)/m/n/10.95 bient_temp_c=env.get(’Tamb_C’), elevation_m=env.
+get(’elevation_m’, self._route_value(s_km, ’elev_m’,
+[80] [81] [82]
+Underfull \hbox (badness 5105) in paragraph at lines 3354--3355
+[]\TU/TimesNewRoman(0)/m/n/10.95 (t_utc, z, Tb, dt_stop, stop_cost) \TU/YuGothi
+c(0)/m/n/10.95 に \TU/TimesNewRoman(0)/m/n/10.95 integrate_stationary_duration(t
+_utc, z, Tb, float(stop[’s_km’]),
+
+Underfull \hbox (badness 2042) in paragraph at lines 3388--3389
+\TU/TimesNewRoman(0)/m/n/10.95 ds_step_km, dt_travel, dt_wait, elapsed_plan_sec
+, env, forces, headwind_ms, inertial_power_w, k, ki-
+
+Overfull \hbox (29.32709pt too wide) in paragraph at lines 3389--3390
+\TU/TimesNewRoman(0)/m/n/10.95 self._speed_limit_at, self.drive_schedule, self.
+model, self.soc_day_end_target, self.soc_finish_tol, self.upper_cost_cfg,
+[83] [84]
+Underfull \hbox (badness 2608) in paragraph at lines 3430--3431
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(v_k / 3.6, slope_pct, z, Tb, env
+[’G_poa’], env[’Tcell_C’], head-
+
+Underfull \hbox (badness 2486) in paragraph at lines 3430--3431
+\TU/TimesNewRoman(0)/m/n/10.95 wind_ms=headwind_ms, inertial_power_w=inertial_p
+ower_w, ambient_temp_c=env.get(’Tamb_C’), eleva-
+
+Overfull \hbox (61.69054pt too wide) in paragraph at lines 3441--3442
+[]\TU/TimesNewRoman(0)/m/n/10.95 forces \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.resistive_forces(v_k / 3.6, slope_pct, headwind_
+ms=headwind_ms, ambient_temp_c=env.get(’Tamb_C’),
+[85] [86] [87] [88] [89] [90]
+Underfull \hbox (badness 1701) in paragraph at lines 3686--3687
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(v_exec_kmh / 3.6, slope_pct, sel
+f.z, self.Tb, d0.get(’G_poa’, 0.0),
+
+Overfull \hbox (68.5335pt too wide) in paragraph at lines 3686--3687
+\TU/TimesNewRoman(0)/m/n/10.95 d0.get(’Tcell_C’, 40.0), headwind_ms=headwind_ms
+, ambient_temp_c=d0.get(’Tamb_C’), elevation_m=d0.get(’elevation_m’,
+
+Overfull \hbox (2.60153pt too wide) in paragraph at lines 3695--3696
+[]\TU/TimesNewRoman(0)/m/n/10.95 msg.data \TU/YuGothic(0)/m/n/10.95 に \TU/Times
+NewRoman(0)/m/n/10.95 [float(V), float(I), float(self.z), float(P_motor_elec), 
+float(I_motor), float(P_pv), float(v_exec_kmh),
+[91]
+Underfull \hbox (badness 2359) in paragraph at lines 3747--3748
+\TU/TimesNewRoman(0)/m/n/10.95 self.control_stop_hold, self.df, self.forecast_s
+tart_time, self.forecast_time_mode, self.forecast_time_offset,
+[92]
+Overfull \hbox (48.10608pt too wide) in paragraph at lines 3777--3778
+[]\TU/TimesNewRoman(0)/m/n/10.95 st.data \TU/YuGothic(0)/m/n/10.95 に \TU/TimesN
+ewRoman(0)/m/n/10.95 [float(self.z), float(self.Tb), float(self.s_km), float(se
+lf.k), float(sec_to_next), float(bool(self.control_stop_hold)),
+[93]
+Overfull \hbox (28.96362pt too wide) in paragraph at lines 3822--3823
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : float((
+1.0 - alpha) * self.v_plan_kmh[i] + alpha * self.v_plan_kmh[i + 1]) / float(sel
+f.v_plan_segments[-
+
+Overfull \hbox (23.89699pt too wide) in paragraph at lines 3824--3825
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.plan_dt_sec, self.upper_plan_mode, self.v_plan_kmh, self.v_plan_s
+egments,
+[94] [95] [96]
+Overfull \hbox (157.44987pt too wide) in paragraph at lines 3982--3983
+\TU/TimesNewRoman(0)/m/n/10.95 else self._tau_max_for_mode(self.model.maps_driv
+e, ’eco’) if ’eco’ in self.model.maps_drive else self._tau_max_for_mode(self.mo
+del.maps_drive,
+
+Underfull \hbox (badness 10000) in paragraph at lines 3983--3984
+\TU/TimesNewRoman(0)/m/n/10.95 else self._tau_max_for_mode(self.model.maps_rege
+n, ’eco’) if ’eco’ in self.model.maps_regen else
+[97] [98] [99] [100]
+Underfull \hbox (badness 1231) in paragraph at lines 4123--4124
+\TU/TimesNewRoman(0)/m/n/10.95 self.drive_schedule, self.get_parameter, self.lo
+wer_N, self.lower_dt, self.model, self.plan_start_monotonic,
+[101]
+Underfull \hbox (badness 10000) in paragraph at lines 4194--4195
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][] [
+] [][][][][][][][][][][][] [][] [][] [] [][] [] [][][][][] [][] [] [] [][][] []
+ [][] [] [][][][][][][] [][] [][][] [] [][][][] [][] [][] [] [][][][][] [][] []
+[][] []
+[102]
+Overfull \hbox (22.83797pt too wide) in paragraph at lines 4221--4222
+[]\TU/TimesNewRoman(0)/m/n/10.95 forces \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.resistive_forces(v, env[’slope_pct’], env[’headw
+ind_ms’], ambient_temp_c=env.get(’Tamb_C’),
+[103] [104]
+Underfull \hbox (badness 10000) in paragraph at lines 4277--4278
+\TU/TimesNewRoman(0)/m/n/10.95 self._tau_limits, self._traction_force, self._up
+per_solve_in_progress, self.get_logger, self.get_parameter,
+
+Overfull \hbox (117.71231pt too wide) in paragraph at lines 4277--4278
+\TU/TimesNewRoman(0)/m/n/10.95 self.lower_N, self.lower_dt, self.lower_last_u, 
+self.lower_max_iter, self.lower_maxfun, self.lower_skip_optimization_during_upp
+er_solve,
+[105]
+Overfull \hbox (48.48065pt too wide) in paragraph at lines 4311--4312
+[]\TU/TimesNewRoman(0)/m/n/10.95 forces \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.resistive_forces(v_seed, env[’slope_pct’], env[’
+headwind_ms’], ambient_temp_c=env.get(’Tamb_C’),
+
+Overfull \hbox (14.25906pt too wide) in paragraph at lines 4320--4321
+[]\TU/TimesNewRoman(0)/m/n/10.95 candidate_controls \TU/YuGothic(0)/m/n/10.95 に
+ \TU/TimesNewRoman(0)/m/n/10.95 np.unique(np.concatenate((np.linspace(u_min, u_
+max, 25, dtype=float), np.array([u_request,
+[106]
+Underfull \hbox (badness 10000) in paragraph at lines 4348--4349
+[]\TU/TimesNewRoman(0)/m/n/10.95 z_seed \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.soc_step(z_seed, float(pack[’P_pack’]), self.low
+er_dt, current_a=float(pack[’I’]),
+[107] [108]
+Overfull \hbox (22.83797pt too wide) in paragraph at lines 4440--4441
+[]\TU/TimesNewRoman(0)/m/n/10.95 forces \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.resistive_forces(v, env[’slope_pct’], env[’headw
+ind_ms’], ambient_temp_c=env.get(’Tamb_C’),
+[109] [110]
+Underfull \hbox (badness 1117) in paragraph at lines 4516--4517
+[]\TU/YuGothic(0)/m/n/10.95 こ の ブ ロ ッ ク が 直 接 呼 ぶ 主 な 関 数  |・|  メ ソ ッ ド\TU/Time
+sNewRoman(0)/m/n/10.95 : Float32, Float32MultiArray, MheInput, Mhe-
+
+Underfull \hbox (badness 1348) in paragraph at lines 4516--4517
+\TU/TimesNewRoman(0)/m/n/10.95 Meas, _current_bin_index, _distance_plan_speed, 
+_forecast_at_time, _horizon_data, _interp_upper_speed,
+
+Underfull \hbox (badness 3364) in paragraph at lines 4519--4520
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Tb, self._current_bin_index, self._distance_plan_speed,
+
+Overfull \hbox (74.29547pt too wide) in paragraph at lines 4519--4520
+\TU/TimesNewRoman(0)/m/n/10.95 self._forecast_at_time, self._horizon_data, self
+._interp_upper_speed, self._maybe_reload_forecast, self._measured_distance_km,
+
+Underfull \hbox (badness 10000) in paragraph at lines 4519--4520
+\TU/TimesNewRoman(0)/m/n/10.95 self._mpc_solve_solar, self._mpc_solve_solar_dis
+tance, self._publish_metrics, self._publish_plan_path,
+
+Overfull \hbox (46.30022pt too wide) in paragraph at lines 4519--4520
+\TU/TimesNewRoman(0)/m/n/10.95 self._publish_summary, self._publish_upper_plan,
+ self._route_value, self._sample_plan_segments, self._soc_guard_speed,
+
+Overfull \hbox (53.49437pt too wide) in paragraph at lines 4519--4520
+\TU/TimesNewRoman(0)/m/n/10.95 self._sync_measured_state, self._update_live_con
+trol_stop_hold, self._upper_solve_logged, self.battery_meas_timeout_sec,
+
+Underfull \hbox (badness 10000) in paragraph at lines 4520--4521
+\TU/TimesNewRoman(0)/m/n/10.95 self.control_stop_hold, self.forecast_reloaded, 
+self.k, self.last_bin, self.last_data, self.last_plan_time,
+
+Underfull \hbox (badness 10000) in paragraph at lines 4520--4521
+\TU/TimesNewRoman(0)/m/n/10.95 self.model_prev_speed_ms, self.plan_dt_sec, self
+.plan_start_monotonic, self.s_km, self.upper_plan_id,
+
+Overfull \hbox (19.63107pt too wide) in paragraph at lines 4520--4521
+\TU/TimesNewRoman(0)/m/n/10.95 self.upper_plan_mode, self.upper_plan_s_km, self
+.upper_plan_seq, self.upper_plan_soc, self.upper_plan_stop_hold,
+[111] [112]
+Underfull \hbox (badness 10000) in paragraph at lines 4582--4583
+[]\TU/YuGothic(0)/m/n/10.95 条 件 \TU/TimesNewRoman(0)/m/n/10.95 data and data[0]
+.get(’t_utc’) and ((data[0][’t_utc’] - self.upper_plan_time).total_seconds() >=
+
+
+Overfull \hbox (49.40352pt too wide) in paragraph at lines 4590--4591
+[]\TU/YuGothic(0)/m/n/10.95 条 件 \TU/TimesNewRoman(0)/m/n/10.95 self.upper_repla
+n_on_stop_transition and self.upper_plan_stop_hold is not None and bool(self.up
+per_plan_stop_hold)
+[113]
+Underfull \hbox (badness 10000) in paragraph at lines 4608--4609
+[]\TU/TimesNewRoman(0)/m/n/10.95 (self.v_upper_cmd, self.v_plan_segments, self.
+upper_plan_seq) \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRoman(0)/m/n/10.95 self
+._mpc_solve_solar_distance(t0,
+[114]
+Underfull \hbox (badness 1584) in paragraph at lines 4658--4659
+[]\TU/YuGothic(0)/m/n/10.95 こ の ブ ロ ッ ク が 直 接 呼 ぶ 主 な 関 数  |・|  メ ソ ッ ド\TU/Time
+sNewRoman(0)/m/n/10.95 : _build_lower_ref, _lower_mpc_solve, _pub-
+
+Overfull \hbox (27.53802pt too wide) in paragraph at lines 4661--4662
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Tb, self._build_lower_ref, self._lower_mpc_solve, self._lower_sol
+ve_logged,
+
+Underfull \hbox (badness 2269) in paragraph at lines 4661--4662
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_data, self.route_profile, self.s_km, s
+elf.s_meas, self.timer_lower, self.v_lower_cmd, self.v_now,
+[115]
+Underfull \hbox (badness 4441) in paragraph at lines 4687--4688
+[]\TU/TimesNewRoman(0)/m/n/10.95 env \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 dict(slope_pct=float(slope_pct), headwind_ms=float(headwind_ms
+), G_poa=float(d0.get(’G_poa’,
+[116]
+Overfull \hbox (12.6771pt too wide) in paragraph at lines 4761--4762
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._publish_lower_plan, self._publish_summary, self._sync_measured_s
+tate,
+
+Underfull \hbox (badness 10000) in paragraph at lines 4761--4762
+\TU/TimesNewRoman(0)/m/n/10.95 self.control_stop_hold, self.get_parameter, self
+.hierarchical, self.lower_last_mode, self.lower_last_u,
+
+Overfull \hbox (15.40971pt too wide) in paragraph at lines 4761--4762
+\TU/TimesNewRoman(0)/m/n/10.95 self.lower_last_v_pred, self.pub_drive_mode, sel
+f.pub_speed, self.pub_throttle, self.timer_lower, self.v_lower_cmd 
+[117] [118]
+Overfull \hbox (46.99254pt too wide) in paragraph at lines 4817--4818
+\TU/TimesNewRoman(0)/m/n/10.95 self._on_throttle, self._step_passo, self.create
+_publisher, self.create_subscription, self.create_timer, self.declare_parameter
+,
+
+Underfull \hbox (badness 10000) in paragraph at lines 4818--4819
+\TU/TimesNewRoman(0)/m/n/10.95 self.id_ema_alpha, self.id_min_samples, self.id_
+r2, self.id_rmse, self.id_samples, self.id_window_sec,
+
+Underfull \hbox (badness 10000) in paragraph at lines 4818--4819
+\TU/TimesNewRoman(0)/m/n/10.95 self.online_id_enabled, self.prev_speed_kmh, sel
+f.prev_speed_time, self.pub_mpc_state, self.pub_path,
+[119]
+Overfull \hbox (42.2307pt too wide) in paragraph at lines 4866--4867
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.model_coeffs \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 np.array([float(self.get_parameter(’model_a0’).v
+alue), float(self.get_parameter(’model_a1’).value),
+
+Overfull \hbox (107.35219pt too wide) in paragraph at lines 4866--4867
+\TU/TimesNewRoman(0)/m/n/10.95 float(self.get_parameter(’model_a2’).value), flo
+at(self.get_parameter(’model_a3’).value), float(self.get_parameter(’model_a4’).
+value)],
+[120] [121] [122] [123] [124] [125] [126] [127] [128] [129] [130] [131]
+[132] [133] [134]
+Underfull \hbox (badness 1009) in paragraph at lines 5512--5513
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Np, self._fuel_model_lph, self._stop_penalty_passo, self.dt,
+[135] [136] [137] [138]
+Underfull \hbox (badness 2150) in paragraph at lines 5706--5707
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Np, self._fuel_model_lph, self._publish_trajectory_passo,
+
+Underfull \hbox (badness 10000) in paragraph at lines 5706--5707
+\TU/TimesNewRoman(0)/m/n/10.95 self._solve_passo_mpc, self._update_identificati
+on, self.config_ready, self.fuel_rate_lph, self.get_clock,
+[139]
+Overfull \hbox (19.01546pt too wide) in paragraph at lines 5707--5708
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.last_step_time, self.mpc_state, self.prev_speed_kmh, self.prev_sp
+eed_time,
+
+Underfull \hbox (badness 6944) in paragraph at lines 5740--5741
+[]\TU/TimesNewRoman(0)/m/n/10.95 run_ready \TU/YuGothic(0)/m/n/10.95 に \TU/Time
+sNewRoman(0)/m/n/10.95 self.valid_obd_sec >= run_ready_sec and self.valid_speed
+_sec >= run_ready_sec and
+[140]
+Underfull \hbox (badness 5431) in paragraph at lines 5764--5765
+\TU/TimesNewRoman(0)/m/n/10.95 if np.isfinite(fuel_pred_lph) else math.nan, flo
+at(self.v_now) if np.isfinite(self.v_now) else math.nan,
+[141] [142]
+Underfull \hbox (badness 10000) in paragraph at lines 5901--5901
+[]|$[][][][][][][][] [] [][][][] [] [][][] [] [][][][][][][][][] []
+ignored error: Infinite glue shrinkage found in box being split [143]
+Overfull \hbox (5.05998pt too wide) in paragraph at lines 5938--5939
+[]|\TU/TimesNewRoman(0)/m/n/10.95 self._on_calib_drive_power_gain| 
+ignored error: Infinite glue shrinkage found in box being split [144] [145]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc
+_solarcar_mpc_node_py.pdf (145 pages).
+Transcript written on "C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-ma
+in\docs\program_reference_complete_20260729\build\11_mpc_solarcar_mpc_node_py\1
+1_mpc_solarcar_mpc_node_py.log".
+
+miktex-dvipdfmx: major issue: So far, you have not checked for MiKTeX updates.
+xelatex: major issue: So far, you have not checked for MiKTeX updates.
+

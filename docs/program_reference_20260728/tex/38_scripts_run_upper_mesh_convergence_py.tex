@@ -1,0 +1,337 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={upper mesh 収束確認},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{38. upper mesh 収束確認}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|scripts/run_upper_mesh_convergence.py| \\
+        種別 & Python \\
+        区分 & planning validation \\
+        役割 & 候補 policy や exact replay を距離分解能違いで再計算し、結果が十分収束しているか確認する。 \\
+        起動文脈 & GPU/learned policy の acceptance 前検証。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        候補 policy や exact replay を距離分解能違いで再計算し、結果が十分収束しているか確認する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item 細かい距離メッシュが本当に必要十分かを調べる。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item validation pipeline
+\item 手動検証
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/validate_gpu_upper_policy_candidates.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        Run fixed-policy integration and independent-policy control convergence gates.
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def parse_float_list(value: str) -> list[float]:
+    return [float(item) for item in str(value).split(",") if item.strip()]
+
+
+def parse_control_policies(values: list[str]) -> dict[float, Path]:
+    policies: dict[float, Path] = {}
+    for raw in values:
+        spacing_text, separator, path_text = str(raw).partition("=")
+        if not separator or not path_text.strip():
+            raise ValueError("--control-policy must use CONTROL_KM=POLICY_CSV")
+        spacing = float(spacing_text)
+        if spacing <= 0.0:
+            raise ValueError("control-policy spacing must be positive")
+        path = Path(path_text).resolve()
+        if not path.is_file():
+            raise FileNotFoundError(path)
+        policies[spacing] = path
+    return policies
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要関数は parse\_float\_list, parse\_control\_policies, assign\_finest\_control\_policy, file\_sha256, resolve, load\_plan, speed\_rms\_difference, materialize\_profile。 CLI 引数宣言は 7 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            22 & function & \path|parse_float_list| & args: value \\
+26 & function & \path|parse_control_policies| & args: values \\
+42 & function & \path|assign_finest_control_policy| & args: control\_meshes, supplied\_policies, finest\_policy \\
+57 & function & \path|file_sha256| & args: path \\
+65 & function & \path|resolve| & args: profile, value \\
+70 & function & \path|load_plan| & args: summary \\
+78 & function & \path|speed_rms_difference| & args: left, right, race\_km \\
+85 & function & \path|materialize_profile| & args: base\_path, output\_path \\
+131 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            19 & ROOT に Path(\_\_file\_\_).resolve().parents[1] の結果を代入する。 \\
+22 & 関数 parse\_float\_list を定義する。 \\
+26 & 関数 parse\_control\_policies を定義する。 \\
+42 & 関数 assign\_finest\_control\_policy を定義する。 \\
+57 & 関数 file\_sha256 を定義する。 \\
+65 & 関数 resolve を定義する。 \\
+70 & 関数 load\_plan を定義する。 \\
+78 & 関数 speed\_rms\_difference を定義する。 \\
+85 & 関数 materialize\_profile を定義する。 \\
+131 & 関数 main を定義する。 \\
+308 & 条件 \_\_name\_\_ == '\_\_main\_\_' を判定し、真なら内部処理を行う。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            4 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+6 & \path|import argparse| & CLI 引数を宣言し、実行時パラメータを外から受け取るため。 このファイル内での主な使用位置は L132, L150。 \\
+7 & \path|import hashlib| & snapshot ID や入力資産の digest を作るため。 このファイル内での主な使用位置は L58, L196。 \\
+8 & \path|import json| & manifest、checkpoint、UDP payload をやり取りするため。 このファイル内での主な使用位置は L214, L225, L303, L304。 \\
+9 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L116。 \\
+10 & \path|import subprocess| & git 情報取得や外部コマンド実行を行うため。 このファイル内での主な使用位置は L221。 \\
+11 & \path|import sys| & sys モジュールを利用するため。 このファイル内での主な使用位置は L204。 \\
+12 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L19, L26, L27, L35, L44, L45, L46, L57, ...。 \\
+14 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L79, L80, L81, L82。 \\
+15 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L70, L74, L78, L282, L283。 \\
+16 & \path|import yaml| & profile、stop、schedule、summary YAML を読み書きするため。 このファイル内での主な使用位置は L86, L127, L159。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L22 関数 \path|parse_float_list|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|parse_float_list(value)|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: float, split, str, strip
+  \item 戻り値の要点: [float(item) for item in str(value).split(',') if item.strip()]
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item [float(item) for item in str(value).split(',') if item.strip()] を返す。
+\end{enumerate}
+
+\subsection*{L26 関数 \path|parse_control_policies|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|parse_control_policies(values)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: FileNotFoundError, Path, ValueError, float, is\_file, partition, resolve, str, strip
+              \item 戻り値の要点: policies
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item policies に \{\} を代入する。
+\item values を順に走査し、各要素を raw に入れて処理する。
+\item policies を返す。
+            \end{enumerate}
+
+\subsection*{L42 関数 \path|assign_finest_control_policy|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|assign_finest_control_policy(control_meshes, supplied_policies, finest_policy)|
+              \item docstring: Assign --policy to the finest requested control mesh without relabelling it.
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, dict, float, min, resolve
+              \item 戻り値の要点: (finest\_ctrl, policies, order)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not control\_meshes を判定し、真なら内部処理を行う。
+\item finest\_ctrl に min((float(value) for value in control\_meshes)) の結果を代入する。
+\item policies に dict(supplied\_policies) の結果を代入する。
+\item policies[finest\_ctrl] に finest\_policy.resolve() の結果を代入する。
+\item order に [float(ctrl) for ctrl in control\_meshes if float(ctrl) in policies] の結果を代入する。
+\item (finest\_ctrl, policies, order) を返す。
+            \end{enumerate}
+
+\subsection*{L57 関数 \path|file_sha256|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|file_sha256(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: hexdigest, iter, open, read, sha256, update
+              \item 戻り値の要点: digest.hexdigest()
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item digest に hashlib.sha256() の結果を代入する。
+\item with 文で path.open('rb') を管理しながら処理する。
+\item digest.hexdigest() を返す。
+            \end{enumerate}
+
+\subsection*{L65 関数 \path|resolve|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|resolve(profile, value)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, is\_absolute, resolve, str
+              \item 戻り値の要点: path if path.is\_absolute() else (profile.parent / path).resolve()
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item path に Path(str(value)) の結果を代入する。
+\item path if path.is\_absolute() else (profile.parent / path).resolve() を返す。
+            \end{enumerate}
+
+\subsection*{L70 関数 \path|load_plan|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|load_plan(summary)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, is\_absolute, read\_csv, resolve, sort\_values
+              \item 戻り値の要点: frame.sort\_values('plan\_s\_km')
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item path に Path(summary['plan\_csv']) の結果を代入する。
+\item 条件 not path.is\_absolute() を判定し、真なら内部処理を行う。
+\item frame に pd.read\_csv(path) の結果を代入する。
+\item frame.sort\_values('plan\_s\_km') を返す。
+            \end{enumerate}
+
+\subsection*{L78 関数 \path|speed_rms_difference|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|speed_rms_difference(left, right, race_km)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: arange, float, interp, mean, sqrt
+              \item 戻り値の要点: float(np.sqrt(np.mean((left\_v - right\_v) ** 2)))
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item grid に np.arange(0.0, race\_km + 1.0, 1.0) の結果を代入する。
+\item left\_v に np.interp(grid, left['plan\_s\_km'], left['plan\_v\_kmh']) の結果を代入する。
+\item right\_v に np.interp(grid, right['plan\_s\_km'], right['plan\_v\_kmh']) の結果を代入する。
+\item float(np.sqrt(np.mean((left\_v - right\_v) ** 2))) を返す。
+            \end{enumerate}
+
+\subsection*{L85 関数 \path|materialize_profile|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|materialize_profile(base_path, output_path, policy_path, ds_km, ctrl_km)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ceil, float, get, int, items, list, mkdir, read\_text, resolve, safe\_dump, safe\_load, str
+              \item 戻り値の要点: cfg
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item cfg に yaml.safe\_load(base\_path.read\_text(encoding='utf-8')) or \{\} の結果を代入する。
+\item list((cfg.get('paths', \{\}) or \{\}).items()) を順に走査し、各要素を (key, value) に入れて処理する。
+\item ('fit\_summary\_yaml', 'terminal\_consistency\_yaml') を順に走査し、各要素を key に入れて処理する。
+\item cfg['paths']['initial\_upper\_policy\_csv'] に str(policy\_path.resolve()) の結果を代入する。
+\item race\_km に float(cfg['mpc']['race\_km']) の結果を代入する。
+\item run\_dir に output\_path.parent の結果を代入する。
+\item cfg['meta']['name'] に f'mesh\_ds\{ds\_km:g\}\_ctrl\{ctrl\_km:g\}' の結果を代入する。
+\item cfg['simulation'].update(...) を実行する。
+\item cfg['mpc'].update(...) を実行する。
+\item output\_path.parent.mkdir(...) を実行する。
+            \end{enumerate}
+
+\subsection*{L131 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ArgumentParser, DataFrame, Path, RuntimeError, abs, add\_argument, all, append, assign\_finest\_control\_policy, bool, dumps, encode
+              \item 戻り値の要点: 0 if gate\_pass else 2
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item parser に argparse.ArgumentParser(description=\_\_doc\_\_) の結果を代入する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item args に parser.parse\_args() の結果を代入する。
+\item profile に args.profile.resolve() の結果を代入する。
+            \end{enumerate}
+
+
+
+
+
+
+
+        \subsection*{CLI 引数}
+            \begin{longtable}{p{0.07\linewidth} p{0.78\linewidth}}
+            \toprule
+            行 & 引数 \\
+            \midrule
+            133 & \path|--profile| \\
+134 & \path|--policy| \\
+135 & \path|--output-dir| \\
+136 & \path|--integration-meshes-km| \\
+137 & \path|--control-meshes-km| \\
+138 & \path|--control-policy| \\
+148 & \path|--resume| \\
+            \bottomrule
+            \end{longtable}
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item CLI 引数を解釈し、main() から処理を起動する。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|scripts/run_upper_mesh_convergence.py| を
+        \textbf{planning validation}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

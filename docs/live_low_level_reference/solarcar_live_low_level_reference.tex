@@ -1,0 +1,2783 @@
+\documentclass[a4paper,10pt,oneside]{book}
+\usepackage[top=14mm,bottom=16mm,left=15mm,right=15mm]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setmainfont{Times New Roman}
+\setCJKmainfont{Yu Gothic}
+\setmonofont{Consolas}
+\setCJKmonofont{Yu Gothic}
+\usepackage{amsmath,amssymb,booktabs,longtable,array,tabularx,enumitem,pdflscape,seqsplit}
+\usepackage[unicode,hidelinks]{hyperref}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\lstset{basicstyle=\ttfamily\fontsize{6.2}{7.3}\selectfont,breaklines=true,breakatwhitespace=false,columns=fullflexible,keepspaces=true,numbers=left,numberstyle=\tiny,numbersep=4pt,xleftmargin=12pt,framexleftmargin=10pt,frame=single,showstringspaces=false,tabsize=4}
+\setlength{\parindent}{1em}
+\setlength{\parskip}{0.25em}
+\setlength{\emergencystretch}{3em}
+\renewcommand{\arraystretch}{1.12}
+\pagestyle{fancy}\fancyhf{}\fancyhead[L]{SolarCar live implementation}\fancyhead[R]{\thepage}
+\begin{document}
+\frontmatter
+\begin{titlepage}\centering\vspace*{25mm}{\Huge\bfseries ソーラーカーEMS\\live / live\_wifi\\実装・計算完全解説\par}\vspace{12mm}{\Large PowerShell入口から速度指令まで\par}\vfill
+{\large 生成日時: 2026-07-19T01:03:21+09:00\par}
+{\large 対象file: 44、対象source行: 9200\par}
+\end{titlepage}
+\tableofcontents
+\mainmatter
+
+\chapter{実行入口}
+\section{PowerShellからROS 2まで}
+\begin{enumerate}[leftmargin=2.4em]
+\item Windows PowerShellが \texttt{SolarSim.ps1} の引数を検証する。
+\item \texttt{Resolve-WslDistro} がWSL distributionを決める。
+\item Windows pathを \texttt{wslpath -a} でLinux pathへ変換する。
+\item WSL内で \texttt{scripts/solar\_control.sh up live\_wifi <profile>} を実行する。
+\item \texttt{colcon build --packages-select mpc\_solarcar} を実行する。
+\item 既存launch processを停止する。
+\item \texttt{ros2 launch mpc\_solarcar solar\_race\_live\_wifi.launch.py profile\_yaml:=...} を別process groupで起動する。
+\item dashboard APIが応答するまでWindows側が最大90秒待つ。
+\item DockerがあればPrometheusとGrafanaを起動し、なければ内蔵dashboardを開く。
+\item rqt graph exporterが実際に存在するnode/topicを取得する。
+\end{enumerate}
+
+\section{標準コマンド}
+\begin{lstlisting}
+powershell -ExecutionPolicy Bypass -File .\SolarSim.ps1 `
+  -Action up -Mode live_wifi `
+  -Profile project_packages/<vehicle>/profile.yaml
+\end{lstlisting}
+\texttt{-Mode live} はROS topicを外部装置が直接publishする構成である。\texttt{-Mode live\_wifi} はUDP JSON文字列を \texttt{telemetry\_text\_bridge\_node} がROS topicへ変換する構成である。
+
+\section{profile pathの解決}
+相対pathはprofile YAML自身のdirectoryを基準にする。root基準ではない。計算は
+\[
+p_{\mathrm{resolved}}=\operatorname{resolve}(p_{\mathrm{profile.parent}},p_{\mathrm{yaml}})
+\]
+である。値の優先順位は、node内既定値、profileの\texttt{model/mpc/live}、launchが明示するruntime値、ROS launch overrideの順である。
+
+\section{live採用profileの境界}
+\texttt{config/solar/bwsc\_2027\_demo.yaml}と\texttt{project\_packages/bwsc2027\_template/profile.yaml}は入力schemaであり、車両定数0のままではpreflightを通さない。\texttt{bwsc2025\_fitted\_mle13\_grounded\_segmented}は履歴再現用で、受入資料の\texttt{high\_precision\_claim\_allowed=false}によりlive採用外である。live投入条件は、同定後の受入YAMLで\texttt{fullsim\_adoption\_gate\_pass=true}かつ\texttt{high\_precision\_claim\_allowed=true}、静的監査ERROR 0、実機preflight RUNNINGの全成立である。
+
+\chapter{起動nodeと条件}
+\begin{longtable}{p{0.26\linewidth}p{0.18\linewidth}p{0.48\linewidth}}
+\toprule
+node & 起動条件 & 処理\\\midrule
+\endhead
+solar\_preflight\_node & 常時 & 必須telemetryとplanner statusの鮮度を1秒周期で判定する。\\
+mpc\_node & 常時 & 1時間級上位再計画、1秒級下位追従、物理model、制約判定を実行する。\\
+dashboard\_node & 常時 & ROS値を共有stateへ格納しHTTP \texttt{/api/state} とPrometheus \texttt{/metrics} を公開する。\\
+solar\_logger\_node & 常時 & profile指定rateでCSVへ時系列を書き込む。\\
+\path{speed_command_bridge_node} & \path{command_bridge.enabled} & planner指令を安全gate、平滑化、rate limit後にROS/UDPへ出す。\\
+\path{distance_node} & \path{use_distance_node} & 実測速度を時間積分して距離をpublishする。\\
+\path{grade_node} & \path{use_grade_node} & 高度差と距離差から勾配を計算する。\\
+\path{weather_fetch_node} & \path{weather.enabled} & chase GPS地点の予報を取得してruntime CSVをatomic replaceする。\\
+\path{solar_autocal_node} & \path{autocal.enabled} & 太陽光gain、走行power gain、補機powerを限定条件下で逐次更新する。\\
+\path{telemetry_text_bridge_node} & live\_wifiかつ\path{wifi_bridge.enabled} & UDP受信、timestamp検査、値域/rate検査、filter、ROS変換、返信を行う。\\
+\path{wind_correction_node} & live\_wifiかつ\path{wind_model.enabled} & 実測向かい風誤差を距離相関で予報CSV全体へ伝播する。\\
+\bottomrule
+\end{longtable}
+
+\chapter{時系列}
+\section{process開始から定常周期まで}
+\begin{longtable}{p{0.14\linewidth}p{0.28\linewidth}p{0.50\linewidth}}
+\toprule
+時刻 & 実行主体 & 処理\\\midrule
+\endhead
+$t=0$ & launch & profile読込、予報runtime fileの初期copy、node action生成。\\
+$t\approx0$ & 各node constructor & parameter宣言、map/route/weather読込、publisher/subscriber/timer生成。\\
+$t=0$--10 s & preflight & \texttt{STARTING}。command gateは安全速度を出す。\\
+20 Hz & Wi-Fi bridge & non-blocking UDP socketをpollする。\\
+5 Hz標準 & command bridge & gate、一次遅れ、加減速limit、量子化、publish。\\
+2 Hz標準 & logger/distance & CSV保存、速度積分距離。\\
+1 Hz & preflight & missing/stale判定。\\
+1 Hz標準 & lower MPC & 現在速度から短期torque列を最適化して先頭指令をpublish。\\
+1 s監視 & upper callback & 初回、再計画時刻、予報更新条件で長距離MPCを実行。\\
+30 s標準 & autocal/wind & calibration更新、風補正CSV更新。\\
+3600 s標準 & weather & 最新予報取得。\\
+200 ms & browser & \texttt{/api/state}を取得して画面更新。\\
+1 s & Prometheus & \texttt{/metrics}をscrapeしGrafanaへ供給。\\
+\bottomrule
+\end{longtable}
+
+\section{並行性}
+\path{mpc_node} は4 thread executorを使う。callback groupは次の4本である。
+\begin{lstlisting}[numbers=none]
+telemetry_callback_group : sensor reception
+upper_callback_group     : long-horizon MPC
+lower_callback_group     : short-horizon MPC
+command_callback_group   : command publication
+\end{lstlisting}
+各group内は直列、異なるgroupは並行である。長い上位探索中もtelemetry callbackと下位指令周期を継続する。
+
+\chapter{UDP文字列から状態量まで}
+\section{受信packet}
+UTF-8 JSONを1 datagram 1 packetで送る。最低限timestampを含める。
+\begin{lstlisting}
+{"source":"solar","ts_unix":1810000000.25,
+ "vehicle":{"speed_kmh":70.2,"soc":0.73,"batt_voltage_v":89.1,
+ "batt_current_a":8.7,"batt_temp_c":28.4,"solar_power_w":430.0,
+ "latitude":-20.1,"longitude":133.2,"altitude_m":310.0}}
+\end{lstlisting}
+chase側は \texttt{source=chase} とし、GPS、風速、風向、進行方向を送る。packetはmissing timestamp、古すぎる、未来、duplicate、許容外out-of-orderの順に拒否される。
+
+\section{timestamp判定}
+\[
+a=t_{\mathrm{receive}}-t_{\mathrm{source}}
+\]
+\[
+\mathrm{accept}\iff -a_{\mathrm{future,max}}\le a\le a_{\mathrm{max}}
+\land t_{\mathrm{source}}>t_{\mathrm{last}}-\Delta t_{\mathrm{reorder}}
+\]
+同一timestampはduplicateとして拒否する。PC、solar Raspberry Pi、chase Raspberry PiはNTPでUTCを同期する。
+
+\section{一次遅れfilterとslew limit}
+入力$x$、前回出力$y_{k-1}$、時刻差$\Delta t$、時定数$\tau$に対し
+\[
+\alpha=1-\exp(-\Delta t/\tau),\qquad
+\tilde y_k=y_{k-1}+\alpha(x_k-y_{k-1}).
+\]
+上昇率$r_+$、下降率$r_-$を使い
+\[
+y_k=y_{k-1}+\operatorname{clip}(\tilde y_k-y_{k-1},-r_-\Delta t,r_+\Delta t)
+\]
+とする。最後に値域clip、deadband、量子化を適用する。
+
+\chapter{距離と勾配}
+\section{距離積分}
+速度$v_k$ [km/h]を受けた時刻差を$\Delta t$ [s]として
+\[
+s_{k+1}=s_k+\frac{v_k}{3600}\min(\Delta t,\Delta t_{\max}).
+\]
+timerは保存済み$s$をpublishする。reset serviceは$s=0$へ戻す。
+
+\section{勾配}
+高度をEMAで
+\[
+h_f\leftarrow h_f+\alpha_h(h-h_f)
+\]
+とし、$\Delta s$が閾値以上かつ速度が閾値以上のとき
+\[
+g_{\%}=100\frac{h_{f,k}-h_{f,k-1}}{1000(s_k-s_{k-1})}
+\]
+をpublishする。GPS高度と専用高度topicの後着値が入力になる。
+
+\chapter{天候取得と風補正}
+\section{予報CSV}
+weather nodeは現在のchase GPS、未受信時はfallback緯度経度を使う。Open-Meteo応答を指定stepへ補間し、temporary fileへ書いてから置換する。MPCは\texttt{forecast\_reload\_sec}ごとにmtimeを確認し、変更時だけ再読込する。
+
+\section{cell温度近似}
+\[
+T_{\mathrm{cell}}=T_{\mathrm{amb}}+k_T G_{\mathrm{POA}}
+\]
+である。$k_T$はprofileの\texttt{live.weather.tcell\_gain}から入る。
+
+\section{向かい風成分}
+風向$\psi_w$、進行方向$\psi_c$、風速$u_w$に対し、source定義に合わせて
+\[
+u_h=u_w\cos(\psi_w-\psi_c)
+\]
+を得る。符号規約は正を向かい風とし、bridgeで\texttt{max\_abs\_headwind\_ms}へclipする。
+
+\section{距離相関補正}
+現在地点$s_0$の残差$e_0=u_{h,\mathrm{meas}}-u_{h,\mathrm{forecast}}$を
+\[
+e(s)=e_0\exp\left(-\frac{|s-s_0|}{L_c}\right)
+\]
+で伝播する。予報分散は予測時間と共に増やし、指定quantileでplanner用風速を作る。
+
+\chapter{車両物理model}
+\section{空気密度}
+constant modeでは$\rho$を直接使う。ideal-gas-altitude modeでは
+\[
+p(h)=p_0\left(1-\frac{0.0065h}{288.15}\right)^{5.255877},\qquad
+\rho=\frac{p(h)}{287.05(T_{\mathrm{amb}}+273.15)}.
+\]
+
+\section{走行抵抗}
+\[
+v_r=\max(0,v+u_h),\quad \theta=\tan^{-1}(g_{\%}/100)
+\]
+\[
+F_a=\frac12\rho C_dA v_r^2,\quad
+F_r=C_{rr}mg\cos\theta,\quad
+F_g=mg\sin\theta.
+\]
+\[
+P_{\mathrm{road}}=(F_a+F_r+F_g)v,\qquad
+P_{\mathrm{wheel}}=P_{\mathrm{road}}+P_{\mathrm{inertia}}.
+\]
+空力抵抗は対気速度で求め、仕事率は対地速度を掛ける。
+
+\section{motor map}
+\[
+\omega_w=v/r_w,\quad T_w=P_{\mathrm{wheel}}/(\omega_w+10^{-3}),
+\quad T_m=T_w/i_g.
+\]
+CSV格子$(v,T)$の4点から双線形補間して$\eta_d$または$\eta_r$を得る。駆動時
+\[
+P_{dc,d}=\frac{\max(P_{\mathrm{wheel}},0)}{\eta_d\eta_g\eta_{inv}},
+\]
+回生時
+\[
+P_{dc,r}=u_r\eta_r\eta_g\eta_{inv}\max(-P_{\mathrm{wheel}},0).
+\]
+
+\section{太陽電池}
+mapがあれば$(G,T_c)$で$\eta_p$と$\eta_{mppt}$を双線形補間する。なければ
+\[
+\eta_p=\max\{0,\eta_{ref}[1+\mu_p(T_c-25)]\}g_p.
+\]
+\[
+P_{pv,raw}=\eta_p A_{pv}G,\quad
+P_{pv}=\min(P_{pv,raw}\eta_{mppt},P_{pv,max}).
+\]
+
+\section{pack電力と電池}
+\[
+P_{pack}=P_{dc,d}-P_{dc,r}+P_{aux}-P_{pv}.
+\]
+\[
+R_t=R_{int}(T,z)+R_{line}+R_p,\quad
+P_{pack}=I(V_{oc}-IR_t).
+\]
+低電流側の根を選び
+\[
+I=\frac{V_{oc}-\sqrt{V_{oc}^2-4R_tP_{pack}}}{2R_t},\qquad
+V=V_{oc}-IR_t.
+\]
+$Q_{nom}>0$ならcoulomb counting
+\[
+z_{k+1}=z_k-\eta_c\frac{I_k\Delta t}{3600Q_{nom}},
+\]
+未設定のlegacy profileだけenergy integrationを使う。
+
+\section{補機電力}
+走行中は$P_{aux}$、停止かつ夜間閾値以下は$P_{aux,night}$、停止昼間は$P_{aux,stopped}$を使う。夜間0 W設定はここで実現する。
+
+\chapter{上位MPC}
+\section{距離離散化}
+残距離を固定4分割しない。\texttt{upper\_horizon.py}が最小/最大距離刻み、成長率、control point、最大step数から境界$s_i$を生成する。各区間の決定変数は速度$v_i$である。
+\[
+\Delta t_i=\frac{1000(s_{i+1}-s_i)}{v_i/3.6}.
+\]
+route勾配、標高、速度制限は区間平均または補間、予報は$(t,s)$格子補間で得る。
+
+\section{状態遷移}
+各区間で物理modelから$P_{pack},I,V$を計算し、SoCと温度を進める。走行可能時間外はscheduleが次の開始まで待機時間を挿入し、停止時太陽光と補機でSoCを進める。control stopはstop定義のhold時間を挿入する。
+
+\section{目的関数}
+\texttt{objective\_mode=fastest\_feasible}では
+\[
+J=\sum_i(\Delta t_{travel,i}+w_{wait}\Delta t_{wait,i})
++c\sum_j[\max(0,g_j)]^2
+\]
+である。$g_j$は速度、SoC、電流、電圧、温度、走行時間帯、終端条件の違反量である。weighted modeはさらに速度平滑、電流二乗、pack energy、Joule損、空力energy、機械energy、pack power slew、SoC barrier等を加える。全項の実装は本書の\texttt{upper\_cost.py}全文と関数表を参照する。
+
+\section{探索}
+\begin{enumerate}[leftmargin=2.4em]
+\item 前回解またはinitial upper policyをhorizonへ補間する。
+\item 決定論的seedと物理seedを生成する。
+\item CEMがbounded populationを評価しelite平均・分散を更新する。
+\item 上位候補をL-BFGS-Bで局所refineする。
+\item 設定時はSHGOまたは有限grid証明を追加する。
+\item 目的値最小のfinite feasible candidateを採用する。
+\end{enumerate}
+MPCは一度作った2025速度列を2027へ固定適用しない。vehicle modelは同定済み資産として共用するが、2027予報と現在状態で上位問題を再構成する。
+
+\chapter{下位MPCと指令}
+\section{reference}
+上位距離計画$v^U(s)$を現在距離から1秒刻みでsampleし、加速上限、減速上限、deadbandで整形して$v^{ref}_{0:N}$を作る。
+
+\section{下位目的関数}
+制御変数はmotor torque列$u_{0:N-1}$である。
+\[
+J_L=\sum_{k=0}^{N-1}\left[
+w_t(v_k-v^{ref}_k)^2+w_u u_k^2+w_{\Delta u}(u_k-u_{k-1})^2
+\right].
+\]
+\[
+v_{k+1}=\max\left(0,v_k+\frac{F_{trac}(u_k)-F_{res}(v_k)}{m}\Delta t\right).
+\]
+L-BFGS-Bにtorque boundsを渡し、先頭torqueから速度指令、throttle、drive modeをpublishする。
+
+\section{外部指令gate}
+許可条件は
+\[
+t-t_0\ge t_{hold},\quad a_{speed}\le a_{speed,max},\quad
+state=\mathrm{RUNNING},\quad a_{state}\le a_{state,max}.
+\]
+一つでも偽ならtargetは\texttt{safe\_speed\_kmh}、modeは\texttt{stop}である。速度とmodeの受信時刻は別に保持する。平滑化後にROS output topicと任意UDPへ出す。
+
+\chapter{MHEと自動校正}
+\section{battery MHE}
+window内の入力$P_{pack},T_{amb}$と観測$V,T_b$を使い、初期$z_0,T_{b,0}$をbounded optimizationする。
+\[
+J_{MHE}=\sum_k w_V(V_k-\hat V_k)^2+w_T(T_{b,k}-\hat T_{b,k})^2
++w_z(z_0-z_{prior})^2.
+\]
+推定失敗または観測不足時はfilter済み実測/内部状態を維持する。
+
+\section{autocal}
+停止昼間で太陽光powerの比からsolar gain、十分な走行速度で実測pack powerとmodel metricの比からdrive gain、条件成立時だけ補機推定をEMA更新する。各gainはYAMLのmin/maxでclipする。校正topicをMPCが受け、model overrideへ反映する。
+
+\chapter{保存と表示}
+\section{CSV logger}
+ROS callbackは共有dictionaryを更新し、timerだけが1行を書き込む。1行にはUTC、距離、上位/下位/出力/実測速度、SoC、温度、電圧、電流、環境、power、system state、diagnosticを含む。書込周期は\texttt{logging.log\_rate\_hz}である。
+
+\section{内蔵dashboard}
+dashboard nodeはROS値をlock付きstateへ保存する。HTTP threadはJSON snapshotを返す。browserは200 ms周期で取得する。表示値は制御入力ではない。
+
+\section{Grafana}
+dashboard nodeの\texttt{/metrics}をPrometheusが1秒周期で取得し、Grafana provisioned dashboardが表示する。Grafana停止やbrowser停止はROS制御processへ影響しない。
+
+\chapter{1周期の数値計算}
+\section{入力}
+$m=235$ kg、$C_dA=0.11$ m$^2$、$C_{rr}=0.008$、$\rho=1.18$ kg/m$^3$、$v=70$ km/h、向かい風2 m/s、勾配0、$\eta_d=0.92$、$\eta_g=1$、$\eta_{inv}=0.98$、$P_{aux}=21$ W、$P_{pv}=400$ Wとする。
+
+\section{抵抗と電力}
+\[
+v=70/3.6=19.444\ \mathrm{m/s},\quad v_r=21.444\ \mathrm{m/s}
+\]
+\[
+F_a=0.5\times1.18\times0.11\times21.444^2=29.82\ \mathrm{N}
+\]
+\[
+F_r=0.008\times235\times9.80665=18.44\ \mathrm{N}
+\]
+\[
+P_{road}=(29.82+18.44)\times19.444=938.4\ \mathrm{W}
+\]
+\[
+P_{dc,d}=938.4/(0.92\times0.98)=1040.9\ \mathrm{W}
+\]
+\[
+P_{pack}=1040.9+21-400=661.9\ \mathrm{W}.
+\]
+
+\section{電池とSoC}
+$V_{oc}=92$ V、$R_t=0.10\ \Omega$とすると
+\[
+I=\frac{92-\sqrt{92^2-4\times0.10\times661.9}}{0.20}=7.25\ \mathrm{A},
+\quad V=91.28\ \mathrm{V}.
+\]
+$Q_{nom}=33$ Ah、$\Delta t=1$ sなら
+\[
+\Delta z=-\frac{7.25}{3600\times33}=-6.10\times10^{-5}.
+\]
+この結果を制約、logger、dashboardへ同じ周期で渡す。
+
+\chapter{故障時遷移}
+\begin{longtable}{p{0.27\linewidth}p{0.28\linewidth}p{0.37\linewidth}}
+\toprule
+事象 & 検出 & 出力\\\midrule
+\endhead
+速度packet欠落 & speed age $>$ timeout & safe speedへrate制限、mode stop。\\
+preflight DEGRADED & system state不一致 & 同上。\\
+古いUDP packet & source timestamp age & packet破棄、statusへ理由。\\
+異常jump & value/rate filter & clipまたは破棄、前回filter値維持。\\
+予報API失敗 & exception/status & 既存runtime forecastを保持。\\
+上位solver失敗 & finite/feasible検査 & 前回解またはfallback。\\
+下位solver失敗 & optimizer result検査 & reference/fallback指令。\\
+dashboard/Grafana停止 & HTTP/Dockerのみ & plannerとloggerは継続。\\
+\bottomrule
+\end{longtable}
+
+\chapter{監査で修正した箇所}
+\begin{longtable}{p{0.30\linewidth}p{0.30\linewidth}p{0.32\linewidth}}
+\toprule
+修正前 & 修正 & 効果\\\midrule
+\endhead
+配布生成時に巨大external docsをcopy後削除 & copy段階でignore & disk不足による生成失敗を防止。\\
+現行MPC更新と配布snapshotが不一致 & solar依存だけ同期 & forecast grid、route平均、initial policy等を配布へ反映。\\
+command bridgeのenabled未使用 & launch条件へ反映 & false指定nodeを起動しない。\\
+wifi bridgeのenabled未使用 & launch条件へ反映 & false指定socketを開かない。\\
+mode受信で速度鮮度も更新 & 受信時刻を分離 & 古い速度指令の延命を防止。\\
+preflightは表示だけ & command gateへ接続 & DEGRADED時の速度出力を防止。\\
+launch依存未宣言 & package.xmlへ追加 & clean ROS環境での依存解決を明示。\\
+dashboardの年表示固定 & vehicle非依存表記 & 2027運用時の誤認防止。\\
+相対importの同梱検査なし & ASTで全local importを解決 & \texttt{mpc\_node.py}から\texttt{estimator.py}等の欠落をERROR化。\\
+PDF/fullsimの存在だけで fitted modelを配布 & 受入YAML二重gateを必須化 & 低精度MLE13/MLE19のlive誤採用を防止。\\
+旧MLE13を検証済みlive入口と表記 & 歴史再現用へ明確化 & 物理契約15警告を未解決のまま運用しない。\\
+\bottomrule
+\end{longtable}
+
+\chapter{live到達file一覧}
+\begin{longtable}{p{0.67\linewidth}r r}\toprule path & lines & bytes\\\midrule\endhead
+\path{SolarSim.ps1} & 298 & 11207\\
+\path{scripts/solar_control.sh} & 255 & 5904\\
+\path{launch/solar_race_live.launch.py} & 22 & 745\\
+\path{launch/solar_race_live_wifi.launch.py} & 68 & 2517\\
+\path{mpc_solarcar/live_launch.py} & 175 & 8209\\
+\path{mpc_solarcar/solar_profile.py} & 118 & 3900\\
+\path{mpc_solarcar/path_utils.py} & 37 & 1241\\
+\path{mpc_solarcar/mpc_node.py} & 2573 & 127651\\
+\path{mpc_solarcar/model.py} & 477 & 20449\\
+\path{mpc_solarcar/utils_maps.py} & 33 & 1387\\
+\path{mpc_solarcar/route_utils.py} & 139 & 5471\\
+\path{mpc_solarcar/schedule_utils.py} & 217 & 8038\\
+\path{mpc_solarcar/forecast_grid.py} & 130 & 3937\\
+\path{mpc_solarcar/upper_policy.py} & 49 & 2097\\
+\path{mpc_solarcar/upper_cost.py} & 288 & 11307\\
+\path{mpc_solarcar/upper_horizon.py} & 145 & 5148\\
+\path{mpc_solarcar/upper_solver.py} & 473 & 21120\\
+\path{mpc_solarcar/estimator.py} & 111 & 3762\\
+\path{mpc_solarcar/signal_utils.py} & 155 & 5709\\
+\path{mpc_solarcar/solar_preflight_logic.py} & 68 & 2217\\
+\path{mpc_solarcar/solar_preflight_node.py} & 89 & 3358\\
+\path{mpc_solarcar/distance_node.py} & 60 & 1928\\
+\path{mpc_solarcar/grade_node.py} & 95 & 3581\\
+\path{mpc_solarcar/weather_utils.py} & 128 & 4484\\
+\path{mpc_solarcar/weather_fetch_node.py} & 144 & 6662\\
+\path{mpc_solarcar/solar_autocal_logic.py} & 24 & 701\\
+\path{mpc_solarcar/solar_autocal_node.py} & 158 & 7058\\
+\path{mpc_solarcar/speed_command_bridge_node.py} & 167 & 7947\\
+\path{mpc_solarcar/telemetry_protocol.py} & 76 & 2644\\
+\path{mpc_solarcar/telemetry_text_bridge_node.py} & 354 & 17681\\
+\path{mpc_solarcar/wind_correction_node.py} & 159 & 7951\\
+\path{mpc_solarcar/solar_logger_node.py} & 199 & 7439\\
+\path{mpc_solarcar/dashboard_node.py} & 418 & 18128\\
+\path{dashboard/index.html} & 150 & 5378\\
+\path{dashboard/app.js} & 218 & 7930\\
+\path{dashboard/style.css} & 340 & 7314\\
+\path{grafana/docker-compose.yml} & 39 & 1111\\
+\path{grafana/prometheus.yml} & 12 & 241\\
+\path{grafana/provisioning/dashboards/dashboards.yml} & 12 & 229\\
+\path{grafana/provisioning/datasources/prometheus.yml} & 13 & 255\\
+\path{grafana/dashboards/solarcar-ems.json} & 153 & 11849\\
+\path{config/solar/bwsc_2027_demo.yaml} & 254 & 7843\\
+\path{package.xml} & 31 & 1106\\
+\path{setup.py} & 76 & 2923\\
+\bottomrule\end{longtable}
+\chapter{ROS interface完全表}
+\begin{landscape}\tiny\setlength{\tabcolsep}{2pt}
+\begin{longtable}{p{0.20\linewidth}r p{0.08\linewidth}p{0.14\linewidth}p{0.20\linewidth}p{0.26\linewidth}}
+\toprule file & line & kind & type/period & topic/name & callback/default\\\midrule\endhead
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 58 & parameter & \seqsplit{} & \seqsplit{'host'} & \seqsplit{'0.0.0.0'}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 59 & parameter & \seqsplit{} & \seqsplit{'port'} & \seqsplit{8080}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 60 & parameter & \seqsplit{} & \seqsplit{'static\_dir'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 61 & parameter & \seqsplit{} & \seqsplit{'dummy\_csv'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 62 & parameter & \seqsplit{} & \seqsplit{'dummy\_rate\_hz'} & \seqsplit{5.0}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 117 & subscription & \seqsplit{Float32} & \seqsplit{'/planner/speed\_cmd'} & \seqsplit{self.\_on\_speed\_cmd}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 118 & subscription & \seqsplit{Float32} & \seqsplit{'/planner/upper\_speed\_cmd'} & \seqsplit{self.\_on\_upper\_speed\_cmd}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 119 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/speed\_kmh'} & \seqsplit{self.\_on\_speed\_meas}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 120 & subscription & \seqsplit{Float32} & \seqsplit{'/planner/throttle\_cmd\_pct'} & \seqsplit{self.\_on\_throttle\_cmd}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 121 & subscription & \seqsplit{String} & \seqsplit{'/planner/drive\_mode'} & \seqsplit{self.\_on\_drive\_mode}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 122 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/batt\_soc'} & \seqsplit{self.\_on\_soc}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 123 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/batt\_temp\_c'} & \seqsplit{self.\_on\_tb}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 124 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/batt\_current\_a'} & \seqsplit{self.\_on\_ibatt}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 125 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/batt\_voltage\_v'} & \seqsplit{self.\_on\_vbatt}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 126 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/s\_km'} & \seqsplit{self.\_on\_s\_km}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 127 & subscription & \seqsplit{Float32MultiArray} & \seqsplit{'/planner/status'} & \seqsplit{self.\_on\_status}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 128 & subscription & \seqsplit{Float32MultiArray} & \seqsplit{'/planner/env'} & \seqsplit{self.\_on\_env}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 129 & subscription & \seqsplit{Float32MultiArray} & \seqsplit{'/planner/metrics'} & \seqsplit{self.\_on\_metrics}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 130 & subscription & \seqsplit{Float32MultiArray} & \seqsplit{'/planner/upper\_plan'} & \seqsplit{self.\_on\_upper\_plan}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 131 & subscription & \seqsplit{Float32MultiArray} & \seqsplit{'/planner/lower\_plan'} & \seqsplit{self.\_on\_lower\_plan}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 132 & subscription & \seqsplit{String} & \seqsplit{'/system/state'} & \seqsplit{self.\_on\_sys\_state}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 133 & subscription & \seqsplit{String} & \seqsplit{'/system/diag'} & \seqsplit{self.\_on\_sys\_diag}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 134 & subscription & \seqsplit{String} & \seqsplit{'/system/mpc\_state'} & \seqsplit{self.\_on\_mpc\_state}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 135 & subscription & \seqsplit{Float32} & \seqsplit{'/system/health'} & \seqsplit{self.\_on\_health}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 136 & subscription & \seqsplit{NavSatFix} & \seqsplit{'/sim/gps'} & \seqsplit{self.\_on\_gps}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 137 & subscription & \seqsplit{Path} & \seqsplit{'/planner/trajectory'} & \seqsplit{self.\_on\_path}\\
+\seqsplit{mpc\_solarcar/dashboard\_node.py} & 392 & timer & \seqsplit{period [s]} & \seqsplit{period} & \seqsplit{self.\_tick\_dummy}\\
+\seqsplit{mpc\_solarcar/distance\_node.py} & 12 & parameter & \seqsplit{} & \seqsplit{'max\_dt\_sec'} & \seqsplit{2.5}\\
+\seqsplit{mpc\_solarcar/distance\_node.py} & 13 & parameter & \seqsplit{} & \seqsplit{'publish\_rate\_hz'} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/distance\_node.py} & 22 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/speed\_kmh'} & \seqsplit{self.\_on\_speed}\\
+\seqsplit{mpc\_solarcar/distance\_node.py} & 23 & publisher & \seqsplit{Float32} & \seqsplit{'/vehicle/s\_km'} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/distance\_node.py} & 26 & timer & \seqsplit{period [s]} & \seqsplit{1.0 / publish\_rate\_hz} & \seqsplit{self.\_publish}\\
+\seqsplit{mpc\_solarcar/grade\_node.py} & 13 & parameter & \seqsplit{} & \seqsplit{'min\_speed\_kmh'} & \seqsplit{5.0}\\
+\seqsplit{mpc\_solarcar/grade\_node.py} & 14 & parameter & \seqsplit{} & \seqsplit{'altitude\_alpha'} & \seqsplit{0.2}\\
+\seqsplit{mpc\_solarcar/grade\_node.py} & 15 & parameter & \seqsplit{} & \seqsplit{'min\_delta\_s\_km'} & \seqsplit{0.01}\\
+\seqsplit{mpc\_solarcar/grade\_node.py} & 16 & parameter & \seqsplit{} & \seqsplit{'gps\_topic'} & \seqsplit{'/sim/gps'}\\
+\seqsplit{mpc\_solarcar/grade\_node.py} & 17 & parameter & \seqsplit{} & \seqsplit{'altitude\_topic'} & \seqsplit{'/vehicle/altitude\_m'}\\
+\seqsplit{mpc\_solarcar/grade\_node.py} & 34 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/s\_km'} & \seqsplit{self.\_on\_s\_km}\\
+\seqsplit{mpc\_solarcar/grade\_node.py} & 35 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/speed\_kmh'} & \seqsplit{self.\_on\_speed}\\
+\seqsplit{mpc\_solarcar/grade\_node.py} & 36 & subscription & \seqsplit{Float32} & \seqsplit{self.altitude\_topic} & \seqsplit{self.\_on\_altitude}\\
+\seqsplit{mpc\_solarcar/grade\_node.py} & 37 & subscription & \seqsplit{NavSatFix} & \seqsplit{self.gps\_topic} & \seqsplit{self.\_on\_gps}\\
+\seqsplit{mpc\_solarcar/grade\_node.py} & 39 & publisher & \seqsplit{Float32} & \seqsplit{'/vehicle/grade'} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/grade\_node.py} & 40 & timer & \seqsplit{period [s]} & \seqsplit{1.0} & \seqsplit{self.\_step}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 278 & parameter & \seqsplit{} & \seqsplit{'forecast\_csv'} & \seqsplit{'inputs/forecast\_10min.csv'}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 279 & parameter & \seqsplit{} & \seqsplit{'maps\_dir'} & \seqsplit{'maps'}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 280 & parameter & \seqsplit{} & \seqsplit{'drive\_eff\_map'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 281 & parameter & \seqsplit{} & \seqsplit{'regen\_eff\_map'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 282 & parameter & \seqsplit{} & \seqsplit{'rint\_map'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 283 & parameter & \seqsplit{} & \seqsplit{'drive\_map\_eco'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 284 & parameter & \seqsplit{} & \seqsplit{'drive\_map\_power'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 285 & parameter & \seqsplit{} & \seqsplit{'regen\_map\_eco'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 286 & parameter & \seqsplit{} & \seqsplit{'regen\_map\_power'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 287 & parameter & \seqsplit{} & \seqsplit{'panel\_eff\_map'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 288 & parameter & \seqsplit{} & \seqsplit{'mppt\_eff\_map'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 289 & parameter & \seqsplit{} & \seqsplit{'ocv\_soc\_map'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 290 & parameter & \seqsplit{} & \seqsplit{'dt'} & \seqsplit{600.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 291 & parameter & \seqsplit{} & \seqsplit{'horizon\_steps'} & \seqsplit{9}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 292 & parameter & \seqsplit{} & \seqsplit{'v\_max\_kmh'} & \seqsplit{110.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 293 & parameter & \seqsplit{} & \seqsplit{'terminal\_soc\_min'} & \seqsplit{0.10}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 294 & parameter & \seqsplit{} & \seqsplit{'stop\_yaml'} & \seqsplit{'inputs/stop\_points.yaml'}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 295 & parameter & \seqsplit{} & \seqsplit{'forecast\_time\_mode'} & \seqsplit{'auto'}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 296 & parameter & \seqsplit{} & \seqsplit{'forecast\_time\_tz'} & \seqsplit{'UTC'}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 297 & parameter & \seqsplit{} & \seqsplit{'forecast\_start\_time\_utc'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 298 & parameter & \seqsplit{} & \seqsplit{'forecast\_time\_offset\_sec'} & \seqsplit{0.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 299 & parameter & \seqsplit{} & \seqsplit{'forecast\_reload\_sec'} & \seqsplit{60.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 300 & parameter & \seqsplit{} & \seqsplit{'replan\_on\_forecast\_reload'} & \seqsplit{False}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 301 & parameter & \seqsplit{} & \seqsplit{'params\_yaml'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 302 & parameter & \seqsplit{} & \seqsplit{'profile\_runtime\_mode'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 303 & parameter & \seqsplit{} & \seqsplit{'route\_profile\_csv'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 304 & parameter & \seqsplit{} & \seqsplit{'speed\_profile\_csv'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 305 & parameter & \seqsplit{} & \seqsplit{'drive\_schedule\_yaml'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 306 & parameter & \seqsplit{} & \seqsplit{'initial\_upper\_policy\_csv'} & \seqsplit{''}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 307 & parameter & \seqsplit{} & \seqsplit{'use\_measured\_s'} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 308 & parameter & \seqsplit{} & \seqsplit{'use\_measured\_speed'} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 309 & parameter & \seqsplit{} & \seqsplit{'soc0'} & \seqsplit{0.95}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 310 & parameter & \seqsplit{} & \seqsplit{'Tb0'} & \seqsplit{30.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 311 & parameter & \seqsplit{} & \seqsplit{'s0\_km'} & \seqsplit{0.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 312 & parameter & \seqsplit{} & \seqsplit{'speed\_meas\_timeout\_sec'} & \seqsplit{3.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 313 & parameter & \seqsplit{} & \seqsplit{'distance\_meas\_timeout\_sec'} & \seqsplit{5.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 314 & parameter & \seqsplit{} & \seqsplit{'battery\_meas\_timeout\_sec'} & \seqsplit{15.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 315 & parameter & \seqsplit{} & \seqsplit{'speed\_meas\_filter\_tau\_sec'} & \seqsplit{0.6}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 316 & parameter & \seqsplit{} & \seqsplit{'speed\_meas\_max\_accel\_kmhps'} & \seqsplit{12.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 317 & parameter & \seqsplit{} & \seqsplit{'speed\_meas\_max\_decel\_kmhps'} & \seqsplit{20.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 318 & parameter & \seqsplit{} & \seqsplit{'distance\_meas\_max\_rate\_kmps'} & \seqsplit{0.06}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 319 & parameter & \seqsplit{} & \seqsplit{'distance\_meas\_max\_backtrack\_km'} & \seqsplit{0.02}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 320 & parameter & \seqsplit{} & \seqsplit{'battery\_meas\_filter\_tau\_sec'} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 321 & parameter & \seqsplit{} & \seqsplit{'w\_dv'} & \seqsplit{0.05}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 322 & parameter & \seqsplit{} & \seqsplit{'w\_dv\_limit'} & \seqsplit{2.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 323 & parameter & \seqsplit{} & \seqsplit{'dv\_max\_kmhps'} & \seqsplit{5.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 324 & parameter & \seqsplit{} & \seqsplit{'w\_T'} & \seqsplit{5.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 325 & parameter & \seqsplit{} & \seqsplit{'w\_speed\_limit'} & \seqsplit{50.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 326 & parameter & \seqsplit{} & \seqsplit{'w\_drive\_window'} & \seqsplit{1.0e5}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 327 & parameter & \seqsplit{} & \seqsplit{'w\_current'} & \seqsplit{0.02}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 328 & parameter & \seqsplit{} & \seqsplit{'soc\_target'} & \seqsplit{0.5}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 329 & parameter & \seqsplit{} & \seqsplit{'soc\_band'} & \seqsplit{0.1}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 330 & parameter & \seqsplit{} & \seqsplit{'w\_soc\_target'} & \seqsplit{2.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 331 & parameter & \seqsplit{} & \seqsplit{'w\_soc\_band'} & \seqsplit{50.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 332 & parameter & \seqsplit{} & \seqsplit{'soc\_day\_end\_max'} & \seqsplit{-1.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 333 & parameter & \seqsplit{} & \seqsplit{'soc\_day\_end\_target'} & \seqsplit{-1.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 334 & parameter & \seqsplit{} & \seqsplit{'w\_soc\_day\_max'} & \seqsplit{1.0e4}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 335 & parameter & \seqsplit{} & \seqsplit{'w\_soc\_day\_track'} & \seqsplit{0.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 336 & parameter & \seqsplit{} & \seqsplit{'soc\_day\_end\_tol'} & \seqsplit{0.02}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 337 & parameter & \seqsplit{} & \seqsplit{'soc\_finish\_target'} & \seqsplit{-1.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 338 & parameter & \seqsplit{} & \seqsplit{'soc\_finish\_tol'} & \seqsplit{0.02}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 339 & parameter & \seqsplit{} & \seqsplit{'w\_soc\_progress'} & \seqsplit{1.0e5}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 340 & parameter & \seqsplit{} & \seqsplit{'w\_soc\_terminal'} & \seqsplit{1.0e5}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 341 & parameter & \seqsplit{} & \seqsplit{'race\_km'} & \seqsplit{3035.5}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 342 & parameter & \seqsplit{} & \seqsplit{'upper\_mode'} & \seqsplit{'time'}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 343 & parameter & \seqsplit{} & \seqsplit{'upper\_ds\_km'} & \seqsplit{20.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 344 & parameter & \seqsplit{} & \seqsplit{'upper\_horizon\_km'} & \seqsplit{1500.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 345 & parameter & \seqsplit{} & \seqsplit{'upper\_max\_steps'} & \seqsplit{200}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 346 & parameter & \seqsplit{} & \seqsplit{'upper\_horizon\_mode'} & \seqsplit{'fixed'}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 347 & parameter & \seqsplit{} & \seqsplit{'upper\_adaptive\_min\_ds\_km'} & \seqsplit{10.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 348 & parameter & \seqsplit{} & \seqsplit{'upper\_adaptive\_max\_ds\_km'} & \seqsplit{200.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 349 & parameter & \seqsplit{} & \seqsplit{'upper\_adaptive\_growth'} & \seqsplit{1.18}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 350 & parameter & \seqsplit{} & \seqsplit{'upper\_ctrl\_km'} & \seqsplit{0.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 351 & parameter & \seqsplit{} & \seqsplit{'upper\_vmin\_kmh'} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 352 & parameter & \seqsplit{} & \seqsplit{'upper\_replan\_km'} & \seqsplit{0.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 353 & parameter & \seqsplit{} & \seqsplit{'upper\_replan\_sec'} & \seqsplit{0.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 354 & parameter & \seqsplit{} & \seqsplit{'upper\_max\_iter'} & \seqsplit{120}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 355 & parameter & \seqsplit{} & \seqsplit{'upper\_global\_search\_enabled'} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 356 & parameter & \seqsplit{} & \seqsplit{'upper\_global\_search\_mode'} & \seqsplit{'auto'}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 357 & parameter & \seqsplit{} & \seqsplit{'upper\_cem\_generations'} & \seqsplit{4}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 358 & parameter & \seqsplit{} & \seqsplit{'upper\_cem\_population'} & \seqsplit{16}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 359 & parameter & \seqsplit{} & \seqsplit{'upper\_cem\_elite'} & \seqsplit{4}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 360 & parameter & \seqsplit{} & \seqsplit{'upper\_local\_refine\_topk'} & \seqsplit{4}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 361 & parameter & \seqsplit{} & \seqsplit{'upper\_seed\_library\_mode'} & \seqsplit{'full'}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 362 & parameter & \seqsplit{} & \seqsplit{'upper\_shgo\_samples'} & \seqsplit{256}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 363 & parameter & \seqsplit{} & \seqsplit{'upper\_shgo\_iters'} & \seqsplit{2}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 364 & parameter & \seqsplit{} & \seqsplit{'upper\_cert\_grid\_levels'} & \seqsplit{0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 365 & parameter & \seqsplit{} & \seqsplit{'upper\_cert\_max\_evaluations'} & \seqsplit{250000}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 366 & parameter & \seqsplit{} & \seqsplit{'upper\_cert\_workers'} & \seqsplit{1}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 367 & parameter & \seqsplit{} & \seqsplit{'upper\_day\_end\_soc\_min'} & \seqsplit{0.2}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 368 & parameter & \seqsplit{} & \seqsplit{'soc\_guard\_margin'} & \seqsplit{0.01}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 369 & parameter & \seqsplit{} & \seqsplit{'soc\_guard\_mode'} & \seqsplit{'stop'}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 370 & parameter & \seqsplit{} & \seqsplit{'drive\_mode'} & \seqsplit{'auto'}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 371 & parameter & \seqsplit{} & \seqsplit{'drive\_mode\_tau\_margin'} & \seqsplit{0.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 372 & parameter & \seqsplit{} & \seqsplit{'hierarchical'} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 373 & parameter & \seqsplit{} & \seqsplit{'lower\_dt'} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 374 & parameter & \seqsplit{} & \seqsplit{'lower\_horizon\_steps'} & \seqsplit{20}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 375 & parameter & \seqsplit{} & \seqsplit{'lower\_rate\_hz'} & \seqsplit{5.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 379 & parameter & \seqsplit{} & \seqsplit{'lower\_max\_iter'} & \seqsplit{0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 380 & parameter & \seqsplit{} & \seqsplit{'lower\_maxfun'} & \seqsplit{80}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 381 & parameter & \seqsplit{} & \seqsplit{'lower\_skip\_optimization\_during\_upper\_solve'} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 382 & parameter & \seqsplit{} & \seqsplit{'w\_track'} & \seqsplit{5.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 383 & parameter & \seqsplit{} & \seqsplit{'w\_throttle'} & \seqsplit{0.2}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 384 & parameter & \seqsplit{} & \seqsplit{'throttle\_rate\_limit'} & \seqsplit{30.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 385 & parameter & \seqsplit{} & \seqsplit{'mhe\_enabled'} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 386 & parameter & \seqsplit{} & \seqsplit{'mhe\_horizon\_steps'} & \seqsplit{12}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 387 & parameter & \seqsplit{} & \seqsplit{'mhe\_w\_soc'} & \seqsplit{50.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 388 & parameter & \seqsplit{} & \seqsplit{'mhe\_w\_tb'} & \seqsplit{5.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 389 & parameter & \seqsplit{} & \seqsplit{'mhe\_w\_i'} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 390 & parameter & \seqsplit{} & \seqsplit{'mhe\_w\_v'} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 391 & parameter & \seqsplit{} & \seqsplit{'mhe\_w\_prior'} & \seqsplit{5.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 392 & parameter & \seqsplit{} & \seqsplit{'soc\_min'} & \seqsplit{0.05}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 393 & parameter & \seqsplit{} & \seqsplit{'soc\_max'} & \seqsplit{0.98}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 394 & parameter & \seqsplit{} & \seqsplit{'T\_min'} & \seqsplit{-5.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 395 & parameter & \seqsplit{} & \seqsplit{'T\_max'} & \seqsplit{55.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 396 & parameter & \seqsplit{} & \seqsplit{'solar\_gain'} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 397 & parameter & \seqsplit{} & \seqsplit{'poa\_gain\_drive'} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 398 & parameter & \seqsplit{} & \seqsplit{'poa\_gain\_stop'} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 399 & parameter & \seqsplit{} & \seqsplit{'stop\_tilt\_fraction'} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 400 & parameter & \seqsplit{} & \seqsplit{'control\_stop\_tilt\_fraction'} & \seqsplit{0.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 401 & parameter & \seqsplit{} & \seqsplit{'control\_stop\_arrival\_tolerance\_km'} & \seqsplit{0.20}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 402 & parameter & \seqsplit{} & \seqsplit{'control\_stop\_stationary\_speed\_kmh'} & \seqsplit{2.0}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 403 & parameter & \seqsplit{} & \seqsplit{'control\_stop\_brake\_decel\_kmhps'} & \seqsplit{3.5}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 404 & parameter & \seqsplit{} & \seqsplit{'control\_stop\_brake\_margin\_km'} & \seqsplit{0.03}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 708 & publisher & \seqsplit{Float32} & \seqsplit{'/planner/speed\_cmd'} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 709 & publisher & \seqsplit{Float32} & \seqsplit{'/planner/upper\_speed\_cmd'} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 710 & publisher & \seqsplit{Float32} & \seqsplit{'/planner/throttle\_cmd\_pct'} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 711 & publisher & \seqsplit{String} & \seqsplit{'/planner/drive\_mode'} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 712 & publisher & \seqsplit{Path} & \seqsplit{'/planner/trajectory'} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 713 & publisher & \seqsplit{Float32MultiArray} & \seqsplit{'/planner/upper\_plan'} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 714 & publisher & \seqsplit{Float32MultiArray} & \seqsplit{'/planner/lower\_plan'} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 715 & publisher & \seqsplit{Float32MultiArray} & \seqsplit{'/planner/env'} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 716 & publisher & \seqsplit{Float32MultiArray} & \seqsplit{'/planner/metrics'} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 717 & publisher & \seqsplit{Float32MultiArray} & \seqsplit{'/planner/status'} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 720 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/s\_km'} & \seqsplit{self.\_on\_s\_km\_solar}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 721 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/speed\_kmh'} & \seqsplit{self.\_on\_speed\_solar}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 722 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/batt\_soc'} & \seqsplit{self.\_on\_soc\_solar}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 723 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/batt\_temp\_c'} & \seqsplit{self.\_on\_tb\_solar}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 724 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/batt\_current\_a'} & \seqsplit{self.\_on\_i\_solar}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 725 & subscription & \seqsplit{Float32} & \seqsplit{'/vehicle/batt\_voltage\_v'} & \seqsplit{self.\_on\_v\_solar}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 726 & subscription & \seqsplit{Float32} & \seqsplit{'/calib/solar\_gain'} & \seqsplit{self.\_on\_calib\_solar\_gain}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 727 & subscription & \seqsplit{Float32} & \seqsplit{'/calib/drive\_power\_gain'} & \seqsplit{self.\_on\_calib\_drive\_power\_gain}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 728 & subscription & \seqsplit{Float32} & \seqsplit{'/calib/aux\_power\_w'} & \seqsplit{self.\_on\_calib\_aux\_power}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 731 & timer & \seqsplit{period [s]} & \seqsplit{1.0} & \seqsplit{self.\_step\_solar}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 738 & timer & \seqsplit{period [s]} & \seqsplit{1.0 / self.lower\_rate\_hz} & \seqsplit{self.\_step\_lower}\\
+\seqsplit{mpc\_solarcar/mpc\_node.py} & 741 & timer & \seqsplit{period [s]} & \seqsplit{1.0 / self.lower\_rate\_hz} & \seqsplit{self.\_publish\_lower\_command\_cycle}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 20 & parameter & \seqsplit{} & \seqsplit{"publish\_period\_sec"} & \seqsplit{30.0}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 21 & parameter & \seqsplit{} & \seqsplit{"stationary\_speed\_kmh"} & \seqsplit{2.0}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 22 & parameter & \seqsplit{} & \seqsplit{"drive\_speed\_kmh"} & \seqsplit{25.0}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 23 & parameter & \seqsplit{} & \seqsplit{"day\_ghi\_threshold"} & \seqsplit{150.0}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 24 & parameter & \seqsplit{} & \seqsplit{"alpha"} & \seqsplit{0.2}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 25 & parameter & \seqsplit{} & \seqsplit{"solar\_gain\_init"} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 26 & parameter & \seqsplit{} & \seqsplit{"drive\_power\_gain\_init"} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 27 & parameter & \seqsplit{} & \seqsplit{"aux\_power\_w\_init"} & \seqsplit{8.0}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 28 & parameter & \seqsplit{} & \seqsplit{"solar\_gain\_min"} & \seqsplit{0.5}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 29 & parameter & \seqsplit{} & \seqsplit{"solar\_gain\_max"} & \seqsplit{1.5}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 30 & parameter & \seqsplit{} & \seqsplit{"drive\_power\_gain\_min"} & \seqsplit{0.7}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 31 & parameter & \seqsplit{} & \seqsplit{"drive\_power\_gain\_max"} & \seqsplit{1.4}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 32 & parameter & \seqsplit{} & \seqsplit{"aux\_power\_w\_min"} & \seqsplit{0.0}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 33 & parameter & \seqsplit{} & \seqsplit{"aux\_power\_w\_max"} & \seqsplit{300.0}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 57 & publisher & \seqsplit{Float32} & \seqsplit{"/calib/solar\_gain"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 58 & publisher & \seqsplit{Float32} & \seqsplit{"/calib/drive\_power\_gain"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 59 & publisher & \seqsplit{Float32} & \seqsplit{"/calib/aux\_power\_w"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 60 & publisher & \seqsplit{String} & \seqsplit{"/calib/status"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 62 & subscription & \seqsplit{Float32} & \seqsplit{"/vehicle/speed\_kmh"} & \seqsplit{self.\_on\_speed}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 63 & subscription & \seqsplit{Float32} & \seqsplit{"/vehicle/batt\_current\_a"} & \seqsplit{self.\_on\_current}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 64 & subscription & \seqsplit{Float32} & \seqsplit{"/vehicle/batt\_voltage\_v"} & \seqsplit{self.\_on\_voltage}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 65 & subscription & \seqsplit{Float32} & \seqsplit{"/vehicle/solar\_power\_w"} & \seqsplit{self.\_on\_solar}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 66 & subscription & \seqsplit{Float32MultiArray} & \seqsplit{"/planner/env"} & \seqsplit{self.\_on\_env}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 67 & subscription & \seqsplit{Float32MultiArray} & \seqsplit{"/planner/metrics"} & \seqsplit{self.\_on\_metrics}\\
+\seqsplit{mpc\_solarcar/solar\_autocal\_node.py} & 71 & timer & \seqsplit{period [s]} & \seqsplit{self.period} & \seqsplit{self.\_step}\\
+\seqsplit{mpc\_solarcar/solar\_logger\_node.py} & 88 & parameter & \seqsplit{} & \seqsplit{"log\_dir"} & \seqsplit{"outputs/logs"}\\
+\seqsplit{mpc\_solarcar/solar\_logger\_node.py} & 89 & parameter & \seqsplit{} & \seqsplit{"file\_prefix"} & \seqsplit{"solar\_live"}\\
+\seqsplit{mpc\_solarcar/solar\_logger\_node.py} & 90 & parameter & \seqsplit{} & \seqsplit{"log\_rate\_hz"} & \seqsplit{2.0}\\
+\seqsplit{mpc\_solarcar/solar\_logger\_node.py} & 91 & parameter & \seqsplit{} & \seqsplit{"flush\_every\_rows"} & \seqsplit{1}\\
+\seqsplit{mpc\_solarcar/solar\_logger\_node.py} & 92 & parameter & \seqsplit{} & \seqsplit{"output\_speed\_topic"} & \seqsplit{"/vehicle/speed\_cmd\_kmh"}\\
+\seqsplit{mpc\_solarcar/solar\_logger\_node.py} & 93 & parameter & \seqsplit{} & \seqsplit{"output\_drive\_mode\_topic"} & \seqsplit{"/vehicle/drive\_mode\_cmd"}\\
+\seqsplit{mpc\_solarcar/solar\_logger\_node.py} & 115 & subscription & \seqsplit{Float32} & \seqsplit{topic} & \seqsplit{self.\_set\_float(field)}\\
+\seqsplit{mpc\_solarcar/solar\_logger\_node.py} & 117 & subscription & \seqsplit{Float64} & \seqsplit{topic} & \seqsplit{self.\_set\_float(field)}\\
+\seqsplit{mpc\_solarcar/solar\_logger\_node.py} & 119 & subscription & \seqsplit{String} & \seqsplit{topic} & \seqsplit{self.\_set\_string(field)}\\
+\seqsplit{mpc\_solarcar/solar\_logger\_node.py} & 121 & subscription & \seqsplit{Float32MultiArray} & \seqsplit{topic} & \seqsplit{self.\_set\_array(fields)}\\
+\seqsplit{mpc\_solarcar/solar\_logger\_node.py} & 126 & subscription & \seqsplit{Float32} & \seqsplit{output\_speed\_topic} & \seqsplit{self.\_set\_float("output\_speed\_cmd\_kmh")}\\
+\seqsplit{mpc\_solarcar/solar\_logger\_node.py} & 129 & subscription & \seqsplit{String} & \seqsplit{output\_mode\_topic} & \seqsplit{self.\_set\_string("output\_drive\_mode")}\\
+\seqsplit{mpc\_solarcar/solar\_logger\_node.py} & 136 & timer & \seqsplit{period [s]} & \seqsplit{1.0 / rate\_hz} & \seqsplit{self.\_write\_row}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 17 & parameter & \seqsplit{} & \seqsplit{"startup\_grace\_sec"} & \seqsplit{10.0}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 18 & parameter & \seqsplit{} & \seqsplit{"measurement\_timeout\_sec"} & \seqsplit{3.0}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 19 & parameter & \seqsplit{} & \seqsplit{"require\_speed"} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 20 & parameter & \seqsplit{} & \seqsplit{"require\_distance"} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 21 & parameter & \seqsplit{} & \seqsplit{"require\_battery"} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 22 & parameter & \seqsplit{} & \seqsplit{"require\_planner"} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 27 & publisher & \seqsplit{String} & \seqsplit{"/system/state"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 28 & publisher & \seqsplit{Float32} & \seqsplit{"/system/health"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 29 & publisher & \seqsplit{String} & \seqsplit{"/system/diag"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 31 & subscription & \seqsplit{Float32} & \seqsplit{"/vehicle/speed\_kmh"} & \seqsplit{self.\_seen("speed")}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 32 & subscription & \seqsplit{Float32} & \seqsplit{"/vehicle/s\_km"} & \seqsplit{self.\_seen("distance")}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 33 & subscription & \seqsplit{Float32} & \seqsplit{"/vehicle/batt\_soc"} & \seqsplit{self.\_seen("batt\_soc")}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 34 & subscription & \seqsplit{Float32} & \seqsplit{"/vehicle/batt\_voltage\_v"} & \seqsplit{self.\_seen("batt\_voltage")}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 35 & subscription & \seqsplit{Float32} & \seqsplit{"/vehicle/batt\_current\_a"} & \seqsplit{self.\_seen("batt\_current")}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 36 & subscription & \seqsplit{Float32MultiArray} & \seqsplit{"/planner/status"} & \seqsplit{self.\_seen("planner")}\\
+\seqsplit{mpc\_solarcar/solar\_preflight\_node.py} & 38 & timer & \seqsplit{period [s]} & \seqsplit{1.0} & \seqsplit{self.\_step}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 20 & parameter & \seqsplit{} & \seqsplit{"output\_speed\_topic"} & \seqsplit{"/vehicle/speed\_cmd\_kmh"}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 21 & parameter & \seqsplit{} & \seqsplit{"output\_drive\_mode\_topic"} & \seqsplit{"/vehicle/drive\_mode\_cmd"}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 22 & parameter & \seqsplit{} & \seqsplit{"udp\_enabled"} & \seqsplit{False}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 23 & parameter & \seqsplit{} & \seqsplit{"udp\_host"} & \seqsplit{"127.0.0.1"}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 24 & parameter & \seqsplit{} & \seqsplit{"udp\_port"} & \seqsplit{50050}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 25 & parameter & \seqsplit{} & \seqsplit{"publish\_rate\_hz"} & \seqsplit{5.0}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 26 & parameter & \seqsplit{} & \seqsplit{"input\_timeout\_sec"} & \seqsplit{3.0}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 27 & parameter & \seqsplit{} & \seqsplit{"safe\_speed\_kmh"} & \seqsplit{0.0}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 28 & parameter & \seqsplit{} & \seqsplit{"startup\_hold\_sec"} & \seqsplit{2.0}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 29 & parameter & \seqsplit{} & \seqsplit{"filter\_tau\_sec"} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 30 & parameter & \seqsplit{} & \seqsplit{"accel\_limit\_kmhps"} & \seqsplit{1.2}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 31 & parameter & \seqsplit{} & \seqsplit{"decel\_limit\_kmhps"} & \seqsplit{3.5}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 32 & parameter & \seqsplit{} & \seqsplit{"speed\_deadband\_kmh"} & \seqsplit{0.1}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 33 & parameter & \seqsplit{} & \seqsplit{"speed\_quantize\_step\_kmh"} & \seqsplit{0.1}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 34 & parameter & \seqsplit{} & \seqsplit{"max\_output\_speed\_kmh"} & \seqsplit{120.0}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 35 & parameter & \seqsplit{} & \seqsplit{"drive\_mode\_min\_hold\_sec"} & \seqsplit{5.0}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 36 & parameter & \seqsplit{} & \seqsplit{"require\_system\_running"} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 37 & parameter & \seqsplit{} & \seqsplit{"system\_state\_timeout\_sec"} & \seqsplit{2.5}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 66 & publisher & \seqsplit{Float32} & \seqsplit{self.output\_speed\_topic} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 67 & publisher & \seqsplit{String} & \seqsplit{self.output\_drive\_mode\_topic} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 68 & subscription & \seqsplit{Float32} & \seqsplit{"/planner/speed\_cmd"} & \seqsplit{self.\_on\_speed\_cmd}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 69 & subscription & \seqsplit{Float32} & \seqsplit{"/planner/upper\_speed\_cmd"} & \seqsplit{self.\_on\_upper\_speed\_cmd}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 70 & subscription & \seqsplit{String} & \seqsplit{"/planner/drive\_mode"} & \seqsplit{self.\_on\_drive\_mode}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 71 & subscription & \seqsplit{String} & \seqsplit{"/system/state"} & \seqsplit{self.\_on\_system\_state}\\
+\seqsplit{mpc\_solarcar/speed\_command\_bridge\_node.py} & 86 & timer & \seqsplit{period [s]} & \seqsplit{1.0 / self.publish\_rate\_hz} & \seqsplit{self.\_step}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 82 & parameter & \seqsplit{} & \seqsplit{"enable\_inbound"} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 83 & parameter & \seqsplit{} & \seqsplit{"enable\_outbound"} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 84 & parameter & \seqsplit{} & \seqsplit{"bind\_host"} & \seqsplit{"0.0.0.0"}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 85 & parameter & \seqsplit{} & \seqsplit{"bind\_port"} & \seqsplit{52001}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 86 & parameter & \seqsplit{} & \seqsplit{"publish\_period\_sec"} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 87 & parameter & \seqsplit{} & \seqsplit{"solar\_remote\_host"} & \seqsplit{"192.168.50.21"}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 88 & parameter & \seqsplit{} & \seqsplit{"solar\_remote\_port"} & \seqsplit{52002}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 89 & parameter & \seqsplit{} & \seqsplit{"chase\_remote\_host"} & \seqsplit{"192.168.50.22"}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 90 & parameter & \seqsplit{} & \seqsplit{"chase\_remote\_port"} & \seqsplit{52003}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 91 & parameter & \seqsplit{} & \seqsplit{"send\_to\_solar"} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 92 & parameter & \seqsplit{} & \seqsplit{"send\_to\_chase"} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 93 & parameter & \seqsplit{} & \seqsplit{"prefer\_direct\_distance"} & \seqsplit{False}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 94 & parameter & \seqsplit{} & \seqsplit{"speed\_filter\_tau\_sec"} & \seqsplit{0.6}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 95 & parameter & \seqsplit{} & \seqsplit{"speed\_max\_kmh"} & \seqsplit{130.0}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 96 & parameter & \seqsplit{} & \seqsplit{"speed\_max\_accel\_kmhps"} & \seqsplit{12.0}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 97 & parameter & \seqsplit{} & \seqsplit{"speed\_max\_decel\_kmhps"} & \seqsplit{20.0}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 98 & parameter & \seqsplit{} & \seqsplit{"distance\_max\_rate\_kmps"} & \seqsplit{0.06}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 99 & parameter & \seqsplit{} & \seqsplit{"distance\_max\_backtrack\_km"} & \seqsplit{0.02}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 100 & parameter & \seqsplit{} & \seqsplit{"battery\_filter\_tau\_sec"} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 101 & parameter & \seqsplit{} & \seqsplit{"wind\_filter\_tau\_sec"} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 102 & parameter & \seqsplit{} & \seqsplit{"headwind\_filter\_tau\_sec"} & \seqsplit{0.8}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 103 & parameter & \seqsplit{} & \seqsplit{"max\_abs\_headwind\_ms"} & \seqsplit{25.0}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 104 & parameter & \seqsplit{} & \seqsplit{"timestamp\_required"} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 105 & parameter & \seqsplit{} & \seqsplit{"max\_packet\_age\_sec"} & \seqsplit{5.0}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 106 & parameter & \seqsplit{} & \seqsplit{"max\_future\_skew\_sec"} & \seqsplit{2.0}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 107 & parameter & \seqsplit{} & \seqsplit{"max\_out\_of\_order\_sec"} & \seqsplit{0.0}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 108 & parameter & \seqsplit{} & \seqsplit{"solar\_power\_gain\_to\_pack"} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 143 & publisher & \seqsplit{String} & \seqsplit{"/telemetry/raw\_solar"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 144 & publisher & \seqsplit{String} & \seqsplit{"/telemetry/raw\_chase"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 145 & publisher & \seqsplit{Float32} & \seqsplit{"/vehicle/speed\_kmh"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 146 & publisher & \seqsplit{Float32} & \seqsplit{"/vehicle/batt\_soc"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 147 & publisher & \seqsplit{Float32} & \seqsplit{"/vehicle/batt\_temp\_c"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 148 & publisher & \seqsplit{Float32} & \seqsplit{"/vehicle/batt\_current\_a"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 149 & publisher & \seqsplit{Float32} & \seqsplit{"/vehicle/batt\_voltage\_v"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 150 & publisher & \seqsplit{Float32} & \seqsplit{"/vehicle/solar\_power\_w"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 151 & publisher & \seqsplit{Float32} & \seqsplit{"/vehicle/altitude\_m"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 152 & publisher & \seqsplit{Float32} & \seqsplit{"/vehicle/s\_km"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 153 & publisher & \seqsplit{NavSatFix} & \seqsplit{"/vehicle/gps"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 154 & publisher & \seqsplit{NavSatFix} & \seqsplit{"/chase/gps"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 155 & publisher & \seqsplit{Float32} & \seqsplit{"/chase/altitude\_m"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 156 & publisher & \seqsplit{Float32} & \seqsplit{"/weather/headwind\_meas\_ms"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 157 & publisher & \seqsplit{Float32} & \seqsplit{"/weather/wind\_speed\_ms"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 158 & publisher & \seqsplit{Float32} & \seqsplit{"/weather/wind\_dir\_deg"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 159 & publisher & \seqsplit{Float32} & \seqsplit{"/weather/course\_deg"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 160 & publisher & \seqsplit{String} & \seqsplit{"/telemetry/bridge\_status"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 161 & publisher & \seqsplit{Float64} & \seqsplit{"/telemetry/solar\_source\_ts\_unix"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 162 & publisher & \seqsplit{Float64} & \seqsplit{"/telemetry/chase\_source\_ts\_unix"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 184 & subscription & \seqsplit{Float32} & \seqsplit{"/planner/speed\_cmd"} & \seqsplit{lambda msg: self.\_set\_outbound("speed\_cmd\_kmh", float(msg.data))}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 185 & subscription & \seqsplit{Float32} & \seqsplit{"/planner/upper\_speed\_cmd"} & \seqsplit{lambda msg: self.\_set\_outbound("upper\_speed\_cmd\_kmh", float(msg.data))}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 186 & subscription & \seqsplit{String} & \seqsplit{"/planner/drive\_mode"} & \seqsplit{lambda msg: self.\_set\_outbound("drive\_mode", str(msg.data))}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 187 & subscription & \seqsplit{Float32} & \seqsplit{"/vehicle/speed\_kmh"} & \seqsplit{lambda msg: self.\_set\_outbound("speed\_meas\_kmh", float(msg.data))}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 188 & subscription & \seqsplit{Float32} & \seqsplit{"/vehicle/batt\_soc"} & \seqsplit{lambda msg: self.\_set\_outbound("soc", float(msg.data))}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 189 & subscription & \seqsplit{Float32} & \seqsplit{"/vehicle/s\_km"} & \seqsplit{lambda msg: self.\_set\_outbound("s\_km", float(msg.data))}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 191 & timer & \seqsplit{period [s]} & \seqsplit{0.05} & \seqsplit{self.\_poll\_socket}\\
+\seqsplit{mpc\_solarcar/telemetry\_text\_bridge\_node.py} & 192 & timer & \seqsplit{period [s]} & \seqsplit{self.publish\_period\_sec} & \seqsplit{self.\_send\_outbound}\\
+\seqsplit{mpc\_solarcar/weather\_fetch\_node.py} & 18 & parameter & \seqsplit{} & \seqsplit{"profile\_yaml"} & \seqsplit{""}\\
+\seqsplit{mpc\_solarcar/weather\_fetch\_node.py} & 19 & parameter & \seqsplit{} & \seqsplit{"output\_csv"} & \seqsplit{""}\\
+\seqsplit{mpc\_solarcar/weather\_fetch\_node.py} & 20 & parameter & \seqsplit{} & \seqsplit{"raw\_forecast\_csv"} & \seqsplit{""}\\
+\seqsplit{mpc\_solarcar/weather\_fetch\_node.py} & 21 & parameter & \seqsplit{} & \seqsplit{"gps\_topic"} & \seqsplit{"/chase/gps"}\\
+\seqsplit{mpc\_solarcar/weather\_fetch\_node.py} & 22 & parameter & \seqsplit{} & \seqsplit{"fetch\_period\_sec"} & \seqsplit{3600.0}\\
+\seqsplit{mpc\_solarcar/weather\_fetch\_node.py} & 23 & parameter & \seqsplit{} & \seqsplit{"forecast\_days"} & \seqsplit{3}\\
+\seqsplit{mpc\_solarcar/weather\_fetch\_node.py} & 24 & parameter & \seqsplit{} & \seqsplit{"step\_minutes"} & \seqsplit{10}\\
+\seqsplit{mpc\_solarcar/weather\_fetch\_node.py} & 25 & parameter & \seqsplit{} & \seqsplit{"timezone\_name"} & \seqsplit{"Australia/Darwin"}\\
+\seqsplit{mpc\_solarcar/weather\_fetch\_node.py} & 26 & parameter & \seqsplit{} & \seqsplit{"fallback\_latitude"} & \seqsplit{-12.4634}\\
+\seqsplit{mpc\_solarcar/weather\_fetch\_node.py} & 27 & parameter & \seqsplit{} & \seqsplit{"fallback\_longitude"} & \seqsplit{130.8456}\\
+\seqsplit{mpc\_solarcar/weather\_fetch\_node.py} & 28 & parameter & \seqsplit{} & \seqsplit{"tcell\_gain"} & \seqsplit{0.03}\\
+\seqsplit{mpc\_solarcar/weather\_fetch\_node.py} & 98 & publisher & \seqsplit{String} & \seqsplit{"/weather/fetch\_status"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/weather\_fetch\_node.py} & 99 & subscription & \seqsplit{NavSatFix} & \seqsplit{self.gps\_topic} & \seqsplit{self.\_on\_gps}\\
+\seqsplit{mpc\_solarcar/weather\_fetch\_node.py} & 100 & timer & \seqsplit{period [s]} & \seqsplit{self.fetch\_period\_sec} & \seqsplit{self.\_fetch\_once}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 23 & parameter & \seqsplit{} & \seqsplit{"forecast\_csv"} & \seqsplit{""}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 24 & parameter & \seqsplit{} & \seqsplit{"corrected\_forecast\_csv"} & \seqsplit{"outputs/runtime/live\_forecast\_corrected.csv"}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 25 & parameter & \seqsplit{} & \seqsplit{"forecast\_time\_tz"} & \seqsplit{"Australia/Darwin"}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 26 & parameter & \seqsplit{} & \seqsplit{"publish\_period\_sec"} & \seqsplit{30.0}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 27 & parameter & \seqsplit{} & \seqsplit{"measurement\_sigma\_ms"} & \seqsplit{1.0}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 28 & parameter & \seqsplit{} & \seqsplit{"correlation\_distance\_km"} & \seqsplit{300.0}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 29 & parameter & \seqsplit{} & \seqsplit{"fallback\_correlation\_time\_h"} & \seqsplit{3.0}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 30 & parameter & \seqsplit{} & \seqsplit{"forecast\_sigma0\_ms"} & \seqsplit{1.5}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 31 & parameter & \seqsplit{} & \seqsplit{"forecast\_variance\_growth\_per\_hour"} & \seqsplit{0.05}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 32 & parameter & \seqsplit{} & \seqsplit{"planning\_quantile"} & \seqsplit{0.5}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 33 & parameter & \seqsplit{} & \seqsplit{"confidence\_z"} & \seqsplit{1.96}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 34 & parameter & \seqsplit{} & \seqsplit{"min\_sigma\_ms"} & \seqsplit{0.2}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 35 & parameter & \seqsplit{} & \seqsplit{"preferred\_source"} & \seqsplit{"auto"}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 36 & parameter & \seqsplit{} & \seqsplit{"use\_exp\_distance\_decay"} & \seqsplit{True}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 57 & publisher & \seqsplit{Float32} & \seqsplit{"/weather/headwind\_corrected\_ms"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 58 & publisher & \seqsplit{String} & \seqsplit{"/weather/wind\_correction\_status"} & \seqsplit{}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 59 & subscription & \seqsplit{Float32} & \seqsplit{"/weather/headwind\_meas\_ms"} & \seqsplit{self.\_on\_headwind}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 60 & subscription & \seqsplit{Float32} & \seqsplit{"/vehicle/s\_km"} & \seqsplit{self.\_on\_s}\\
+\seqsplit{mpc\_solarcar/wind\_correction\_node.py} & 61 & timer & \seqsplit{period [s]} & \seqsplit{max(1.0, float(self.get\_parameter("publish\_period\_sec").value))} & \seqsplit{self.\_step}\\
+\bottomrule\end{longtable}\end{landscape}
+\chapter{全関数の入出力・呼出関係}
+\section{\texttt{launch/solar\_race\_live.launch.py}}
+\subsection*{\_setup [L10--L13]}
+\begin{lstlisting}[numbers=none]
+signature: def _setup(context)
+calls: LaunchConfiguration; build_live_nodes; load_profile; perform
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{generate\_launch\_description [L16--L22]}
+\begin{lstlisting}[numbers=none]
+signature: def generate_launch_description()
+calls: DeclareLaunchArgument; LaunchDescription; OpaqueFunction
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{launch/solar\_race\_live\_wifi.launch.py}}
+\subsection*{\_setup [L12--L59]}
+\begin{lstlisting}[numbers=none]
+signature: def _setup(context)
+calls: LaunchConfiguration; Node; bool; build_live_nodes; float; get_section; live_cfg.get; live_forecast_paths; load_profile; model_cfg.get; nodes.append; perform; str; wifi_cfg.get; wifi_cfg.items; wind_cfg.get; ... (+1)
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{generate\_launch\_description [L62--L68]}
+\begin{lstlisting}[numbers=none]
+signature: def generate_launch_description()
+calls: DeclareLaunchArgument; LaunchDescription; OpaqueFunction
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/dashboard\_node.py}}
+\subsection*{DashboardHandler.\_\_init\_\_ [L20--L22]}
+\begin{lstlisting}[numbers=none]
+signature: def __init__(self, *args, node=None, directory=None, **kwargs)
+calls: __init__; super
+self read: --
+self write: _node
+\end{lstlisting}
+\subsection*{DashboardHandler.do\_GET [L24--L31]}
+\begin{lstlisting}[numbers=none]
+signature: def do_GET(self)
+calls: do_GET; self._node.get_prometheus_metrics; self._node.get_state; self._send_json; self._send_metrics; self.path.startswith; super
+self read: _node; _send_json; _send_metrics; path
+self write: --
+\end{lstlisting}
+\subsection*{DashboardHandler.log\_message [L33--L35]}
+\begin{lstlisting}[numbers=none]
+signature: def log_message(self, format, *args)
+calls: --
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{DashboardHandler.\_send\_json [L37--L43]}
+\begin{lstlisting}[numbers=none]
+signature: def _send_json(self, data)
+calls: encode; json.dumps; len; self.end_headers; self.send_header; self.send_response; self.wfile.write; str
+self read: end_headers; send_header; send_response; wfile
+self write: --
+\end{lstlisting}
+\subsection*{DashboardHandler.\_send\_metrics [L45--L52]}
+\begin{lstlisting}[numbers=none]
+signature: def _send_metrics(self, payload)
+calls: len; payload.encode; self.end_headers; self.send_header; self.send_response; self.wfile.write; str
+self read: end_headers; send_header; send_response; wfile
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_\_init\_\_ [L56--L154]}
+\begin{lstlisting}[numbers=none]
+signature: def __init__(self)
+calls: ThreadingHTTPServer; __init__; error; float; get_package_share_directory; info; int; os.path.abspath; os.path.dirname; os.path.join; partial; self._init_dummy; self._server_thread.start; self.create_subscription; self.declare_parameter; self.get_logger; ... (+7)
+self read: _init_dummy; _on_drive_mode; _on_env; _on_gps; _on_health; _on_ibatt; _on_lower_plan; _on_metrics; _on_mpc_state; _on_path; _on_s_km; _on_soc; _on_speed_cmd; _on_speed_meas; _on_status; _on_sys_diag; ... (+10)
+self write: _lock; _server; _server_thread; _soc_meas_monotonic; _state
+\end{lstlisting}
+\subsection*{DashboardNode.destroy\_node [L156--L163]}
+\begin{lstlisting}[numbers=none]
+signature: def destroy_node(self)
+calls: destroy_node; self._server.server_close; self._server.shutdown; super
+self read: _server
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.get\_state [L165--L167]}
+\begin{lstlisting}[numbers=none]
+signature: def get_state(self)
+calls: dict
+self read: _lock; _state
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.get\_prometheus\_metrics [L169--L234]}
+\begin{lstlisting}[numbers=none]
+signature: def get_prometheus_metrics(self)
+calls: dict; float; join; lines.extend; math.isfinite; max; metric_keys.items; replace; state.get; str; time.time
+self read: _lock; _state
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_update [L236--L239]}
+\begin{lstlisting}[numbers=none]
+signature: def _update(self, key, value)
+calls: time.time
+self read: _lock; _state
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_speed\_cmd [L241--L242]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_speed_cmd(self, msg: Float32)
+calls: float; self._update
+self read: _update
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_upper\_speed\_cmd [L244--L245]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_upper_speed_cmd(self, msg: Float32)
+calls: float; self._update
+self read: _update
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_speed\_meas [L247--L248]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_speed_meas(self, msg: Float32)
+calls: float; self._update
+self read: _update
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_throttle\_cmd [L250--L251]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_throttle_cmd(self, msg: Float32)
+calls: float; self._update
+self read: _update
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_drive\_mode [L253--L254]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_drive_mode(self, msg: String)
+calls: self._update; str
+self read: _update
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_soc [L256--L262]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_soc(self, msg: Float32)
+calls: float; time.monotonic; time.time
+self read: _lock; _state
+self write: _soc_meas_monotonic
+\end{lstlisting}
+\subsection*{DashboardNode.\_set\_estimated\_soc [L264--L271]}
+\begin{lstlisting}[numbers=none]
+signature: def _set_estimated_soc(self, value)
+calls: float; time.monotonic
+self read: _soc_meas_monotonic; _state
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_tb [L273--L274]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_tb(self, msg: Float32)
+calls: float; self._update
+self read: _update
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_ibatt [L276--L277]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_ibatt(self, msg: Float32)
+calls: float; self._update
+self read: _update
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_vbatt [L279--L280]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_vbatt(self, msg: Float32)
+calls: float; self._update
+self read: _update
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_s\_km [L282--L283]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_s_km(self, msg: Float32)
+calls: float; self._update
+self read: _update
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_status [L285--L299]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_status(self, msg: Float32MultiArray)
+calls: float; len; list; self._set_estimated_soc; time.time
+self read: _lock; _set_estimated_soc; _state
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_env [L301--L311]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_env(self, msg: Float32MultiArray)
+calls: float; len; list; time.time
+self read: _lock; _state
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_metrics [L313--L331]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_metrics(self, msg: Float32MultiArray)
+calls: float; len; list; self._set_estimated_soc; time.time
+self read: _lock; _set_estimated_soc; _state
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_upper\_plan [L333--L342]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_upper_plan(self, msg: Float32MultiArray)
+calls: float; len; list; time.time
+self read: _lock; _state
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_lower\_plan [L344--L353]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_lower_plan(self, msg: Float32MultiArray)
+calls: float; len; list; time.time
+self read: _lock; _state
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_sys\_state [L355--L356]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_sys_state(self, msg: String)
+calls: self._update; str
+self read: _update
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_sys\_diag [L358--L359]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_sys_diag(self, msg: String)
+calls: self._update; str
+self read: _update
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_mpc\_state [L361--L362]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_mpc_state(self, msg: String)
+calls: self._update; str
+self read: _update
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_health [L364--L365]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_health(self, msg: Float32)
+calls: float; self._update
+self read: _update
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_gps [L367--L371]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_gps(self, msg: NavSatFix)
+calls: float; time.time
+self read: _lock; _state
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_on\_path [L373--L377]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_path(self, msg: Path)
+calls: len; time.time
+self read: _lock; _state
+self write: --
+\end{lstlisting}
+\subsection*{DashboardNode.\_init\_dummy [L379--L393]}
+\begin{lstlisting}[numbers=none]
+signature: def _init_dummy(self, path: str, rate_hz: float)
+calls: df.to_dict; error; info; len; max; pd.read_csv; self.create_timer; self.get_logger
+self read: _tick_dummy; create_timer; get_logger
+self write: _dummy_idx; _dummy_rows; _dummy_timer
+\end{lstlisting}
+\subsection*{DashboardNode.\_tick\_dummy [L395--L406]}
+\begin{lstlisting}[numbers=none]
+signature: def _tick_dummy(self)
+calls: float; hasattr; len; row.items; time.time
+self read: _dummy_rows; _lock; _state
+self write: _dummy_idx
+\end{lstlisting}
+\subsection*{main [L409--L414]}
+\begin{lstlisting}[numbers=none]
+signature: def main()
+calls: DashboardNode; node.destroy_node; rclpy.init; rclpy.shutdown; rclpy.spin
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/distance\_node.py}}
+\subsection*{DistanceNode.\_\_init\_\_ [L10--L27]}
+\begin{lstlisting}[numbers=none]
+signature: def __init__(self)
+calls: __init__; float; info; self.create_publisher; self.create_service; self.create_subscription; self.create_timer; self.declare_parameter; self.get_logger; self.get_parameter; super
+self read: _on_reset; _on_speed; _publish; create_publisher; create_service; create_subscription; create_timer; declare_parameter; get_logger; get_parameter
+self write: last_speed; last_time; max_dt_sec; pub_s; s_km; srv_reset; sub_speed; timer
+\end{lstlisting}
+\subsection*{DistanceNode.\_on\_speed [L29--L38]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_speed(self, msg: Float32)
+calls: float; math.isfinite; now; self.get_clock
+self read: get_clock; max_dt_sec
+self write: last_speed; last_time; s_km
+\end{lstlisting}
+\subsection*{DistanceNode.\_on\_reset [L40--L46]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_reset(self, request, response)
+calls: --
+self read: --
+self write: last_speed; last_time; s_km
+\end{lstlisting}
+\subsection*{DistanceNode.\_publish [L48--L51]}
+\begin{lstlisting}[numbers=none]
+signature: def _publish(self)
+calls: Float32; float; self.pub_s.publish
+self read: pub_s; s_km
+self write: --
+\end{lstlisting}
+\subsection*{main [L54--L59]}
+\begin{lstlisting}[numbers=none]
+signature: def main()
+calls: DistanceNode; node.destroy_node; rclpy.init; rclpy.shutdown; rclpy.spin
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/estimator.py}}
+\subsection*{BatteryMHE.\_\_init\_\_ [L32--L52]}
+\begin{lstlisting}[numbers=none]
+signature: __init__(self, model, horizon_steps, w_soc, w_tb, w_i, w_v, w_prior, soc_bounds, tb_bounds)
+calls: deque; float; int; max
+self read: --
+self write: model; samples; soc_bounds; tb_bounds; w_i; w_prior; w_soc; w_tb; w_v
+\end{lstlisting}
+\subsection*{BatteryMHE.push [L54--L55]}
+\begin{lstlisting}[numbers=none]
+signature: def push(self, u: MheInput, y: MheMeas)
+calls: self.samples.append
+self read: samples
+self write: --
+\end{lstlisting}
+\subsection*{BatteryMHE.\_simulate [L57--L83]}
+\begin{lstlisting}[numbers=none]
+signature: def _simulate(self, z0: float, Tb0: float)
+calls: float; outputs.append; self.model.electrical_balance; self.model.soc_step
+self read: model; samples
+self write: --
+\end{lstlisting}
+\subsection*{BatteryMHE.estimate [L85--L111]}
+\begin{lstlisting}[numbers=none]
+signature: def estimate(self, z_init: float, Tb_init: float) -> Tuple[float, float]
+calls: dict; float; len; math.isfinite; minimize; np.array; self._simulate; zip
+self read: _simulate; samples; soc_bounds; tb_bounds; w_i; w_prior; w_soc; w_tb; w_v
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/forecast\_grid.py}}
+\subsection*{timestamp\_ns [L23--L29]}
+\begin{lstlisting}[numbers=none]
+signature: def timestamp_ns(value) -> int
+calls: int; pd.Timestamp; ts.tz_convert; ts.tz_localize
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{forecast\_distance\_column [L32--L39]}
+\begin{lstlisting}[numbers=none]
+signature: def forecast_distance_column(df: pd.DataFrame) -> str
+calls: isinstance
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{build\_forecast\_grid\_payload [L42--L82]}
+\begin{lstlisting}[numbers=none]
+signature: def build_forecast_grid_payload(df: pd.DataFrame) -> dict | None
+calls: apply; bfill; df.copy; drop_duplicates; dropna; ffill; forecast_distance_column; interpolate; len; max; np.array; pd.Index; pd.to_numeric; pivot.to_numpy; reindex; sort_values; ... (+6)
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{interp\_forecast\_grid [L85--L130]}
+\begin{lstlisting}[numbers=none]
+signature: interp_forecast_grid(payload, col, t_utc, s_km, default)
+calls: float; get; int; len; max; np.clip; np.searchsorted; payload.get; timestamp_ns
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/grade\_node.py}}
+\subsection*{GradeNode.\_\_init\_\_ [L11--L41]}
+\begin{lstlisting}[numbers=none]
+signature: def __init__(self)
+calls: __init__; float; info; self.create_publisher; self.create_subscription; self.create_timer; self.declare_parameter; self.get_logger; self.get_parameter; super; time.monotonic
+self read: _on_altitude; _on_gps; _on_s_km; _on_speed; _step; create_publisher; create_subscription; create_timer; declare_parameter; get_logger; get_parameter
+self write: alpha; altitude_ema; altitude_m; altitude_topic; gps_topic; grade; last_alt_ema; last_s_km; last_update; min_delta_s_km; min_speed_kmh; pub_grade; s_km; speed_kmh; timer
+\end{lstlisting}
+\subsection*{GradeNode.\_on\_s\_km [L43--L44]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_s_km(self, msg: Float32)
+calls: float
+self read: --
+self write: s_km
+\end{lstlisting}
+\subsection*{GradeNode.\_on\_speed [L46--L47]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_speed(self, msg: Float32)
+calls: float
+self read: --
+self write: speed_kmh
+\end{lstlisting}
+\subsection*{GradeNode.\_on\_altitude [L49--L50]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_altitude(self, msg: Float32)
+calls: float; self._update_altitude
+self read: _update_altitude
+self write: --
+\end{lstlisting}
+\subsection*{GradeNode.\_on\_gps [L52--L54]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_gps(self, msg: NavSatFix)
+calls: float; math.isfinite; self._update_altitude
+self read: _update_altitude
+self write: --
+\end{lstlisting}
+\subsection*{GradeNode.\_update\_altitude [L56--L61]}
+\begin{lstlisting}[numbers=none]
+signature: def _update_altitude(self, altitude_m: float)
+calls: math.isfinite
+self read: alpha
+self write: altitude_ema; altitude_m
+\end{lstlisting}
+\subsection*{GradeNode.\_step [L63--L86]}
+\begin{lstlisting}[numbers=none]
+signature: def _step(self)
+calls: Float32; float; math.isfinite; self.pub_grade.publish
+self read: altitude_ema; min_delta_s_km; min_speed_kmh; pub_grade; s_km; speed_kmh
+self write: grade; last_alt_ema; last_s_km
+\end{lstlisting}
+\subsection*{main [L89--L94]}
+\begin{lstlisting}[numbers=none]
+signature: def main()
+calls: GradeNode; node.destroy_node; rclpy.init; rclpy.shutdown; rclpy.spin
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/live\_launch.py}}
+\subsection*{cfg\_path [L11--L12]}
+\begin{lstlisting}[numbers=none]
+signature: def cfg_path(profile_path, raw: str) -> str
+calls: resolve_relative_path; str; strip
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{\_drop\_keys [L15--L17]}
+\begin{lstlisting}[numbers=none]
+signature: def _drop_keys(payload: dict, *keys: str) -> dict
+calls: items; set
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{live\_forecast\_paths [L20--L36]}
+\begin{lstlisting}[numbers=none]
+signature: def live_forecast_paths(profile_path, cfg)
+calls: Path; cfg_path; exists; get_path; get_section; shutil.copy2; str; target.exists; target.parent.mkdir; weather_cfg.get; wind_cfg.get
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{build\_live\_nodes [L39--L175]}
+\begin{lstlisting}[numbers=none]
+signature: def build_live_nodes(profile_path, cfg, *, use_wifi: bool)
+calls: Node; _drop_keys; autocal_cfg.get; bool; cfg_path; command_cfg.get; float; get; get_path; get_section; int; live_cfg.get; live_forecast_paths; live_logging_cfg.get; logging_cfg.get; nodes.append; ... (+4)
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/model.py}}
+\subsection*{\_is\_symbolic [L10--L14]}
+\begin{lstlisting}[numbers=none]
+signature: def _is_symbolic(x)
+calls: hasattr; isinstance; x.is_symbolic
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.\_\_init\_\_ [L74--L122]}
+\begin{lstlisting}[numbers=none]
+signature: __init__(self, drive_map_path, regen_map_path, Rint_map_path, params, panel_eff_map_path, mppt_eff_map_path, drive_map_eco_path, drive_map_power_path, regen_map_eco_path, regen_map_power_path, ocv_soc_map_path)
+calls: Params; read_1d_map; read_Rint_map; read_eff_map; read_map; self._update_mode_limits
+self read: _update_mode_limits
+self write: Gg; Gm; Rmap; Tcg; Tg; Tm; Z_drv; Z_mppt; Z_panel; Z_reg; aux_power_override_w; drive_mode; drive_mode_default; drive_mode_tau_margin; maps_drive; maps_regen; ... (+11)
+\end{lstlisting}
+\subsection*{SolarCarModel.eff\_drive [L124--L135]}
+\begin{lstlisting}[numbers=none]
+signature: def eff_drive(self, v_ms, tau_nm)
+calls: _is_symbolic; abs; bilinear_interp; ca.fabs; ca.fmax; ca.fmin; ca.sqrt; float; np.clip; self._select_mode; self.maps_drive.get
+self read: _select_mode; maps_drive; p
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.eff\_regen [L137--L148]}
+\begin{lstlisting}[numbers=none]
+signature: def eff_regen(self, v_ms, tau_nm)
+calls: _is_symbolic; abs; bilinear_interp; ca.fabs; ca.fmax; ca.fmin; float; np.clip; self._select_mode; self.maps_regen.get
+self read: _select_mode; maps_regen; p
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.\_update\_mode\_limits [L150--L156]}
+\begin{lstlisting}[numbers=none]
+signature: def _update_mode_limits(self)
+calls: float; max; self.maps_drive.items
+self read: maps_drive
+self write: tau_max
+\end{lstlisting}
+\subsection*{SolarCarModel.\_select\_mode [L158--L167]}
+\begin{lstlisting}[numbers=none]
+signature: def _select_mode(self, v_ms: float, tau_nm: float) -> str
+calls: float; lower; self.tau_max.get; str
+self read: drive_mode; drive_mode_tau_margin; maps_drive; tau_max
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.select\_drive\_mode [L169--L170]}
+\begin{lstlisting}[numbers=none]
+signature: def select_drive_mode(self, v_ms: float, tau_nm: float) -> str
+calls: abs; self._select_mode
+self read: _select_mode
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.R\_int [L172--L177]}
+\begin{lstlisting}[numbers=none]
+signature: def R_int(self, T_C, z)
+calls: _is_symbolic; bilinear_interp; float
+self read: Rmap; Tg; p; zg
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.pv\_balance [L179--L220]}
+\begin{lstlisting}[numbers=none]
+signature: def pv_balance(self, G_poa, T_cell_C)
+calls: _is_symbolic; bilinear_interp; ca.fmax; ca.fmin; dict; float; max; min
+self read: Gg; Gm; Tcg; Tm; Z_mppt; Z_panel; mppt_eff_map; p; panel_eff_map
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.pv\_power\_mppt [L222--L223]}
+\begin{lstlisting}[numbers=none]
+signature: def pv_power_mppt(self, G_poa, T_cell_C)
+calls: self.pv_balance
+self read: pv_balance
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.\_scaled\_slope\_pct [L225--L226]}
+\begin{lstlisting}[numbers=none]
+signature: def _scaled_slope_pct(self, slope_pct)
+calls: float
+self read: p
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.charge\_efficiency [L228--L233]}
+\begin{lstlisting}[numbers=none]
+signature: def charge_efficiency(self, P_pack) -> float
+calls: float
+self read: p
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.soc\_step [L235--L260]}
+\begin{lstlisting}[numbers=none]
+signature: soc_step(self, z, P_pack, dt_sec, *, current_a, Tbat_C)
+calls: float; max; self.battery_iv; self.charge_efficiency
+self read: battery_iv; charge_efficiency; p
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.ocv\_from\_soc [L262--L269]}
+\begin{lstlisting}[numbers=none]
+signature: def ocv_from_soc(self, z)
+calls: _is_symbolic; ca.fmax; ca.fmin; float; np.clip; np.interp
+self read: ocv_grid; ocv_soc_map; p; soc_grid
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.load\_ocv\_map [L271--L278]}
+\begin{lstlisting}[numbers=none]
+signature: def load_ocv_map(self, path: str) -> bool
+calls: read_1d_map
+self read: --
+self write: ocv_grid; ocv_soc_map; soc_grid
+\end{lstlisting}
+\subsection*{SolarCarModel.air\_density [L280--L295]}
+\begin{lstlisting}[numbers=none]
+signature: def air_density(self, ambient_temp_c=None, elevation_m=0.0)
+calls: float; lower; max; np.clip; str
+self read: p
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.resistive\_forces [L297--L342]}
+\begin{lstlisting}[numbers=none]
+signature: resistive_forces(self, v_ms, slope_pct, headwind_ms, *, ambient_temp_c, elevation_m, air_density_kgm3)
+calls: _is_symbolic; ca.atan; ca.cos; ca.fmax; ca.sin; dict; float; math.atan; math.cos; math.sin; max; self._scaled_slope_pct; self.air_density
+self read: _scaled_slope_pct; air_density; p
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.battery\_iv [L344--L366]}
+\begin{lstlisting}[numbers=none]
+signature: def battery_iv(self, P_pack, z, Tbat_C)
+calls: _is_symbolic; ca.fmax; ca.fmin; ca.sqrt; dict; float; math.sqrt; max; np.clip; self.R_int; self.ocv_from_soc
+self read: R_int; ocv_from_soc; p
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.mech\_power [L368--L387]}
+\begin{lstlisting}[numbers=none]
+signature: mech_power(self, v_ms, slope_pct, headwind_ms, inertial_power_w, *, ambient_temp_c, elevation_m)
+calls: self.resistive_forces
+self read: resistive_forces
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.auxiliary\_power [L389--L394]}
+\begin{lstlisting}[numbers=none]
+signature: def auxiliary_power(self, aux_power_w=None)
+calls: float; max
+self read: aux_power_override_w; p
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.scheduled\_auxiliary\_power [L396--L403]}
+\begin{lstlisting}[numbers=none]
+signature: def scheduled_auxiliary_power(self, *, is_driving: bool, irradiance_wm2: float) -> float
+calls: float; max; self.auxiliary_power
+self read: aux_power_override_w; auxiliary_power; p
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.torque\_from\_mech [L405--L414]}
+\begin{lstlisting}[numbers=none]
+signature: def torque_from_mech(self, P_mech, v_ms, wheel_radius=None, ratio=None)
+calls: --
+self read: p
+self write: --
+\end{lstlisting}
+\subsection*{SolarCarModel.electrical\_balance [L416--L477]}
+\begin{lstlisting}[numbers=none]
+signature: electrical_balance(self, v_ms, slope_pct, z, Tbat_C, G_poa, Tcell_C, headwind_ms, aux_power_w, inertial_power_w, ambient_temp_c, elevation_m)
+calls: _is_symbolic; ca.fmax; dict; float; max; np.clip; self.auxiliary_power; self.battery_iv; self.charge_efficiency; self.eff_drive; self.eff_regen; self.pv_balance; self.resistive_forces; self.torque_from_mech
+self read: auxiliary_power; battery_iv; charge_efficiency; eff_drive; eff_regen; p; pv_balance; resistive_forces; torque_from_mech
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/mpc\_node.py}}
+\subsection*{MPCNode.\_\_init\_\_ [L40--L49]}
+\begin{lstlisting}[numbers=none]
+signature: def __init__(self)
+calls: MutuallyExclusiveCallbackGroup; __init__; self._init_solar; super
+self read: _init_solar
+self write: command_callback_group; lower_callback_group; params_cfg; telemetry_callback_group; upper_callback_group
+\end{lstlisting}
+\subsection*{MPCNode.\_load\_stops [L52--L60]}
+\begin{lstlisting}[numbers=none]
+signature: def _load_stops(self, stop_yaml: str)
+calls: info; len; open; self.get_logger; y.get; yaml.safe_load
+self read: get_logger
+self write: stops
+\end{lstlisting}
+\subsection*{MPCNode.\_load\_forecast\_file [L62--L86]}
+\begin{lstlisting}[numbers=none]
+signature: def _load_forecast_file(self, path: str)
+calls: all; build_forecast_grid_payload; drop_duplicates; dropna; dt.tz_convert; getattr; isna; pd.Index; pd.read_csv; pd.to_datetime; self.get_logger; sort_values; str; t.dt.tz_convert; t.dt.tz_localize; tzname.upper; ... (+1)
+self read: get_logger
+self write: df; forecast_grid; forecast_times
+\end{lstlisting}
+\subsection*{MPCNode.\_apply\_params\_yaml [L88--L156]}
+\begin{lstlisting}[numbers=none]
+signature: def _apply_params_yaml(self, path: str)
+calls: Parameter; cfg.get; dict; float; hasattr; info; isinstance; len; model_cfg.items; motor_type.lower; mpc_cfg.items; mpc_cfg.update; open; params.append; resolve_path; runtime_section.get; ... (+10)
+self read: get_logger; get_parameter; has_parameter; model; set_parameters
+self write: params_cfg
+\end{lstlisting}
+\subsection*{MPCNode.\_maybe\_reload\_forecast [L158--L176]}
+\begin{lstlisting}[numbers=none]
+signature: def _maybe_reload_forecast(self)
+calls: info; os.path.getmtime; self._load_forecast_file; self.get_logger; time.monotonic; warn
+self read: _load_forecast_file; forecast_path; forecast_reload_sec; get_logger
+self write: forecast_mtime; forecast_reloaded; last_forecast_check
+\end{lstlisting}
+\subsection*{MPCNode.\_on\_s\_km\_solar [L178--L192]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_s_km_solar(self, msg: Float32)
+calls: bool; finite_float; float; math.isfinite; now; self.distance_meas_filter.update; self.get_clock; self.get_parameter
+self read: distance_meas_filter; distance_meas_max_backtrack_km; get_clock; get_parameter
+self write: s_km; s_meas; s_meas_time
+\end{lstlisting}
+\subsection*{MPCNode.\_on\_speed\_solar [L194--L200]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_speed_solar(self, msg: Float32)
+calls: float; now; self.get_clock; self.speed_meas_filter.update
+self read: get_clock; speed_meas_filter
+self write: v_meas_time; v_now
+\end{lstlisting}
+\subsection*{MPCNode.\_on\_soc\_solar [L202--L209]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_soc_solar(self, msg: Float32)
+calls: float; now; np.clip; self.get_clock; self.soc_meas_filter.update
+self read: get_clock; model; soc_meas_filter
+self write: soc_meas_time; solar_soc_meas; z
+\end{lstlisting}
+\subsection*{MPCNode.\_on\_tb\_solar [L211--L218]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_tb_solar(self, msg: Float32)
+calls: float; now; np.clip; self.get_clock; self.tb_meas_filter.update
+self read: get_clock; model; tb_meas_filter
+self write: Tb; solar_tb_meas; tb_meas_time
+\end{lstlisting}
+\subsection*{MPCNode.\_on\_i\_solar [L220--L226]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_i_solar(self, msg: Float32)
+calls: float; now; self.current_meas_filter.update; self.get_clock
+self read: current_meas_filter; get_clock
+self write: current_meas_time; solar_i_meas
+\end{lstlisting}
+\subsection*{MPCNode.\_on\_v\_solar [L228--L234]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_v_solar(self, msg: Float32)
+calls: float; now; self.get_clock; self.voltage_meas_filter.update
+self read: get_clock; voltage_meas_filter
+self write: solar_v_meas; voltage_meas_time
+\end{lstlisting}
+\subsection*{MPCNode.\_measured\_distance\_km [L236--L240]}
+\begin{lstlisting}[numbers=none]
+signature: def _measured_distance_km(self) -> float
+calls: finite_float; fresh_enough; now; self.get_clock
+self read: distance_meas_timeout_sec; get_clock; s_meas; s_meas_time
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_sync\_measured\_state [L242--L254]}
+\begin{lstlisting}[numbers=none]
+signature: def _sync_measured_state(self) -> None
+calls: bool; float; fresh_enough; math.isfinite; now; np.clip; self._measured_distance_km; self.get_clock; self.get_parameter
+self read: _measured_distance_km; battery_meas_timeout_sec; get_clock; get_parameter; model; soc_meas_time; solar_soc_meas; solar_tb_meas; speed_meas_timeout_sec; tb_meas_time; v_meas_time
+self write: Tb; s_km; v_now; z
+\end{lstlisting}
+\subsection*{MPCNode.\_on\_calib\_solar\_gain [L256--L260]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_calib_solar_gain(self, msg: Float32)
+calls: float; np.clip
+self read: --
+self write: solar_gain
+\end{lstlisting}
+\subsection*{MPCNode.\_on\_calib\_drive\_power\_gain [L262--L268]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_calib_drive_power_gain(self, msg: Float32)
+calls: float; max; np.clip
+self read: base_drive_eff_scale; base_regen_eff_scale; model
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_on\_calib\_aux\_power [L270--L274]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_calib_aux_power(self, msg: Float32)
+calls: float; max
+self read: model
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_init\_solar [L277--L749]}
+\begin{lstlisting}[numbers=none]
+signature: def _init_solar(self)
+calls: BatteryMHE; DriveSchedule.from_yaml; Params; RobustScalarFilter; SolarCarModel; abs; astimezone; bool; datetime.fromisoformat; datetime.now; float; getattr; info; int; isinstance; len; ... (+24)
+self read: _apply_params_yaml; _load_forecast_file; _load_stops; _on_calib_aux_power; _on_calib_drive_power_gain; _on_calib_solar_gain; _on_i_solar; _on_s_km_solar; _on_soc_solar; _on_speed_solar; _on_tb_solar; _on_v_solar; _publish_lower_command_cycle; _step_lower; _step_solar; command_callback_group; ... (+10)
+self write: Np; Tb; _forecast_warned_out_of_range; _lower_solve_logged; _lower_upper_busy_logged; _upper_solve_in_progress; _upper_solve_logged; _warned_lower_rate; active_control_stop_index; base_drive_eff_scale; base_regen_eff_scale; battery_meas_timeout_sec; completed_control_stops; control_stop_end_monotonic; control_stop_hold; control_stop_position_initialized; ... (+120)
+\end{lstlisting}
+\subsection*{MPCNode.\_current\_bin\_index [L751--L799]}
+\begin{lstlisting}[numbers=none]
+signature: def _current_bin_index(self) -> int
+calls: datetime.now; getattr; int; len; lower; max; np.clip; np.datetime64; np.searchsorted; self.get_logger; str; timedelta; to_pydatetime; total_seconds; warn
+self read: df; dt; forecast_relative_wall_start; forecast_start_time; forecast_time_mode; forecast_time_offset; forecast_times; get_logger; k
+self write: _forecast_warned_out_of_range; current_forecast_time_utc
+\end{lstlisting}
+\subsection*{MPCNode.\_horizon\_data [L801--L841]}
+\begin{lstlisting}[numbers=none]
+signature: def _horizon_data(self, k0: int)
+calls: bool; data.append; float; getattr; int; len; lower; max; min; np.clip; np.datetime64; np.isfinite; np.searchsorted; range; row.get; self._forecast_at_time; ... (+6)
+self read: Np; _forecast_at_time; current_forecast_time_utc; df; drive_schedule; dt; forecast_start_time; forecast_time_mode; forecast_times; get_parameter; s_km; s_meas; v_upper_cmd
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_forecast\_at\_time [L843--L917]}
+\begin{lstlisting}[numbers=none]
+signature: _forecast_at_time(self, t_utc, s_km, drive, control_stop)
+calls: all; dict; float; getattr; int; interp_forecast_grid; isna; len; max; np.clip; np.datetime64; np.searchsorted; row.get; self._route_value; total_seconds
+self read: _route_value; control_stop_tilt_fraction; df; dt; forecast_grid; forecast_start_time; poa_gain_drive; poa_gain_stop; solar_gain; stop_tilt_fraction
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_sample\_plan\_segments [L919--L928]}
+\begin{lstlisting}[numbers=none]
+signature: def _sample_plan_segments(self, dt_sample: float)
+calls: float; int; math.ceil; max; samples.extend
+self read: v_plan_segments
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_route\_value [L930--L939]}
+\begin{lstlisting}[numbers=none]
+signature: def _route_value(self, s_km: float, field: str, default: float) -> float
+calls: float; interpolate_profile; np.isfinite
+self read: route_profile
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_route\_average [L941--L948]}
+\begin{lstlisting}[numbers=none]
+signature: def _route_average(self, s0_km: float, s1_km: float, field: str, default: float) -> float
+calls: average_profile; float; np.isfinite
+self read: route_profile
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_speed\_limit\_at [L950--L956]}
+\begin{lstlisting}[numbers=none]
+signature: def _speed_limit_at(self, s_km: float, default_kmh: float) -> float
+calls: float; interpolate_profile
+self read: speed_profile
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_soc\_guard\_speed [L958--L1014]}
+\begin{lstlisting}[numbers=none]
+signature: def _soc_guard_speed(self, v_kmh: float, s_km: float, d0: dict) -> float
+calls: d0.get; float; lower; max; range; self._route_value; self.get_parameter; self.model.electrical_balance; self.model.soc_step; str; z_next_for
+self read: Tb; _route_value; get_parameter; model; route_profile; z
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_control\_stop\_catalog [L1016--L1034]}
+\begin{lstlisting}[numbers=none]
+signature: def _control_stop_catalog(self)
+calls: catalog.append; enumerate; float; int; lower; max; sorted; stop.get; str; strip
+self read: stops
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_update\_live\_control\_stop\_hold [L1036--L1084]}
+\begin{lstlisting}[numbers=none]
+signature: def _update_live_control_stop_hold(self, s_km: float, v_kmh: float) -> bool
+calls: float; getattr; info; int; max; self._control_stop_catalog; self.completed_control_stops.add; self.get_logger; self.get_parameter; time.monotonic
+self read: _control_stop_catalog; completed_control_stops; get_logger; get_parameter
+self write: active_control_stop_index; control_stop_end_monotonic; control_stop_position_initialized
+\end{lstlisting}
+\subsection*{MPCNode.\_dwell\_penalty [L1086--L1096]}
+\begin{lstlisting}[numbers=none]
+signature: def _dwell_penalty(self, s_km: float, v_ms: float) -> float
+calls: abs; float; max; self.get_parameter; st.get
+self read: get_parameter; stops
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_mpc\_solve\_solar [L1098--L1260]}
+\begin{lstlisting}[numbers=none]
+signature: def _mpc_solve_solar(self, data)
+calls: abs; bool; d.get; dict; float; len; list; max; min; minimize; np.all; np.array; np.clip; np.isfinite; np.ones; np.zeros; ... (+15)
+self read: Tb; _dwell_penalty; _route_value; _speed_limit_at; drive_schedule; get_logger; get_parameter; model; race_km; route_profile; s_km; s_meas; soc_band; soc_day_end_max; soc_finish_target; soc_finish_tol; ... (+10)
+self write: last_upper_solve_ok
+\end{lstlisting}
+\subsection*{MPCNode.\_mpc\_solve\_solar\_distance [L1262--L1778]}
+\begin{lstlisting}[numbers=none]
+signature: def _mpc_solve_solar_distance(self, t0_utc: datetime, s0_km: float, x0=None)
+calls: abs; apply_control_stop_at; bool; build_balance_seed; build_upper_distance_horizon; ctrl_s.copy; enumerate; env.get; env_leg.get; expand_ctrl; float; forces.get; getattr; hybrid_bounded_minimize; int; integrate_stationary_duration; ... (+50)
+self read: Tb; _control_stop_catalog; _forecast_at_time; _route_average; _route_value; _speed_limit_at; drive_schedule; get_logger; get_parameter; initial_upper_policy; model; race_km; soc_day_end_max; soc_day_end_target; soc_finish_target; soc_finish_tol; ... (+15)
+self write: last_upper_solve_ok; upper_plan_ctrl_s
+\end{lstlisting}
+\subsection*{MPCNode.\_publish\_upper\_plan [L1780--L1785]}
+\begin{lstlisting}[numbers=none]
+signature: def _publish_upper_plan(self)
+calls: Float32MultiArray; float; self.pub_plan.publish
+self read: plan_dt_sec; pub_plan; v_plan_kmh
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_publish\_lower\_plan [L1787--L1792]}
+\begin{lstlisting}[numbers=none]
+signature: def _publish_lower_plan(self, v_seq_ms)
+calls: Float32MultiArray; float; self.pub_lower_plan.publish
+self read: lower_dt; pub_lower_plan
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_publish\_plan\_path [L1794--L1820]}
+\begin{lstlisting}[numbers=none]
+signature: def _publish_plan_path(self, data)
+calls: Path; PoseStamped; bool; float; len; now; np.isfinite; path.poses.append; self.get_clock; self.get_parameter; self.pub_path.publish; to_msg
+self read: get_clock; get_parameter; model; pub_path; s_km; s_meas; upper_plan_mode; v_plan_kmh; v_plan_segments; v_upper_cmd
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_publish\_metrics [L1822--L1859]}
+\begin{lstlisting}[numbers=none]
+signature: def _publish_metrics(self, d0: dict, v_exec_kmh: float, s_for_profile: float)
+calls: Float32MultiArray; abs; d0.get; float; out.get; self._route_value; self.model.electrical_balance; self.pub_metrics.publish
+self read: Tb; _route_value; model; pub_metrics; route_profile; z
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_publish\_summary [L1861--L1891]}
+\begin{lstlisting}[numbers=none]
+signature: def _publish_summary(self, _v_exec_kmh: float = math.nan) -> None
+calls: Float32MultiArray; all; bool; datetime.now; float; isna; len; lower; max; pd.notna; self.pub_status.publish; str; time.monotonic; timedelta; to_pydatetime; total_seconds
+self read: Tb; completed_control_stops; control_stop_end_monotonic; control_stop_hold; df; forecast_start_time; forecast_time_mode; forecast_time_offset; k; model; pub_status; s_km; z
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_interp\_upper\_speed [L1893--L1914]}
+\begin{lstlisting}[numbers=none]
+signature: def _interp_upper_speed(self, t_sec: float) -> float
+calls: float; int; len; math.floor
+self read: plan_dt_sec; upper_plan_mode; v_plan_kmh; v_plan_segments; v_upper_cmd
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_distance\_plan\_speed [L1916--L1920]}
+\begin{lstlisting}[numbers=none]
+signature: def _distance_plan_speed(self, s_km: float) -> float
+calls: float; plan_segment_index
+self read: v_plan_segments; v_upper_cmd
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_tau\_max\_for\_mode [L1922--L1927]}
+\begin{lstlisting}[numbers=none]
+signature: def _tau_max_for_mode(self, maps, mode: str) -> float
+calls: float; max
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_tau\_limits [L1929--L1943]}
+\begin{lstlisting}[numbers=none]
+signature: def _tau_limits(self)
+calls: lower; self._tau_max_for_mode; str
+self read: _tau_max_for_mode; model
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_traction\_force [L1945--L1950]}
+\begin{lstlisting}[numbers=none]
+signature: def _traction_force(self, tau_nm: float) -> float
+calls: float; int; max
+self read: model
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_pack\_from\_tau [L1952--L1974]}
+\begin{lstlisting}[numbers=none]
+signature: def _pack_from_tau(self, v_ms: float, tau_nm: float, z: float, Tb: float, env: dict)
+calls: dict; float; int; max; self.model.battery_iv; self.model.eff_drive; self.model.eff_regen; self.model.pv_power_mppt
+self read: model
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_build\_lower\_ref [L1976--L2001]}
+\begin{lstlisting}[numbers=none]
+signature: def _build_lower_ref(self, base_time_utc, s_km: float, d0: dict)
+calls: float; max; min; np.clip; range; ref.append; self._interp_upper_speed; self._soc_guard_speed; self._speed_limit_at; self.drive_schedule.speed_limits; self.get_parameter; time.monotonic; timedelta
+self read: _interp_upper_speed; _soc_guard_speed; _speed_limit_at; drive_schedule; get_parameter; lower_N; lower_dt; model; plan_start_monotonic; v_upper_cmd; z
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_lower\_rollout [L2003--L2034]}
+\begin{lstlisting}[numbers=none]
+signature: _lower_rollout(self, v0_ms, u_seq, env, z0, Tb0, tau_drive, tau_regen)
+calls: env.get; float; max; self._pack_from_tau; self._traction_force; self.model.resistive_forces; self.model.soc_step; v_seq.append
+self read: _pack_from_tau; _traction_force; lower_dt; model
+self write: --
+\end{lstlisting}
+\subsection*{MPCNode.\_lower\_mpc\_solve [L2036--L2235]}
+\begin{lstlisting}[numbers=none]
+signature: def _lower_mpc_solve(self, v0_ms: float, s0_km: float, z0: float, Tb0: float, env: dict, v_ref_seq)
+calls: abs; bool; dict; env.get; float; info; int; len; max; min; minimize; np.all; np.array; np.asarray; np.clip; np.concatenate; ... (+16)
+self read: _lower_rollout; _pack_from_tau; _tau_limits; _traction_force; _upper_solve_in_progress; get_logger; get_parameter; lower_N; lower_dt; lower_last_u; lower_max_iter; lower_maxfun; lower_skip_optimization_during_upper_solve; model; throttle_rate_limit; w_throttle; ... (+1)
+self write: _lower_upper_busy_logged; last_lower_solve_ok
+\end{lstlisting}
+\subsection*{MPCNode.\_step\_solar [L2237--L2493]}
+\begin{lstlisting}[numbers=none]
+signature: def _step_solar(self)
+calls: Float32; Float32MultiArray; MheInput; MheMeas; bool; d0.get; datetime.now; float; fresh_enough; get; info; len; math.isfinite; max; now; np.clip; ... (+33)
+self read: _current_bin_index; _distance_plan_speed; _forecast_at_time; _horizon_data; _interp_upper_speed; _maybe_reload_forecast; _measured_distance_km; _mpc_solve_solar; _mpc_solve_solar_distance; _publish_metrics; _publish_plan_path; _publish_summary; _publish_upper_plan; _route_value; _sample_plan_segments; _soc_guard_speed; ... (+30)
+self write: Tb; _upper_solve_in_progress; _upper_solve_logged; control_stop_hold; forecast_reloaded; k; last_bin; last_data; last_plan_time; model_prev_speed_ms; plan_dt_sec; plan_start_monotonic; s_km; upper_plan_id; upper_plan_mode; upper_plan_s_km; ... (+7)
+\end{lstlisting}
+\subsection*{MPCNode.\_step\_lower [L2495--L2544]}
+\begin{lstlisting}[numbers=none]
+signature: def _step_lower(self)
+calls: bool; d0.get; datetime.now; dict; float; info; len; list; np.isfinite; self._build_lower_ref; self._lower_mpc_solve; self._publish_lower_command_cycle; self._route_value; self.get_logger; self.get_parameter; str; ... (+1)
+self read: Tb; _build_lower_ref; _lower_mpc_solve; _publish_lower_command_cycle; _route_value; get_logger; get_parameter; hierarchical; last_data; route_profile; s_km; s_meas; timer_lower; v_now; v_upper_cmd; z
+self write: _lower_solve_logged; lower_last_mode; lower_last_u; lower_last_v_pred; v_cmd; v_lower_cmd
+\end{lstlisting}
+\subsection*{MPCNode.\_publish\_lower\_command\_cycle [L2546--L2561]}
+\begin{lstlisting}[numbers=none]
+signature: def _publish_lower_command_cycle(self) -> None
+calls: Float32; String; float; min; np.clip; self._publish_lower_plan; self._publish_summary; self._sync_measured_state; self.get_parameter; self.pub_drive_mode.publish; self.pub_speed.publish; self.pub_throttle.publish; str
+self read: _publish_lower_plan; _publish_summary; _sync_measured_state; control_stop_hold; get_parameter; hierarchical; lower_last_mode; lower_last_u; lower_last_v_pred; pub_drive_mode; pub_speed; pub_throttle; timer_lower; v_lower_cmd
+self write: --
+\end{lstlisting}
+\subsection*{main [L2563--L2573]}
+\begin{lstlisting}[numbers=none]
+signature: def main()
+calls: MPCNode; MultiThreadedExecutor; executor.add_node; executor.shutdown; executor.spin; node.destroy_node; rclpy.init; rclpy.shutdown
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/path\_utils.py}}
+\subsection*{resolve\_path [L14--L37]}
+\begin{lstlisting}[numbers=none]
+signature: def resolve_path(path: str, default_subdir: str = '') -> str
+calls: default_subdir.strip; get_package_share_directory; os.fspath; os.path.exists; os.path.expanduser; os.path.isabs; os.path.join; path.startswith; str
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/route\_utils.py}}
+\subsection*{\_interp\_field [L6--L13]}
+\begin{lstlisting}[numbers=none]
+signature: def _interp_field(d, y, s_km, default=0.0)
+calls: float; len; np.clip; np.searchsorted
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{interpolate\_route [L16--L22]}
+\begin{lstlisting}[numbers=none]
+signature: def interpolate_route(route_df, s_km)
+calls: _interp_field; float; len
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{interpolate\_route\_with\_alt [L25--L33]}
+\begin{lstlisting}[numbers=none]
+signature: def interpolate_route_with_alt(route_df, s_km)
+calls: _interp_field; float; interpolate_route
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{interpolate\_profile [L36--L40]}
+\begin{lstlisting}[numbers=none]
+signature: def interpolate_profile(route_df, s_km, field: str, default: float = 0.0) -> float
+calls: _interp_field; float
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{average\_profile [L43--L64]}
+\begin{lstlisting}[numbers=none]
+signature: def average_profile(route_df, s0_km, s1_km, field: str, default: float = 0.0) -> float
+calls: average_profile_segments; float; np.asarray; np.isfinite
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{average\_profile\_segments [L67--L124]}
+\begin{lstlisting}[numbers=none]
+signature: def average_profile_segments(route_df, starts_km, lengths_km, field: str, default: float = 0.0)
+calls: ValueError; antiderivative; finite.sum; float; int; len; lengths.ravel; np.any; np.argsort; np.asarray; np.clip; np.concatenate; np.cumsum; np.diff; np.empty_like; np.full; ... (+10)
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{interpolate\_route\_heading [L127--L139]}
+\begin{lstlisting}[numbers=none]
+signature: def interpolate_route_heading(route_df, s_km, span_km: float = 0.5) -> float
+calls: float; interpolate_route; len; math.atan2; math.cos; math.degrees; math.radians; math.sin
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/schedule\_utils.py}}
+\subsection*{\_parse\_utc [L14--L23]}
+\begin{lstlisting}[numbers=none]
+signature: def _parse_utc(ts: str) -> Optional[datetime]
+calls: datetime.fromisoformat; dt.astimezone; dt.replace; ts.endswith
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{\_parse\_time\_hhmm [L26--L33]}
+\begin{lstlisting}[numbers=none]
+signature: def _parse_time_hhmm(s: str) -> Optional[dtime]
+calls: dtime; int; len; s.strip; split
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{DriveWindow.contains [L43--L44]}
+\begin{lstlisting}[numbers=none]
+signature: def contains(self, t_utc: datetime) -> bool
+calls: --
+self read: end_utc; start_utc
+self write: --
+\end{lstlisting}
+\subsection*{DailyWindow.contains [L56--L72]}
+\begin{lstlisting}[numbers=none]
+signature: def contains(self, t_utc: datetime) -> bool
+calls: ZoneInfo; local_dt.time; local_dt.weekday; t_utc.astimezone
+self read: days; end_local; start_local; tz
+self write: --
+\end{lstlisting}
+\subsection*{DriveSchedule.\_\_init\_\_ [L76--L79]}
+\begin{lstlisting}[numbers=none]
+signature: def __init__(self, windows: List[DriveWindow], daily: List[DailyWindow], deny_by_default: bool)
+calls: --
+self read: --
+self write: daily; deny_by_default; windows
+\end{lstlisting}
+\subsection*{DriveSchedule.from\_yaml [L82--L116]}
+\begin{lstlisting}[numbers=none]
+signature: def from_yaml(cls, path: str) -> Optional['DriveSchedule']
+calls: DailyWindow; DriveWindow; _parse_time_hhmm; _parse_utc; bool; cfg.get; cls; daily.append; float; int; open; os.path.exists; str; w.get; windows.append; yaml.safe_load
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{DriveSchedule.speed\_limits [L118--L132]}
+\begin{lstlisting}[numbers=none]
+signature: def speed_limits(self, t_utc: datetime) -> Optional[Tuple[float, float]]
+calls: limits.append; max; min; w.contains
+self read: daily; deny_by_default; windows
+self write: --
+\end{lstlisting}
+\subsection*{DriveSchedule.is\_drive\_time [L134--L138]}
+\begin{lstlisting}[numbers=none]
+signature: def is_drive_time(self, t_utc: datetime) -> bool
+calls: self.speed_limits
+self read: deny_by_default; speed_limits
+self write: --
+\end{lstlisting}
+\subsection*{DriveSchedule.next\_drive\_start [L140--L181]}
+\begin{lstlisting}[numbers=none]
+signature: def next_drive_start(self, t_utc: datetime) -> datetime
+calls: ZoneInfo; candidates.append; date; datetime.combine; local_dt.date; local_dt.time; local_dt.weekday; min; self.is_drive_time; start_local.astimezone; t_utc.astimezone; timedelta; weekday
+self read: daily; is_drive_time; windows
+self write: --
+\end{lstlisting}
+\subsection*{DriveSchedule.current\_drive\_window [L183--L217]}
+\begin{lstlisting}[numbers=none]
+signature: def current_drive_window(self, t_utc: datetime)
+calls: ZoneInfo; datetime.combine; end_local.astimezone; local_dt.date; local_dt.time; local_dt.weekday; start_local.astimezone; t_utc.astimezone; timedelta; w.contains
+self read: daily; windows
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/signal\_utils.py}}
+\subsection*{finite\_float [L7--L12]}
+\begin{lstlisting}[numbers=none]
+signature: def finite_float(value, default: float = math.nan) -> float
+calls: float; math.isfinite
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{fresh\_enough [L15--L20]}
+\begin{lstlisting}[numbers=none]
+signature: def fresh_enough(last_time_sec: float | None, now_sec: float | None, timeout_sec: float) -> bool
+calls: float
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{slew\_limit [L23--L38]}
+\begin{lstlisting}[numbers=none]
+signature: slew_limit(previous, target, dt_sec, rise_rate, fall_rate)
+calls: finite_float; float; max; min
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{RobustScalarFilter.\_\_init\_\_ [L42--L58]}
+\begin{lstlisting}[numbers=none]
+signature: __init__(self, *, tau_sec, initial_value, min_value, max_value, rise_rate, fall_rate)
+calls: finite_float; max
+self read: --
+self write: fall_rate; last_time; max_value; min_value; rise_rate; tau_sec; value
+\end{lstlisting}
+\subsection*{RobustScalarFilter.reset [L60--L63]}
+\begin{lstlisting}[numbers=none]
+signature: def reset(self, value: float, *, now: float | None = None) -> float
+calls: finite_float; float; time.monotonic
+self read: --
+self write: last_time; value
+\end{lstlisting}
+\subsection*{RobustScalarFilter.update [L65--L84]}
+\begin{lstlisting}[numbers=none]
+signature: def update(self, value: float, *, now: float | None = None) -> float
+calls: finite_float; float; math.exp; math.isfinite; max; self._clamp; slew_limit; time.monotonic
+self read: _clamp; fall_rate; rise_rate; tau_sec
+self write: last_time; value
+\end{lstlisting}
+\subsection*{RobustScalarFilter.\_clamp [L86--L92]}
+\begin{lstlisting}[numbers=none]
+signature: def _clamp(self, value: float) -> float
+calls: finite_float; float; max; min
+self read: max_value; min_value; value
+self write: --
+\end{lstlisting}
+\subsection*{SmoothRateLimiter.\_\_init\_\_ [L96--L116]}
+\begin{lstlisting}[numbers=none]
+signature: __init__(self, *, min_value, max_value, tau_sec, rise_rate, fall_rate, deadband, quantize_step, initial_value)
+calls: finite_float; max; self._clamp
+self read: _clamp
+self write: deadband; fall_rate; last_time; max_value; min_value; quantize_step; rise_rate; tau_sec; value
+\end{lstlisting}
+\subsection*{SmoothRateLimiter.reset [L118--L121]}
+\begin{lstlisting}[numbers=none]
+signature: def reset(self, value: float, *, now: float | None = None) -> float
+calls: finite_float; float; self._clamp; time.monotonic
+self read: _clamp
+self write: last_time; value
+\end{lstlisting}
+\subsection*{SmoothRateLimiter.update [L123--L139]}
+\begin{lstlisting}[numbers=none]
+signature: def update(self, target: float, *, now: float | None = None) -> float
+calls: finite_float; float; math.exp; max; self._clamp; self._postprocess; slew_limit; time.monotonic
+self read: _clamp; _postprocess; fall_rate; rise_rate; tau_sec
+self write: last_time; value
+\end{lstlisting}
+\subsection*{SmoothRateLimiter.\_clamp [L141--L147]}
+\begin{lstlisting}[numbers=none]
+signature: def _clamp(self, value: float) -> float
+calls: finite_float; float; max; min
+self read: max_value; min_value
+self write: --
+\end{lstlisting}
+\subsection*{SmoothRateLimiter.\_postprocess [L149--L155]}
+\begin{lstlisting}[numbers=none]
+signature: def _postprocess(self, value: float, *, reference: float) -> float
+calls: abs; float; round; self._clamp
+self read: _clamp; deadband; quantize_step
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/solar\_autocal\_logic.py}}
+\subsection*{daytime\_stationary\_aux\_estimate [L8--L24]}
+\begin{lstlisting}[numbers=none]
+signature: daytime_stationary_aux_estimate(*, ghi_wm2, day_ghi_threshold_wm2, speed_kmh, stationary_speed_kmh, pack_power_w, solar_power_w)
+calls: abs; all; float; math.isfinite; max
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/solar\_autocal\_node.py}}
+\subsection*{\_clamp [L13--L14]}
+\begin{lstlisting}[numbers=none]
+signature: def _clamp(value: float, lo: float, hi: float) -> float
+calls: float; max; min
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{SolarAutocalNode.\_\_init\_\_ [L18--L72]}
+\begin{lstlisting}[numbers=none]
+signature: def __init__(self) -> None
+calls: __init__; _clamp; float; info; max; self.create_publisher; self.create_subscription; self.create_timer; self.declare_parameter; self.get_logger; self.get_parameter; super
+self read: _on_current; _on_env; _on_metrics; _on_solar; _on_speed; _on_voltage; _step; create_publisher; create_subscription; create_timer; declare_parameter; get_logger; get_parameter
+self write: _latest_current_a; _latest_voltage_v; alpha; aux_max; aux_min; aux_power; day_ghi; drive_gain; drive_gain_max; drive_gain_min; drive_speed; ghi; pack_power_w; period; pred_pack_w; pred_solar_w; ... (+11)
+\end{lstlisting}
+\subsection*{SolarAutocalNode.\_on\_speed [L74--L75]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_speed(self, msg: Float32) -> None
+calls: float
+self read: --
+self write: speed_kmh
+\end{lstlisting}
+\subsection*{SolarAutocalNode.\_on\_current [L77--L80]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_current(self, msg: Float32) -> None
+calls: float; math.isfinite
+self read: _latest_voltage_v
+self write: _latest_current_a; pack_power_w
+\end{lstlisting}
+\subsection*{SolarAutocalNode.\_on\_voltage [L82--L85]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_voltage(self, msg: Float32) -> None
+calls: float; math.isfinite
+self read: _latest_current_a
+self write: _latest_voltage_v; pack_power_w
+\end{lstlisting}
+\subsection*{SolarAutocalNode.\_on\_solar [L87--L88]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_solar(self, msg: Float32) -> None
+calls: float
+self read: --
+self write: solar_obs_w
+\end{lstlisting}
+\subsection*{SolarAutocalNode.\_on\_env [L90--L93]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_env(self, msg: Float32MultiArray) -> None
+calls: float; len; list
+self read: --
+self write: ghi
+\end{lstlisting}
+\subsection*{SolarAutocalNode.\_on\_metrics [L95--L100]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_metrics(self, msg: Float32MultiArray) -> None
+calls: float; len; list
+self read: --
+self write: pred_pack_w; pred_solar_w
+\end{lstlisting}
+\subsection*{SolarAutocalNode.\_ema [L102--L104]}
+\begin{lstlisting}[numbers=none]
+signature: def _ema(self, current: float, estimate: float, lo: float, hi: float) -> float
+calls: _clamp; float
+self read: alpha
+self write: --
+\end{lstlisting}
+\subsection*{SolarAutocalNode.\_step [L106--L150]}
+\begin{lstlisting}[numbers=none]
+signature: def _step(self) -> None
+calls: Float32; String; abs; daytime_stationary_aux_estimate; float; math.isfinite; max; self._ema; self.pub_aux.publish; self.pub_drive.publish; self.pub_solar.publish; self.pub_status.publish
+self read: _ema; aux_max; aux_min; day_ghi; drive_gain_max; drive_gain_min; drive_speed; ghi; pack_power_w; pred_pack_w; pred_solar_w; pub_aux; pub_drive; pub_solar; pub_status; solar_gain_max; ... (+4)
+self write: aux_power; drive_gain; solar_gain
+\end{lstlisting}
+\subsection*{main [L153--L158]}
+\begin{lstlisting}[numbers=none]
+signature: def main() -> None
+calls: SolarAutocalNode; node.destroy_node; rclpy.init; rclpy.shutdown; rclpy.spin
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/solar\_logger\_node.py}}
+\subsection*{SolarLoggerNode.\_\_init\_\_ [L86--L137]}
+\begin{lstlisting}[numbers=none]
+signature: def __init__(self)
+calls: ARRAY_TOPICS.items; ARRAY_TOPICS.values; FLOAT64_TOPICS.items; FLOAT_TOPICS.items; STRING_TOPICS.items; __init__; csv.DictWriter; datetime.now; float; info; int; list; max; open; os.fspath; os.makedirs; ... (+15)
+self read: _set_array; _set_float; _set_string; _write_row; create_subscription; create_timer; declare_parameter; get_logger; get_parameter
+self write: _topic_subscriptions; csv_file; fields; flush_every_rows; latest; log_path; rows_since_flush; timer; writer
+\end{lstlisting}
+\subsection*{SolarLoggerNode.\_set\_float [L139--L146]}
+\begin{lstlisting}[numbers=none]
+signature: def _set_float(self, field)
+calls: float
+self read: latest
+self write: --
+\end{lstlisting}
+\subsection*{SolarLoggerNode.\_set\_string [L148--L152]}
+\begin{lstlisting}[numbers=none]
+signature: def _set_string(self, field)
+calls: replace; str
+self read: latest
+self write: --
+\end{lstlisting}
+\subsection*{SolarLoggerNode.\_set\_array [L154--L160]}
+\begin{lstlisting}[numbers=none]
+signature: def _set_array(self, fields)
+calls: enumerate; float; len; list
+self read: latest
+self write: --
+\end{lstlisting}
+\subsection*{SolarLoggerNode.\_clean\_float [L163--L168]}
+\begin{lstlisting}[numbers=none]
+signature: def _clean_float(value)
+calls: float; math.isfinite
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{SolarLoggerNode.\_write\_row [L170--L181]}
+\begin{lstlisting}[numbers=none]
+signature: def _write_row(self)
+calls: datetime.now; isoformat; now; self._clean_float; self.csv_file.flush; self.get_clock; self.latest.get; self.writer.writerow; str
+self read: _clean_float; csv_file; fields; flush_every_rows; get_clock; latest; writer
+self write: rows_since_flush
+\end{lstlisting}
+\subsection*{SolarLoggerNode.destroy\_node [L183--L189]}
+\begin{lstlisting}[numbers=none]
+signature: def destroy_node(self)
+calls: destroy_node; self.csv_file.close; self.csv_file.flush; super
+self read: csv_file
+self write: --
+\end{lstlisting}
+\subsection*{main [L192--L199]}
+\begin{lstlisting}[numbers=none]
+signature: def main()
+calls: SolarLoggerNode; node.destroy_node; rclpy.init; rclpy.shutdown; rclpy.spin
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/solar\_preflight\_logic.py}}
+\subsection*{evaluate\_freshness [L19--L40]}
+\begin{lstlisting}[numbers=none]
+signature: evaluate_freshness(*, elapsed_sec, ages_sec, required, timeout_sec, startup_grace_sec)
+calls: FreshnessResult; ages_sec.get; float; join
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{evaluate\_command\_gate [L43--L68]}
+\begin{lstlisting}[numbers=none]
+signature: evaluate_command_gate(*, elapsed_sec, speed_input_age_sec, system_state, system_state_age_sec, startup_hold_sec, input_timeout_sec, system_state_timeout_sec, require_system_running)
+calls: CommandGateResult; max; str; strip; upper
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/solar\_preflight\_node.py}}
+\subsection*{SolarPreflightNode.\_\_init\_\_ [L15--L39]}
+\begin{lstlisting}[numbers=none]
+signature: def __init__(self)
+calls: __init__; info; self._seen; self.create_publisher; self.create_subscription; self.create_timer; self.declare_parameter; self.get_logger; super; time.monotonic
+self read: _seen; _step; create_publisher; create_subscription; create_timer; declare_parameter; get_logger
+self write: last_seen; pub_diag; pub_health; pub_state; start_mono; timer
+\end{lstlisting}
+\subsection*{SolarPreflightNode.\_seen [L41--L45]}
+\begin{lstlisting}[numbers=none]
+signature: def _seen(self, key: str)
+calls: time.monotonic
+self read: last_seen
+self write: --
+\end{lstlisting}
+\subsection*{SolarPreflightNode.\_required [L47--L57]}
+\begin{lstlisting}[numbers=none]
+signature: def _required(self) -> tuple[str, ...]
+calls: bool; required.append; required.extend; self.get_parameter; tuple
+self read: get_parameter
+self write: --
+\end{lstlisting}
+\subsection*{SolarPreflightNode.\_step [L59--L75]}
+\begin{lstlisting}[numbers=none]
+signature: def _step(self)
+calls: Float32; String; evaluate_freshness; float; self._required; self.get_parameter; self.pub_diag.publish; self.pub_health.publish; self.pub_state.publish; time.monotonic
+self read: _required; get_parameter; last_seen; pub_diag; pub_health; pub_state; start_mono
+self write: --
+\end{lstlisting}
+\subsection*{main [L78--L85]}
+\begin{lstlisting}[numbers=none]
+signature: def main()
+calls: SolarPreflightNode; node.destroy_node; rclpy.init; rclpy.shutdown; rclpy.spin
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/solar\_profile.py}}
+\subsection*{require\_csv\_data\_rows [L14--L34]}
+\begin{lstlisting}[numbers=none]
+signature: require_csv_data_rows(path, *, label, required_columns)
+calls: FileNotFoundError; Path; ValueError; csv.DictReader; expanduser; next; resolve; resolved.is_file; resolved.open; tuple
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{\_resolve\_profile\_path [L37--L48]}
+\begin{lstlisting}[numbers=none]
+signature: def _resolve_profile_path(path_like: str | Path) -> Path
+calls: Path; Path.cwd; candidate.exists; expanduser; raw.is_absolute; raw.resolve; resolve; str; strip
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{resolve\_relative\_path [L51--L65]}
+\begin{lstlisting}[numbers=none]
+signature: def resolve_relative_path(base_dir: str | Path, path_like: str | Path) -> str
+calls: Path; candidate.exists; expanduser; path.is_absolute; path.resolve; repo_candidate.exists; resolve; str; strip
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{load\_profile [L68--L74]}
+\begin{lstlisting}[numbers=none]
+signature: def load_profile(path_like: str | Path) -> tuple[Path, dict]
+calls: ValueError; _resolve_profile_path; isinstance; profile_path.open; yaml.safe_load
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{merged\_dict [L77--L90]}
+\begin{lstlisting}[numbers=none]
+signature: def merged_dict(*payloads: dict | None) -> dict
+calls: _merge; copy.deepcopy; dst.get; isinstance; items
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{get\_section [L93--L105]}
+\begin{lstlisting}[numbers=none]
+signature: def get_section(cfg: dict, key: str, default: Any = None) -> Any
+calls: copy.deepcopy; current.get; isinstance; split; str
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{get\_path [L108--L118]}
+\begin{lstlisting}[numbers=none]
+signature: def get_path(cfg: dict, profile_path: str | Path, key: str, default: str = "") -> str
+calls: Path; cfg.get; get_section; isinstance; paths_cfg.get; resolve; resolve_relative_path; str; strip
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/speed\_command\_bridge\_node.py}}
+\subsection*{SpeedCommandBridgeNode.\_\_init\_\_ [L18--L87]}
+\begin{lstlisting}[numbers=none]
+signature: def __init__(self) -> None
+calls: SmoothRateLimiter; __init__; bool; float; info; int; max; self.create_publisher; self.create_subscription; self.create_timer; self.declare_parameter; self.get_logger; self.get_parameter; self.limiter.reset; socket.socket; str; ... (+2)
+self read: _on_drive_mode; _on_speed_cmd; _on_system_state; _on_upper_speed_cmd; _step; create_publisher; create_subscription; create_timer; declare_parameter; get_logger; get_parameter
+self write: applied_drive_mode; drive_mode_min_hold_sec; input_timeout_sec; last_drive_mode; last_drive_mode_change; last_gate_reason; last_mode_input_time; last_speed_cmd; last_speed_input_time; last_system_state_time; last_udp_error_log_time; last_upper_speed_cmd; limiter; mode_pub; output_drive_mode_topic; output_speed_topic; ... (+13)
+\end{lstlisting}
+\subsection*{SpeedCommandBridgeNode.\_on\_speed\_cmd [L89--L91]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_speed_cmd(self, msg: Float32) -> None
+calls: float; time.monotonic
+self read: --
+self write: last_speed_cmd; last_speed_input_time
+\end{lstlisting}
+\subsection*{SpeedCommandBridgeNode.\_on\_upper\_speed\_cmd [L93--L94]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_upper_speed_cmd(self, msg: Float32) -> None
+calls: float
+self read: --
+self write: last_upper_speed_cmd
+\end{lstlisting}
+\subsection*{SpeedCommandBridgeNode.\_on\_drive\_mode [L96--L98]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_drive_mode(self, msg: String) -> None
+calls: str; time.monotonic
+self read: --
+self write: last_drive_mode; last_mode_input_time
+\end{lstlisting}
+\subsection*{SpeedCommandBridgeNode.\_on\_system\_state [L100--L102]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_system_state(self, msg: String) -> None
+calls: str; strip; time.monotonic; upper
+self read: --
+self write: last_system_state_time; system_state
+\end{lstlisting}
+\subsection*{SpeedCommandBridgeNode.\_step [L104--L159]}
+\begin{lstlisting}[numbers=none]
+signature: def _step(self) -> None
+calls: Float32; String; encode; error; evaluate_command_gate; float; json.dumps; self.get_logger; self.limiter.update; self.mode_pub.publish; self.sock.sendto; self.speed_pub.publish; time.monotonic; time.time; utc_iso_now
+self read: drive_mode_min_hold_sec; get_logger; input_timeout_sec; last_drive_mode; last_mode_input_time; last_speed_cmd; last_speed_input_time; last_system_state_time; last_upper_speed_cmd; limiter; mode_pub; require_system_running; safe_speed_kmh; sock; speed_pub; start_time; ... (+5)
+self write: applied_drive_mode; last_drive_mode_change; last_gate_reason; last_udp_error_log_time
+\end{lstlisting}
+\subsection*{main [L162--L167]}
+\begin{lstlisting}[numbers=none]
+signature: def main() -> None
+calls: SpeedCommandBridgeNode; node.destroy_node; rclpy.init; rclpy.shutdown; rclpy.spin
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/telemetry\_protocol.py}}
+\subsection*{parse\_source\_timestamp [L18--L41]}
+\begin{lstlisting}[numbers=none]
+signature: def parse_source_timestamp(payload: dict) -> float | None
+calls: datetime.fromisoformat; float; math.isfinite; parsed.astimezone; payload.get; raw.endswith; str; strip; timestamp
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{validate\_source\_timestamp [L44--L72]}
+\begin{lstlisting}[numbers=none]
+signature: validate_source_timestamp(payload, *, now_unix, last_source_unix, required, max_age_sec, max_future_skew_sec, max_out_of_order_sec)
+calls: TimestampValidation; float; max; parse_source_timestamp
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{utc\_iso\_now [L75--L76]}
+\begin{lstlisting}[numbers=none]
+signature: def utc_iso_now() -> str
+calls: datetime.now; isoformat; replace
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/telemetry\_text\_bridge\_node.py}}
+\subsection*{\_safe\_float [L19--L29]}
+\begin{lstlisting}[numbers=none]
+signature: def _safe_float(payload: dict, *keys: str) -> float | None
+calls: float; math.isfinite
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{\_parse\_key\_value\_text [L32--L50]}
+\begin{lstlisting}[numbers=none]
+signature: def _parse_key_value_text(text: str) -> dict
+calls: float; key.strip; replace; split; text.replace; token.split; token.strip; value.strip
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{parse\_text\_payload [L53--L63]}
+\begin{lstlisting}[numbers=none]
+signature: def parse_text_payload(text: str) -> dict
+calls: _parse_key_value_text; isinstance; json.loads; str; strip
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{headwind\_component\_ms [L66--L76]}
+\begin{lstlisting}[numbers=none]
+signature: def headwind_component_ms(payload: dict) -> float | None
+calls: _safe_float; float; math.cos; math.radians
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{TelemetryTextBridgeNode.\_\_init\_\_ [L80--L193]}
+\begin{lstlisting}[numbers=none]
+signature: def __init__(self) -> None
+calls: RobustScalarFilter; __init__; bool; float; info; int; max; self._set_outbound; self.create_publisher; self.create_subscription; self.create_timer; self.declare_parameter; self.get_logger; self.get_parameter; self.sock.bind; self.sock.setblocking; ... (+3)
+self read: _poll_socket; _send_outbound; _set_outbound; create_publisher; create_subscription; create_timer; declare_parameter; get_logger; get_parameter
+self write: chase_remote; enable_inbound; enable_outbound; headwind_filter; i_filter; last_source_unix; max_abs_headwind_ms; max_future_skew_sec; max_out_of_order_sec; max_packet_age_sec; outbound_state; prefer_direct_distance; pub_chase_alt; pub_chase_gps; pub_chase_source_time; pub_course_dir; ... (+31)
+\end{lstlisting}
+\subsection*{TelemetryTextBridgeNode.\_set\_outbound [L195--L196]}
+\begin{lstlisting}[numbers=none]
+signature: def _set_outbound(self, key: str, value) -> None
+calls: --
+self read: outbound_state
+self write: --
+\end{lstlisting}
+\subsection*{TelemetryTextBridgeNode.\_poll\_socket [L198--L236]}
+\begin{lstlisting}[numbers=none]
+signature: def _poll_socket(self) -> None
+calls: Float64; String; data.decode; lower; parse_text_payload; payload.get; pub.publish; self._handle_chase_payload; self._handle_vehicle_payload; self.pub_raw_chase.publish; self.pub_raw_solar.publish; self.pub_status.publish; self.sock.recvfrom; str; time.time; validate_source_timestamp
+self read: _handle_chase_payload; _handle_vehicle_payload; last_source_unix; max_future_skew_sec; max_out_of_order_sec; max_packet_age_sec; pub_chase_source_time; pub_raw_chase; pub_raw_solar; pub_solar_source_time; pub_status; sock; timestamp_required
+self write: --
+\end{lstlisting}
+\subsection*{TelemetryTextBridgeNode.\_publish\_gps [L238--L251]}
+\begin{lstlisting}[numbers=none]
+signature: def _publish_gps(self, pub, lat: float | None, lon: float | None, alt: float | None, source_unix: float | None) -> None
+calls: NavSatFix; float; int; max; now; pub.publish; self.get_clock; to_msg
+self read: get_clock
+self write: --
+\end{lstlisting}
+\subsection*{TelemetryTextBridgeNode.\_handle\_vehicle\_payload [L253--L289]}
+\begin{lstlisting}[numbers=none]
+signature: def _handle_vehicle_payload(self, payload: dict, source_unix: float | None) -> None
+calls: Float32; _safe_float; float; headwind_component_ms; self._publish_gps; self._publish_weather; self.i_filter.update; self.pub_vehicle_alt.publish; self.pub_vehicle_i.publish; self.pub_vehicle_s.publish; self.pub_vehicle_soc.publish; self.pub_vehicle_solar.publish; self.pub_vehicle_speed.publish; self.pub_vehicle_tb.publish; self.pub_vehicle_v.publish; self.soc_filter.update; ... (+4)
+self read: _publish_gps; _publish_weather; i_filter; prefer_direct_distance; pub_vehicle_alt; pub_vehicle_gps; pub_vehicle_i; pub_vehicle_s; pub_vehicle_soc; pub_vehicle_solar; pub_vehicle_speed; pub_vehicle_tb; pub_vehicle_v; soc_filter; solar_power_gain_to_pack; speed_filter; ... (+2)
+self write: --
+\end{lstlisting}
+\subsection*{TelemetryTextBridgeNode.\_handle\_chase\_payload [L291--L303]}
+\begin{lstlisting}[numbers=none]
+signature: def _handle_chase_payload(self, payload: dict, source_unix: float | None) -> None
+calls: Float32; _safe_float; float; headwind_component_ms; self._publish_gps; self._publish_weather; self.pub_chase_alt.publish; time.monotonic
+self read: _publish_gps; _publish_weather; pub_chase_alt; pub_chase_gps
+self write: --
+\end{lstlisting}
+\subsection*{TelemetryTextBridgeNode.\_publish\_weather [L305--L315]}
+\begin{lstlisting}[numbers=none]
+signature: def _publish_weather(self, payload: dict, wind_speed, wind_dir, course_deg, headwind, now: float) -> None
+calls: Float32; String; float; payload.get; self.headwind_filter.update; self.pub_course_dir.publish; self.pub_headwind.publish; self.pub_status.publish; self.pub_wind_dir.publish; self.pub_wind_speed.publish; self.wind_filter.update
+self read: headwind_filter; pub_course_dir; pub_headwind; pub_status; pub_wind_dir; pub_wind_speed; wind_filter
+self write: --
+\end{lstlisting}
+\subsection*{TelemetryTextBridgeNode.\_send\_payload [L317--L323]}
+\begin{lstlisting}[numbers=none]
+signature: def _send_payload(self, addr: tuple[str, int], payload: dict) -> None
+calls: encode; json.dumps; self.tx_sock.sendto
+self read: tx_sock
+self write: --
+\end{lstlisting}
+\subsection*{TelemetryTextBridgeNode.\_send\_outbound [L325--L346]}
+\begin{lstlisting}[numbers=none]
+signature: def _send_outbound(self) -> None
+calls: self._send_payload; time.time; utc_iso_now
+self read: _send_payload; chase_remote; enable_outbound; outbound_state; send_to_chase; send_to_solar; solar_remote
+self write: --
+\end{lstlisting}
+\subsection*{main [L349--L354]}
+\begin{lstlisting}[numbers=none]
+signature: def main() -> None
+calls: TelemetryTextBridgeNode; node.destroy_node; rclpy.init; rclpy.shutdown; rclpy.spin
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/upper\_cost.py}}
+\subsection*{UpperCostConfig.to\_dict [L44--L45]}
+\begin{lstlisting}[numbers=none]
+signature: def to_dict(self) -> Dict[str, Any]
+calls: asdict
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{\_cfg\_value [L48--L51]}
+\begin{lstlisting}[numbers=none]
+signature: def _cfg_value(cfg: Optional[dict], key: str, default)
+calls: isinstance
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{load\_upper\_cost\_config [L54--L107]}
+\begin{lstlisting}[numbers=none]
+signature: load_upper_cost_config(mpc_cfg, *, legacy, default_drive_window)
+calls: UpperCostConfig; _cfg_value; float; isinstance; lower; mpc_cfg.get; pick; str; strip
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{quad\_penalty [L110--L115]}
+\begin{lstlisting}[numbers=none]
+signature: def quad_penalty(x: float, cap: float = 1.0e3) -> float
+calls: --
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{upper\_stage\_cost [L118--L260]}
+\begin{lstlisting}[numbers=none]
+signature: upper_stage_cost(cfg, *, dt_wait, dt_travel, v_kmh, v_prev_kmh, vmax_local_kmh, drive_limits, dv_limit_kmhps, I_a, V_v, P_pv_w, P_pack_w, P_pack_prev_w, P_mech_wheel_w, losses_int_w, losses_line_w, F_aero_n, kinetic_step_wh, z_next, Tb_next_c, term_soc_min, soc_min, soc_max, temp_min_c, temp_max_c, day_end_soc_min, day_end_crossing, soc_day_end_max, soc_day_track_target, soc_day_track_tol, I_max, I_chg_min, V_min, V_max, time_ahead_h, progress_lag_km)
+calls: abs; float; max; min; quad_penalty
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{upper\_terminal\_cost [L263--L280]}
+\begin{lstlisting}[numbers=none]
+signature: upper_terminal_cost(cfg, *, z_terminal, term_soc_min, soc_finish_target, soc_finish_tol, progress_terminal_lag_km)
+calls: float; max; quad_penalty
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{active\_upper\_cost\_terms [L283--L288]}
+\begin{lstlisting}[numbers=none]
+signature: def active_upper_cost_terms(cfg: UpperCostConfig, threshold: float = 1.0e-6) -> Dict[str, float]
+calls: abs; cfg.to_dict; float; items; key.startswith
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/upper\_horizon.py}}
+\subsection*{UpperDistanceHorizon.total\_km [L20--L21]}
+\begin{lstlisting}[numbers=none]
+signature: def total_km(self) -> float
+calls: float; len; np.sum
+self read: ds_seq_km
+self write: --
+\end{lstlisting}
+\subsection*{\_weighted\_extra [L24--L30]}
+\begin{lstlisting}[numbers=none]
+signature: def _weighted_extra(count: int, growth: float) -> np.ndarray
+calls: abs; float; max; np.arange; np.ones; np.power
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{\_adaptive\_ds\_sequence [L33--L79]}
+\begin{lstlisting}[numbers=none]
+signature: _adaptive_ds_sequence(target_km, *, max_steps, min_ds_km, max_ds_km, growth)
+calls: _weighted_extra; alloc_weights.sum; base.copy; base.sum; enumerate; float; int; math.ceil; max; min; np.any; np.array; np.flatnonzero; np.full; np.maximum; weights.sum
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{build\_upper\_distance\_horizon [L82--L133]}
+\begin{lstlisting}[numbers=none]
+signature: build_upper_distance_horizon(*, mode, s0_km, race_km, ds_km, horizon_km, max_steps, ctrl_km, adaptive_min_ds_km, adaptive_max_ds_km, adaptive_growth)
+calls: UpperDistanceHorizon; _adaptive_ds_sequence; float; int; len; lower; math.ceil; max; min; np.append; np.arange; np.array; np.concatenate; np.cumsum; np.full; np.sum; ... (+2)
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{plan\_segment\_index [L136--L145]}
+\begin{lstlisting}[numbers=none]
+signature: def plan_segment_index(plan_segments: Iterable[dict], s_km: float) -> int
+calls: enumerate; float; len; list; seg.get
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/upper\_policy.py}}
+\subsection*{load\_upper\_policy\_csv [L9--L30]}
+\begin{lstlisting}[numbers=none]
+signature: def load_upper_policy_csv(path: str | Path) -> pd.DataFrame
+calls: Path; ValueError; copy; drop_duplicates; dropna; float; len; out.replace; pd.read_csv; pd.to_numeric; required.issubset; reset_index; sort_values; sorted
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{interpolate\_upper\_policy [L33--L49]}
+\begin{lstlisting}[numbers=none]
+signature: interpolate_upper_policy(frame, control_s_km, *, minimum_speed_kmh, maximum_speed_kmh)
+calls: ValueError; float; len; np.all; np.asarray; np.clip; np.interp; np.isfinite; pd.to_numeric; to_numpy
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/upper\_solver.py}}
+\subsection*{\_fork\_finite\_cost [L19--L22]}
+\begin{lstlisting}[numbers=none]
+signature: def _fork_finite_cost(vec: np.ndarray) -> float
+calls: finite_cost; float
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{clip\_to\_bounds [L25--L29]}
+\begin{lstlisting}[numbers=none]
+signature: def clip_to_bounds(vec: np.ndarray, bounds: Bounds) -> np.ndarray
+calls: copy; enumerate; float; np.asarray; np.clip
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{finite\_cost [L32--L39]}
+\begin{lstlisting}[numbers=none]
+signature: def finite_cost(cost_fn: Callable[[np.ndarray], float], vec: np.ndarray) -> float
+calls: cost_fn; float; np.asarray; np.isfinite
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{default\_seed\_library [L42--L54]}
+\begin{lstlisting}[numbers=none]
+signature: def default_seed_library(x0: np.ndarray, bounds: Bounds) -> List[tuple[str, np.ndarray]]
+calls: clip_to_bounds; float; len; np.array; np.asarray; np.linspace; np.maximum; seeds.append
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{hybrid\_bounded\_minimize [L57--L473]}
+\begin{lstlisting}[numbers=none]
+signature: hybrid_bounded_minimize(cost_fn, x0, bounds, *, maxiter, structured_seeds, cem_enabled, cem_mode, cem_generations, cem_population, cem_elite, local_refine_topk, seed_library_mode, rng_seed, shgo_samples, shgo_iters, cert_grid_levels, cert_grid_values, cert_max_evaluations, cert_workers, progress_callback, cert_progress_interval)
+calls: ProcessPoolExecutor; ThreadPoolExecutor; abs; add_candidate; best.get; bool; clip_to_bounds; copy; default_seed_library; dict; emit_progress; enumerate; evaluated.append; evaluated.extend; executor.map; finite_cost; ... (+51)
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/utils\_maps.py}}
+\subsection*{bilinear\_interp [L3--L12]}
+\begin{lstlisting}[numbers=none]
+signature: def bilinear_interp(xg, yg, Z, x, y)
+calls: len; np.asarray; np.clip; np.searchsorted
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{read\_eff\_map [L13--L15]}
+\begin{lstlisting}[numbers=none]
+signature: def read_eff_map(path)
+calls: df.columns.values.astype; df.index.values.astype; df.values.astype; pd.read_csv
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{read\_Rint\_map [L16--L18]}
+\begin{lstlisting}[numbers=none]
+signature: def read_Rint_map(path)
+calls: df.columns.values.astype; df.index.values.astype; df.values.astype; pd.read_csv
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{read\_map [L20--L22]}
+\begin{lstlisting}[numbers=none]
+signature: def read_map(path)
+calls: df.columns.values.astype; df.index.values.astype; df.values.astype; pd.read_csv
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{read\_1d\_map [L24--L33]}
+\begin{lstlisting}[numbers=none]
+signature: def read_1d_map(path)
+calls: df.index.values.astype; pd.read_csv; values.astype
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/weather\_fetch\_node.py}}
+\subsection*{WeatherFetchNode.\_\_init\_\_ [L16--L102]}
+\begin{lstlisting}[numbers=none]
+signature: def __init__(self) -> None
+calls: Path; __init__; expanduser; float; get_path; get_section; info; int; live_cfg.get; load_profile; max; rclpy.parameter.Parameter; runtime_cfg.get; self._fetch_once; self.create_publisher; self.create_subscription; ... (+9)
+self read: _fetch_once; _on_gps; create_publisher; create_subscription; create_timer; declare_parameter; get_logger; get_parameter; set_parameters
+self write: fallback_lat; fallback_lon; fetch_period_sec; forecast_days; gps_topic; latest_lat; latest_lon; output_csv; pub_status; raw_forecast_csv; step_minutes; tcell_gain; timer; timezone_name
+\end{lstlisting}
+\subsection*{WeatherFetchNode.\_on\_gps [L104--L109]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_gps(self, msg: NavSatFix) -> None
+calls: float
+self read: --
+self write: latest_lat; latest_lon
+\end{lstlisting}
+\subsection*{WeatherFetchNode.\_fetch\_once [L111--L135]}
+\begin{lstlisting}[numbers=none]
+signature: def _fetch_once(self) -> None
+calls: String; error; fetch_openmeteo_forecast; info; len; raw_path.is_absolute; resolve; self.get_logger; self.pub_status.publish; write_forecast_csv
+self read: fallback_lat; fallback_lon; forecast_days; get_logger; latest_lat; latest_lon; output_csv; pub_status; raw_forecast_csv; step_minutes; tcell_gain; timezone_name
+self write: --
+\end{lstlisting}
+\subsection*{main [L138--L143]}
+\begin{lstlisting}[numbers=none]
+signature: def main() -> None
+calls: WeatherFetchNode; node.destroy_node; rclpy.init; rclpy.shutdown; rclpy.spin
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/weather\_utils.py}}
+\subsection*{\_fetch\_json [L41--L44]}
+\begin{lstlisting}[numbers=none]
+signature: def _fetch_json(url: str) -> dict
+calls: json.load; urllib.request.Request; urllib.request.urlopen
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{ideal\_tracking\_poa\_wm2 [L47--L64]}
+\begin{lstlisting}[numbers=none]
+signature: def ideal_tracking_poa_wm2(ghi, dni, dhi, *, ground_albedo: float = 0.20)
+calls: float; np.asarray; np.clip; np.divide; np.maximum; np.where; np.zeros_like
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{fetch\_openmeteo\_forecast [L67--L119]}
+\begin{lstlisting}[numbers=none]
+signature: fetch_openmeteo_forecast(latitude, longitude, *, timezone_name, forecast_days, step_minutes, tcell_gain)
+calls: _fetch_json; bfill; df.get; dropna; dt.strftime; ffill; fillna; float; ideal_tracking_poa_wm2; int; interpolate; join; max; payload.get; pd.DataFrame; pd.to_datetime; ... (+7)
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{write\_forecast\_csv [L122--L128]}
+\begin{lstlisting}[numbers=none]
+signature: def write_forecast_csv(df: pd.DataFrame, out_csv: str | Path) -> None
+calls: Path; df.copy; out_path.parent.mkdir; work.sort_values; work.to_csv
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{mpc\_solarcar/wind\_correction\_node.py}}
+\subsection*{\_timestamp\_ns [L16--L17]}
+\begin{lstlisting}[numbers=none]
+signature: def _timestamp_ns(value) -> int
+calls: int; pd.Timestamp
+self read: --
+self write: --
+\end{lstlisting}
+\subsection*{WindCorrectionNode.\_\_init\_\_ [L21--L62]}
+\begin{lstlisting}[numbers=none]
+signature: def __init__(self) -> None
+calls: NormalDist; Path; __init__; bool; expanduser; float; info; inv_cdf; max; min; self.create_publisher; self.create_subscription; self.create_timer; self.declare_parameter; self.get_logger; self.get_parameter; ... (+2)
+self read: _on_headwind; _on_s; _step; create_publisher; create_subscription; create_timer; declare_parameter; get_logger; get_parameter
+self write: base_df; base_mtime; confidence_z; corrected_csv; correlation_distance_km; correlation_time_h; forecast_csv; forecast_sigma0; forecast_time_tz; latest_bias; latest_headwind; latest_s_km; measurement_sigma; min_sigma; planning_quantile; pub_headwind; ... (+5)
+\end{lstlisting}
+\subsection*{WindCorrectionNode.\_on\_headwind [L64--L65]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_headwind(self, msg: Float32) -> None
+calls: float
+self read: --
+self write: latest_headwind
+\end{lstlisting}
+\subsection*{WindCorrectionNode.\_on\_s [L67--L68]}
+\begin{lstlisting}[numbers=none]
+signature: def _on_s(self, msg: Float32) -> None
+calls: float
+self read: --
+self write: latest_s_km
+\end{lstlisting}
+\subsection*{WindCorrectionNode.\_load\_base [L70--L89]}
+\begin{lstlisting}[numbers=none]
+signature: def _load_base(self) -> None
+calls: dt.tz_convert; getattr; os.path.getmtime; pd.read_csv; pd.to_datetime; t.dt.tz_convert; t.dt.tz_localize
+self read: forecast_csv; forecast_time_tz
+self write: base_df; base_mtime
+\end{lstlisting}
+\subsection*{WindCorrectionNode.\_interp\_headwind\_now [L91--L103]}
+\begin{lstlisting}[numbers=none]
+signature: def _interp_headwind_now(self, now_utc: datetime) -> float
+calls: any; float; int; len; max; min; notna; pd.Timestamp; row.get; searchsorted
+self read: base_df
+self write: --
+\end{lstlisting}
+\subsection*{WindCorrectionNode.\_step [L105--L151]}
+\begin{lstlisting}[numbers=none]
+signature: def _step(self) -> None
+calls: Float32; String; abs; astimezone; corrected_values.append; datetime.now; df.copy; df.get; df.itertuples; dt.strftime; dt.tz_convert; fillna; float; getattr; len; math.exp; ... (+18)
+self read: _interp_headwind_now; _load_base; base_df; confidence_z; corrected_csv; correlation_distance_km; correlation_time_h; forecast_sigma0; forecast_time_tz; latest_headwind; latest_s_km; measurement_sigma; min_sigma; pub_headwind; pub_status; quantile_z; ... (+2)
+self write: latest_bias
+\end{lstlisting}
+\subsection*{main [L154--L159]}
+\begin{lstlisting}[numbers=none]
+signature: def main() -> None
+calls: WindCorrectionNode; node.destroy_node; rclpy.init; rclpy.shutdown; rclpy.spin
+self read: --
+self write: --
+\end{lstlisting}
+\section{\texttt{setup.py}}
+\subsection*{collect\_data\_files [L8--L21]}
+\begin{lstlisting}[numbers=none]
+signature: def collect_data_files(src_dir, *, excluded_dirs=())
+calls: collected.append; os.path.isdir; os.path.join; os.walk
+self read: --
+self write: --
+\end{lstlisting}
+\appendix
+\chapter{live到達source全文}
+\section{\texttt{SolarSim.ps1}}
+\lstinputlisting{../../SolarSim.ps1}
+\section{\texttt{scripts/solar\_control.sh}}
+\lstinputlisting{../../scripts/solar_control.sh}
+\section{\texttt{launch/solar\_race\_live.launch.py}}
+\lstinputlisting{../../launch/solar_race_live.launch.py}
+\section{\texttt{launch/solar\_race\_live\_wifi.launch.py}}
+\lstinputlisting{../../launch/solar_race_live_wifi.launch.py}
+\section{\texttt{mpc\_solarcar/live\_launch.py}}
+\lstinputlisting{../../mpc_solarcar/live_launch.py}
+\section{\texttt{mpc\_solarcar/solar\_profile.py}}
+\lstinputlisting{../../mpc_solarcar/solar_profile.py}
+\section{\texttt{mpc\_solarcar/path\_utils.py}}
+\lstinputlisting{../../mpc_solarcar/path_utils.py}
+\section{\texttt{mpc\_solarcar/mpc\_node.py}}
+\lstinputlisting{../../mpc_solarcar/mpc_node.py}
+\section{\texttt{mpc\_solarcar/model.py}}
+\lstinputlisting{../../mpc_solarcar/model.py}
+\section{\texttt{mpc\_solarcar/utils\_maps.py}}
+\lstinputlisting{../../mpc_solarcar/utils_maps.py}
+\section{\texttt{mpc\_solarcar/route\_utils.py}}
+\lstinputlisting{../../mpc_solarcar/route_utils.py}
+\section{\texttt{mpc\_solarcar/schedule\_utils.py}}
+\lstinputlisting{../../mpc_solarcar/schedule_utils.py}
+\section{\texttt{mpc\_solarcar/forecast\_grid.py}}
+\lstinputlisting{../../mpc_solarcar/forecast_grid.py}
+\section{\texttt{mpc\_solarcar/upper\_policy.py}}
+\lstinputlisting{../../mpc_solarcar/upper_policy.py}
+\section{\texttt{mpc\_solarcar/upper\_cost.py}}
+\lstinputlisting{../../mpc_solarcar/upper_cost.py}
+\section{\texttt{mpc\_solarcar/upper\_horizon.py}}
+\lstinputlisting{../../mpc_solarcar/upper_horizon.py}
+\section{\texttt{mpc\_solarcar/upper\_solver.py}}
+\lstinputlisting{../../mpc_solarcar/upper_solver.py}
+\section{\texttt{mpc\_solarcar/estimator.py}}
+\lstinputlisting{../../mpc_solarcar/estimator.py}
+\section{\texttt{mpc\_solarcar/signal\_utils.py}}
+\lstinputlisting{../../mpc_solarcar/signal_utils.py}
+\section{\texttt{mpc\_solarcar/solar\_preflight\_logic.py}}
+\lstinputlisting{../../mpc_solarcar/solar_preflight_logic.py}
+\section{\texttt{mpc\_solarcar/solar\_preflight\_node.py}}
+\lstinputlisting{../../mpc_solarcar/solar_preflight_node.py}
+\section{\texttt{mpc\_solarcar/distance\_node.py}}
+\lstinputlisting{../../mpc_solarcar/distance_node.py}
+\section{\texttt{mpc\_solarcar/grade\_node.py}}
+\lstinputlisting{../../mpc_solarcar/grade_node.py}
+\section{\texttt{mpc\_solarcar/weather\_utils.py}}
+\lstinputlisting{../../mpc_solarcar/weather_utils.py}
+\section{\texttt{mpc\_solarcar/weather\_fetch\_node.py}}
+\lstinputlisting{../../mpc_solarcar/weather_fetch_node.py}
+\section{\texttt{mpc\_solarcar/solar\_autocal\_logic.py}}
+\lstinputlisting{../../mpc_solarcar/solar_autocal_logic.py}
+\section{\texttt{mpc\_solarcar/solar\_autocal\_node.py}}
+\lstinputlisting{../../mpc_solarcar/solar_autocal_node.py}
+\section{\texttt{mpc\_solarcar/speed\_command\_bridge\_node.py}}
+\lstinputlisting{../../mpc_solarcar/speed_command_bridge_node.py}
+\section{\texttt{mpc\_solarcar/telemetry\_protocol.py}}
+\lstinputlisting{../../mpc_solarcar/telemetry_protocol.py}
+\section{\texttt{mpc\_solarcar/telemetry\_text\_bridge\_node.py}}
+\lstinputlisting{../../mpc_solarcar/telemetry_text_bridge_node.py}
+\section{\texttt{mpc\_solarcar/wind\_correction\_node.py}}
+\lstinputlisting{../../mpc_solarcar/wind_correction_node.py}
+\section{\texttt{mpc\_solarcar/solar\_logger\_node.py}}
+\lstinputlisting{../../mpc_solarcar/solar_logger_node.py}
+\section{\texttt{mpc\_solarcar/dashboard\_node.py}}
+\lstinputlisting{../../mpc_solarcar/dashboard_node.py}
+\section{\texttt{dashboard/index.html}}
+\lstinputlisting{../../dashboard/index.html}
+\section{\texttt{dashboard/app.js}}
+\lstinputlisting{../../dashboard/app.js}
+\section{\texttt{dashboard/style.css}}
+\lstinputlisting{../../dashboard/style.css}
+\section{\texttt{grafana/docker-compose.yml}}
+\lstinputlisting{../../grafana/docker-compose.yml}
+\section{\texttt{grafana/prometheus.yml}}
+\lstinputlisting{../../grafana/prometheus.yml}
+\section{\texttt{grafana/provisioning/dashboards/dashboards.yml}}
+\lstinputlisting{../../grafana/provisioning/dashboards/dashboards.yml}
+\section{\texttt{grafana/provisioning/datasources/prometheus.yml}}
+\lstinputlisting{../../grafana/provisioning/datasources/prometheus.yml}
+\section{\texttt{grafana/dashboards/solarcar-ems.json}}
+\lstinputlisting{../../grafana/dashboards/solarcar-ems.json}
+\section{\texttt{config/solar/bwsc\_2027\_demo.yaml}}
+\lstinputlisting{../../config/solar/bwsc_2027_demo.yaml}
+\section{\texttt{package.xml}}
+\lstinputlisting{../../package.xml}
+\section{\texttt{setup.py}}
+\lstinputlisting{../../setup.py}
+\end{document}

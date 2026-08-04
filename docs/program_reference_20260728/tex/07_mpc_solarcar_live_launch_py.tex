@@ -1,0 +1,249 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={live系 node 構成ビルダ},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{07. live系 node 構成ビルダ}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/live_launch.py| \\
+        種別 & Python \\
+        区分 & launch helper \\
+        役割 & profile を読み、live と live\_wifi で共通に使う node 群を Python から組み立てる。 \\
+        起動文脈 & launch/solar\_race\_live*.launch.py から呼ばれる。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        profile を読み、live と live\_wifi で共通に使う node 群を Python から組み立てる。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item forecast CSV の raw/corrected パスを用意する。
+\item mpc\_node、logger、dashboard、preflight などの Node action を返す。
+\item use\_wifi の有無で planner が読む forecast CSV を切り替える。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|launch/solar_race_live.launch.py|
+\item \path|launch/solar_race_live_wifi.launch.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_profile.py|
+\item \path|mpc_solarcar/mpc_node.py|
+\item \path|mpc_solarcar/speed_command_bridge_node.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_profile.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+if use_wifi and bool(wind_cfg.get("enabled", True)):
+        mpc_forecast_csv = corrected_forecast_csv
+
+    nodes = [
+        Node(
+            package="mpc_solarcar",
+            executable="solar_preflight_node",
+            name="solar_preflight_node",
+            parameters=[
+                {
+                    "require_speed": True,
+                    "require_distance": True,
+                    "require_battery": True,
+                    "require_planner": True,
+                    **preflight_cfg,
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要関数は cfg\_path, live\_forecast\_paths, build\_live\_nodes。 launch から起動する Node action は 9 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            11 & function & \path|cfg_path| & args: profile\_path, raw \\
+15 & function & \path|_drop_keys| & args: payload \\
+20 & function & \path|live_forecast_paths| & args: profile\_path, cfg \\
+39 & function & \path|build_live_nodes| & args: profile\_path, cfg \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            11 & 関数 cfg\_path を定義する。 \\
+15 & 関数 \_drop\_keys を定義する。 \\
+20 & 関数 live\_forecast\_paths を定義する。 \\
+39 & 関数 build\_live\_nodes を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|import shutil| & shutil モジュールを利用するため。 このファイル内での主な使用位置は L35。 \\
+4 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L32, L33。 \\
+6 & \path|from launch_ros.actions import Node| & ROS 2 ノード起動 action を launch から記述するため。 このファイル内での主な使用位置は L58, L72, L102, L113, L131, L140, L142, L145, ...。 \\
+8 & \path|from .solar_profile import get_path, get_section, resolve_relative_path| & profile YAML 読込と検証 から get\_path, get\_section, resolve\_relative\_path を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_profile.py。 このファイル内での主な使用位置は L12, L21, L22, L23, L24, L40, L41, L42, ...。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L11 関数 \path|cfg_path|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|cfg_path(profile_path, raw)|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: resolve\_relative\_path, str, strip
+  \item 戻り値の要点: resolve\_relative\_path(profile\_path.parent, raw) if str(raw or '').strip() else ''
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item resolve\_relative\_path(profile\_path.parent, raw) if str(raw or '').strip() else '' を返す。
+\end{enumerate}
+
+\subsection*{L15 関数 \path|_drop_keys|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_drop_keys(payload, *keys)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: items, set
+              \item 戻り値の要点: \{key: value for key, value in (payload or \{\}).items() if key not in blocked\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item blocked に set(keys) の結果を代入する。
+\item \{key: value for key, value in (payload or \{\}).items() if key not in blocked\} を返す。
+            \end{enumerate}
+
+\subsection*{L20 関数 \path|live_forecast_paths|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|live_forecast_paths(profile_path, cfg)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, cfg\_path, copy2, exists, get, get\_path, get\_section, mkdir, str
+              \item 戻り値の要点: (base\_path, raw\_path, corrected\_path)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item live\_cfg に get\_section(cfg, 'live') の結果を代入する。
+\item weather\_cfg に get\_section(live\_cfg, 'weather') の結果を代入する。
+\item wind\_cfg に get\_section(live\_cfg, 'wind\_model') の結果を代入する。
+\item base\_path に get\_path(cfg, profile\_path, 'forecast\_csv') の結果を代入する。
+\item raw\_path に cfg\_path(profile\_path, str(weather\_cfg.get('raw\_forecast\_csv', ''))) の結果を代入する。
+\item 条件 not raw\_path を判定し、真なら内部処理を行う。
+\item corrected\_path に cfg\_path(profile\_path, str(wind\_cfg.get('corrected\_forecast\_csv', ''))) の結果を代入する。
+\item 条件 not corrected\_path を判定し、真なら内部処理を行う。
+\item (raw\_path, corrected\_path) を順に走査し、各要素を runtime\_path に入れて処理する。
+\item (base\_path, raw\_path, corrected\_path) を返す。
+            \end{enumerate}
+
+\subsection*{L39 関数 \path|build_live_nodes|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|build_live_nodes(profile_path, cfg, use_wifi)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Node, \_drop\_keys, append, bool, cfg\_path, float, get, get\_path, get\_section, int, live\_forecast\_paths, str
+              \item 戻り値の要点: nodes
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item runtime\_cfg に get\_section(cfg, 'runtime') の結果を代入する。
+\item logging\_cfg に get\_section(cfg, 'logging') の結果を代入する。
+\item live\_cfg に get\_section(cfg, 'live') の結果を代入する。
+\item weather\_cfg に get\_section(live\_cfg, 'weather') の結果を代入する。
+\item autocal\_cfg に get\_section(live\_cfg, 'autocal') の結果を代入する。
+\item command\_cfg に get\_section(live\_cfg, 'command\_bridge') の結果を代入する。
+\item distance\_cfg に get\_section(live\_cfg, 'distance') の結果を代入する。
+\item grade\_cfg に get\_section(live\_cfg, 'grade') の結果を代入する。
+\item wind\_cfg に get\_section(live\_cfg, 'wind\_model') の結果を代入する。
+\item live\_logging\_cfg に get\_section(live\_cfg, 'logging') の結果を代入する。
+            \end{enumerate}
+
+
+
+
+
+        \subsection*{launch から起動するノード}
+            \begin{longtable}{p{0.07\linewidth} p{0.30\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & executable & package / name \\
+            \midrule
+            58 & \path|solar_preflight_node| & package=mpc\_solarcar, name=solar\_preflight\_node \\
+72 & \path|mpc_node| & package=mpc\_solarcar, name=mpc\_node \\
+102 & \path|dashboard_node| & package=mpc\_solarcar, name=dashboard\_node \\
+113 & \path|solar_logger_node| & package=mpc\_solarcar, name=solar\_logger\_node \\
+131 & \path|speed_command_bridge_node| & package=mpc\_solarcar, name=speed\_command\_bridge\_node \\
+140 & \path|distance_node| & package=mpc\_solarcar, name=distance\_node \\
+142 & \path|grade_node| & package=mpc\_solarcar, name=grade\_node \\
+145 & \path|weather_fetch_node| & package=mpc\_solarcar, name=weather\_fetch\_node \\
+168 & \path|solar_autocal_node| & package=mpc\_solarcar, name=solar\_autocal\_node \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/live_launch.py| を
+        \textbf{launch helper}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

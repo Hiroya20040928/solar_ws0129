@@ -1,0 +1,224 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={sim GPS 軌跡ノード},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{31. sim GPS 軌跡ノード}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/gps_sim_node.py| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & planner/speed\_cmd を積分して route waypoints 上の現在位置を求め、/sim/gps を publish する。 \\
+        起動文脈 & sim モードの地図上位置源。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        planner/speed\_cmd を積分して route waypoints 上の現在位置を求め、/sim/gps を publish する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item 純粋に速度指令から位置を進める。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|launch/solarcar_sim.launch.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_state_node.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/path_utils.py|
+\item \path|mpc_solarcar/route_utils.py|
+\item \path|mpc_solarcar/solar_profile.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from .path_utils import resolve_path
+from .solar_profile import require_csv_data_rows
+
+class GPSSimNode(Node):
+    def __init__(self):
+        super().__init__('gps_sim_node')
+        self.declare_parameter('route_csv', 'inputs/route_waypoints.csv')
+        self.declare_parameter('dt', 1.0)  # Hz
+        self.declare_parameter('init_speed_kmh', 40.0)
+        route_csv = self.get_parameter('route_csv').value
+        route_csv = resolve_path(route_csv, 'inputs')
+        route_csv = require_csv_data_rows(
+            route_csv,
+            label='route waypoints',
+            required_columns=('dist_km',),
+        )
+        self.route = pd.read_csv(route_csv)
+        self.dt = float(self.get_parameter('dt').value)
+        self.speed_kmh = float(self.get_parameter('init_speed_kmh').value)
+        self.s_km = float(self.route['dist_km'].iloc[0])
+        self.pub_gps = self.create_publisher(NavSatFix, '/sim/gps', 10)
+        self.sub_speed = self.create_subscription(Float32, '/planner/speed_cmd', self.on_speed, 10)
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは GPSSimNode。 主要関数は on\_speed, step, main。 ROS パラメータ宣言は 3 件。 ROS I/O は publisher 1 件、subscription 1 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            11 & class & \path|GPSSimNode| & bases: Node \\
+12 & function & \path|__init__| & args: self \\
+32 & function & \path|on_speed| & args: self, msg \\
+34 & function & \path|step| & args: self \\
+47 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            11 & クラス GPSSimNode を定義する。 \\
+47 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L48, L50。 \\
+2 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L11。 \\
+3 & \path|from sensor_msgs.msg import NavSatFix| & GPS 緯度経度高度を ROS topic でやり取りするため。 このファイル内での主な使用位置は L28, L38。 \\
+4 & \path|from std_msgs.msg import Float32| & Float32 や String など軽量メッセージで planner / vehicle 値を publish するため。 このファイル内での主な使用位置は L29, L32。 \\
+5 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L24。 \\
+7 & \path|from .route_utils import interpolate_route_with_alt| & route\_utils.py から interpolate\_route\_with\_alt を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/route\_utils.py。 このファイル内での主な使用位置は L37。 \\
+8 & \path|from .path_utils import resolve_path| & ROS share / 相対パス解決 から resolve\_path を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/path\_utils.py。 このファイル内での主な使用位置は L18。 \\
+9 & \path|from .solar_profile import require_csv_data_rows| & profile YAML 読込と検証 から require\_csv\_data\_rows を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_profile.py。 このファイル内での主な使用位置は L19。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L11 クラス \path|GPSSimNode|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|GPSSimNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: NavSatFix, \_\_init\_\_, create\_publisher, create\_subscription, create\_timer, declare\_parameter, float, get\_clock, get\_logger, get\_parameter, info, interpolate\_route\_with\_alt
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 on\_speed を定義する。
+\item 関数 step を定義する。
+            \end{enumerate}
+
+\subsection*{L47 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: GPSSimNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に GPSSimNode() の結果を代入する。
+\item rclpy.spin(...) を実行する。
+\item node.destroy\_node(...) を実行する。
+\item rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+
+        \subsection*{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            14 & \path|route_csv| & inputs/route\_waypoints.csv \\
+15 & \path|dt| & 1.0 \\
+16 & \path|init_speed_kmh| & 40.0 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            28 & publisher & \path|/sim/gps| & publisher \\
+29 & subscription & \path|/planner/speed_cmd| & self.on\_speed \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/gps_sim_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

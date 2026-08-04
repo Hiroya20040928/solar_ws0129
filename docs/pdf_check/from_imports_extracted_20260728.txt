@@ -1,0 +1,3424 @@
+2026/07/29 4:29                                                     from 群の解説
+
+
+
+                                                             月曜日 13:29
+
+
+
+                                               from __future__ import annotations
+
+
+                                               from launch import LaunchDescription
+                                               from launch.actions import DeclareLaunchArgument,
+                                               OpaqueFunction
+                                               from launch.substitutions import LaunchConfiguration
+                                               from launch_ros.actions import Node
+
+                                               from mpc_solarcar.live_launch import build_live_nodes,
+                                               live_forecast_paths
+                                               from mpc_solarcar.solar_profile import get_section,
+                                               表示を増やす
+
+
+
+
+        以下の from ... import ... 群は，この launch ファイルで使用するクラスや関数を読み込んでい
+        ます．上から順に説明します．
+
+
+                  Python                                                                         実行する
+
+           from __future__ import annotations
+
+
+
+        1． from __future__ import annotations
+        Pythonの型ヒントの評価方法を変更する機能です．
+
+        通常，型ヒントに書かれたクラス名は，関数やクラスが定義された時点で評価されます．この指定を入
+        れると，型ヒントをすぐには評価せず，文字列に近い形で保持します．
+
+        例えば，
+
+
+                  Python                                                                         実行する
+
+           class NodeData:
+                  def connect(self, other: NodeData) -> None:
+                      pass
+
+
+        本来は， NodeData クラスの定義途中で NodeData 自身を参照すると問題になる場合があります．
+
+        しかし，
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                                              1/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+                  Python                                               実行する
+
+           from __future__ import annotations
+
+
+        を記述すると，このような将来定義される型や自己参照型を安全に書けます．
+
+        ただし，今回提示された launch ファイル内には型ヒントがほぼありません．そのため，このファイル単体
+        では実質的な影響はありません．プロジェクト全体で記述形式を統一する目的で入っていると考えられ
+        ます．
+
+
+
+
+                  Python                                               実行する
+
+           from launch import LaunchDescription
+
+
+
+        2． LaunchDescription
+        ROS 2の launch システムから， LaunchDescription クラスを読み込んでいます．
+
+         LaunchDescription は，簡単に言えば，
+
+
+               この launch ファイルで何を実行するかをまとめる入れ物
+
+        です．
+
+        このファイルの最後で使用されています．
+
+
+                  Python                                               実行する
+
+           return LaunchDescription(
+                  [
+                      DeclareLaunchArgument(...),
+                      OpaqueFunction(...),
+                  ]
+           )
+
+
+        ここでは，
+
+
+           1．profile_yamlというlaunch引数を宣言する
+           2．_setup関数を実行してNode群を生成する
+
+
+        という2つの処理を LaunchDescription に登録しています．
+
+        ROS 2で，
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    2/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+                  Bash
+
+           ros2 launch mpc_solarcar live_wifi.launch.py
+
+
+        のように起動すると，ROS 2 launch システムがこの LaunchDescription の中身を順に処理します．
+
+
+
+
+                  Python                                                      実行する
+
+           from launch.actions import DeclareLaunchArgument, OpaqueFunction
+
+
+
+        3． DeclareLaunchArgument
+        launch ファイルに対して，外部から与えられる引数を宣言するためのクラスです．
+
+        このファイルでは，次の部分で使われています．
+
+
+                  Python                                                      実行する
+
+           DeclareLaunchArgument(
+                  "profile_yaml",
+                  default_value="config/solar/bwsc_2027_demo.yaml",
+           )
+
+
+        これにより， profile_yaml という launch 引数が作られます．
+
+        引数を指定しなければ，
+
+
+           config/solar/bwsc_2027_demo.yaml
+
+
+        が使用されます．
+
+        例えば，通常起動では，
+
+
+                  Bash
+
+           ros2 launch mpc_solarcar live_wifi.launch.py
+
+
+        となり，内部的には，
+
+
+           profile_yaml = config/solar/bwsc_2027_demo.yaml
+
+
+        です．
+
+        別のプロファイルを使用する場合は，
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                           3/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+                  Bash
+
+           ros2 launch mpc_solarcar live_wifi.launch.py \
+               profile_yaml:=config/solar/profile_mle15_fastest_certified.yaml
+
+
+        のように上書きできます．
+
+        つまり， DeclareLaunchArgument は，この launch ファイルにおける設定ファイル選択用の入力口を
+        作っています．
+
+
+
+
+        4． OpaqueFunction
+        Python関数を，launch の実行時に呼び出すためのクラスです．
+
+        このファイルでは，
+
+
+                  Python                                                         実行する
+
+           OpaqueFunction(function=_setup)
+
+
+        として使用されています．
+
+        これにより，launch の実行中に，
+
+
+                  Python                                                         実行する
+
+           _setup(context)
+
+
+        が呼び出されます．
+
+        重要なのは， _setup() が launch ファイルをPythonとして読み込んだ瞬間ではなく，launch引数が
+        確定した後の実行時に呼ばれることです．
+
+        今回， _setup() 内では，
+
+
+                  Python                                                         実行する
+
+           profile_yaml = LaunchConfiguration("profile_yaml").perform(context)
+
+
+        として，実行時の profile_yaml を取得しています．
+
+        したがって， OpaqueFunction が必要な理由は，
+
+
+           ユーザーがprofile_yamlを指定
+           ↓
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                              4/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+           launchシステムが引数を確定
+           ↓
+           _setup(context)を実行
+           ↓
+           指定されたYAMLを読み込む
+           ↓
+           YAMLの内容に応じて起動Nodeを動的に決定
+
+
+        という処理を実現するためです．
+
+         OpaqueFunction が返す値は，launch システムが実行する action のリストです．
+
+
+        今回の _setup() は，最終的に次を返します．
+
+
+                  Python                                               実行する
+
+           return nodes
+
+
+        この nodes は，複数の Node オブジェクトが入ったリストです．
+
+
+
+
+                  Python                                               実行する
+
+           from launch.substitutions import LaunchConfiguration
+
+
+
+        5． LaunchConfiguration
+        launch 引数や launch 設定値を参照するためのクラスです．
+
+        このファイルでは，
+
+
+                  Python                                               実行する
+
+           LaunchConfiguration("profile_yaml")
+
+
+        として，先ほど宣言した profile_yaml を参照しています．
+
+        ただし，次の段階ではまだ普通の文字列ではありません．
+
+
+                  Python                                               実行する
+
+           LaunchConfiguration("profile_yaml")
+
+
+        これは，
+
+               実行時に profile_yaml の値へ置き換えてください
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    5/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+        という置換オブジェクトです．
+
+        そのため，実際の文字列を取得するために，
+
+
+                  Python                                                         実行する
+
+           .perform(context)
+
+
+        を呼び出しています．
+
+        全体では，
+
+
+                  Python                                                         実行する
+
+           profile_yaml = LaunchConfiguration("profile_yaml").perform(context)
+
+
+        です．
+
+        例えば，起動時に，
+
+
+                  Bash
+
+           profile_yaml:=config/solar/test.yaml
+
+
+        を指定した場合，最終的に，
+
+
+                  Python                                                         実行する
+
+           profile_yaml == "config/solar/test.yaml"
+
+
+        となります．
+
+
+
+
+                  Python                                                         実行する
+
+           from launch_ros.actions import Node
+
+
+
+        6． Node
+        ROS 2のNodeを起動するための launch action です．
+
+        例えば，この部分です．
+
+
+                  Python                                                         実行する
+
+           Node(
+                  package="mpc_solarcar",
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                              6/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+                  executable="telemetry_text_bridge_node",
+                  name="telemetry_text_bridge_node",
+                  parameters=[...],
+           )
+
+
+        これは，概念的には次のコマンドに相当します．
+
+
+                  Bash
+
+           ros2 run mpc_solarcar telemetry_text_bridge_node
+
+
+        ただし，launch の Node では，さらに，
+
+
+           ・Node名
+           ・パラメータ
+           ・名前空間
+           ・remap
+           ・ログ出力方法
+           ・再起動設定
+
+
+        などもまとめて指定できます．
+
+        今回の指定内容は次のとおりです．
+
+
+                  Python                                               実行する
+
+           package="mpc_solarcar"
+
+
+        実行ファイルが所属するROS 2パッケージです．
+
+
+                  Python                                               実行する
+
+           executable="telemetry_text_bridge_node"
+
+
+        実際に起動する実行ファイル名です．
+
+
+                  Python                                               実行する
+
+           name="telemetry_text_bridge_node"
+
+
+        ROSグラフ上で使用されるNode名です．
+
+
+                  Python                                               実行する
+
+           parameters=[...]
+
+
+        Nodeへ渡すROSパラメータです．
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    7/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+                  Python                                                                実行する
+
+           from mpc_solarcar.live_launch import build_live_nodes, live_forecast_paths
+
+
+
+        7． build_live_nodes
+        これはROS 2標準機能ではなく，このプロジェクト内の関数です．
+
+        定義場所は，Pythonパッケージ上では，
+
+
+           mpc_solarcar/live_launch.py
+
+
+        です．
+
+        このファイルでは，
+
+
+                  Python                                                                実行する
+
+           nodes = build_live_nodes(profile_path, cfg, use_wifi=True)
+
+
+        として呼ばれています．
+
+        役割は，名前から判断すると，
+
+
+             live実行に必要な共通Node群を生成する
+
+        ことです．
+
+         use_wifi=True が指定されているため，Wi-Fi経由の実車live構成に合わせたNode群を返します．
+
+
+        重要なのは，この launch ファイルに全Nodeが直接書かれているわけではない点です．
+
+        実際の主要Node群は，
+
+
+                  Python                                                                実行する
+
+           build_live_nodes(...)
+
+
+        の内部で生成されています．
+
+        したがって，このファイルだけを見ても，起動される全Nodeは確定しません． live_launch.py 内の
+         build_live_nodes() を確認する必要があります．
+
+
+        返り値は，次のようなリストです．
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                                     8/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+                  Python                                                       実行する
+
+           nodes = [
+                  Node(...),
+                  Node(...),
+                  Node(...),
+           ]
+
+
+        その後，このファイル固有のNodeを追加しています．
+
+
+                  Python                                                       実行する
+
+           nodes.append(telemetry_text_bridge_node)
+           nodes.append(wind_correction_node)
+
+
+
+
+        8． live_forecast_paths
+        これも mpc_solarcar.live_launch 内で定義された独自関数です．
+
+        使用箇所は，
+
+
+                  Python                                                       実行する
+
+           _base_csv, raw_forecast_csv, corrected_csv = live_forecast_paths(
+                  profile_path,
+                  cfg,
+           )
+
+
+        です．
+
+        この関数は，live運転で使用する天気予報CSVのパスを決定して返します．
+
+        返り値は3つです．
+
+
+           1．base_csv
+           2．raw_forecast_csv
+           3．corrected_csv
+
+
+        ただし，このファイルでは base_csv を使用しないため，
+
+
+                  Python                                                       実行する
+
+           _base_csv
+
+
+        という名前になっています．
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                            9/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+        Pythonでは，変数名の先頭に _ を付けることで，
+
+
+             この変数は受け取るが，この場所では使用しない
+
+        という意図を示します．
+
+        使用されている2つは，
+
+
+                  Python                                                      実行する
+
+           raw_forecast_csv
+           corrected_csv
+
+
+        です．
+
+        これらは後ほど wind_correction_node へ渡されます．
+
+
+                  Python                                                      実行する
+
+           "forecast_csv": raw_forecast_csv,
+           "corrected_forecast_csv": corrected_csv,
+
+
+        したがって，処理関係は，
+
+
+           元の天気予報CSV
+           raw_forecast_csv
+                      ↓
+           wind_correction_node
+                      ↓
+           風補正済み天気予報CSV
+           corrected_csv
+
+
+        です．
+
+
+
+
+                  Python                                                      実行する
+
+           from mpc_solarcar.solar_profile import get_section, load_profile
+
+
+
+        9． load_profile
+        指定されたプロファイルYAMLを読み込むプロジェクト独自関数です．
+
+        使用箇所は，
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                           10/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+                  Python                                               実行する
+
+           profile_path, cfg = load_profile(profile_yaml)
+
+
+        です．
+
+        入力は，
+
+
+                  Python                                               実行する
+
+           profile_yaml
+
+
+        であり，例えば，
+
+
+           config/solar/bwsc_2027_demo.yaml
+
+
+        です．
+
+        返り値は2つです．
+
+
+                  Python                                               実行する
+
+           profile_path
+
+
+        実際に解決されたプロファイルファイルのパスです．
+
+
+                  Python                                               実行する
+
+           cfg
+
+
+        YAML全体をPythonの辞書などに変換した設定データです．
+
+        例えば，YAMLが，
+
+
+                  YAML
+
+           live:
+              forecast_time_tz: Australia/Darwin
+              wifi_bridge:
+                  host: 192.168.1.10
+                  port: 5000
+
+
+        なら，概念的に cfg は，
+
+
+                  Python                                               実行する
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    11/82
+2026/07/29 4:29                                                      群の解説
+                                                                  from
+           {
+                   "live": {
+                        "forecast_time_tz": "Australia/Darwin",
+                        "wifi_bridge": {
+                             "host": "192.168.1.10",
+                             "port": 5000,
+                        },
+                   },
+           }
+
+
+        となります．
+
+
+
+
+        10． get_section
+        設定辞書から，指定されたセクションを取得する独自関数です．
+
+        このファイルでは3回使用されています．
+
+
+                  Python                                                    実行する
+
+           live_cfg = get_section(cfg, "live")
+
+
+        YAML全体の cfg から， live セクションを取得します．
+
+
+                  Python                                                    実行する
+
+           wifi_cfg = get_section(live_cfg, "wifi_bridge")
+
+
+         live セクションから， wifi_bridge セクションを取得します．
+
+
+                  Python                                                    実行する
+
+           wind_cfg = get_section(live_cfg, "wind_model")
+
+
+         live セクションから， wind_model セクションを取得します．
+
+
+        構造としては，次のようになっています．
+
+
+           cfg
+           └─ live
+                  ├─ wifi_bridge
+                  └─ wind_model
+
+
+        YAMLでは，おそらく次のような構造です．
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                         12/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+                  YAML
+
+           live:
+               wifi_bridge:
+                  enabled: true
+                  host: 192.168.1.10
+                  port: 5000
+
+
+               wind_model:
+                  enabled: true
+                  correction_gain: 1.0
+
+
+         get_section() を使わずに通常の辞書アクセスで書けば，概念的には，
+
+
+                  Python                                               実行する
+
+           live_cfg = cfg["live"]
+           wifi_cfg = live_cfg["wifi_bridge"]
+           wind_cfg = live_cfg["wind_model"]
+
+
+        に近い処理です．
+
+        ただし， get_section() には，セクションが存在しない場合のエラー処理や型確認が実装されている
+        はずです．正確な挙動は solar_profile.py の定義を確認する必要があります．
+
+
+
+
+        import関係の全体像
+
+           Python標準・将来機能
+           └─ __future__.annotations
+                  └─ 型ヒントの遅延評価
+
+
+           ROS 2 launch標準
+           ├─ LaunchDescription
+           │      └─ launch処理全体を格納
+           ├─ DeclareLaunchArgument
+           │      └─ profile_yaml引数を宣言
+           ├─ OpaqueFunction
+           │      └─ 実行時に_setup(context)を呼ぶ
+           ├─ LaunchConfiguration
+           │      └─ profile_yamlの実際の値を取得
+           └─ Node
+                  └─ ROS 2 Nodeを起動
+
+
+           mpc_solarcar独自機能
+           ├─ build_live_nodes
+           │      └─ live用の共通Node群を生成
+           ├─ live_forecast_paths
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    13/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+           │      └─ 天気予報CSVのパスを生成
+           ├─ load_profile
+           │      └─ プロファイルYAMLを読み込む
+           └─ get_section
+                  └─ YAML設定の各セクションを取得
+
+
+        この import 群を一言でまとめると，
+
+
+           YAMLプロファイルを読み込み，
+           その設定に基づいてROS 2 Node群を動的に生成し，
+           live Wi-Fi運転用のlaunch構成を作るための部品
+
+
+        を読み込んでいます．
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             14/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             15/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             16/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             17/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             18/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             19/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             20/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             21/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             22/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             23/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             24/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             25/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             26/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             27/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             28/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             29/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             30/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             31/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             32/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             33/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             34/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             35/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             36/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             37/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             38/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             39/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             40/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             41/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             42/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             43/82
+2026/07/29 4:29                                              from  群の解説
+
+
+
+
+        混乱している点は主に次の4つです．
+
+
+           1．関数そのものと，関数を実行した結果の違い
+           2．変数への代入と，関数になることの違い
+           3．OpaqueFunctionが何を保存しているのか
+           4．contextがどこから渡されるのか
+
+
+        順番に，Pythonの最初の段階から整理します．
+
+
+
+
+        1．まず _setup は何か
+        コードには次があります．
+
+
+                  Python                                                                実行する
+
+           def _setup(context):
+                  profile_yaml = LaunchConfiguration("profile_yaml").perform(context)
+                  profile_path, cfg = load_profile(profile_yaml)
+
+
+                  live_cfg = get_section(cfg, "live")
+                  wifi_cfg = get_section(live_cfg, "wifi_bridge")
+                  wind_cfg = get_section(live_cfg, "wind_model")
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                                     44/82
+2026/07/29 4:29                                                  from 群の解説
+                  _base_csv, raw_forecast_csv, corrected_csv = live_forecast_paths(
+                      profile_path,
+                      cfg
+                  )
+
+
+                  nodes = build_live_nodes(profile_path, cfg, use_wifi=True)
+
+
+                  nodes.append(
+                      Node(
+                            package="mpc_solarcar",
+                            executable="telemetry_text_bridge_node",
+                            name="telemetry_text_bridge_node",
+                            parameters=[
+                                 {
+                                      key: value
+                                      for key, value in wifi_cfg.items()
+                                      if key != "enabled"
+                                 }
+                            ],
+                      )
+                  )
+
+
+                  if bool(wind_cfg.get("enabled", True)):
+                      nodes.append(
+                            Node(
+                                 package="mpc_solarcar",
+                                 executable="wind_correction_node",
+                                 name="wind_correction_node",
+                                 parameters=[...],
+                            )
+                      )
+
+
+                  return nodes
+
+
+         _setup は，Pythonの関数です．
+
+
+        役割は一言で言うと，
+
+
+             launch引数で指定されたYAMLを読み，その設定に従って起動するROS 2 Node一覧を作る関数
+
+        です．
+
+
+
+
+        2． _setup 関数の処理内容
+        処理は次の順番です．
+
+
+           ① profile_yamlというlaunch引数の実際の値を取得
+           ② YAML設定ファイルを読み込む
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                            45/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+           ③ live設定を取り出す
+           ④ Wi-Fi設定を取り出す
+           ⑤ 風補正設定を取り出す
+           ⑥ 天気予報CSVのパスを決める
+           ⑦ 共通のlive用Node一覧を作る
+           ⑧ telemetry_text_bridge_nodeを追加する
+           ⑨ 風補正が有効ならwind_correction_nodeを追加する
+           ⑩ 完成したNode一覧を返す
+
+
+        つまり， _setup の最終成果物はこれです．
+
+
+                  Python                                               実行する
+
+           return nodes
+
+
+         nodes は概念的には次のようなリストです．
+
+
+                  Python                                               実行する
+
+           nodes = [
+                  Node(...),
+                  Node(...),
+                  Node(...),
+                  Node(...),
+           ]
+
+
+
+
+        3．関数そのものと，関数を実行することは違う
+        ここが最重要です．
+
+        関数そのもの
+
+                  Python                                               実行する
+
+           _setup
+
+
+        これは，
+
+               _setup という関数そのもの
+
+
+        を表します．
+
+        まだ実行していません．
+
+        関数の実行
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    46/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+                  Python                                               実行する
+
+           _setup(context)
+
+
+        これは，
+
+              _setup 関数に context を渡して，今すぐ実行する
+
+
+        という意味です．
+
+        違いは括弧です．
+
+
+           _setup
+                  関数そのもの
+
+
+           _setup(...)
+                  関数を実行
+
+
+
+
+        4．普通の関数で考える
+        例えば次の関数があります．
+
+
+                  Python                                               実行する
+
+           def add(a, b):
+                  return a + b
+
+
+
+        関数そのものを変数に入れる
+
+                  Python                                               実行する
+
+           x = add
+
+
+        この場合， x には計算結果ではなく， add 関数そのものが入ります．
+
+        そのため，次のように使えます．
+
+
+                  Python                                               実行する
+
+           result = x(3, 5)
+
+
+        結果は，
+
+
+                  Python                                               実行する
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    47/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+           8
+
+
+        です．
+
+        つまり，
+
+
+                  Python                                               実行する
+
+           x = add
+
+
+        とすると， x 経由で add を呼べます．
+
+        しかし，
+
+
+           xそのものが新しく関数として定義された
+
+
+        わけではありません．
+
+        正確には，
+
+
+           xがadd関数を参照している
+
+
+        状態です．
+
+
+
+
+        5．左辺が「関数になる」のではない
+        ユーザーの疑問はここです．
+
+
+                  Python                                               実行する
+
+           opaque_function = OpaqueFunction(function=_setup)
+
+
+        これなら，
+
+
+           左辺のopaque_functionが_setup関数になるのでは
+
+
+        という疑問です．
+
+        結論は，
+
+
+               opaque_function は _setup 関数にはなりません． OpaqueFunction オブジェクトになりま
+               す．
+
+        です．
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                     48/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+        右辺全体を見てください．
+
+
+                  Python                                               実行する
+
+           OpaqueFunction(function=_setup)
+
+
+        これは， OpaqueFunction クラスを使って，新しいオブジェクトを作っています．
+
+        そしてそのオブジェクトの中に， _setup 関数を登録しています．
+
+        概念的には次です．
+
+
+                  Python                                               実行する
+
+           opaque_function = {
+                  "登録された関数": _setup
+           }
+
+
+        実際は辞書ではなく OpaqueFunction オブジェクトですが，理解としてはこれでよいです．
+
+
+
+
+        6．単純化した OpaqueFunction の仕組み
+        ROS 2の実際の内部実装ではありませんが，考え方は次に近いです．
+
+
+                  Python                                               実行する
+
+           class SimpleOpaqueFunction:
+                  def __init__(self, function):
+                      self.function = function
+
+
+                  def execute(self, context):
+                      return self.function(context)
+
+
+        これを使うと，
+
+
+                  Python                                               実行する
+
+           opaque_function = SimpleOpaqueFunction(function=_setup)
+
+
+        となります．
+
+        この時点で，
+
+
+                  Python                                               実行する
+
+           opaque_function
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    49/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+        の中には，
+
+
+                  Python                                               実行する
+
+           opaque_function.function == _setup
+
+
+        という形で _setup 関数が保存されています．
+
+        まだ _setup は実行されていません．
+
+        その後，
+
+
+                  Python                                               実行する
+
+           result = opaque_function.execute(context)
+
+
+        とすると，内部で，
+
+
+                  Python                                               実行する
+
+           return self.function(context)
+
+
+        が実行されます．
+
+         self.function には _setup が入っているため，実質的には，
+
+
+                  Python                                               実行する
+
+           result = _setup(context)
+
+
+        です．
+
+
+
+
+        7． opaque_function の中身
+        したがって，
+
+
+                  Python                                               実行する
+
+           opaque_function = OpaqueFunction(function=_setup)
+
+
+        の関係は次です．
+
+
+           opaque_function
+           └─ OpaqueFunctionオブジェクト
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    50/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+                  └─ 登録された関数
+                    └─ _setup
+
+
+        つまり，
+
+
+                  Python                                               実行する
+
+           opaque_function == _setup
+
+
+        ではありません．
+
+        正確には概念的に，
+
+
+                  Python                                               実行する
+
+           opaque_function.function == _setup
+
+
+        です．
+
+
+
+
+        8．たとえ話
+         OpaqueFunction は，予約票に近いです．
+
+
+                  Python                                               実行する
+
+           OpaqueFunction(function=_setup)
+
+
+        は，
+
+
+           後で_setupを実行する予約票を作る
+
+
+        という処理です．
+
+         opaque_function は予約票です．
+
+
+           opaque_function
+           ＝予約票
+
+
+           _setup
+           ＝予約された実際の作業
+
+
+        予約票そのものが作業になるわけではありません．
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    51/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+        9．なぜすぐ _setup(context) を実行しないのか
+        launchファイルが最初にPythonとして読み込まれた時点では，launch引数の値がまだ確定していませ
+        ん．
+
+        例えば起動コマンドで，
+
+
+                  Bash
+
+           ros2 launch mpc_solarcar live_wifi.launch.py \
+           profile_yaml:=config/solar/test.yaml
+
+
+        と指定することがあります．
+
+        この値は，ROS 2 launchシステムが起動処理を進める中で確定します．
+
+        したがって，先に，
+
+
+           後で_setupを実行してください
+
+
+        と登録しておきます．
+
+        その登録が，
+
+
+                  Python                                               実行する
+
+           OpaqueFunction(function=_setup)
+
+
+        です．
+
+
+
+
+        10． current_launch_context はどこから来たのか
+        前の説明に出した，
+
+
+                  Python                                               実行する
+
+           result = _setup(current_launch_context)
+
+
+        の current_launch_context は，元のコードに書かれている変数ではありません．
+
+        これは，ROS 2内部の動作を説明するために付けた仮の名前です．
+
+        実際にはROS 2 launchシステムが，launch開始時に LaunchContext オブジェクトを作ります．
+
+        概念的には，
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    52/82
+2026/07/29 4:29                                                 from群の解説
+                  Python                                                          実行する
+
+           current_launch_context = LaunchContext()
+
+
+        です．
+
+        ただし，これはあなたのlaunchファイルではなく，ROS 2のlaunchライブラリ内部で行われます．
+
+
+
+
+        11．誰が LaunchContext を作るのか
+        次のコマンドを実行します．
+
+
+                  Bash
+
+           ros2 launch mpc_solarcar live_wifi.launch.py
+
+
+        すると，ROS 2のlaunchシステムが起動します．
+
+        launchシステム内部では，概念的に次が行われます．
+
+
+                  Python                                                          実行する
+
+           context = LaunchContext()
+
+
+        この context が，launch全体で共有される実行状態です．
+
+        その後，launchシステムは LaunchDescription の中身を順番に処理します．
+
+
+
+
+        12． LaunchDescription の中身
+        元のコードは次です．
+
+
+                  Python                                                          実行する
+
+           return LaunchDescription(
+                  [
+                         DeclareLaunchArgument(
+                              "profile_yaml",
+                              default_value="config/solar/bwsc_2027_demo.yaml",
+                         ),
+                         OpaqueFunction(function=_setup),
+                  ]
+           )
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                               53/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+        このリストには2つの処理があります．
+
+
+           1番目
+           DeclareLaunchArgument(...)
+
+
+           2番目
+           OpaqueFunction(function=_setup)
+
+
+        ROS 2は原則としてこの順に処理します．
+
+
+
+
+        13．実行順序
+        ① ROS 2がcontextを作る
+        概念的には，
+
+
+                  Python                                               実行する
+
+           context = LaunchContext()
+
+
+        です．
+
+        この時点では， profile_yaml の値はまだ登録されていません．
+
+
+
+
+        ② DeclareLaunchArgument を処理する
+
+                  Python                                               実行する
+
+           DeclareLaunchArgument(
+                  "profile_yaml",
+                  default_value="config/solar/bwsc_2027_demo.yaml",
+           )
+
+
+        ROS 2は，
+
+
+           profile_yamlというlaunch引数が存在する
+
+
+        ことを認識します．
+
+        起動コマンドで値が指定されていない場合，デフォルト値を使用します．
+
+        概念的には，
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    54/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+                  Python                                               実行する
+
+           context.launch_configurations["profile_yaml"] = (
+                  "config/solar/bwsc_2027_demo.yaml"
+           )
+
+
+        です．
+
+        起動コマンドで，
+
+
+                  Bash
+
+           profile_yaml:=config/solar/test.yaml
+
+
+        と指定されていれば，
+
+
+                  Python                                               実行する
+
+           context.launch_configurations["profile_yaml"] = (
+                  "config/solar/test.yaml"
+           )
+
+
+        になります．
+
+
+
+
+        ③ OpaqueFunction を処理する
+        次にROS 2は，
+
+
+                  Python                                               実行する
+
+           OpaqueFunction(function=_setup)
+
+
+        を処理します．
+
+        この OpaqueFunction の中には _setup が登録されています．
+
+        ROS 2は，現在使用している context を渡して，登録された関数を呼びます．
+
+        概念的には，
+
+
+                  Python                                               実行する
+
+           result = _setup(context)
+
+
+        です．
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    55/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+        14． def _setup(context) の context は何か
+
+                  Python                                               実行する
+
+           def _setup(context):
+
+
+        の context は，普通のPythonの引数変数です．
+
+        例えば，
+
+
+                  Python                                               実行する
+
+           def show(value):
+                  print(value)
+
+
+        に対して，
+
+
+                  Python                                               実行する
+
+           show(10)
+
+
+        と呼ぶと，関数内では，
+
+
+                  Python                                               実行する
+
+           value = 10
+
+
+        になります．
+
+        同じように，
+
+
+                  Python                                               実行する
+
+           _setup(context_object)
+
+
+        と呼ばれると，関数内では，
+
+
+                  Python                                               実行する
+
+           context = context_object
+
+
+        になります．
+
+        つまり， context という変数名自体に特別な能力はありません．
+
+        次でも動作します．
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    56/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+                  Python                                                          実行する
+
+           def _setup(x):
+                  profile_yaml = LaunchConfiguration("profile_yaml").perform(x)
+
+
+        ただし，中身がlaunch contextなので，意味を明確にするため context という名前にしています．
+
+
+
+
+        15． context はどの範囲で使えるか
+
+                  Python                                                          実行する
+
+           def _setup(context):
+
+
+        の context は， _setup 関数の中だけで使えるローカル変数です．
+
+        例えば，
+
+
+                  Python                                                          実行する
+
+           def _setup(context):
+                  print(context)
+
+
+        関数の外で，
+
+
+                  Python                                                          実行する
+
+           print(context)
+
+
+        と書いても，通常は使えません．
+
+        理由は， context が _setup のローカル変数だからです．
+
+
+
+
+        16． context にパスだけが入っているわけではない
+         context 自体がパス文字列なのではありません．
+
+
+         context は，多数のlaunch情報を持つオブジェクトです．
+
+
+        概念的には次です．
+
+
+                  Python                                                          実行する
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                               57/82
+2026/07/29 4:29                                                  群の解説
+                                                              from
+           context = {
+                  "launch_configurations": {
+                       "profile_yaml": "config/solar/bwsc_2027_demo.yaml"
+                  },
+                  "environment": {
+                       ...
+                  },
+                  "namespace": {
+                       ...
+                  }
+           }
+
+
+        その中の，
+
+
+           launch_configurations
+
+
+        部分に， profile_yaml が登録されています．
+
+
+
+
+        17．この1行の正確な意味
+
+                  Python                                                         実行する
+
+           profile_yaml = LaunchConfiguration("profile_yaml").perform(context)
+
+
+        分解すると，
+
+
+                  Python                                                         実行する
+
+           lookup = LaunchConfiguration("profile_yaml")
+
+
+        ここで，
+
+
+           profile_yamlというlaunch設定を探すためのオブジェクト
+
+
+        を作ります．
+
+        次に，
+
+
+                  Python                                                         実行する
+
+           profile_yaml = lookup.perform(context)
+
+
+        とします．
+
+         perform(context) は， context の中から profile_yaml の値を検索します．
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                              58/82
+2026/07/29 4:29                                              from 群の解説
+        概念的には，
+
+
+                  Python                                                  実行する
+
+           profile_yaml = context.launch_configurations["profile_yaml"]
+
+
+        に近いです．
+
+
+
+
+        18．全体を普通のPythonに置き換える
+        ROS 2を抜いて単純化すると，次のような動作です．
+
+
+                  Python                                                  実行する
+
+           class Context:
+                  def __init__(self):
+                      self.values = {}
+
+
+
+           class OpaqueFunction:
+                  def __init__(self, function):
+                      self.function = function
+
+
+                  def execute(self, context):
+                      return self.function(context)
+
+
+
+           def _setup(context):
+                  profile_yaml = context.values["profile_yaml"]
+
+
+                  nodes = [
+                      "node_a",
+                      "node_b",
+                  ]
+
+
+                  return nodes
+
+
+
+           context = Context()
+
+
+           context.values["profile_yaml"] = (
+                  "config/solar/bwsc_2027_demo.yaml"
+           )
+
+
+           opaque_function = OpaqueFunction(function=_setup)
+
+
+           result = opaque_function.execute(context)
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                       59/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+           print(result)
+
+
+        実行結果は概念的に，
+
+
+                  Python                                               実行する
+
+           ["node_a", "node_b"]
+
+
+        です．
+
+        重要な対応は次です．
+
+
+           context
+           ＝launch全体の状態
+
+
+           _setup
+           ＝Node一覧を作る関数
+
+
+           OpaqueFunction
+           ＝_setupを後で実行するために保持するもの
+
+
+           opaque_function
+           ＝_setupを内部に保存したOpaqueFunctionオブジェクト
+
+
+           result
+           ＝_setupが返したNode一覧
+
+
+
+
+        19．元コードの完全な流れ
+
+           ros2 launchを実行
+                      ↓
+           ROS 2 launchシステムが起動
+                      ↓
+           LaunchContextを生成
+                      ↓
+           generate_launch_description()を呼ぶ
+                      ↓
+           LaunchDescriptionを受け取る
+                      ↓
+           DeclareLaunchArgumentを処理
+                      ↓
+           profile_yamlの値をcontextに登録
+                      ↓
+           OpaqueFunctionを処理
+                      ↓
+           OpaqueFunction内部に登録された_setupを取り出す
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    60/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+                      ↓
+           _setup(context)として呼び出す
+                      ↓
+           contextからprofile_yamlの実際の値を取得
+                      ↓
+           YAMLを読み込む
+                      ↓
+           起動Node一覧を構築
+                      ↓
+           nodesを返す
+                      ↓
+           ROS 2 launchシステムがそのNode一覧を起動対象として処理
+
+
+
+
+        20．最終的な整理
+         _setup
+
+           YAML設定を読み，起動するNode一覧を作る関数
+
+
+
+         OpaqueFunction(function=_setup)
+
+           _setup関数を，launch実行時に呼び出すために登録するオブジェクト
+
+
+
+         opaque_function
+
+           _setup関数そのものではない
+           _setupを内部に保持したOpaqueFunctionオブジェクト
+
+
+
+         context
+
+           ROS 2 launchシステムが作るLaunchContextオブジェクトを受け取る変数
+
+
+
+         current_launch_context
+
+           元コードに存在する変数ではない
+           ROS 2内部で現在使われているLaunchContextを説明するための仮名
+
+
+        最も重要な関係だけ書くと，次です．
+
+
+                  Python                                               実行する
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    61/82
+2026/07/29 4:29                                                  群の解説
+                                                              from
+           opaque_function = OpaqueFunction(function=_setup)
+
+
+        は，
+
+
+           opaque_functionの中に_setupを保存
+
+
+        です．
+
+        そして実行時に，ROS 2が概念的に，
+
+
+                  Python                                                   実行する
+
+           nodes = _setup(context)
+
+
+        を行います．
+
+
+
+
+                                               ノードは
+
+                                               nodes = [
+                                                 Node(...),
+                                                 Node(...),
+                                                 Node(...),
+                                                 Node(...),
+                                               ]
+
+                                               このように、ローンチファイルは列挙するだけなのですか？その後、各
+                                               ノードは自律的に動き出すということ？
+                                               表示を増やす
+
+
+
+
+        はい．大筋ではその理解で合っています．ただし，正確には，
+
+             launchファイルは「ノードの実行内容そのもの」を書く場所ではなく，どのノードを，どんな設定で，ど
+             の条件・順序で起動するかを記述する場所
+
+        です．
+
+        1．launchファイルはノードを列挙するだけなのか
+        基本的には，起動したい処理を Node(...) などのlaunch actionとして並べます．
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                        62/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+                  Python                                               実行する
+
+           nodes = [
+                  Node(...),
+                  Node(...),
+                  Node(...),
+           ]
+
+
+        ただし，単なるノード名の一覧ではありません．各 Node(...) には，起動方法の設定が入っていま
+        す．
+
+
+                  Python                                               実行する
+
+           Node(
+                  package="mpc_solarcar",
+                  executable="wind_correction_node",
+                  name="wind_correction_node",
+                  parameters=[...],
+           )
+
+
+        これは概念的に，
+
+
+           mpc_solarcarパッケージにある
+           wind_correction_nodeという実行プログラムを
+           wind_correction_nodeというROSノード名で
+           指定パラメータを渡して起動する
+
+
+        という起動命令です．
+
+         Node(...) を書いた時点では，まだノード本体は動いていません．
+
+
+                  Python                                               実行する
+
+           Node(...)
+
+
+        は，
+
+               後でROS 2 launchシステムが実行する起動命令オブジェクト
+
+        を作っています．
+
+
+
+
+        2． nodes は実行中のノードそのものではない
+        例えば，
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    63/82
+2026/07/29 4:29                                                  群の解説
+                                                              from
+
+
+                  Python                                                実行する
+
+           nodes = [
+                  Node(package="pkg", executable="node_a"),
+                  Node(package="pkg", executable="node_b"),
+           ]
+
+
+        この nodes の中に入っているのは，実行中のプロセスそのものではありません．
+
+        入っているのは，
+
+
+           node_aを起動せよ
+           node_bを起動せよ
+
+
+        というlaunch actionです．
+
+        概念的には，次のようなものです．
+
+
+                  Python                                                実行する
+
+           nodes = [
+                  起動命令A,
+                  起動命令B,
+           ]
+
+
+        そして _setup() が，
+
+
+                  Python                                                実行する
+
+           return nodes
+
+
+        すると，ROS 2 launchシステムがその起動命令を受け取ります．
+
+        その後，launchシステムが各 Node actionを実行し，OS上にノードプロセスを立ち上げます．
+
+
+
+
+        3．その後，各ノードは自律的に動き出すのか
+        はい．起動された後は，各ノードがそれぞれ独立したプログラムとして動きます．
+
+        例えば，ノード本体がPythonで書かれている場合，内部には通常このようなコードがあります．
+
+
+                  Python                                                実行する
+
+           def main(args=None):
+                  rclpy.init(args=args)
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                     64/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+                  node = MyNode()
+
+
+                  rclpy.spin(node)
+
+
+                  node.destroy_node()
+                  rclpy.shutdown()
+
+
+        launchファイルは，この実行ファイルをプロセスとして起動します．
+
+        起動後のノードは，自分自身のコードに従って，
+
+
+           ・一定周期でタイマー処理を行う
+           ・トピックをpublishする
+           ・トピックをsubscribeする
+           ・サービス要求を待つ
+           ・受信データを処理する
+           ・ファイルを読み書きする
+
+
+        などを実行します．
+
+        つまり，
+
+
+           launchファイル
+           ＝起動担当
+
+
+           各ノードの実行ファイル
+           ＝実際の処理担当
+
+
+        です．
+
+
+
+
+        4．「自律的」とはどういう意味か
+        各ノードは別々のプロセスとして動くのが基本です．
+
+        例えば，
+
+
+           gps_node
+           mpc_node
+           dashboard_node
+           wind_correction_node
+
+
+        を起動した場合，それぞれが独立して動きます．
+
+
+           gps_node
+           位置を取得し，位置トピックをpublishする
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7             65/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+           wind_correction_node
+           風データを読み，補正結果をpublishする
+
+
+           mpc_node
+           位置，風，車体状態などをsubscribeし，最適速度を計算する
+
+
+           dashboard_node
+           各トピックをsubscribeし，画面に表示する
+
+
+        launchファイルが毎回，
+
+
+           次はgps_nodeを1回動かす
+           次はmpc_nodeを1回動かす
+
+
+        と制御しているわけではありません．
+
+        launchファイルは最初に全ノードを起動します．その後，各ノードは自分のタイマー，受信コールバック，
+        ループ処理に従って動き続けます．
+
+
+
+
+        5．各ノードは必ず同時に動き出すのか
+         LaunchDescription 内に並べられた Node actionは順番に処理されますが，起動後のノードプロセ
+        スは並行して動きます．
+
+        例えば，
+
+
+                  Python                                               実行する
+
+           LaunchDescription(
+                  [
+                      Node(...node_a...),
+                      Node(...node_b...),
+                      Node(...node_c...),
+                  ]
+           )
+
+
+        の場合，launchシステムは，
+
+
+           node_aの起動処理
+           ↓
+           node_bの起動処理
+           ↓
+           node_cの起動処理
+
+
+        と進めます．
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    66/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+        ただし， node_a の処理が完全に終了するまで node_b を待つわけではありません．
+
+         node_a をプロセスとして開始したら，次の node_b の起動処理に進みます．
+
+
+        結果として，
+
+
+           node_a ─────────────動作継続────────────
+           node_b          ───────────動作継続────────────
+           node_c            ────────動作継続────────────
+
+
+        という並行動作になります．
+
+
+
+
+        6．ノードの更新周期はlaunchファイルが決めるのか
+        通常，決めません．
+
+        更新周期は，各ノード本体に書かれています．
+
+        例えば，ノード内に，
+
+
+                  Python                                               実行する
+
+           self.create_timer(1.0, self.update)
+
+
+        とあれば，1秒周期です．
+
+
+                  Python                                               実行する
+
+           self.create_timer(0.1, self.update)
+
+
+        なら，0.1秒周期，つまり10 Hzです．
+
+        launchファイルは，そのノードへ周期をパラメータとして渡すことはあります．
+
+
+                  Python                                               実行する
+
+           Node(
+                  package="mpc_solarcar",
+                  executable="mpc_node",
+                  parameters=[
+                       {
+                             "update_period_sec": 1.0
+                       }
+                  ],
+           )
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    67/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+        この場合でも，周期処理を実際に実装しているのはノード本体です．
+
+        launchファイルは，
+
+
+           update_period_secを1.0に設定して起動せよ
+
+
+        と指示しているだけです．
+
+
+
+
+        7．なぜlaunchファイルには main() がないのか
+        ROS 2 launchファイルは，普通のPythonスクリプトとして直接実行される設計ではありません．
+
+        通常のPythonプログラムでは，次のようにします．
+
+
+                  Python                                               実行する
+
+           def main():
+                  print("start")
+
+
+           if __name__ == "__main__":
+                  main()
+
+
+        しかしROS 2 launchファイルは，
+
+
+                  Bash
+
+           ros2 launch パッケージ名 launchファイル名
+
+
+        によって，ROS 2 launchシステムから読み込まれます．
+
+        つまり，launchファイル自身が起動の主体ではありません．
+
+
+           起動主体
+           ＝ros2 launchコマンドとlaunchシステム
+
+
+           読み込まれる設定ファイル
+           ＝launch.py
+
+
+        です．
+
+
+
+
+        8．誰が generate_launch_description() を呼ぶのか
+        ROS 2 launchシステムです．
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    68/82
+2026/07/29 4:29                                                  群の解説
+                                                              from
+
+        この関数名はROS 2 launchで決められた特別な入口です．
+
+
+                  Python                                                      実行する
+
+           def generate_launch_description():
+
+
+        ROS 2 launchシステムはlaunchファイルを読み込んだ後，この名前の関数を探します．
+
+        そして，概念的には次を実行します．
+
+
+                  Python                                                      実行する
+
+           launch_description = launch_module.generate_launch_description()
+
+
+        あなたのコード内にこれを書いていなくても，ROS 2のライブラリ側が実行します．
+
+
+
+
+        9． return はどのように実行されるのか
+         return は，関数が呼び出された結果として実行されます．
+
+
+        元のコードは，
+
+
+                  Python                                                      実行する
+
+           def generate_launch_description():
+                  return LaunchDescription(
+                      [
+                           DeclareLaunchArgument(...),
+                           OpaqueFunction(function=_setup),
+                      ]
+                  )
+
+
+        です．
+
+        ROS 2内部で概念的に，
+
+
+                  Python                                                      実行する
+
+           result = generate_launch_description()
+
+
+        と呼ばれます．
+
+        すると関数内部が実行され，
+
+
+                  Python                                                      実行する
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                           69/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+           return LaunchDescription(...)
+
+
+        によって， LaunchDescription オブジェクトがROS 2 launchシステムへ返されます．
+
+        つまり，
+
+
+           returnが勝手に実行される
+
+
+        のではありません．
+
+        ROS 2 launchシステムが generate_launch_description() を呼ぶため，その関数内の return
+        が実行されます．
+
+
+
+
+        10．普通のPythonとの対応
+        普通のPythonでは，次のように呼び出します．
+
+
+                  Python                                               実行する
+
+           def create_data():
+                  return [1, 2, 3]
+
+
+           result = create_data()
+
+
+        このとき，
+
+
+                  Python                                               実行する
+
+           return [1, 2, 3]
+
+
+        が実行されます．
+
+        ROS 2では，この呼び出し部分をROS 2側が担当します．
+
+
+                  Python                                               実行する
+
+           result = generate_launch_description()
+
+
+        相当の処理をROS 2が実行します．
+
+
+
+
+        11．launchファイルが読み込まれてからノードが動くまで
+        全体を順番に並べると，次です．
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    70/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+           ① ユーザーがコマンドを実行
+           ros2 launch mpc_solarcar live_wifi.launch.py
+
+
+
+
+           ② ROS 2 launchシステムが起動
+
+
+
+
+           ③ launchファイルをPythonモジュールとして読み込む
+
+
+        この時点で，
+
+
+                  Python                                               実行する
+
+           def _setup(context):
+
+
+        と，
+
+
+                  Python                                               実行する
+
+           def generate_launch_description():
+
+
+        が定義されます．
+
+        まだ関数本体は実行されません．
+
+
+           ④ ROS 2がgenerate_launch_description()を探して呼び出す
+
+
+        概念的には，
+
+
+                  Python                                               実行する
+
+           description = generate_launch_description()
+
+
+        です．
+
+
+           ⑤ return LaunchDescription(...)が実行される
+
+
+        ROS 2へ，
+
+
+           ・profile_yamlを宣言する
+           ・OpaqueFunctionで_setupを実行する
+
+
+        というaction一覧が返されます．
+
+
+           ⑥ ROS 2がLaunchContextを作成する
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    71/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+           ⑦ DeclareLaunchArgumentを処理する
+
+
+         profile_yaml の値が context に登録されます．
+
+
+           ⑧ OpaqueFunctionを処理する
+
+
+        ROS 2が概念的に，
+
+
+                  Python                                               実行する
+
+           nodes = _setup(context)
+
+
+        を実行します．
+
+
+           ⑨ _setupがYAMLを読み，Node actionの一覧を返す
+
+
+
+
+                  Python                                               実行する
+
+           return nodes
+
+
+
+
+           ⑩ ROS 2が各Node actionを実行する
+
+
+        各ノードの実行ファイルがOS上でプロセスとして起動されます．
+
+
+           ⑪ 各ノードが自分自身のmain関数やタイマーに従って動作する
+
+
+
+
+        12．launchファイルとノード本体の関係
+
+           launchファイル
+                  ↓
+           どの実行ファイルを起動するか指定
+                  ↓
+           ROS 2 launchシステム
+                  ↓
+           各ノードを別プロセスとして起動
+                  ↓
+           各ノードのmain関数が実行される
+                  ↓
+           各ノードがpublish，subscribe，timer処理を行う
+
+
+        launchファイル自身がMPC計算やGPS処理を実行しているわけではありません．
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    72/82
+2026/07/29 4:29                                              from群の解説
+        launchファイルは，MPCノードやGPSノードの起動責任者です．
+
+
+
+
+        13．今回のコードに即して見る
+
+                  Python                                                実行する
+
+           nodes = build_live_nodes(profile_path, cfg, use_wifi=True)
+
+
+        ここで，live動作用の共通Node action一覧が作られます．
+
+        次に，
+
+
+                  Python                                                実行する
+
+           nodes.append(
+                  Node(
+                      package="mpc_solarcar",
+                      executable="telemetry_text_bridge_node",
+                      ...
+                  )
+           )
+
+
+        Wi-Fiテレメトリ用ノードの起動命令を追加します．
+
+        さらに，
+
+
+                  Python                                                実行する
+
+           if bool(wind_cfg.get("enabled", True)):
+
+
+        が真なら，
+
+
+                  Python                                                実行する
+
+           wind_correction_node
+
+
+        の起動命令も追加します．
+
+        最後に，
+
+
+                  Python                                                実行する
+
+           return nodes
+
+
+        として，完成した起動命令一覧をROS 2へ返します．
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                     73/82
+2026/07/29 4:29                                                     from群の解説
+        ROS 2はその一覧に従って各ノードを起動します．
+
+
+
+
+        結論
+
+        ノードについて
+
+                  Python                                                                         実行する
+
+           nodes = [
+                  Node(...),
+                  Node(...),
+           ]
+
+
+        は，ノード本体の処理ではなく，ノードを起動するための命令一覧です．
+
+        起動された後，各ノードはそれぞれの実行ファイルに書かれた main() ，タイマー，subscriptionなどに
+        従って独立して動きます．
+
+        launchファイルの入口について
+        launchファイルに main() がないのは，ROS 2 launchシステムが，
+
+
+                  Python                                                                         実行する
+
+           generate_launch_description()
+
+
+        を規約に従って探し，呼び出すからです．
+
+        その呼び出しによって，
+
+
+                  Python                                                                         実行する
+
+           return LaunchDescription(...)
+
+
+        が実行されます．
+
+
+
+
+                                                             昨日 13:43
+
+
+
+
+                                               from mpc_solarcar.live_launch import build_live_nodes,
+                                               live_forecast_paths
+                                               from mpc_solarcar.solar_profile import get_section,
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                                              74/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+                                               load_profile
+                                               とかの独自のやつはどこから来てる？
+
+
+
+        はい，これはPythonのモジュール(import)の仕組みです．
+        実は，ROS 2というよりPythonそのものの機能です．
+
+
+
+
+        まず結論
+
+                  Python                                                                実行する
+
+           from mpc_solarcar.live_launch import build_live_nodes, live_forecast_paths
+
+
+        は，
+
+               mpc_solarcar/live_launch.py というPythonファイルから， build_live_nodes と
+               live_forecast_paths という関数を読み込んでいる
+
+
+        という意味です．
+
+        同様に，
+
+
+                  Python                                                                実行する
+
+           from mpc_solarcar.solar_profile import get_section, load_profile
+
+
+        は，
+
+               mpc_solarcar/solar_profile.py から2つの関数を読み込んでいる
+
+
+        という意味です．
+
+
+
+
+        ディレクトリ構造を見ると
+        あなたのプロジェクトはおそらくこのようになっています．
+
+
+           MPCEMS_YATA_2027/
+           │
+           ├── launch/
+           │      └── live_wifi.launch.py
+           │
+           ├── mpc_solarcar/
+           │      │
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                                     75/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+            │     ├── __init__.py
+            │     ├── live_launch.py
+            │     ├── solar_profile.py
+            │     ├── mpc_node.py
+            │     ├── dashboard_node.py
+            │     ├── gps_sim_node.py
+            │     └── ...
+
+
+        ここで，
+
+
+            mpc_solarcar
+
+
+        はPythonパッケージです．
+
+        その中に
+
+
+            live_launch.py
+
+
+        があります．
+
+
+
+
+        つまり
+        この一行
+
+
+                  Python                                               実行する
+
+            from mpc_solarcar.live_launch import build_live_nodes
+
+
+        は
+
+        実質
+
+
+            mpc_solarcar/
+                  live_launch.py
+
+
+        を開いて，
+
+        その中にある
+
+
+                  Python                                               実行する
+
+            def build_live_nodes(...):
+
+
+        を使えるようにしているだけです．
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    76/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+        例えば live_launch.py が
+        もし中身が
+
+
+                  Python                                               実行する
+
+           def hello():
+                  print("Hello")
+
+
+        だけだったとします．
+
+        すると
+
+
+                  Python                                               実行する
+
+           from mpc_solarcar.live_launch import hello
+
+
+        と書けば
+
+
+                  Python                                               実行する
+
+           hello()
+
+
+        が使えます．
+
+        これは
+
+
+           live_launch.py
+
+
+        に書かれた関数を借りてきているだけです．
+
+
+
+
+        あなたのプロジェクトでは
+        例えば
+
+
+           mpc_solarcar/
+                  live_launch.py
+
+
+        の中には
+
+        おそらく
+
+
+                  Python                                               実行する
+
+           def build_live_nodes(...):
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    77/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+                  ...
+
+
+        や
+
+
+                  Python                                               実行する
+
+            def live_forecast_paths(...):
+                  ...
+
+
+        が定義されています．
+
+        だから
+
+
+                  Python                                               実行する
+
+            from mpc_solarcar.live_launch import build_live_nodes
+
+
+        と書けます．
+
+
+
+
+        Pythonはどうやって探しているの？
+        Pythonは
+
+
+            import mpc_solarcar
+
+
+        と言われると，
+
+        検索パス(PATH)の中から
+
+
+            mpc_solarcar/
+
+
+        というフォルダを探します．
+
+        その中に
+
+
+            live_launch.py
+
+
+        があるので
+
+        それを読み込みます．
+
+
+
+
+        ROS2ではこれが少し特殊
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    78/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+        ROS2では
+
+
+            colcon build
+
+
+        すると
+
+
+            install/
+
+
+        の中へ
+
+
+            mpc_solarcar
+
+
+        パッケージが登録されます．
+
+        そのため
+
+
+                  Python                                               実行する
+
+            from mpc_solarcar.live_launch import ...
+
+
+        が普通に使えます．
+
+
+
+
+        では build_live_nodes はどこで呼ばれる？
+        launchファイルでは
+
+
+                  Python                                               実行する
+
+            nodes = build_live_nodes(
+                  profile_path,
+                  cfg,
+                  use_wifi=True
+            )
+
+
+        と書かれています．
+
+        つまり
+
+
+            live_wifi.launch.py
+
+
+        ↓
+
+
+            build_live_nodes()
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    79/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+        ↓
+
+
+            live_launch.py
+
+
+        へ飛びます．
+
+
+
+
+        その中では何をしている？
+        まだ中身を見ていませんが，
+
+        おそらく
+
+
+                  Python                                               実行する
+
+            def build_live_nodes(...):
+
+
+                  nodes = []
+
+
+                  nodes.append(Node(...))
+                  nodes.append(Node(...))
+                  nodes.append(Node(...))
+
+
+                  return nodes
+
+
+        のようになっています．
+
+        つまり
+
+
+            live_wifi.launch.py
+
+
+        では
+
+
+            共通部分
+
+
+        を書かず，
+
+
+            live_launch.py
+
+
+        へ任せています．
+
+
+
+
+        solar_profile.py も同じ
+        例えば
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    80/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+
+
+                  Python                                               実行する
+
+            def load_profile(path):
+                  ...
+
+
+        が
+
+
+            solar_profile.py
+
+
+        にあります．
+
+        だから
+
+
+                  Python                                               実行する
+
+            profile_path, cfg = load_profile(profile_yaml)
+
+
+        と書けます．
+
+        これは
+
+
+            launchファイル
+
+
+        ↓
+
+
+            solar_profile.py
+
+
+        へ飛んでいます．
+
+
+
+
+        このプロジェクト全体はこういう構造
+
+            live_wifi.launch.py
+                        │
+                        │ import
+                        ▼
+            live_launch.py
+                        │
+                        ├── build_live_nodes()
+                        └── live_forecast_paths()
+
+
+                        │
+                        │ import
+                        ▼
+            solar_profile.py
+                        │
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                    81/82
+2026/07/29 4:29                                                 群の解説
+                                                             from
+                      ├── load_profile()
+                      └── get_section()
+
+
+                      │
+                      ▼
+           Node(...)
+                      │
+                      ▼
+           各ノードの実行ファイル
+           mpc_node.py
+           dashboard_node.py
+           gps_sim_node.py
+           ...
+
+
+
+
+        次に見るべきもの
+        このプロジェクトを本当に理解するには，次は live_launch.py の中身を見るのが最も重要です。
+
+        なぜなら，
+
+
+                  Python                                                     実行する
+
+           nodes = build_live_nodes(...)
+
+
+        のたった1行の裏側で，
+              どのノードが起動されるのか
+              どの順番で追加されるのか
+              どんなパラメータが渡されるのか
+
+        がすべて決まっているからです。
+
+        実際，あなたが以前「システム全体の動作を理解したい」と話していた目的に対しては，
+         live_launch.py がlaunch構成の中心になります。
+
+
+
+
+                           ChatGPT の回答は必ずしも正しいとは限りません。重要な情報は確認するようにしてください。
+
+
+
+
+https://chatgpt.com/c/6a66de8a-4bfc-83ee-9460-7dd3f68eb8e7                          82/82
+

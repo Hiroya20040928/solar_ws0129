@@ -1,0 +1,243 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={solar 運用 CSV logger},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{29. solar 運用 CSV logger}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/solar_logger_node.py| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & vehicle、planner、weather、calib、system、raw telemetry を一つの時刻行へ集約して CSV に書く。 \\
+        起動文脈 & 運用ログの最終集約点。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        vehicle、planner、weather、calib、system、raw telemetry を一つの時刻行へ集約して CSV に書く。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item topic 名と CSV 列名の対応を内部辞書で持つ。
+\item planner/env、planner/metrics、planner/status も記録する。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/live_launch.py|
+\item \path|launch/solar_measurement.launch.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 特記事項なし。
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+}
+
+
+class SolarLoggerNode(Node):
+    def __init__(self):
+        super().__init__("solar_logger_node")
+        self.declare_parameter("log_dir", "outputs/logs")
+        self.declare_parameter("file_prefix", "solar_live")
+        self.declare_parameter("log_rate_hz", 2.0)
+        self.declare_parameter("flush_every_rows", 1)
+        self.declare_parameter("output_speed_topic", "/vehicle/speed_cmd_kmh")
+        self.declare_parameter("output_drive_mode_topic", "/vehicle/drive_mode_cmd")
+
+        log_dir = os.fspath(self.get_parameter("log_dir").value)
+        prefix = str(self.get_parameter("file_prefix").value)
+        rate_hz = max(0.1, float(self.get_parameter("log_rate_hz").value))
+        self.flush_every_rows = max(1, int(self.get_parameter("flush_every_rows").value))
+        self.rows_since_flush = 0
+
+        os.makedirs(log_dir, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.log_path = os.path.join(log_dir, f"{prefix}_{stamp}.csv")
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは SolarLoggerNode。 主要関数は handler, handler, handler, destroy\_node, main。 ROS パラメータ宣言は 6 件。 ROS I/O は publisher 0 件、subscription 6 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            85 & class & \path|SolarLoggerNode| & bases: Node \\
+86 & function & \path|__init__| & args: self \\
+139 & function & \path|_set_float| & args: self, field \\
+140 & function & \path|handler| & args: msg \\
+148 & function & \path|_set_string| & args: self, field \\
+149 & function & \path|handler| & args: msg \\
+154 & function & \path|_set_array| & args: self, fields \\
+155 & function & \path|handler| & args: msg \\
+163 & function & \path|_clean_float| & args: value \\
+170 & function & \path|_write_row| & args: self \\
+183 & function & \path|destroy_node| & args: self \\
+192 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            11 & FLOAT\_TOPICS に \{'speed\_kmh': '/vehicle/speed\_kmh', 's\_km': '/vehicle/s\_km', 'altitude\_m': '/vehicle/altitude\_m', 'grade\_pct': '/vehicle/grade', 'batt\_soc': '/vehicle/batt\_soc', 'batt\_temp\_c': '/vehicle/batt\_temp\_c', 'batt\_current\_a': '/vehicle/batt\_current\_a', 'batt\_voltage\_v': '/vehicle/batt\_voltage\_v', 'solar\_power\_w': '/vehicle/solar\_power\_w', 'headwind\_meas\_ms': '/weather/headwind\_meas\_ms', 'headwind\_corrected\_ms': '/weather/headwind\_corrected\_ms', 'wind\_speed\_ms': '/weather/wind\_speed\_ms', 'wind\_dir\_deg': '/weather/wind\_dir\_deg', 'course\_deg': '/weather/course\_deg', 'speed\_cmd\_kmh': '/planner/speed\_cmd', 'upper\_speed\_cmd\_kmh': '/planner/upper\_speed\_cmd', 'throttle\_cmd\_pct': '/planner/throttle\_cmd\_pct', 'calib\_solar\_gain': '/calib/solar\_gain', 'calib\_drive\_power\_gain': '/calib/drive\_power\_gain', 'calib\_aux\_power\_w': '/calib/aux\_power\_w', 'system\_health': '/system/health'\} の結果を代入する。 \\
+35 & FLOAT64\_TOPICS に \{'solar\_source\_ts\_unix': '/telemetry/solar\_source\_ts\_unix', 'chase\_source\_ts\_unix': '/telemetry/chase\_source\_ts\_unix'\} の結果を代入する。 \\
+40 & STRING\_TOPICS に \{'drive\_mode': '/planner/drive\_mode', 'system\_state': '/system/state', 'system\_diag': '/system/diag', 'mpc\_state': '/system/mpc\_state', 'telemetry\_bridge\_status': '/telemetry/bridge\_status', 'wind\_correction\_status': '/weather/wind\_correction\_status', 'weather\_fetch\_status': '/weather/fetch\_status', 'autocal\_status': '/calib/status', 'raw\_solar': '/telemetry/raw\_solar', 'raw\_chase': '/telemetry/raw\_chase'\} の結果を代入する。 \\
+53 & ARRAY\_TOPICS に \{'/planner/status': ['planner\_soc', 'planner\_temp\_c', 'planner\_s\_km', 'planner\_step', 'planner\_sec\_to\_next', 'planner\_control\_stop\_hold', 'planner\_control\_stop\_remaining\_sec', 'planner\_control\_stop\_completed\_count'], '/planner/metrics': ['model\_pack\_voltage\_v', 'model\_pack\_current\_a', 'model\_soc', 'model\_motor\_power\_w', 'model\_motor\_current\_a', 'model\_pv\_power\_w', 'model\_speed\_kmh', 'model\_mech\_power\_w', 'model\_pack\_power\_w'], '/planner/env': ['env\_poa\_wm2', 'env\_cell\_temp\_c', 'env\_ambient\_temp\_c', 'env\_grade\_pct', 'env\_headwind\_ms']\} の結果を代入する。 \\
+85 & クラス SolarLoggerNode を定義する。 \\
+192 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|import csv| & CSV の逐次読込・逐次書込を行うため。 このファイル内での主な使用位置は L133。 \\
+2 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L109, L144, L158, L168。 \\
+3 & \path|import os| & パス、環境変数、プロセス外部状態を扱うため。 このファイル内での主な使用位置は L95, L101, L103。 \\
+4 & \path|from datetime import datetime, timezone| & UTC 時刻や相対時間を扱うため。 このファイル内での主な使用位置は L102, L172。 \\
+6 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L193, L196, L199。 \\
+7 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L85。 \\
+8 & \path|from std_msgs.msg import Float32, Float32MultiArray, Float64, String| & Float32 や String など軽量メッセージで planner / vehicle 値を publish するため。 このファイル内での主な使用位置は L115, L117, L119, L121, L126, L129。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L85 クラス \path|SolarLoggerNode|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|SolarLoggerNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DictWriter, \_\_init\_\_, \_clean\_float, \_set\_array, \_set\_float, \_set\_string, append, close, create\_subscription, create\_timer, declare\_parameter, destroy\_node
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_set\_float を定義する。
+\item 関数 \_set\_string を定義する。
+\item 関数 \_set\_array を定義する。
+\item 関数 \_clean\_float を定義する。
+\item 関数 \_write\_row を定義する。
+\item 関数 destroy\_node を定義する。
+            \end{enumerate}
+
+\subsection*{L192 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: SolarLoggerNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に SolarLoggerNode() の結果を代入する。
+\item 例外処理を伴う try ブロックを実行する。
+            \end{enumerate}
+
+        \subsection*{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            88 & \path|log_dir| & outputs/logs \\
+89 & \path|file_prefix| & solar\_live \\
+90 & \path|log_rate_hz| & 2.0 \\
+91 & \path|flush_every_rows| & 1 \\
+92 & \path|output_speed_topic| & /vehicle/speed\_cmd\_kmh \\
+93 & \path|output_drive_mode_topic| & /vehicle/drive\_mode\_cmd \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            115 & subscription & \path|topic| & self.\_set\_float(field) \\
+117 & subscription & \path|topic| & self.\_set\_float(field) \\
+119 & subscription & \path|topic| & self.\_set\_string(field) \\
+121 & subscription & \path|topic| & self.\_set\_array(fields) \\
+126 & subscription & \path|output_speed_topic| & self.\_set\_float('output\_speed\_cmd\_kmh') \\
+129 & subscription & \path|output_mode_topic| & self.\_set\_string('output\_drive\_mode') \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/solar_logger_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

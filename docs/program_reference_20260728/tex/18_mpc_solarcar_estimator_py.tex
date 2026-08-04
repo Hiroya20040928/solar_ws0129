@@ -1,0 +1,222 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={Battery MHE},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{18. Battery MHE}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/estimator.py| \\
+        種別 & Python \\
+        区分 & estimator \\
+        役割 & 観測された I/V/SoC/Tb と model を使って内部 SoC/Tb を短ホライズンで補正する。 \\
+        起動文脈 & mpc\_node 内の状態推定器。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        観測された I/V/SoC/Tb と model を使って内部 SoC/Tb を短ホライズンで補正する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item BatteryMHE が入力列を保持し、最尤に近い初期状態を逆推定する。
+\item planner 本体の物理モデルをそのまま使う。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_node.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/model.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+@dataclass
+class MheInput:
+    v_ms: float
+    slope_pct: float
+    G_poa: float
+    Tcell_C: float
+    Tamb_C: float
+    headwind_ms: float
+    dt: float
+    inertial_power_w: float = 0.0
+    elevation_m: float = 0.0
+
+
+@dataclass
+class MheMeas:
+    soc: Optional[float] = None
+    Tb: Optional[float] = None
+    I: Optional[float] = None
+    V: Optional[float] = None
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは MheInput, MheMeas, BatteryMHE。 主要関数は push, estimate, cost。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            11 & class & \path|MheInput| &  \\
+24 & class & \path|MheMeas| &  \\
+31 & class & \path|BatteryMHE| &  \\
+32 & function & \path|__init__| & args: self, model, horizon\_steps, w\_soc, w\_tb, w\_i, w\_v, w\_prior, soc\_bounds, tb\_bounds \\
+54 & function & \path|push| & args: self, u, y \\
+57 & function & \path|_simulate| & args: self, z0, Tb0 \\
+85 & function & \path|estimate| & args: self, z\_init, Tb\_init \\
+89 & function & \path|cost| & args: x \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            11 & クラス MheInput を定義する。 \\
+24 & クラス MheMeas を定義する。 \\
+31 & クラス BatteryMHE を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L94, L96, L98, L100。 \\
+2 & \path|from collections import deque| & 固定長の時系列や遅延キューを効率よく保持するため。 このファイル内での主な使用位置は L45。 \\
+3 & \path|from dataclasses import dataclass| & dataclasses から dataclass を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L10, L23。 \\
+4 & \path|from typing import Optional, Tuple| & typing から Optional, Tuple を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L25, L26, L27, L28, L41, L42, L85。 \\
+6 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L104。 \\
+7 & \path|from scipy.optimize import minimize| & 連続最適化や MHE の逆推定を解くため。 このファイル内での主な使用位置は L106。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L11 クラス \path|MheInput|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|MheInput(bases=なし)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item v\_ms に  を代入する。
+\item slope\_pct に  を代入する。
+\item G\_poa に  を代入する。
+\item Tcell\_C に  を代入する。
+\item Tamb\_C に  を代入する。
+\item headwind\_ms に  を代入する。
+\item dt に  を代入する。
+\item inertial\_power\_w に 0.0 を代入する。
+\item elevation\_m に 0.0 を代入する。
+            \end{enumerate}
+
+\subsection*{L24 クラス \path|MheMeas|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|MheMeas(bases=なし)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item soc に None を代入する。
+\item Tb に None を代入する。
+\item I に None を代入する。
+\item V に None を代入する。
+            \end{enumerate}
+
+\subsection*{L31 クラス \path|BatteryMHE|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|BatteryMHE(bases=なし)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_simulate, append, array, deque, dict, electrical\_balance, float, int, isfinite, len, max, minimize
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 push を定義する。
+\item 関数 \_simulate を定義する。
+\item 関数 estimate を定義する。
+            \end{enumerate}
+
+
+
+
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/estimator.py| を
+        \textbf{estimator}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

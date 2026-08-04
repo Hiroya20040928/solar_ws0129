@@ -1,0 +1,11 @@
+{
+  "type": "chase_state",
+  "ts_unix": 1781700000.0,
+  "speed_kmh": 74.0,
+  "lat": -19.13580,
+  "lon": 146.81210,
+  "alt_m": 18.1,
+  "wind_speed_ms": 6.5,
+  "wind_dir_deg": 121.0,
+  "course_deg": 176.0
+}

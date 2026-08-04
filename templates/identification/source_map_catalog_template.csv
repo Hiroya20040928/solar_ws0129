@@ -1,0 +1,6 @@
+asset_name,path_or_note,source_type,status,notes
+drive_eff_map,maps/drive_eff_map.csv,measured_or_theory,fill_me,
+rint_map,maps/rint_map.csv,measured_or_theory,fill_me,
+ocv_soc_map,maps/ocv_soc_curve.csv,measured_or_theory,fill_me,
+panel_eff_map,maps/panel_eff_map.csv,measured_or_theory,fill_me,
+mppt_eff_map,maps/mppt_eff_map.csv,measured_or_theory,fill_me,

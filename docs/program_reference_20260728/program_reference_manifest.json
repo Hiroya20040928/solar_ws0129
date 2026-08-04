@@ -1,0 +1,328 @@
+{
+  "generated_at_date": "2026-07-29",
+  "output_root": "docs/program_reference_20260728",
+  "count": 40,
+  "documents": [
+    {
+      "order": 1,
+      "title": "Windows入口 PowerShell ルータ",
+      "path": "SolarSim.ps1",
+      "tex": "docs/program_reference_20260728/tex/01_SolarSim_ps1.tex",
+      "markdown": "docs/program_reference_20260728/markdown/01_SolarSim_ps1.md",
+      "pdf": "docs/program_reference_20260728/pdf/01_SolarSim_ps1.pdf"
+    },
+    {
+      "order": 2,
+      "title": "WSL側 実行ルータ",
+      "path": "scripts/solar_control.sh",
+      "tex": "docs/program_reference_20260728/tex/02_scripts_solar_control_sh.tex",
+      "markdown": "docs/program_reference_20260728/markdown/02_scripts_solar_control_sh.md",
+      "pdf": "docs/program_reference_20260728/pdf/02_scripts_solar_control_sh.pdf"
+    },
+    {
+      "order": 3,
+      "title": "live_wifi ROS2 launch 入口",
+      "path": "launch/solar_race_live_wifi.launch.py",
+      "tex": "docs/program_reference_20260728/tex/03_launch_solar_race_live_wifi_launch_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/03_launch_solar_race_live_wifi_launch_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/03_launch_solar_race_live_wifi_launch_py.pdf"
+    },
+    {
+      "order": 4,
+      "title": "live ROS2 launch 入口",
+      "path": "launch/solar_race_live.launch.py",
+      "tex": "docs/program_reference_20260728/tex/04_launch_solar_race_live_launch_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/04_launch_solar_race_live_launch_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/04_launch_solar_race_live_launch_py.pdf"
+    },
+    {
+      "order": 5,
+      "title": "sim ROS2 launch 入口",
+      "path": "launch/solarcar_sim.launch.py",
+      "tex": "docs/program_reference_20260728/tex/05_launch_solarcar_sim_launch_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/05_launch_solarcar_sim_launch_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/05_launch_solarcar_sim_launch_py.pdf"
+    },
+    {
+      "order": 6,
+      "title": "measure ROS2 launch 入口",
+      "path": "launch/solar_measurement.launch.py",
+      "tex": "docs/program_reference_20260728/tex/06_launch_solar_measurement_launch_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/06_launch_solar_measurement_launch_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/06_launch_solar_measurement_launch_py.pdf"
+    },
+    {
+      "order": 7,
+      "title": "live系 node 構成ビルダ",
+      "path": "mpc_solarcar/live_launch.py",
+      "tex": "docs/program_reference_20260728/tex/07_mpc_solarcar_live_launch_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/07_mpc_solarcar_live_launch_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/07_mpc_solarcar_live_launch_py.pdf"
+    },
+    {
+      "order": 8,
+      "title": "profile YAML 読込と検証",
+      "path": "mpc_solarcar/solar_profile.py",
+      "tex": "docs/program_reference_20260728/tex/08_mpc_solarcar_solar_profile_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/08_mpc_solarcar_solar_profile_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/08_mpc_solarcar_solar_profile_py.pdf"
+    },
+    {
+      "order": 9,
+      "title": "ROS share / 相対パス解決",
+      "path": "mpc_solarcar/path_utils.py",
+      "tex": "docs/program_reference_20260728/tex/09_mpc_solarcar_path_utils_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/09_mpc_solarcar_path_utils_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/09_mpc_solarcar_path_utils_py.pdf"
+    },
+    {
+      "order": 10,
+      "title": "offline フルレース simulation 本体",
+      "path": "scripts/solar_sim.py",
+      "tex": "docs/program_reference_20260728/tex/10_scripts_solar_sim_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/10_scripts_solar_sim_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/10_scripts_solar_sim_py.pdf"
+    },
+    {
+      "order": 11,
+      "title": "live / sim 共通 MPC 本体",
+      "path": "mpc_solarcar/mpc_node.py",
+      "tex": "docs/program_reference_20260728/tex/11_mpc_solarcar_mpc_node_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/11_mpc_solarcar_mpc_node_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/11_mpc_solarcar_mpc_node_py.pdf"
+    },
+    {
+      "order": 12,
+      "title": "車体物理・電気モデル本体",
+      "path": "mpc_solarcar/model.py",
+      "tex": "docs/program_reference_20260728/tex/12_mpc_solarcar_model_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/12_mpc_solarcar_model_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/12_mpc_solarcar_model_py.pdf"
+    },
+    {
+      "order": 13,
+      "title": "効率マップ・抵抗マップ読込補間",
+      "path": "mpc_solarcar/utils_maps.py",
+      "tex": "docs/program_reference_20260728/tex/13_mpc_solarcar_utils_maps_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/13_mpc_solarcar_utils_maps_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/13_mpc_solarcar_utils_maps_py.pdf"
+    },
+    {
+      "order": 14,
+      "title": "上位MPC 距離メッシュ生成",
+      "path": "mpc_solarcar/upper_horizon.py",
+      "tex": "docs/program_reference_20260728/tex/14_mpc_solarcar_upper_horizon_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/14_mpc_solarcar_upper_horizon_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/14_mpc_solarcar_upper_horizon_py.pdf"
+    },
+    {
+      "order": 15,
+      "title": "上位速度計画の補間と warm start",
+      "path": "mpc_solarcar/upper_policy.py",
+      "tex": "docs/program_reference_20260728/tex/15_mpc_solarcar_upper_policy_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/15_mpc_solarcar_upper_policy_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/15_mpc_solarcar_upper_policy_py.pdf"
+    },
+    {
+      "order": 16,
+      "title": "上位MPC 目的関数",
+      "path": "mpc_solarcar/upper_cost.py",
+      "tex": "docs/program_reference_20260728/tex/16_mpc_solarcar_upper_cost_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/16_mpc_solarcar_upper_cost_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/16_mpc_solarcar_upper_cost_py.pdf"
+    },
+    {
+      "order": 17,
+      "title": "上位探索ソルバ",
+      "path": "mpc_solarcar/upper_solver.py",
+      "tex": "docs/program_reference_20260728/tex/17_mpc_solarcar_upper_solver_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/17_mpc_solarcar_upper_solver_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/17_mpc_solarcar_upper_solver_py.pdf"
+    },
+    {
+      "order": 18,
+      "title": "Battery MHE",
+      "path": "mpc_solarcar/estimator.py",
+      "tex": "docs/program_reference_20260728/tex/18_mpc_solarcar_estimator_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/18_mpc_solarcar_estimator_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/18_mpc_solarcar_estimator_py.pdf"
+    },
+    {
+      "order": 19,
+      "title": "sim 用 車体状態 publisher",
+      "path": "mpc_solarcar/solar_state_node.py",
+      "tex": "docs/program_reference_20260728/tex/19_mpc_solarcar_solar_state_node_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/19_mpc_solarcar_solar_state_node_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/19_mpc_solarcar_solar_state_node_py.pdf"
+    },
+    {
+      "order": 20,
+      "title": "WiFi 文字列テレメトリ bridge",
+      "path": "mpc_solarcar/telemetry_text_bridge_node.py",
+      "tex": "docs/program_reference_20260728/tex/20_mpc_solarcar_telemetry_text_bridge_node_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/20_mpc_solarcar_telemetry_text_bridge_node_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/20_mpc_solarcar_telemetry_text_bridge_node_py.pdf"
+    },
+    {
+      "order": 21,
+      "title": "速度積分距離ノード",
+      "path": "mpc_solarcar/distance_node.py",
+      "tex": "docs/program_reference_20260728/tex/21_mpc_solarcar_distance_node_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/21_mpc_solarcar_distance_node_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/21_mpc_solarcar_distance_node_py.pdf"
+    },
+    {
+      "order": 22,
+      "title": "live forecast 取得ノード",
+      "path": "mpc_solarcar/weather_fetch_node.py",
+      "tex": "docs/program_reference_20260728/tex/22_mpc_solarcar_weather_fetch_node_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/22_mpc_solarcar_weather_fetch_node_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/22_mpc_solarcar_weather_fetch_node_py.pdf"
+    },
+    {
+      "order": 23,
+      "title": "live 風補正ノード",
+      "path": "mpc_solarcar/wind_correction_node.py",
+      "tex": "docs/program_reference_20260728/tex/23_mpc_solarcar_wind_correction_node_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/23_mpc_solarcar_wind_correction_node_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/23_mpc_solarcar_wind_correction_node_py.pdf"
+    },
+    {
+      "order": 24,
+      "title": "live 自動校正ノード",
+      "path": "mpc_solarcar/solar_autocal_node.py",
+      "tex": "docs/program_reference_20260728/tex/24_mpc_solarcar_solar_autocal_node_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/24_mpc_solarcar_solar_autocal_node_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/24_mpc_solarcar_solar_autocal_node_py.pdf"
+    },
+    {
+      "order": 25,
+      "title": "自動校正ロジック関数群",
+      "path": "mpc_solarcar/solar_autocal_logic.py",
+      "tex": "docs/program_reference_20260728/tex/25_mpc_solarcar_solar_autocal_logic_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/25_mpc_solarcar_solar_autocal_logic_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/25_mpc_solarcar_solar_autocal_logic_py.pdf"
+    },
+    {
+      "order": 26,
+      "title": "planner 指令の安全橋渡し",
+      "path": "mpc_solarcar/speed_command_bridge_node.py",
+      "tex": "docs/program_reference_20260728/tex/26_mpc_solarcar_speed_command_bridge_node_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/26_mpc_solarcar_speed_command_bridge_node_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/26_mpc_solarcar_speed_command_bridge_node_py.pdf"
+    },
+    {
+      "order": 27,
+      "title": "live 計測鮮度監視",
+      "path": "mpc_solarcar/solar_preflight_node.py",
+      "tex": "docs/program_reference_20260728/tex/27_mpc_solarcar_solar_preflight_node_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/27_mpc_solarcar_solar_preflight_node_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/27_mpc_solarcar_solar_preflight_node_py.pdf"
+    },
+    {
+      "order": 28,
+      "title": "preflight 判定ロジック",
+      "path": "mpc_solarcar/solar_preflight_logic.py",
+      "tex": "docs/program_reference_20260728/tex/28_mpc_solarcar_solar_preflight_logic_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/28_mpc_solarcar_solar_preflight_logic_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/28_mpc_solarcar_solar_preflight_logic_py.pdf"
+    },
+    {
+      "order": 29,
+      "title": "solar 運用 CSV logger",
+      "path": "mpc_solarcar/solar_logger_node.py",
+      "tex": "docs/program_reference_20260728/tex/29_mpc_solarcar_solar_logger_node_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/29_mpc_solarcar_solar_logger_node_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/29_mpc_solarcar_solar_logger_node_py.pdf"
+    },
+    {
+      "order": 30,
+      "title": "dashboard + HTTP API",
+      "path": "mpc_solarcar/dashboard_node.py",
+      "tex": "docs/program_reference_20260728/tex/30_mpc_solarcar_dashboard_node_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/30_mpc_solarcar_dashboard_node_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/30_mpc_solarcar_dashboard_node_py.pdf"
+    },
+    {
+      "order": 31,
+      "title": "sim GPS 軌跡ノード",
+      "path": "mpc_solarcar/gps_sim_node.py",
+      "tex": "docs/program_reference_20260728/tex/31_mpc_solarcar_gps_sim_node_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/31_mpc_solarcar_gps_sim_node_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/31_mpc_solarcar_gps_sim_node_py.pdf"
+    },
+    {
+      "order": 32,
+      "title": "実測勾配推定ノード",
+      "path": "mpc_solarcar/grade_node.py",
+      "tex": "docs/program_reference_20260728/tex/32_mpc_solarcar_grade_node_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/32_mpc_solarcar_grade_node_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/32_mpc_solarcar_grade_node_py.pdf"
+    },
+    {
+      "order": 33,
+      "title": "offline forecast 取得 CLI",
+      "path": "scripts/fetch_weather_forecast.py",
+      "tex": "docs/program_reference_20260728/tex/33_scripts_fetch_weather_forecast_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/33_scripts_fetch_weather_forecast_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/33_scripts_fetch_weather_forecast_py.pdf"
+    },
+    {
+      "order": 34,
+      "title": "テンプレ識別パイプライン入口",
+      "path": "scripts/run_identification_pipeline.py",
+      "tex": "docs/program_reference_20260728/tex/34_scripts_run_identification_pipeline_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/34_scripts_run_identification_pipeline_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/34_scripts_run_identification_pipeline_py.pdf"
+    },
+    {
+      "order": 35,
+      "title": "フル MLE 同定本体",
+      "path": "scripts/run_vehicle_identification.py",
+      "tex": "docs/program_reference_20260728/tex/35_scripts_run_vehicle_identification_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/35_scripts_run_vehicle_identification_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/35_scripts_run_vehicle_identification_py.pdf"
+    },
+    {
+      "order": 36,
+      "title": "目的関数重み CEM 学習",
+      "path": "scripts/tune_upper_planner_weights.py",
+      "tex": "docs/program_reference_20260728/tex/36_scripts_tune_upper_planner_weights_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/36_scripts_tune_upper_planner_weights_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/36_scripts_tune_upper_planner_weights_py.pdf"
+    },
+    {
+      "order": 37,
+      "title": "GPU 上位速度列探索",
+      "path": "scripts/gpu_upper_policy_search.py",
+      "tex": "docs/program_reference_20260728/tex/37_scripts_gpu_upper_policy_search_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/37_scripts_gpu_upper_policy_search_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/37_scripts_gpu_upper_policy_search_py.pdf"
+    },
+    {
+      "order": 38,
+      "title": "upper mesh 収束確認",
+      "path": "scripts/run_upper_mesh_convergence.py",
+      "tex": "docs/program_reference_20260728/tex/38_scripts_run_upper_mesh_convergence_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/38_scripts_run_upper_mesh_convergence_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/38_scripts_run_upper_mesh_convergence_py.pdf"
+    },
+    {
+      "order": 39,
+      "title": "GPU 候補の厳密検証",
+      "path": "scripts/validate_gpu_upper_policy_candidates.py",
+      "tex": "docs/program_reference_20260728/tex/39_scripts_validate_gpu_upper_policy_candidates_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/39_scripts_validate_gpu_upper_policy_candidates_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/39_scripts_validate_gpu_upper_policy_candidates_py.pdf"
+    },
+    {
+      "order": 40,
+      "title": "同定後 fullsim レポート生成",
+      "path": "scripts/generate_fit_fullsim_report.py",
+      "tex": "docs/program_reference_20260728/tex/40_scripts_generate_fit_fullsim_report_py.tex",
+      "markdown": "docs/program_reference_20260728/markdown/40_scripts_generate_fit_fullsim_report_py.md",
+      "pdf": "docs/program_reference_20260728/pdf/40_scripts_generate_fit_fullsim_report_py.pdf"
+    }
+  ],
+  "index_pdf": "docs/program_reference_20260728/pdf/program_reference_index.pdf"
+}

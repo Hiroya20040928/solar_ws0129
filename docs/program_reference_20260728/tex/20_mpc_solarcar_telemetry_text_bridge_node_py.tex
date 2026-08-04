@@ -1,0 +1,355 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={WiFi 文字列テレメトリ bridge},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{20. WiFi 文字列テレメトリ bridge}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/telemetry_text_bridge_node.py| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & 車両側・伴走車側から届く UDP 文字列を ROS topic に変換し、planner 指令を逆向きに文字列送信する。 \\
+        起動文脈 & live\_wifi のセンサ入口と outbound command bridge を兼ねる。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        車両側・伴走車側から届く UDP 文字列を ROS topic に変換し、planner 指令を逆向きに文字列送信する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item inbound と outbound の両方向を持つ。
+\item speed、battery、distance、GPS、wind を ROS topic 化する。
+\item planner command を JSON/テキストで送り返す。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|launch/solar_race_live_wifi.launch.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/telemetry_protocol.py|
+\item \path|mpc_solarcar/speed_command_bridge_node.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/signal_utils.py|
+\item \path|mpc_solarcar/telemetry_protocol.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+return float(wind_speed * math.cos(rel))
+
+
+class TelemetryTextBridgeNode(Node):
+    def __init__(self) -> None:
+        super().__init__("telemetry_text_bridge_node")
+        self.declare_parameter("enable_inbound", True)
+        self.declare_parameter("enable_outbound", True)
+        self.declare_parameter("bind_host", "0.0.0.0")
+        self.declare_parameter("bind_port", 52001)
+        self.declare_parameter("publish_period_sec", 1.0)
+        self.declare_parameter("solar_remote_host", "192.168.50.21")
+        self.declare_parameter("solar_remote_port", 52002)
+        self.declare_parameter("chase_remote_host", "192.168.50.22")
+        self.declare_parameter("chase_remote_port", 52003)
+        self.declare_parameter("send_to_solar", True)
+        self.declare_parameter("send_to_chase", True)
+        self.declare_parameter("prefer_direct_distance", False)
+        self.declare_parameter("speed_filter_tau_sec", 0.6)
+        self.declare_parameter("speed_max_kmh", 130.0)
+        self.declare_parameter("speed_max_accel_kmhps", 12.0)
+        self.declare_parameter("speed_max_decel_kmhps", 20.0)
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは TelemetryTextBridgeNode。 主要関数は parse\_text\_payload, headwind\_component\_ms, main。 ROS パラメータ宣言は 27 件。 ROS I/O は publisher 20 件、subscription 6 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            79 & class & \path|TelemetryTextBridgeNode| & bases: Node \\
+19 & function & \path|_safe_float| & args: payload \\
+32 & function & \path|_parse_key_value_text| & args: text \\
+53 & function & \path|parse_text_payload| & args: text \\
+66 & function & \path|headwind_component_ms| & args: payload \\
+80 & function & \path|__init__| & args: self \\
+195 & function & \path|_set_outbound| & args: self, key, value \\
+198 & function & \path|_poll_socket| & args: self \\
+238 & function & \path|_publish_gps| & args: self, pub, lat, lon, alt, source\_unix \\
+253 & function & \path|_handle_vehicle_payload| & args: self, payload, source\_unix \\
+291 & function & \path|_handle_chase_payload| & args: self, payload, source\_unix \\
+305 & function & \path|_publish_weather| & args: self, payload, wind\_speed, wind\_dir, course\_deg, headwind, now \\
+317 & function & \path|_send_payload| & args: self, addr, payload \\
+325 & function & \path|_send_outbound| & args: self \\
+349 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            19 & 関数 \_safe\_float を定義する。 \\
+32 & 関数 \_parse\_key\_value\_text を定義する。 \\
+53 & 関数 parse\_text\_payload を定義する。 \\
+66 & 関数 headwind\_component\_ms を定義する。 \\
+79 & クラス TelemetryTextBridgeNode を定義する。 \\
+349 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|import json| & manifest、checkpoint、UDP payload をやり取りするため。 このファイル内での主な使用位置は L58, L321。 \\
+4 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L27, L75, L76, L180, L181, L182。 \\
+5 & \path|import socket| & socket モジュールを利用するため。 このファイル内での主な使用位置は L166, L169。 \\
+6 & \path|import time| & wall/monotonic time に基づく周期制御や freshness 判定を行うため。 このファイル内での主な使用位置は L216, L254, L292, L330。 \\
+7 & \path|from statistics import NormalDist| & statistics から NormalDist を読み込み、このファイルの処理を組み立てるため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+9 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L350, L352, L354。 \\
+10 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L79。 \\
+12 & \path|from sensor_msgs.msg import NavSatFix| & GPS 緯度経度高度を ROS topic でやり取りするため。 このファイル内での主な使用位置は L153, L154, L241。 \\
+13 & \path|from std_msgs.msg import Float32, Float64, String| & Float32 や String など軽量メッセージで planner / vehicle 値を publish するため。 このファイル内での主な使用位置は L143, L144, L145, L146, L147, L148, L149, L150, ...。 \\
+15 & \path|from .signal_utils import RobustScalarFilter| & signal\_utils.py から RobustScalarFilter を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/signal\_utils.py。 このファイル内での主な使用位置は L124, L132, L133, L134, L135, L136, L137。 \\
+16 & \path|from .telemetry_protocol import utc_iso_now, validate_source_timestamp| & telemetry\_protocol.py から utc\_iso\_now, validate\_source\_timestamp を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/telemetry\_protocol.py。 このファイル内での主な使用位置は L214, L331。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L19 関数 \path|_safe_float|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_safe_float(payload, *keys)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, isfinite
+              \item 戻り値の要点: None / value
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item keys を順に走査し、各要素を key に入れて処理する。
+\item None を返す。
+            \end{enumerate}
+
+\subsection*{L32 関数 \path|_parse_key_value_text|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_parse_key_value_text(text)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, replace, split, strip
+              \item 戻り値の要点: payload
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item payload に \{\} を代入する。
+\item text.replace(';', ',').replace('\textbackslash{}n', ',').split(',') を順に走査し、各要素を token に入れて処理する。
+\item payload を返す。
+            \end{enumerate}
+
+\subsection*{L53 関数 \path|parse_text_payload|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|parse_text_payload(text)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_parse\_key\_value\_text, isinstance, loads, str, strip
+              \item 戻り値の要点: \_parse\_key\_value\_text(raw) / \{\} / parsed
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item raw に str(text or '').strip() の結果を代入する。
+\item 条件 not raw を判定し、真なら内部処理を行う。
+\item 例外処理を伴う try ブロックを実行する。
+\item \_parse\_key\_value\_text(raw) を返す。
+            \end{enumerate}
+
+\subsection*{L66 関数 \path|headwind_component_ms|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|headwind_component_ms(payload)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_safe\_float, cos, float, radians
+              \item 戻り値の要点: float(wind\_speed * math.cos(rel)) / direct / None
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item direct に \_safe\_float(payload, 'headwind\_ms') の結果を代入する。
+\item 条件 direct is not None を判定し、真なら内部処理を行う。
+\item wind\_speed に \_safe\_float(payload, 'wind\_speed\_ms', 'wind\_ms') の結果を代入する。
+\item wind\_dir に \_safe\_float(payload, 'wind\_dir\_deg') の結果を代入する。
+\item course\_deg に \_safe\_float(payload, 'course\_deg', 'heading\_deg') の結果を代入する。
+\item 条件 wind\_speed is None or wind\_dir is None or course\_deg is None を判定し、真なら内部処理を行う。
+\item rel に math.radians((wind\_dir - course\_deg) \% 360.0) の結果を代入する。
+\item float(wind\_speed * math.cos(rel)) を返す。
+            \end{enumerate}
+
+\subsection*{L79 クラス \path|TelemetryTextBridgeNode|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|TelemetryTextBridgeNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, Float64, NavSatFix, RobustScalarFilter, String, \_\_init\_\_, \_handle\_chase\_payload, \_handle\_vehicle\_payload, \_publish\_gps, \_publish\_weather, \_safe\_float, \_send\_payload
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_set\_outbound を定義する。
+\item 関数 \_poll\_socket を定義する。
+\item 関数 \_publish\_gps を定義する。
+\item 関数 \_handle\_vehicle\_payload を定義する。
+\item 関数 \_handle\_chase\_payload を定義する。
+\item 関数 \_publish\_weather を定義する。
+\item 関数 \_send\_payload を定義する。
+\item 関数 \_send\_outbound を定義する。
+            \end{enumerate}
+
+\subsection*{L349 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: TelemetryTextBridgeNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に TelemetryTextBridgeNode() の結果を代入する。
+\item rclpy.spin(...) を実行する。
+\item node.destroy\_node(...) を実行する。
+\item rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+
+        \subsection*{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            82 & \path|enable_inbound| & True \\
+83 & \path|enable_outbound| & True \\
+84 & \path|bind_host| & 0.0.0.0 \\
+85 & \path|bind_port| & 52001 \\
+86 & \path|publish_period_sec| & 1.0 \\
+87 & \path|solar_remote_host| & 192.168.50.21 \\
+88 & \path|solar_remote_port| & 52002 \\
+89 & \path|chase_remote_host| & 192.168.50.22 \\
+90 & \path|chase_remote_port| & 52003 \\
+91 & \path|send_to_solar| & True \\
+92 & \path|send_to_chase| & True \\
+93 & \path|prefer_direct_distance| & False \\
+94 & \path|speed_filter_tau_sec| & 0.6 \\
+95 & \path|speed_max_kmh| & 130.0 \\
+96 & \path|speed_max_accel_kmhps| & 12.0 \\
+97 & \path|speed_max_decel_kmhps| & 20.0 \\
+98 & \path|distance_max_rate_kmps| & 0.06 \\
+99 & \path|distance_max_backtrack_km| & 0.02 \\
+100 & \path|battery_filter_tau_sec| & 1.0 \\
+101 & \path|wind_filter_tau_sec| & 1.0 \\
+102 & \path|headwind_filter_tau_sec| & 0.8 \\
+103 & \path|max_abs_headwind_ms| & 25.0 \\
+104 & \path|timestamp_required| & True \\
+105 & \path|max_packet_age_sec| & 5.0 \\
+106 & \path|max_future_skew_sec| & 2.0 \\
+107 & \path|max_out_of_order_sec| & 0.0 \\
+108 & \path|solar_power_gain_to_pack| & 1.0 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            143 & publisher & \path|/telemetry/raw_solar| & publisher \\
+144 & publisher & \path|/telemetry/raw_chase| & publisher \\
+145 & publisher & \path|/vehicle/speed_kmh| & publisher \\
+146 & publisher & \path|/vehicle/batt_soc| & publisher \\
+147 & publisher & \path|/vehicle/batt_temp_c| & publisher \\
+148 & publisher & \path|/vehicle/batt_current_a| & publisher \\
+149 & publisher & \path|/vehicle/batt_voltage_v| & publisher \\
+150 & publisher & \path|/vehicle/solar_power_w| & publisher \\
+151 & publisher & \path|/vehicle/altitude_m| & publisher \\
+152 & publisher & \path|/vehicle/s_km| & publisher \\
+153 & publisher & \path|/vehicle/gps| & publisher \\
+154 & publisher & \path|/chase/gps| & publisher \\
+155 & publisher & \path|/chase/altitude_m| & publisher \\
+156 & publisher & \path|/weather/headwind_meas_ms| & publisher \\
+157 & publisher & \path|/weather/wind_speed_ms| & publisher \\
+158 & publisher & \path|/weather/wind_dir_deg| & publisher \\
+159 & publisher & \path|/weather/course_deg| & publisher \\
+160 & publisher & \path|/telemetry/bridge_status| & publisher \\
+161 & publisher & \path|/telemetry/solar_source_ts_unix| & publisher \\
+162 & publisher & \path|/telemetry/chase_source_ts_unix| & publisher \\
+184 & subscription & \path|/planner/speed_cmd| & lambda msg: self.\_set\_outbound('speed\_cmd\_kmh', float(msg.data)) \\
+185 & subscription & \path|/planner/upper_speed_cmd| & lambda msg: self.\_set\_outbound('upper\_speed\_cmd\_kmh', float(msg.data)) \\
+186 & subscription & \path|/planner/drive_mode| & lambda msg: self.\_set\_outbound('drive\_mode', str(msg.data)) \\
+187 & subscription & \path|/vehicle/speed_kmh| & lambda msg: self.\_set\_outbound('speed\_meas\_kmh', float(msg.data)) \\
+188 & subscription & \path|/vehicle/batt_soc| & lambda msg: self.\_set\_outbound('soc', float(msg.data)) \\
+189 & subscription & \path|/vehicle/s_km| & lambda msg: self.\_set\_outbound('s\_km', float(msg.data)) \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/telemetry_text_bridge_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

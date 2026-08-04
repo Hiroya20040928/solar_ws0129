@@ -1,0 +1,411 @@
+===== xelatex pass 1 =====
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/07_mpc_solarcar_live_launch_py.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\07_mpc_solarcar_live_launch_py\07_mpc_solarcar_live
+_launch_py.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\07_mpc_solarcar_live_launch_py\07_mpc_solarcar_live
+_launch_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\07_mpc_solarcar_live_launch_py\07_mpc_solarcar_live
+_launch_py.out)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\07_mpc_solarcar_live_launch_py\07_mpc_solarcar_live
+_launch_py.toc [1]) [2]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[3]
+Underfull \hbox (badness 10000) in paragraph at lines 147--147
+[]|$[][][][] [] [][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 150--150
+[]|$[][][][][][][][][][] [] [][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 151--151
+[]|$[][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 151--151
+[][][][][][][][][][][][][][][][] [] [][][][] [][] [][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 151--151
+[][][][][][][] [][] [][][][][][][] [] [][][][][][][][] []
+ignored error: Infinite glue shrinkage found in box being split [4]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 173.
+
+[5] [6] [7] [8] [9] [10] [11]
+Underfull \hbox (badness 3514) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 ’speed_profile_csv’: get_path(cfg, profile_path,
+ ’speed_profile_csv’), ’stop_yaml’: get_path(cfg, pro-
+
+Underfull \hbox (badness 1028) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 file_path, ’stop_yaml’), ’drive_schedule_yaml’: 
+get_path(cfg, profile_path, ’drive_schedule_yaml’), ’ini-
+
+Underfull \hbox (badness 2401) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 get_path(cfg, profile_path, ’rint_map’), ’panel_
+eff_map’: get_path(cfg, profile_path, ’panel_eff_map’),
+
+Underfull \hbox (badness 5711) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 ’mppt_eff_map’: get_path(cfg, profile_path, ’mpp
+t_eff_map’), ’drive_map_eco’: get_path(cfg, pro-
+
+Underfull \hbox (badness 2334) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 file_path, ’drive_map_eco’), ’drive_map_power’: 
+get_path(cfg, profile_path, ’drive_map_power’), ’re-
+
+Underfull \hbox (badness 2318) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 gen_map_eco’: get_path(cfg, profile_path, ’regen
+_map_eco’), ’regen_map_power’: get_path(cfg, pro-
+
+Overfull \hbox (2.83885pt too wide) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 str(profile_path), ’profile_runtime_mode’: ’live
+’, ’forecast_time_mode’: str(live_cfg.get(’forecast_time_mode’,
+
+Overfull \hbox (55.1469pt too wide) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 ulation’).get(’forecast_start_time_utc’, get_sec
+tion(cfg, ’simulation’).get(’start_utc’, ”)))}]), Node(package=’mpc_solarcar’,
+
+Overfull \hbox (25.25034pt too wide) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 executable=’dashboard_node’, name=’dashboard_nod
+e’, parameters=[{’host’: str(runtime_cfg.get(’dashboard_host’,
+
+Underfull \hbox (badness 2478) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 ’0.0.0.0’)), ’port’: int(runtime_cfg.get(’dashbo
+ard_port’, 8080))}]), Node(package=’mpc_solarcar’, exe-
+
+Underfull \hbox (badness 6220) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 cutable=’solar_logger_node’, name=’solar_logger_
+node’, parameters=[{’log_dir’: cfg_path(profile_path,
+
+Underfull \hbox (badness 7133) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 str(logging_cfg.get(’log_dir’, ’outputs/logs’)))
+, ’file_prefix’: str(live_logging_cfg.get(’file_prefix’, ’so-
+
+Overfull \hbox (105.5083pt too wide) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 lar_live’)), ’log_rate_hz’: float(logging_cfg.ge
+t(’log_rate_hz’, 2.0)), ’output_speed_topic’: str(command_cfg.get(’output_speed
+_topic’,
+[12]
+Overfull \hbox (15.78041pt too wide) in paragraph at lines 562--563
+[]|\TU/TimesNewRoman(0)/m/n/10.95 package=mpc_solarcar, name=speed_command_brid
+ge_node| 
+ignored error: Infinite glue shrinkage found in box being split [13] [14]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\07_mpc_solarcar_live_launch_py\07_mpc_solarcar_live
+_launch_py.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\07_mpc_solarcar_live_launch_py\07_
+mpc_solarcar_live_launch_py.pdf (14 pages).
+Transcript written on "C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-ma
+in\docs\program_reference_complete_20260729\build\07_mpc_solarcar_live_launch_p
+y\07_mpc_solarcar_live_launch_py.log".
+
+miktex-dvipdfmx: major issue: So far, you have not checked for MiKTeX updates.
+xelatex: major issue: So far, you have not checked for MiKTeX updates.
+
+
+===== xelatex pass 2 =====
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/07_mpc_solarcar_live_launch_py.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\07_mpc_solarcar_live_launch_py\07_mpc_solarcar_live
+_launch_py.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\07_mpc_solarcar_live_launch_py\07_mpc_solarcar_live
+_launch_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\07_mpc_solarcar_live_launch_py\07_mpc_solarcar_live
+_launch_py.out)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\07_mpc_solarcar_live_launch_py\07_mpc_solarcar_live
+_launch_py.toc [1]) [2]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[3]
+Underfull \hbox (badness 10000) in paragraph at lines 147--147
+[]|$[][][][] [] [][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 150--150
+[]|$[][][][][][][][][][] [] [][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 151--151
+[]|$[][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 151--151
+[][][][][][][][][][][][][][][][] [] [][][][] [][] [][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 151--151
+[][][][][][][] [][] [][][][][][][] [] [][][][][][][][] []
+ignored error: Infinite glue shrinkage found in box being split [4]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 173.
+
+[5] [6] [7] [8] [9] [10] [11]
+Underfull \hbox (badness 3514) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 ’speed_profile_csv’: get_path(cfg, profile_path,
+ ’speed_profile_csv’), ’stop_yaml’: get_path(cfg, pro-
+
+Underfull \hbox (badness 1028) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 file_path, ’stop_yaml’), ’drive_schedule_yaml’: 
+get_path(cfg, profile_path, ’drive_schedule_yaml’), ’ini-
+
+Underfull \hbox (badness 2401) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 get_path(cfg, profile_path, ’rint_map’), ’panel_
+eff_map’: get_path(cfg, profile_path, ’panel_eff_map’),
+
+Underfull \hbox (badness 5711) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 ’mppt_eff_map’: get_path(cfg, profile_path, ’mpp
+t_eff_map’), ’drive_map_eco’: get_path(cfg, pro-
+
+Underfull \hbox (badness 2334) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 file_path, ’drive_map_eco’), ’drive_map_power’: 
+get_path(cfg, profile_path, ’drive_map_power’), ’re-
+
+Underfull \hbox (badness 2318) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 gen_map_eco’: get_path(cfg, profile_path, ’regen
+_map_eco’), ’regen_map_power’: get_path(cfg, pro-
+
+Overfull \hbox (2.83885pt too wide) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 str(profile_path), ’profile_runtime_mode’: ’live
+’, ’forecast_time_mode’: str(live_cfg.get(’forecast_time_mode’,
+
+Overfull \hbox (55.1469pt too wide) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 ulation’).get(’forecast_start_time_utc’, get_sec
+tion(cfg, ’simulation’).get(’start_utc’, ”)))}]), Node(package=’mpc_solarcar’,
+
+Overfull \hbox (25.25034pt too wide) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 executable=’dashboard_node’, name=’dashboard_nod
+e’, parameters=[{’host’: str(runtime_cfg.get(’dashboard_host’,
+
+Underfull \hbox (badness 2478) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 ’0.0.0.0’)), ’port’: int(runtime_cfg.get(’dashbo
+ard_port’, 8080))}]), Node(package=’mpc_solarcar’, exe-
+
+Underfull \hbox (badness 6220) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 cutable=’solar_logger_node’, name=’solar_logger_
+node’, parameters=[{’log_dir’: cfg_path(profile_path,
+
+Underfull \hbox (badness 7133) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 str(logging_cfg.get(’log_dir’, ’outputs/logs’)))
+, ’file_prefix’: str(live_logging_cfg.get(’file_prefix’, ’so-
+
+Overfull \hbox (105.5083pt too wide) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 lar_live’)), ’log_rate_hz’: float(logging_cfg.ge
+t(’log_rate_hz’, 2.0)), ’output_speed_topic’: str(command_cfg.get(’output_speed
+_topic’,
+[12]
+Overfull \hbox (15.78041pt too wide) in paragraph at lines 562--563
+[]|\TU/TimesNewRoman(0)/m/n/10.95 package=mpc_solarcar, name=speed_command_brid
+ge_node| 
+ignored error: Infinite glue shrinkage found in box being split [13] [14]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\07_mpc_solarcar_live_launch_py\07_mpc_solarcar_live
+_launch_py.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\07_mpc_solarcar_live_launch_py\07_
+mpc_solarcar_live_launch_py.pdf (14 pages).
+Transcript written on "C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-ma
+in\docs\program_reference_complete_20260729\build\07_mpc_solarcar_live_launch_p
+y\07_mpc_solarcar_live_launch_py.log".
+
+miktex-dvipdfmx: major issue: So far, you have not checked for MiKTeX updates.
+xelatex: major issue: So far, you have not checked for MiKTeX updates.
+

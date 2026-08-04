@@ -1,0 +1,503 @@
+{
+  "generated_utc": "2026-07-17T05:43:46.020233+00:00",
+  "python_files_parsed": 151,
+  "counts": {
+    "PASS": 82,
+    "WARN": 0,
+    "ERROR": 0
+  },
+  "findings": [
+    {
+      "severity": "PASS",
+      "check": "python_parse",
+      "path": ".",
+      "detail": "151 Python files parsed"
+    },
+    {
+      "severity": "PASS",
+      "check": "launch_entrypoint",
+      "path": "mpc_solarcar/dashboard_node.py",
+      "detail": "dashboard_node -> mpc_solarcar.dashboard_node:main"
+    },
+    {
+      "severity": "PASS",
+      "check": "launch_entrypoint",
+      "path": "mpc_solarcar/distance_node.py",
+      "detail": "distance_node -> mpc_solarcar.distance_node:main"
+    },
+    {
+      "severity": "PASS",
+      "check": "launch_entrypoint",
+      "path": "mpc_solarcar/gps_sim_node.py",
+      "detail": "gps_sim_node -> mpc_solarcar.gps_sim_node:main"
+    },
+    {
+      "severity": "PASS",
+      "check": "launch_entrypoint",
+      "path": "mpc_solarcar/grade_node.py",
+      "detail": "grade_node -> mpc_solarcar.grade_node:main"
+    },
+    {
+      "severity": "PASS",
+      "check": "launch_entrypoint",
+      "path": "mpc_solarcar/mpc_node.py",
+      "detail": "mpc_node -> mpc_solarcar.mpc_node:main"
+    },
+    {
+      "severity": "PASS",
+      "check": "launch_entrypoint",
+      "path": "mpc_solarcar/solar_autocal_node.py",
+      "detail": "solar_autocal_node -> mpc_solarcar.solar_autocal_node:main"
+    },
+    {
+      "severity": "PASS",
+      "check": "launch_entrypoint",
+      "path": "mpc_solarcar/solar_logger_node.py",
+      "detail": "solar_logger_node -> mpc_solarcar.solar_logger_node:main"
+    },
+    {
+      "severity": "PASS",
+      "check": "launch_entrypoint",
+      "path": "mpc_solarcar/solar_preflight_node.py",
+      "detail": "solar_preflight_node -> mpc_solarcar.solar_preflight_node:main"
+    },
+    {
+      "severity": "PASS",
+      "check": "launch_entrypoint",
+      "path": "mpc_solarcar/solar_state_node.py",
+      "detail": "solar_state_node -> mpc_solarcar.solar_state_node:main"
+    },
+    {
+      "severity": "PASS",
+      "check": "launch_entrypoint",
+      "path": "mpc_solarcar/speed_command_bridge_node.py",
+      "detail": "speed_command_bridge_node -> mpc_solarcar.speed_command_bridge_node:main"
+    },
+    {
+      "severity": "PASS",
+      "check": "launch_entrypoint",
+      "path": "mpc_solarcar/telemetry_text_bridge_node.py",
+      "detail": "telemetry_text_bridge_node -> mpc_solarcar.telemetry_text_bridge_node:main"
+    },
+    {
+      "severity": "PASS",
+      "check": "launch_entrypoint",
+      "path": "mpc_solarcar/weather_fetch_node.py",
+      "detail": "weather_fetch_node -> mpc_solarcar.weather_fetch_node:main"
+    },
+    {
+      "severity": "PASS",
+      "check": "launch_entrypoint",
+      "path": "mpc_solarcar/wind_correction_node.py",
+      "detail": "wind_correction_node -> mpc_solarcar.wind_correction_node:main"
+    },
+    {
+      "severity": "PASS",
+      "check": "solar_scope",
+      "path": ".",
+      "detail": "solar launch/runtime sources contain no PASSO, magnetic, OBD, MAF, or fuel dependency"
+    },
+    {
+      "severity": "PASS",
+      "check": "soc_contract",
+      "path": "config/solar/bwsc_2027_demo.yaml",
+      "detail": "soc0=0.95 <= soc_max=1.0"
+    },
+    {
+      "severity": "PASS",
+      "check": "aux_contract",
+      "path": "config/solar/bwsc_2027_demo.yaml",
+      "detail": "driving/day-stop=0.0 W, night=0 W"
+    },
+    {
+      "severity": "PASS",
+      "check": "wifi_time_contract",
+      "path": "config/solar/bwsc_2027_demo.yaml",
+      "detail": "UTC required; age/future/order gates enabled"
+    },
+    {
+      "severity": "PASS",
+      "check": "soc_contract",
+      "path": "project_packages/bwsc2025_public/profile.yaml",
+      "detail": "soc0=0.95 <= soc_max=0.98"
+    },
+    {
+      "severity": "PASS",
+      "check": "aux_contract",
+      "path": "project_packages/bwsc2025_public/profile.yaml",
+      "detail": "driving/day-stop=8.0 W, night=0 W"
+    },
+    {
+      "severity": "PASS",
+      "check": "wifi_time_contract",
+      "path": "project_packages/bwsc2025_public/profile.yaml",
+      "detail": "UTC required; age/future/order gates enabled"
+    },
+    {
+      "severity": "PASS",
+      "check": "soc_contract",
+      "path": "project_packages/bwsc2027_template/profile.yaml",
+      "detail": "soc0=0.95 <= soc_max=1.0"
+    },
+    {
+      "severity": "PASS",
+      "check": "aux_contract",
+      "path": "project_packages/bwsc2027_template/profile.yaml",
+      "detail": "driving/day-stop=0.0 W, night=0 W"
+    },
+    {
+      "severity": "PASS",
+      "check": "wifi_time_contract",
+      "path": "project_packages/bwsc2027_template/profile.yaml",
+      "detail": "UTC required; age/future/order gates enabled"
+    },
+    {
+      "severity": "PASS",
+      "check": "soc_contract",
+      "path": "project_packages/other_template/profile.yaml",
+      "detail": "soc0=0.95 <= soc_max=1.0"
+    },
+    {
+      "severity": "PASS",
+      "check": "aux_contract",
+      "path": "project_packages/other_template/profile.yaml",
+      "detail": "driving/day-stop=0.0 W, night=0 W"
+    },
+    {
+      "severity": "PASS",
+      "check": "wifi_time_contract",
+      "path": "project_packages/other_template/profile.yaml",
+      "detail": "UTC required; age/future/order gates enabled"
+    },
+    {
+      "severity": "PASS",
+      "check": "soc_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile.yaml",
+      "detail": "soc0=0.98 <= soc_max=0.98"
+    },
+    {
+      "severity": "PASS",
+      "check": "aux_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile.yaml",
+      "detail": "driving/day-stop=20.891 W, night=0 W"
+    },
+    {
+      "severity": "PASS",
+      "check": "wifi_time_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile.yaml",
+      "detail": "UTC required; age/future/order gates enabled"
+    },
+    {
+      "severity": "PASS",
+      "check": "drive_efficiency_basis_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile.yaml",
+      "detail": "M2096 Pm/Pin total-efficiency map active; no duplicate inverter loss"
+    },
+    {
+      "severity": "PASS",
+      "check": "air_density_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile.yaml",
+      "detail": "temperature/elevation-dependent ideal-gas density enabled"
+    },
+    {
+      "severity": "PASS",
+      "check": "soc_state_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile.yaml",
+      "detail": "charge SoC with Q_nom_Ah=31.783316"
+    },
+    {
+      "severity": "PASS",
+      "check": "full_course_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile.yaml",
+      "detail": "full course=3026.9 km"
+    },
+    {
+      "severity": "PASS",
+      "check": "official_event_timing_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/race/bwsc2025_official_control_stops.yaml",
+      "detail": "9 official 1800 s stops and finish deadline 2025-08-29T08:00:00Z"
+    },
+    {
+      "severity": "PASS",
+      "check": "ocv_voltage_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile.yaml",
+      "detail": "OCV max=106.889 V <= V_max=108.750 V; product limit grounded at 108.750 V"
+    },
+    {
+      "severity": "PASS",
+      "check": "grade_observation_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/route/bwsc2025_fitted_mle8_mass235_mapfit_route_profile.csv",
+      "detail": "30277 elevation-backed route rows; strictly monotonic distance"
+    },
+    {
+      "severity": "PASS",
+      "check": "weather_grid_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/weather/bwsc2025_nominal_fullcourse_weather_grid.csv",
+      "detail": "independent instant GHI/DNI/DHI through 3026.9 km"
+    },
+    {
+      "severity": "PASS",
+      "check": "weather_grid_key_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/weather/bwsc2025_nominal_fullcourse_weather_grid.csv",
+      "detail": "24696 unique (time,s_km) rows"
+    },
+    {
+      "severity": "PASS",
+      "check": "weather_grid_range_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/weather/bwsc2025_nominal_fullcourse_weather_grid.csv",
+      "detail": "GHI=[0.0,934.5], DNI=[0.0,986.5], DHI=[0.0,365.5], Tamb_C=[3.8,37.9]"
+    },
+    {
+      "severity": "PASS",
+      "check": "pv_hardware_limit_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile.yaml",
+      "detail": "declared aggregate MPPT limit=1000.0 W"
+    },
+    {
+      "severity": "PASS",
+      "check": "soc_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_fullsim_selflearned.yaml",
+      "detail": "soc0=0.98 <= soc_max=0.98"
+    },
+    {
+      "severity": "PASS",
+      "check": "aux_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_fullsim_selflearned.yaml",
+      "detail": "driving/day-stop=20.891 W, night=0 W"
+    },
+    {
+      "severity": "PASS",
+      "check": "wifi_time_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_fullsim_selflearned.yaml",
+      "detail": "UTC required; age/future/order gates enabled"
+    },
+    {
+      "severity": "PASS",
+      "check": "drive_efficiency_basis_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_fullsim_selflearned.yaml",
+      "detail": "M2096 Pm/Pin total-efficiency map active; no duplicate inverter loss"
+    },
+    {
+      "severity": "PASS",
+      "check": "air_density_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_fullsim_selflearned.yaml",
+      "detail": "temperature/elevation-dependent ideal-gas density enabled"
+    },
+    {
+      "severity": "PASS",
+      "check": "soc_state_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_fullsim_selflearned.yaml",
+      "detail": "charge SoC with Q_nom_Ah=31.783316"
+    },
+    {
+      "severity": "PASS",
+      "check": "full_course_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_fullsim_selflearned.yaml",
+      "detail": "full course=3026.9 km"
+    },
+    {
+      "severity": "PASS",
+      "check": "official_event_timing_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/race/bwsc2025_official_control_stops.yaml",
+      "detail": "9 official 1800 s stops and finish deadline 2025-08-29T08:00:00Z"
+    },
+    {
+      "severity": "PASS",
+      "check": "ocv_voltage_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_fullsim_selflearned.yaml",
+      "detail": "OCV max=106.889 V <= V_max=108.750 V; product limit grounded at 108.750 V"
+    },
+    {
+      "severity": "PASS",
+      "check": "weather_grid_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/weather/bwsc2025_nominal_fullcourse_weather_grid.csv",
+      "detail": "independent instant GHI/DNI/DHI through 3026.9 km"
+    },
+    {
+      "severity": "PASS",
+      "check": "weather_grid_key_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/weather/bwsc2025_nominal_fullcourse_weather_grid.csv",
+      "detail": "24696 unique (time,s_km) rows"
+    },
+    {
+      "severity": "PASS",
+      "check": "weather_grid_range_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/weather/bwsc2025_nominal_fullcourse_weather_grid.csv",
+      "detail": "GHI=[0.0,934.5], DNI=[0.0,986.5], DHI=[0.0,365.5], Tamb_C=[3.8,37.9]"
+    },
+    {
+      "severity": "PASS",
+      "check": "pv_hardware_limit_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_fullsim_selflearned.yaml",
+      "detail": "declared aggregate MPPT limit=1000.0 W"
+    },
+    {
+      "severity": "PASS",
+      "check": "soc_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_historical_counterfactual.yaml",
+      "detail": "soc0=0.98 <= soc_max=0.98"
+    },
+    {
+      "severity": "PASS",
+      "check": "aux_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_historical_counterfactual.yaml",
+      "detail": "driving/day-stop=20.891 W, night=0 W"
+    },
+    {
+      "severity": "PASS",
+      "check": "wifi_time_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_historical_counterfactual.yaml",
+      "detail": "UTC required; age/future/order gates enabled"
+    },
+    {
+      "severity": "PASS",
+      "check": "drive_efficiency_basis_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_historical_counterfactual.yaml",
+      "detail": "M2096 Pm/Pin total-efficiency map active; no duplicate inverter loss"
+    },
+    {
+      "severity": "PASS",
+      "check": "air_density_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_historical_counterfactual.yaml",
+      "detail": "temperature/elevation-dependent ideal-gas density enabled"
+    },
+    {
+      "severity": "PASS",
+      "check": "soc_state_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_historical_counterfactual.yaml",
+      "detail": "charge SoC with Q_nom_Ah=31.783316"
+    },
+    {
+      "severity": "PASS",
+      "check": "full_course_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_historical_counterfactual.yaml",
+      "detail": "full course=3026.9 km"
+    },
+    {
+      "severity": "PASS",
+      "check": "official_event_timing_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/race/bwsc2025_official_control_stops.yaml",
+      "detail": "9 official 1800 s stops and finish deadline 2025-08-29T08:00:00Z"
+    },
+    {
+      "severity": "PASS",
+      "check": "ocv_voltage_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_historical_counterfactual.yaml",
+      "detail": "OCV max=106.889 V <= V_max=108.750 V; product limit grounded at 108.750 V"
+    },
+    {
+      "severity": "PASS",
+      "check": "historical_weather_separation_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_historical_counterfactual.yaml",
+      "detail": "PV-conditioned replay is explicitly labeled and isolated from nominal/live outputs"
+    },
+    {
+      "severity": "PASS",
+      "check": "weather_grid_key_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/weather/bwsc2025_historical_pv_conditioned_weather_grid.csv",
+      "detail": "24696 unique (time,s_km) rows"
+    },
+    {
+      "severity": "PASS",
+      "check": "weather_grid_range_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/weather/bwsc2025_historical_pv_conditioned_weather_grid.csv",
+      "detail": "GHI=[0.0,1200.0], DNI=[0.0,1400.0], DHI=[0.0,499.9], Tamb_C=[3.8,37.9]"
+    },
+    {
+      "severity": "PASS",
+      "check": "pv_hardware_limit_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_historical_counterfactual.yaml",
+      "detail": "declared aggregate MPPT limit=1000.0 W"
+    },
+    {
+      "severity": "PASS",
+      "check": "soc_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_operational_fine.yaml",
+      "detail": "soc0=0.98 <= soc_max=0.98"
+    },
+    {
+      "severity": "PASS",
+      "check": "aux_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_operational_fine.yaml",
+      "detail": "driving/day-stop=20.891 W, night=0 W"
+    },
+    {
+      "severity": "PASS",
+      "check": "wifi_time_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_operational_fine.yaml",
+      "detail": "UTC required; age/future/order gates enabled"
+    },
+    {
+      "severity": "PASS",
+      "check": "drive_efficiency_basis_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_operational_fine.yaml",
+      "detail": "M2096 Pm/Pin total-efficiency map active; no duplicate inverter loss"
+    },
+    {
+      "severity": "PASS",
+      "check": "air_density_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_operational_fine.yaml",
+      "detail": "temperature/elevation-dependent ideal-gas density enabled"
+    },
+    {
+      "severity": "PASS",
+      "check": "soc_state_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_operational_fine.yaml",
+      "detail": "charge SoC with Q_nom_Ah=31.783316"
+    },
+    {
+      "severity": "PASS",
+      "check": "full_course_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_operational_fine.yaml",
+      "detail": "full course=3026.9 km"
+    },
+    {
+      "severity": "PASS",
+      "check": "official_event_timing_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/race/bwsc2025_official_control_stops.yaml",
+      "detail": "9 official 1800 s stops and finish deadline 2025-08-29T08:00:00Z"
+    },
+    {
+      "severity": "PASS",
+      "check": "ocv_voltage_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_operational_fine.yaml",
+      "detail": "OCV max=106.889 V <= V_max=108.750 V; product limit grounded at 108.750 V"
+    },
+    {
+      "severity": "PASS",
+      "check": "weather_grid_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/weather/bwsc2025_nominal_fullcourse_weather_grid.csv",
+      "detail": "independent instant GHI/DNI/DHI through 3026.9 km"
+    },
+    {
+      "severity": "PASS",
+      "check": "weather_grid_key_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/weather/bwsc2025_nominal_fullcourse_weather_grid.csv",
+      "detail": "24696 unique (time,s_km) rows"
+    },
+    {
+      "severity": "PASS",
+      "check": "weather_grid_range_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/data/weather/bwsc2025_nominal_fullcourse_weather_grid.csv",
+      "detail": "GHI=[0.0,934.5], DNI=[0.0,986.5], DHI=[0.0,365.5], Tamb_C=[3.8,37.9]"
+    },
+    {
+      "severity": "PASS",
+      "check": "pv_hardware_limit_contract",
+      "path": "project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile_operational_fine.yaml",
+      "detail": "declared aggregate MPPT limit=1000.0 W"
+    },
+    {
+      "severity": "PASS",
+      "check": "blank_template",
+      "path": "project_packages/bwsc2027_template",
+      "detail": "14 route/weather/map/replay files are schema-only"
+    },
+    {
+      "severity": "PASS",
+      "check": "blank_template",
+      "path": "project_packages/other_template",
+      "detail": "14 route/weather/map/replay files are schema-only"
+    }
+  ]
+}

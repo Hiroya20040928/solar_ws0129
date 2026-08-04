@@ -1,0 +1,729 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{space}{xeCJK}
+\documentclass[
+  japanese,
+  a4paper,
+]{article}
+\usepackage[margin=18mm]{geometry}
+\usepackage{xcolor}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{5}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+  \ifXeTeX
+    \usepackage{xeCJK}
+    \setCJKmainfont[]{Yu Gothic}
+    \setCJKmonofont[]{Yu Gothic}
+  \fi
+  \ifLuaTeX
+    \usepackage[]{luatexja-fontspec}
+    \setmainjfont[]{Yu Gothic}
+  \fi
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\newenvironment{Shaded}{}{}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\BuiltInTok}[1]{\textcolor[rgb]{0.00,0.50,0.00}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{#1}}
+\newcommand{\ImportTok}[1]{\textcolor[rgb]{0.00,0.50,0.00}{\textbf{#1}}}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\usepackage{longtable,booktabs,array}
+\newcounter{none} % for unnumbered tables
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\ifLuaTeX
+\usepackage[bidi=basic,shorthands=off,provide=*]{babel}
+\else
+\usepackage[bidi=default,shorthands=off,provide=*]{babel}
+\fi
+\ifLuaTeX
+  \usepackage{selnolig} % disable illegal ligatures
+\fi
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+% fallback for those not using the hyperref driver hyperxmp:
+\makeatletter
+\@ifundefined{xmpquote}{\newcommand{\xmpquote}[1]{#1}}{}
+\makeatother
+\hypersetup{
+  pdftitle={ソーラーカーMPC-EMS 完全導入・運用手順書},
+  pdflang={ja-JP},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{ソーラーカーMPC-EMS 完全導入・運用手順書}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{Windows 11 / WSL2 / Ubuntu 22.04 / ROS 2 Humble}
+\author{}
+\date{2026-07-16}
+
+\begin{document}
+\maketitle
+
+{
+\setcounter{tocdepth}{3}
+\tableofcontents
+}
+本書は、GitHubから初めてZIPを取得する時点から、車両同定、天候取得、
+大会全体シミュレーション、実測、live WiFi、結果保存、障害復旧までを、
+初見のチーム員だけで再現するための手順書である。
+
+\section{対象、配布物、安全境界}\label{ux5bfeux8c61ux914dux5e03ux7269ux5b89ux5168ux5883ux754c}
+
+動作保証対象は Ubuntu 22.04 + ROS 2 Humble である。Windows
+11ではWSL2上の Ubuntu 22.04を使う。Native Windows ROS、Ubuntu
+24.04/Jazzyは、このreleaseの 検証対象ではない。
+
+配布物は次の二つである。
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{MPCEMS\_YATA\_2027}:
+  YATAの同定例、採用map、報告書を含む全機能版。
+\item
+  \texttt{MPCEMS\_base}:
+  同じ実行機能を持つが、車両・大会データが空の雛形版。
+\end{itemize}
+
+本システムが送るものは速度\textbf{助言値}であり、直接のトルク指令ではない。
+運転者、車両側速度上限、電装保護、非常停止が常に優先する。未同定の空packageを
+live送信へ使ってはならない。
+
+公式参照先は
+\href{https://learn.microsoft.com/windows/wsl/install}{WSL導入}、
+\href{https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html}{ROS
+2 Humble Ubuntu導入}、
+\href{https://docs.github.com/repositories/working-with-files/using-files/downloading-source-code-archives}{GitHub
+ZIP取得} である。
+
+\section{Windows
+11への初回導入}\label{windows-11ux3078ux306eux521dux56deux5c0eux5165}
+
+\subsection{ZIP取得}\label{zipux53d6ux5f97}
+
+GitHubの \textbf{Code \textgreater{} Download ZIP}
+を選び、\texttt{C:\textbackslash{}solar\textbackslash{}MPCEMS\_YATA\_2027}
+のような
+短いローカルパスへ展開する。OneDrive上でも動くが、大量のCSV、build、PDF生成では
+同期負荷が増えるため、運用PCでは短いローカルパスを推奨する。
+
+\subsection{WSL2導入}\label{wsl2ux5c0eux5165}
+
+管理者PowerShellで一度だけ実行する。
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{wsl }\OperatorTok{{-}{-}}\NormalTok{install }\OperatorTok{{-}}\NormalTok{d Ubuntu{-}22}\OperatorTok{.}\DecValTok{04}
+\end{Highlighting}
+\end{Shaded}
+
+再起動を要求されたら再起動し、Ubuntuを一度起動してLinuxユーザーを作る。
+展開先で通常のPowerShellを開き、次を実行する。
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{Set{-}ExecutionPolicy} \OperatorTok{{-}}\NormalTok{Scope }\ControlFlowTok{Process}\NormalTok{ Bypass}
+\OperatorTok{.}\NormalTok{\textbackslash{}Install{-}SolarSim}\OperatorTok{.}\FunctionTok{ps1}
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Action audit}
+\end{Highlighting}
+\end{Shaded}
+
+\texttt{Install-SolarSim.ps1}
+はWindowsのパスをWSLパスへ変換し、Ubuntu側の
+\path{scripts/bootstrap_ubuntu_humble.sh}へ渡す。途中でsudo
+passwordを求められる。
+
+\subsection{導入成功判定}\label{ux5c0eux5165ux6210ux529fux5224ux5b9a}
+
+次がすべて成功しなければ先へ進まない。
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{wsl }\OperatorTok{{-}}\NormalTok{d Ubuntu{-}22}\OperatorTok{.}\DecValTok{04}\NormalTok{ bash }\OperatorTok{{-}}\NormalTok{lc }\StringTok{"source /opt/ros/humble/setup.bash; ros2 {-}{-}help \textgreater{}/dev/null"}
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Action build}
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Action audit}
+\end{Highlighting}
+\end{Shaded}
+
+\texttt{build}が\texttt{install/setup.bash}を作り、\texttt{audit}がinventory、静的監査、pytestを通す。
+失敗時は最後の80行を保存し、依存を無視して起動しない。
+
+\section{Ubuntu
+22.04への初回導入}\label{ubuntu-22.04ux3078ux306eux521dux56deux5c0eux5165}
+
+ZIPを展開するかcloneし、repository rootで次を実行する。
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{cd}\NormalTok{ \textasciitilde{}/solar/MPCEMS\_YATA\_2027}
+\FunctionTok{bash}\NormalTok{ scripts/bootstrap\_ubuntu\_humble.sh}
+\FunctionTok{bash}\NormalTok{ scripts/solar\_control.sh audit sim config/solar/bwsc\_2027\_demo.yaml}
+\end{Highlighting}
+\end{Shaded}
+
+bootstrapはROS公式repository、Humble Desktop、科学計算Python、Graphviz、
+rqt-graph、chronyを導入し、rosdep、colcon
+build、pytestまで行う。CasADiだけは Jammyのrosdep key差を避けてpip
+user領域へ入れる。再実行しても既存ROS設定を壊さない。
+
+通常のshellから直接ROS commandを使う場合は、そのterminalごとに次を読む。
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{source}\NormalTok{ /opt/ros/humble/setup.bash}
+\BuiltInTok{source}\NormalTok{ install/setup.bash}
+\end{Highlighting}
+\end{Shaded}
+
+\section{package構造と一つの正本}\label{packageux69cbux9020ux3068ux4e00ux3064ux306eux6b63ux672c}
+
+全actionは一つの\texttt{profile.yaml}を受け取る。相対pathはprofileの所在directoryを
+基準に解決され、実行時には解決済みprofileが結果と一緒に保存される。
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+profile block & 内容 \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{paths} & route、weather、schedule、全採用map \\
+\texttt{runtime} & timezone、dashboard host/port \\
+\texttt{logging} & live/measurement保存先とrate \\
+\texttt{simulation} & 開始UTC、初期状態、version出力先 \\
+\texttt{measurement} & distance/grade実測条件 \\
+\texttt{identification} & raw/evidence/fit出力先 \\
+\texttt{live} & weather API、autocal、command/WiFi bridge \\
+\texttt{model} & 質量、CdA、Crr、補機、電池、電流・温度上限 \\
+\texttt{mpc} & 上位/下位horizon、終端帯、目的関数、solver \\
+\end{longtable}
+}
+
+主要sourceの責務は次の通りである。
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+source
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+責務
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{model.py} & 力、効率map、PV、pack、IV、SoC、熱状態 \\
+\texttt{upper\_cost.py} / \texttt{upper\_solver.py} &
+上位目的・制約とglobal/local探索 \\
+\texttt{mpc\_node.py} & remaining-course上位MPCと1 Hz下位MPC \\
+\texttt{solar\_sim.py} &
+offline全コース最適化、replay、全CSV/manifest \\
+\texttt{telemetry\_text\_bridge\_node.py} &
+UDP解釈、時刻gate、filter、ROS topic化 \\
+\texttt{speed\_command\_bridge\_node.py} &
+timeout、平滑化、変化率、量子化、安全送信 \\
+\texttt{solar\_logger\_node.py} & 同期済みlive/measurement CSV \\
+\texttt{dashboard\_node.py} & 一画面dashboardとAPI \\
+\end{longtable}
+}
+
+生成済み結果を上書き編集しない。profileを説明的な別名で保存し、
+\path{latest_simulation_run.json}と解決済みprofileで結果を特定する。
+
+\section{全actionと4 mode}\label{ux5168actionux30684-mode}
+
+Windows形式は次である。
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Action }\OperatorTok{\textless{}}\NormalTok{action}\OperatorTok{\textgreater{}} \OperatorTok{{-}}\NormalTok{Mode }\OperatorTok{\textless{}}\NormalTok{mode}\OperatorTok{\textgreater{}} \OperatorTok{{-}}\NormalTok{Profile }\OperatorTok{\textless{}}\NormalTok{profile}\OperatorTok{.}\FunctionTok{yaml}\OperatorTok{\textgreater{}}
+\end{Highlighting}
+\end{Shaded}
+
+Ubuntu形式は次である。
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{bash}\NormalTok{ scripts/solar\_control.sh }\OperatorTok{\textless{}}\NormalTok{action}\OperatorTok{\textgreater{}} \OperatorTok{\textless{}}\NormalTok{mode}\OperatorTok{\textgreater{}} \OperatorTok{\textless{}}\NormalTok{profile.yaml}\OperatorTok{\textgreater{}}
+\end{Highlighting}
+\end{Shaded}
+
+actionは\texttt{up/build/start/stop/restart/status/graph/simulate/forecast/identify/fit/\ learn/audit/package/blank/log}、modeは\texttt{sim/measure/live/live\_wifi}である。
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.15}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.45}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.40}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+mode
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+launch
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+実際に起動する機能
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{sim} & \path{solarcar_sim.launch.py} &
+GPS模擬、状態伝播、階層MPC、dashboard \\
+\texttt{measure} & \path{solar_measurement.launch.py} &
+preflight、distance、grade、logger、dashboard \\
+\texttt{live} & \path{solar_race_live.launch.py} &
+weather、autocal、MPC、安全command、logger \\
+\texttt{live\_wifi} & \path{solar_race_live_wifi.launch.py} &
+live全部、UDP telemetry、風補正 \\
+\end{longtable}
+}
+
+\texttt{up}はbuild、古い同package
+node停止、選択launch起動を順に行う。PowerShell入口は
+dashboard応答を待ち、実nodeが生きている間にrqt graphを採取する。
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Mode live\_wifi }\OperatorTok{{-}}\NormalTok{Action status}
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Mode live\_wifi }\OperatorTok{{-}}\NormalTok{Action log}
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Mode live\_wifi }\OperatorTok{{-}}\NormalTok{Action graph}
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Mode live\_wifi }\OperatorTok{{-}}\NormalTok{Action stop}
+\end{Highlighting}
+\end{Shaded}
+
+停止中にgraph
+exporterだけが表示されるのは正常である。必ず\texttt{up}後に\texttt{graph}を取る。
+
+\section{空packageから車両モデルを完成させる}\label{ux7a7apackageux304bux3089ux8ecaux4e21ux30e2ux30c7ux30ebux3092ux5b8cux6210ux3055ux305bux308b}
+
+\subsection{入れる根拠資料}\label{ux5165ux308cux308bux6839ux62e0ux8cc7ux6599}
+
+\texttt{project\_packages/\textless{}vehicle\textgreater{}/data/identification/evidence}へ、motor/controllerの
+公式試験、eco/power/regen効率、panel/MPPT仕様、cell放電・OCV曲線、
+Rint対SoC/温度、補機実測、車体諸元を置く。根拠のない滑らかなmapを最初から
+fitしてはならない。まず商品・試験・物理式からgrounded base
+mapを作り、その後に 小さいscale/shape補正だけを許す。
+
+\subsection{入れる時系列}\label{ux5165ux308cux308bux6642ux7cfbux5217}
+
+\texttt{data/identification/raw}へ最低限、UTC時刻、速度、距離またはGNSS、pack電圧・
+電流・温度、PV電力を置く。battery pulse/rest、panel sweep、coast-down、
+定速、勾配、独立SoC/容量anchor、イベント記録を別sessionとして残す。
+
+電流符号は放電正、充電負に統一する。停止、control
+stop、事故、センサ異常を 同じflagにせず、event
+YAMLで理由と時刻・地点を明示する。
+
+\subsection{MLE実行}\label{mleux5b9fux884c}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Action fit }\OperatorTok{{-}}\NormalTok{Profile project\_packages\textbackslash{}}\OperatorTok{\textless{}}\NormalTok{vehicle}\OperatorTok{\textgreater{}}\NormalTok{\textbackslash{}profile}\OperatorTok{.}\FunctionTok{yaml}
+\end{Highlighting}
+\end{Shaded}
+
+順序は、入力QA、grounded map、segment分割、PV fit、battery
+OCV/Rint/capacity fit、 motion fit、11次元joint refinement、bounded map
+shape fit、historical replay、
+day別hold-out、終端anchor、採否判定である。
+
+確認対象は\texttt{*\_generic\_fit\_summary.yaml}、\texttt{replay\_validation.csv}、adopted
+maps、 PDF報告書である。training
+RMSEだけが低くても、時刻ずれ、同一日の過適合、 2831
+km終端、独立日、物理boundが不合格なら採用しない。採用時だけcanonical
+profileのmodel/map pathが更新され、simとliveが同じ車両を読む。
+
+YATAでは25直列、race-use上限4.35 V/cellなので、\texttt{model.V\_max}は
+\texttt{25\ *\ 4.35\ =\ 108.75\ V}である。OCV map最大値は108.75
+V以下、YATA profileの \texttt{V\_max}は108.75
+Vに一致しなければならない。\texttt{audit}は上下どちらの不整合もエラーにする。
+
+手計算は\texttt{docs/mle\_hand\_calculation\_workbook}の問題編、解答用紙、解答編を使う。
+
+\section{route、schedule、weatherの投入}\label{routescheduleweatherux306eux6295ux5165}
+
+route waypoints/profile、区間速度上限、公式drive window、control
+stop、timezone、
+全コース距離、開始UTC、\texttt{soc0}をprofileへ入れる。historical
+replayでは同時刻・
+同地点のarchive観測を使い、将来simでは選択forecastを使う。
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Action forecast }\OperatorTok{{-}}\NormalTok{Profile project\_packages\textbackslash{}}\OperatorTok{\textless{}}\NormalTok{vehicle}\OperatorTok{\textgreater{}}\NormalTok{\textbackslash{}profile}\OperatorTok{.}\FunctionTok{yaml}
+\end{Highlighting}
+\end{Shaded}
+
+forecast CSVはsimの全UTC範囲を覆う必要がある。liveではchase
+GNSS地点で取得した raw
+forecastを保存してから、観測風補正を別CSVへ書く。nominal
+planは最尤天候を そのまま用い、日数とともに増える不確かさはupper/lower
+risk planへ分離する。
+
+\section{大会全体offline
+simulation}\label{ux5927ux4f1aux5168ux4f53offline-simulation}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Action simulate }\OperatorTok{{-}}\NormalTok{Profile project\_packages\textbackslash{}}\OperatorTok{\textless{}}\NormalTok{vehicle}\OperatorTok{\textgreater{}}\NormalTok{\textbackslash{}profile}\OperatorTok{.}\FunctionTok{yaml}
+\end{Highlighting}
+\end{Shaded}
+
+名目目的は制約付き最短時間である。
+
+\[
+\min_u T(u),\qquad
+z_{\min}\le z_k\le z_{\max},\quad
+z_{\min}\le z_N\le z_{\min}+\varepsilon.
+\]
+
+さらに速度、drive window、停止、電圧、放電/充電電流、温度を守る。
+「使用可能energyを残さない」は物理SoC 0ではなく、終端SoCを安全下限から
+\texttt{soc\_finish\_tol}以内へ入れる意味である。
+
+detail
+CSVは各stepについて、時刻・地点、route/weather、全抵抗、map補間効率、 PV
+raw/MPPT、wheel/DC/regen/aux/pack power、OCV/Rint/Rline、判別式、I/V、
+SoC/温度、step/cumulative energy、全scalar parameter、全map pathを持つ。
+exact/fine
+profileでは全列を保ったままgzip圧縮し、拡張子は\texttt{*.csv.gz}となる。
+\texttt{pandas.read\_csv(path)}で直接読めるため、展開用の数GB空き容量は不要である。
+
+manifestで次を確認する。
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{finish\_reached=true}で、公式全コース距離へ到達した。
+\item
+  \texttt{terminal\_energy\_band\_met=true}である。
+\item
+  電圧、電流、温度、SoC、schedule違反がない。
+\item
+  \texttt{power\_balance\_residual\_w}が丸め誤差程度である。
+\item
+  solver statusと証明範囲が明記される。
+\end{itemize}
+
+有限grid全列挙は、宣言した離散速度集合内では数学的な大域証明になる。SHGOと
+局所改善は連続boundを探索するが、有限回の結果だけを無条件の連続大域証明とは
+呼ばない。両者のstatusをmanifestで分離する。
+
+\section{実測mode}\label{ux5b9fux6e2cmode}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Mode }\FunctionTok{measure} \OperatorTok{{-}}\NormalTok{Action up }\OperatorTok{{-}}\NormalTok{Profile project\_packages\textbackslash{}}\OperatorTok{\textless{}}\NormalTok{vehicle}\OperatorTok{\textgreater{}}\NormalTok{\textbackslash{}profile}\OperatorTok{.}\FunctionTok{yaml}
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Mode }\FunctionTok{measure} \OperatorTok{{-}}\NormalTok{Action status}
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Mode }\FunctionTok{measure} \OperatorTok{{-}}\NormalTok{Action graph}
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Mode }\FunctionTok{measure} \OperatorTok{{-}}\NormalTok{Action stop}
+\end{Highlighting}
+\end{Shaded}
+
+動き出す前に、UTC同期、GNSS
+fix、停止速度、電流符号、pack電圧、loggerの新CSVを
+確認する。定速、coast-down、勾配、pulse/rest、panel
+sweepを別runにし、run中の 人為操作、停止理由、機器切替をevent
+manifestへ記録する。
+
+終了後はCSV、event、resolved profile、rqt graph、時刻同期結果を同じrun
+directoryへ 保存する。Excelで原本を直接編集せず、修正版を別名にする。
+
+\section{WiFi、Raspberry
+Pi、マイコン設定}\label{wifiraspberry-piux30deux30a4ux30b3ux30f3ux8a2dux5b9a}
+
+推奨固定IPは制御PC \texttt{192.168.50.10}、solar Pi
+\texttt{192.168.50.21}、chase Pi \texttt{192.168.50.22}である。PCはUDP
+\texttt{52001}で受信し、solar/chase Piはcommandを
+\texttt{52002}/\texttt{52003}で受信する。private race
+LANのこのUDPだけをfirewall許可する。
+
+全機器でchrony/NTPを有効化し、開始前にUTC差が1秒未満であることを確認する。
+vehicle PiはUTF-8 JSONを1--10 HzでPCへ送る。
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{\{}
+  \DataTypeTok{"type"}\FunctionTok{:} \StringTok{"vehicle\_state"}\FunctionTok{,}
+  \DataTypeTok{"timestamp\_utc"}\FunctionTok{:} \StringTok{"2027{-}08{-}28T01:23:45.120Z"}\FunctionTok{,}
+  \DataTypeTok{"speed\_kmh"}\FunctionTok{:} \FloatTok{72.3}\FunctionTok{,}
+  \DataTypeTok{"soc"}\FunctionTok{:} \FloatTok{0.83}\FunctionTok{,}
+  \DataTypeTok{"batt\_temp\_c"}\FunctionTok{:} \FloatTok{34.2}\FunctionTok{,}
+  \DataTypeTok{"batt\_current\_a"}\FunctionTok{:} \FloatTok{8.5}\FunctionTok{,}
+  \DataTypeTok{"batt\_voltage\_v"}\FunctionTok{:} \FloatTok{97.6}\FunctionTok{,}
+  \DataTypeTok{"solar\_power\_w"}\FunctionTok{:} \FloatTok{410.0}\FunctionTok{,}
+  \DataTypeTok{"lat"}\FunctionTok{:} \FloatTok{{-}22.0}\FunctionTok{,}
+  \DataTypeTok{"lon"}\FunctionTok{:} \FloatTok{133.0}\FunctionTok{,}
+  \DataTypeTok{"alt\_m"}\FunctionTok{:} \FloatTok{612.4}\FunctionTok{,}
+  \DataTypeTok{"course\_deg"}\FunctionTok{:} \FloatTok{176.0}
+\FunctionTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+chase Piは次を送る。
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{\{}
+  \DataTypeTok{"type"}\FunctionTok{:} \StringTok{"chase\_state"}\FunctionTok{,}
+  \DataTypeTok{"timestamp\_utc"}\FunctionTok{:} \StringTok{"2027{-}08{-}28T01:23:45.120Z"}\FunctionTok{,}
+  \DataTypeTok{"lat"}\FunctionTok{:} \FloatTok{{-}22.0}\FunctionTok{,}
+  \DataTypeTok{"lon"}\FunctionTok{:} \FloatTok{133.0}\FunctionTok{,}
+  \DataTypeTok{"alt\_m"}\FunctionTok{:} \FloatTok{610.2}\FunctionTok{,}
+  \DataTypeTok{"wind\_speed\_ms"}\FunctionTok{:} \FloatTok{6.5}\FunctionTok{,}
+  \DataTypeTok{"wind\_dir\_deg"}\FunctionTok{:} \FloatTok{121.0}\FunctionTok{,}
+  \DataTypeTok{"course\_deg"}\FunctionTok{:} \FloatTok{176.0}
+\FunctionTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+単位はSoC
+0--1、km/h、W、A、deg、WGS84で、放電電流が正である。PCは時刻なし、
+5秒超の古いpacket、2秒超の未来、重複、順序逆転をfilter前に拒否する。
+
+PCから両Piへ返る形式は次である。
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{\{}
+  \DataTypeTok{"type"}\FunctionTok{:} \StringTok{"planner\_command"}\FunctionTok{,}
+  \DataTypeTok{"timestamp\_utc"}\FunctionTok{:} \StringTok{"2027{-}08{-}28T01:23:46Z"}\FunctionTok{,}
+  \DataTypeTok{"planner"}\FunctionTok{:} \FunctionTok{\{}
+    \DataTypeTok{"speed\_cmd\_kmh"}\FunctionTok{:} \FloatTok{71.2}\FunctionTok{,}
+    \DataTypeTok{"upper\_speed\_cmd\_kmh"}\FunctionTok{:} \FloatTok{72.0}\FunctionTok{,}
+    \DataTypeTok{"drive\_mode"}\FunctionTok{:} \StringTok{"eco"}
+  \FunctionTok{\},}
+  \DataTypeTok{"vehicle"}\FunctionTok{:} \FunctionTok{\{}
+    \DataTypeTok{"speed\_kmh"}\FunctionTok{:} \FloatTok{70.9}\FunctionTok{,}
+    \DataTypeTok{"soc"}\FunctionTok{:} \FloatTok{0.829}\FunctionTok{,}
+    \DataTypeTok{"s\_km"}\FunctionTok{:} \FloatTok{1200.02}
+  \FunctionTok{\}}
+\FunctionTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\texttt{solar\_power\_w}にはマイコン側で係数を掛けない。送る値はDC
+busの未補正実測値で、
+PC側bridgeがprofileで同定済みの\texttt{solar\_measurement\_gain}を一度だけ適用する。
+送信側と受信側の両方で補正すると、PVを過小または過大評価してSoC計画を壊す。
+
+マイコンはUDP欠落時に過去commandを保持して加速してはならない。独立timeout、
+速度上限、電流/電圧保護、driver
+overrideを持たせ、UDPを直接torqueへ変換しない。
+実装例は\texttt{scripts/wifi\_vehicle\_sender\_example.py}、\texttt{wifi\_chase\_sender\_example.py}、
+\texttt{templates/network}にある。
+
+\section{live
+WiFiの起動と1周期}\label{live-wifiux306eux8d77ux52d5ux30681ux5468ux671f}
+
+release gate通過後に起動する。
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\OperatorTok{.}\NormalTok{\textbackslash{}SolarSim}\OperatorTok{.}\FunctionTok{ps1} \OperatorTok{{-}}\NormalTok{Mode live\_wifi }\OperatorTok{{-}}\NormalTok{Action up }\OperatorTok{{-}}\NormalTok{Profile project\_packages\textbackslash{}}\OperatorTok{\textless{}}\NormalTok{vehicle}\OperatorTok{\textgreater{}}\NormalTok{\textbackslash{}profile}\OperatorTok{.}\FunctionTok{yaml}
+\end{Highlighting}
+\end{Shaded}
+
+1周期では、UDP受信、UTF-8/JSON解釈、UTC gate、range/rate filter、ROS
+publish、 distance/grade/wind更新、状態予測、下位1 Hz MPC、安全command
+bridge、UDP送信、
+logger/dashboard更新を同じ時系列で行う。上位remaining-course
+MPCは設定周期または forecast更新triggerで再計画する。
+
+command bridgeはstartup hold、input
+timeout、low-pass、加減速上限、deadband、 0.1 km/h量子化、drive
+mode最低保持時間を順に適用する。weather/autocalはversioned
+rawを保存し、grounded modelをboundなしで上書きしない。
+
+dashboardで最低限、実速度、上下位command、距離、SoC、V/I、PV、wind、通信age、
+planner
+status、警告が一画面にあることを確認する。loggerの時刻が増えない、
+bridge statusがrejected、plannerがinfeasibleの場合は出発しない。
+
+\section{race-day release gate}\label{race-day-release-gate}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+区分 & 合格条件 \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+source & audit/pytest成功、release commit/hash固定 \\
+model & evidence、hold-out、終端anchor、物理bound合格 \\
+race & 全距離、schedule、timezone、stop、speed limit確認 \\
+simulation & finish、終端energy帯、全制約、detail balance合格 \\
+ROS & 4 mode起動、実node rqt graph、重複nodeなし \\
+network & 2 Pi、NTP、fresh/stale/future/duplicate UDP試験 \\
+operation & dashboard/logger、disk、電源、shadow road test合格 \\
+\end{longtable}
+}
+
+開始直前にprofile hash、soc0、route/weather coverage、map
+provenance、remote IP/portを 二人で読み合わせる。出発後にcanonical
+profileを編集しない。
+
+\section{異常時の復旧}\label{ux7570ux5e38ux6642ux306eux5fa9ux65e7}
+
+\begin{itemize}
+\tightlist
+\item
+  telemetry欠落: bridgeのsafe
+  speedへ遷移させ、time/networkを直す。gateを無効にしない。
+\item
+  forecast失敗: 最後のvalid
+  versionを保持し、ageを表示する。空CSVへ差し替えない。
+\item
+  planner infeasible: 安全速度または停止へ移り、制約をその場で緩めない。
+\item
+  node終了:
+  \texttt{log}保存、\texttt{stop}、原因修正、\texttt{up}。launchを二重起動しない。
+\item
+  disk逼迫: 新runを止めてarchiveする。loggerだけ無効にして走らない。
+\item
+  時刻逆転: NTP再同期後、新しいrunとして再開する。古いCSVへ追記しない。
+\end{itemize}
+
+各日終了後、clean stop、logs、manifest、resolved profile、event、manual
+overrideを
+archiveしhashを残す。翌日のparameter更新前にその日のreplayを行う。
+
+\section{出力の所在と追跡}\label{ux51faux529bux306eux6240ux5728ux3068ux8ffdux8de1}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+path
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+内容
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{outputs/logs} & measurement/live同期CSV \\
+\texttt{outputs/runtime} & live raw/corrected weather、runtime state \\
+\texttt{outputs/identification} & fit summary、residual、map、報告書 \\
+\texttt{simulation.output\_dir} & summary/detail/plan
+CSV、HTML、図、manifest \\
+\texttt{.run/solar\_\textless{}mode\textgreater{}.log} & launch
+stdout/stderr \\
+\texttt{rqt\_graph\_solar\_\textless{}mode\textgreater{}.png} & 実node
+graph \\
+\end{longtable}
+}
+
+結果を人へ渡すときは、CSV単体ではなく、manifest、resolved
+profile、map/evidence hash、 solver
+status、警告を一組にする。\path{latest_simulation_run.json}は最新runへの安定pointerで、
+generic filenameの中身を推測してはならない。
+
+\section{教材と最終確認}\label{ux6559ux6750ux3068ux6700ux7d42ux78baux8a8d}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{docs/complete\_flow\_workbook}: live
+  1周期から上位MPCの有限差分、L-BFGS、有限grid証明まで。
+\item
+  \texttt{docs/mle\_hand\_calculation\_workbook}:
+  Gaussian/Huber、PV、motion、battery、joint MLE、採否まで。
+\item
+  \texttt{docs/solar\_all\_in\_one\_manual}:
+  物理モデル、全体構成、同定・運用の統合解説。
+\item
+  \texttt{docs/package\_inventory}: source/config/ROS
+  topicの機械生成inventory。
+\end{itemize}
+
+unit
+testやoptimizer成功だけを、実車安全または高精度の保証にしてはならない。
+採用条件は、独立data、制約付き全コースsim、実ROS起動、通信異常試験、shadow
+road testを すべて通すことである。
+
+\end{document}

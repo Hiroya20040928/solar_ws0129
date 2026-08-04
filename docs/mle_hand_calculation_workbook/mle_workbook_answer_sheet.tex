@@ -1,0 +1,43 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[top=14mm,bottom=16mm,left=15mm,right=15mm]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setmainfont{Times New Roman}
+\setCJKmainfont{Yu Gothic}
+\usepackage{tabularx}
+\setlength{\parindent}{0pt}
+\newcommand{\answerrow}[2]{\textbf{#1}\quad #2\\[-1mm]\fbox{\parbox[t][38mm][t]{0.96\linewidth}{\hspace{1mm}}}\par\vspace{3mm}}
+\begin{document}
+\begin{center}
+{\LARGE\bfseries 車両同定MLE 完全手計算体験書}\\[2mm]
+{\Large 解答用紙}\\[5mm]
+\begin{tabularx}{\linewidth}{|p{25mm}|X|p{28mm}|}\hline
+氏名&&採点\\\hline 実施日&&確認者\\\hline
+\end{tabularx}
+\end{center}
+\vspace{4mm}
+\answerrow{M1}{Gaussian NLL}
+\answerrow{M2}{Huber}
+\answerrow{M3}{Hampel}
+\answerrow{M4}{map shape}
+\answerrow{M5}{PV gain}
+\answerrow{M5b}{DNI/DHIから停止POA}
+\answerrow{M5c}{時間平均日射と瞬時日射}
+\answerrow{M5d}{DC bus発電ゲインと二重補正}
+\answerrow{M5e}{25直列pack電圧上限}
+\answerrow{M6}{motion power}
+\answerrow{M6c}{inertial energy}
+\answerrow{M6b}{70 km/h総負荷検算}
+\answerrow{M7}{識別可能性}
+\answerrow{M8}{battery IV/SoC}
+\answerrow{M9}{voltage residual}
+\answerrow{M10}{terminal OCV}
+\answerrow{M11}{joint objective}
+\answerrow{M12}{有限差分}
+\answerrow{M13}{multi-start}
+\answerrow{M14}{map採否}
+\answerrow{M15}{canonical profile}
+\answerrow{M16}{summary検査}
+\answerrow{M17}{小RMSEの落とし穴}
+\answerrow{M18}{全工程}
+\end{document}

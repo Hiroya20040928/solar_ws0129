@@ -1,0 +1,289 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={上位MPC 目的関数},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{16. 上位MPC 目的関数}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/upper_cost.py| \\
+        種別 & Python \\
+        区分 & planner helper \\
+        役割 & 速度、SoC、温度、電流、進捗、day-end、terminal 条件を penalty として定義する。 \\
+        起動文脈 & upper planner の良し悪しを数式化する場所。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        速度、SoC、温度、電流、進捗、day-end、terminal 条件を penalty として定義する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item upper\_stage\_cost と upper\_terminal\_cost が中心。
+\item load\_upper\_cost\_config が profile の重み束を解く。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_node.py|
+\item \path|scripts/solar_sim.py|
+\item \path|tune_upper_planner_weights.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/tune_upper_planner_weights.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+@dataclass
+class UpperCostConfig:
+    objective_mode: str = "weighted"
+    w_wait: float = 1.0
+    w_travel_time: float = 1.0
+    w_terminal_soc_min: float = 30.0
+    w_day_end_soc_min: float = 1.0e5
+    w_soc_day_max: float = 1.0e4
+    w_soc_day_track: float = 0.0
+    w_speed_smooth: float = 30.0
+    w_dv_limit: float = 2.0
+    w_speed_limit: float = 50.0
+    w_drive_window: float = 1.0e5
+    w_current_sq: float = 0.01
+    w_pack_energy: float = 0.0
+    w_joule_loss: float = 0.0
+    w_aero_energy: float = 0.0
+    w_mech_energy: float = 0.0
+    w_speed_quartic: float = 0.0
+    w_solar_headroom: float = 0.0
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは UpperCostConfig。 主要関数は to\_dict, load\_upper\_cost\_config, pick, quad\_penalty, upper\_stage\_cost, upper\_terminal\_cost, active\_upper\_cost\_terms。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            8 & class & \path|UpperCostConfig| &  \\
+44 & function & \path|to_dict| & args: self \\
+48 & function & \path|_cfg_value| & args: cfg, key, default \\
+54 & function & \path|load_upper_cost_config| & args: mpc\_cfg \\
+65 & function & \path|pick| & args: name, default \\
+110 & function & \path|quad_penalty| & args: x, cap \\
+118 & function & \path|upper_stage_cost| & args: cfg \\
+263 & function & \path|upper_terminal_cost| & args: cfg \\
+283 & function & \path|active_upper_cost_terms| & args: cfg, threshold \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            8 & クラス UpperCostConfig を定義する。 \\
+48 & 関数 \_cfg\_value を定義する。 \\
+54 & 関数 load\_upper\_cost\_config を定義する。 \\
+110 & 関数 quad\_penalty を定義する。 \\
+118 & 関数 upper\_stage\_cost を定義する。 \\
+263 & 関数 upper\_terminal\_cost を定義する。 \\
+283 & 関数 active\_upper\_cost\_terms を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|from dataclasses import asdict, dataclass| & dataclasses から asdict, dataclass を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L7, L45。 \\
+4 & \path|from typing import Any, Dict, Optional| & typing から Any, Dict, Optional を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L44, L48, L55, L57, L126, L132, L145, L148, ...。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L8 クラス \path|UpperCostConfig|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|UpperCostConfig(bases=なし)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: asdict
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item objective\_mode に 'weighted' を代入する。
+\item w\_wait に 1.0 を代入する。
+\item w\_travel\_time に 1.0 を代入する。
+\item w\_terminal\_soc\_min に 30.0 を代入する。
+\item w\_day\_end\_soc\_min に 100000.0 を代入する。
+\item w\_soc\_day\_max に 10000.0 を代入する。
+\item w\_soc\_day\_track に 0.0 を代入する。
+\item w\_speed\_smooth に 30.0 を代入する。
+\item w\_dv\_limit に 2.0 を代入する。
+\item w\_speed\_limit に 50.0 を代入する。
+\item w\_drive\_window に 100000.0 を代入する。
+\item w\_current\_sq に 0.01 を代入する。
+            \end{enumerate}
+
+\subsection*{L48 関数 \path|_cfg_value|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_cfg_value(cfg, key, default)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: isinstance
+              \item 戻り値の要点: default / cfg[key]
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 isinstance(cfg, dict) and key in cfg を判定し、真なら内部処理を行う。
+\item default を返す。
+            \end{enumerate}
+
+\subsection*{L54 関数 \path|load_upper_cost_config|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|load_upper_cost_config(mpc_cfg, legacy, default_drive_window)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: UpperCostConfig, \_cfg\_value, float, get, isinstance, lower, pick, str, strip
+              \item 戻り値の要点: UpperCostConfig(objective\_mode=str(pick('objective\_mode', 'weighted')).strip().lower(), w\_wait=float(pick('w\_wait', 1.0)), w\_travel\_time=float(pick('w\_travel\_time', 1.0)), w\_terminal\_soc\_min=float(pick('w\_terminal\_soc\_min', 30.0)), w\_day\_end\_soc\_min=float(pick('w\_day\_end\_soc\_min', default\_drive\_window)), w\_soc\_day\_max=float(pick('w\_soc\_day\_max', 10000.0)), w\_soc\_day\_track=float(pick('w\_soc\_day\_track', 0.0)), w\_speed\_smooth=float(pick('w\_speed\_smooth', \_cfg\_value(legacy, 'w\_dv', 30.0))), w\_dv\_limit=float(pick('w\_dv\_limit', 2.0)), w\_speed\_limit=float(pick('w\_speed\_limit', 50.0)), w\_drive\_window=float(pick('w\_drive\_window', default\_drive\_window)), w\_current\_sq=float(pick('w\_current\_sq', \_cfg\_value(legacy, 'w\_current', 0.01))), w\_pack\_energy=float(pick('w\_pack\_energy', 0.0)), w\_joule\_loss=float(pick('w\_joule\_loss', 0.0)), w\_aero\_energy=float(pick('w\_aero\_energy', 0.0)), w\_mech\_energy=float(pick('w\_mech\_energy', 0.0)), w\_speed\_quartic=float(pick('w\_speed\_quartic', 0.0)), w\_solar\_headroom=float(pick('w\_solar\_headroom', 0.0)), w\_progress\_lag=float(pick('w\_progress\_lag', 0.0)), w\_progress\_terminal\_lag=float(pick('w\_progress\_terminal\_lag', 0.0)), w\_kinetic\_pos=float(pick('w\_kinetic\_pos', 0.0)), w\_pack\_power\_slew=float(pick('w\_pack\_power\_slew', 0.0)), w\_temp=float(pick('w\_temp', \_cfg\_value(legacy, 'w\_T', 5.0))), w\_soc\_terminal=float(pick('w\_soc\_terminal', 0.0)), w\_soc\_floor\_barrier=float(pick('w\_soc\_floor\_barrier', 0.0)), w\_uncertainty\_reserve=float(pick('w\_uncertainty\_reserve', 0.0)), speed\_quartic\_scale\_kmh=float(pick('speed\_quartic\_scale\_kmh', 80.0)), progress\_lag\_deadband\_km=float(pick('progress\_lag\_deadband\_km', 0.0)), soc\_solar\_headroom\_max=float(pick('soc\_solar\_headroom\_max', 0.92)), solar\_headroom\_power\_scale\_w=float(pick('solar\_headroom\_power\_scale\_w', 1000.0)), soc\_floor\_barrier\_eps=float(pick('soc\_floor\_barrier\_eps', 0.01)), reserve\_soc\_per\_hour=float(pick('reserve\_soc\_per\_hour', 0.0)), reserve\_soc\_max\_extra=float(pick('reserve\_soc\_max\_extra', 0.0)), constraint\_penalty=float(pick('constraint\_penalty', 10000.0))) / default / nested[name] / legacy[name]
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item legacy に legacy or \{\} の結果を代入する。
+\item nested に \{\} の結果を代入する。
+\item 条件 isinstance(mpc\_cfg, dict) を判定し、真なら内部処理を行う。
+\item 関数 pick を定義する。
+\item UpperCostConfig(objective\_mode=str(pick('objective\_mode', 'weighted')).strip().lower(), w\_wait=float(pick('w\_wait', 1.0)), w\_travel\_time=float(pick('w\_travel\_time', 1.0)), w\_terminal\_soc\_min=float(pick('w\_terminal\_soc\_min', 30.0)), w\_day\_end\_soc\_min=float(pick('w\_day\_end\_soc\_min', default\_drive\_window)), w\_soc\_day\_max=float(pick('w\_soc\_day\_max', 10000.0)), w\_soc\_day\_track=float(pick('w\_soc\_day\_track', 0.0)), w\_speed\_smooth=float(pick('w\_speed\_smooth', \_cfg\_value(legacy, 'w\_dv', 30.0))), w\_dv\_limit=float(pick('w\_dv\_limit', 2.0)), w\_speed\_limit=float(pick('w\_speed\_limit', 50.0)), w\_drive\_window=float(pick('w\_drive\_window', default\_drive\_window)), w\_current\_sq=float(pick('w\_current\_sq', \_cfg\_value(legacy, 'w\_current', 0.01))), w\_pack\_energy=float(pick('w\_pack\_energy', 0.0)), w\_joule\_loss=float(pick('w\_joule\_loss', 0.0)), w\_aero\_energy=float(pick('w\_aero\_energy', 0.0)), w\_mech\_energy=float(pick('w\_mech\_energy', 0.0)), w\_speed\_quartic=float(pick('w\_speed\_quartic', 0.0)), w\_solar\_headroom=float(pick('w\_solar\_headroom', 0.0)), w\_progress\_lag=float(pick('w\_progress\_lag', 0.0)), w\_progress\_terminal\_lag=float(pick('w\_progress\_terminal\_lag', 0.0)), w\_kinetic\_pos=float(pick('w\_kinetic\_pos', 0.0)), w\_pack\_power\_slew=float(pick('w\_pack\_power\_slew', 0.0)), w\_temp=float(pick('w\_temp', \_cfg\_value(legacy, 'w\_T', 5.0))), w\_soc\_terminal=float(pick('w\_soc\_terminal', 0.0)), w\_soc\_floor\_barrier=float(pick('w\_soc\_floor\_barrier', 0.0)), w\_uncertainty\_reserve=float(pick('w\_uncertainty\_reserve', 0.0)), speed\_quartic\_scale\_kmh=float(pick('speed\_quartic\_scale\_kmh', 80.0)), progress\_lag\_deadband\_km=float(pick('progress\_lag\_deadband\_km', 0.0)), soc\_solar\_headroom\_max=float(pick('soc\_solar\_headroom\_max', 0.92)), solar\_headroom\_power\_scale\_w=float(pick('solar\_headroom\_power\_scale\_w', 1000.0)), soc\_floor\_barrier\_eps=float(pick('soc\_floor\_barrier\_eps', 0.01)), reserve\_soc\_per\_hour=float(pick('reserve\_soc\_per\_hour', 0.0)), reserve\_soc\_max\_extra=float(pick('reserve\_soc\_max\_extra', 0.0)), constraint\_penalty=float(pick('constraint\_penalty', 10000.0))) を返す。
+            \end{enumerate}
+
+\subsection*{L110 関数 \path|quad_penalty|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|quad_penalty(x, cap)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: x * x / 0.0
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 x <= 0.0 を判定し、真なら内部処理を行う。
+\item 条件 x > cap を判定し、真なら内部処理を行う。
+\item x * x を返す。
+            \end{enumerate}
+
+\subsection*{L118 関数 \path|upper_stage_cost|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|upper_stage_cost(cfg, dt_wait, dt_travel, v_kmh, v_prev_kmh, vmax_local_kmh, drive_limits, dv_limit_kmhps, I_a, V_v, P_pv_w, P_pack_w, P_pack_prev_w, P_mech_wheel_w, losses_int_w, losses_line_w, F_aero_n, kinetic_step_wh, z_next, Tb_next_c, term_soc_min, soc_min, soc_max, temp_min_c, temp_max_c, day_end_soc_min, day_end_crossing, soc_day_end_max, soc_day_track_target, soc_day_track_tol, I_max, I_chg_min, V_min, V_max, time_ahead_h, progress_lag_km)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, float, max, min, quad\_penalty
+              \item 戻り値の要点: J / J
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item J に 0.0 の結果を代入する。
+\item 条件 dt\_wait > 0.0 を判定し、真なら内部処理を行う。
+\item J を Add で更新する。
+\item 条件 cfg.objective\_mode in \{'fastest', 'fastest\_feasible', 'minimum\_time'\} を判定し、真なら内部処理を行う。
+\item J を Add で更新する。
+\item 条件 soc\_day\_track\_target is not None を判定し、真なら内部処理を行う。
+\item dv に (v\_kmh - v\_prev\_kmh) / max(dt\_travel, 0.001) の結果を代入する。
+\item J を Add で更新する。
+\item 条件 dv\_limit\_kmhps > 0.0 を判定し、真なら内部処理を行う。
+\item 条件 drive\_limits is not None を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L263 関数 \path|upper_terminal_cost|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|upper_terminal_cost(cfg, z_terminal, term_soc_min, soc_finish_target, soc_finish_tol, progress_terminal_lag_km)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, max, quad\_penalty
+              \item 戻り値の要点: J
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item J に cfg.constraint\_penalty * quad\_penalty(term\_soc\_min - z\_terminal) の結果を代入する。
+\item 条件 soc\_finish\_target > 0.0 を判定し、真なら内部処理を行う。
+\item 条件 cfg.w\_progress\_terminal\_lag > 0.0 を判定し、真なら内部処理を行う。
+\item J を返す。
+            \end{enumerate}
+
+\subsection*{L283 関数 \path|active_upper_cost_terms|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|active_upper_cost_terms(cfg, threshold)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, float, items, startswith, to\_dict
+              \item 戻り値の要点: out
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item out に \{\} の結果を代入する。
+\item cfg.to\_dict().items() を順に走査し、各要素を (key, value) に入れて処理する。
+\item out を返す。
+            \end{enumerate}
+
+
+
+
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/upper_cost.py| を
+        \textbf{planner helper}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

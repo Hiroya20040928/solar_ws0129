@@ -1,0 +1,615 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={同定後 fullsim レポート生成},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{40. 同定後 fullsim レポート生成}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|scripts/generate_fit_fullsim_report.py| \\
+        種別 & Python \\
+        区分 & report \\
+        役割 & identification run と replay/fullsim の結果をまとめ、説明用レポートへ整形する。 \\
+        起動文脈 & fit の結果説明と評価集約に使う。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        identification run と replay/fullsim の結果をまとめ、説明用レポートへ整形する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同定結果と full simulation を一つの説明資料へまとめる。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 手動レポート生成
+\item 後処理パイプライン
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 特記事項なし。
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/audit_identification_residuals.py|
+\item \path|scripts/build_bwsc2025_fitted_package.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from scripts.audit_identification_residuals import weather_and_cruise_metrics
+
+
+def resolve_path(base_dir: Path, raw: str) -> Path:
+    path = Path(str(raw or "").strip())
+    if not path:
+        return base_dir
+    if path.is_absolute():
+        return path
+    rooted = (ROOT / path).resolve()
+    if rooted.exists():
+        return rooted
+    return (base_dir / path).resolve()
+
+
+def latex_escape(text: object) -> str:
+    value = str(text)
+    repl = {
+        "\\": r"\textbackslash{}",
+        "&": r"\&",
+        "%": r"\%",
+        "$": r"\$",
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要関数は resolve\_path, latex\_escape, rel\_display, locate\_package\_dir, locate\_fit\_summary, rms, day\_block\_bootstrap\_rmse, load\_replay\_diagnostics。 CLI 引数宣言は 4 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            38 & function & \path|resolve_path| & args: base\_dir, raw \\
+50 & function & \path|latex_escape| & args: text \\
+71 & function & \path|rel_display| & args: path, base\_dir \\
+77 & function & \path|locate_package_dir| & args: profile\_yaml \\
+88 & function & \path|locate_fit_summary| & args: package\_dir, profile\_yaml \\
+119 & function & \path|rms| & args: values \\
+127 & function & \path|day_block_bootstrap_rmse| & args: df, residual\_column \\
+175 & function & \path|load_replay_diagnostics| & args: package\_dir, replay\_csv \\
+238 & function & \path|locate_fullsim_manifest| & args: package\_dir, profile\_yaml \\
+266 & function & \path|resolve_manifest_artifact| & args: manifest\_path, raw, package\_dir \\
+277 & function & \path|load_fullsim_summary| & args: package\_dir, profile\_yaml, manifest\_path \\
+401 & function & \path|audit_fullsim_detail| & args: package\_dir, manifest\_path, manifest \\
+477 & function & \path|interpolate_at_distance| & args: df, column, distance\_km \\
+496 & function & \path|moving_speed_in_interval| & args: df, column, start\_km, end\_km \\
+511 & function & \path|build_human_mpc_distance_comparison| & args: replay\_df, fullsim\_df, retire\_distance\_km \\
+549 & function & \path|build_daily_progress_comparison| & args: replay\_df, fullsim\_df \\
+570 & function & \path|write_human_mpc_distance_plot| & args: replay\_df, fullsim\_df, comparison, output\_path, retire\_distance\_km \\
+627 & function & \path|md_table| & args: df \\
+645 & function & \path|tex_kv_table| & args: items \\
+661 & function & \path|tex_df_table| & args: df, title \\
+698 & function & \path|build_report| & args: package\_dir, profile\_yaml \\
+1560 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            18 & matplotlib.use(...) を実行する。 \\
+21 & ROOT に Path(\_\_file\_\_).resolve().parents[1] の結果を代入する。 \\
+22 & 条件 str(ROOT) not in sys.path を判定し、真なら内部処理を行う。 \\
+38 & 関数 resolve\_path を定義する。 \\
+50 & 関数 latex\_escape を定義する。 \\
+71 & 関数 rel\_display を定義する。 \\
+77 & 関数 locate\_package\_dir を定義する。 \\
+88 & 関数 locate\_fit\_summary を定義する。 \\
+119 & 関数 rms を定義する。 \\
+127 & 関数 day\_block\_bootstrap\_rmse を定義する。 \\
+175 & 関数 load\_replay\_diagnostics を定義する。 \\
+238 & 関数 locate\_fullsim\_manifest を定義する。 \\
+266 & 関数 resolve\_manifest\_artifact を定義する。 \\
+277 & 関数 load\_fullsim\_summary を定義する。 \\
+356 & DETAIL\_REQUIRED\_COLUMNS に \{'lower\_command\_index', 'time\_utc', 'step\_dt\_sec', 'detail\_target\_dt\_sec', 'outer\_step\_requested\_dt\_sec', 'outer\_step\_actual\_dt\_sec', 'outer\_step\_boundary\_reason', 's\_km', 'upper\_speed\_cmd\_kmh', 'lower\_speed\_cmd\_kmh', 'v\_exec\_kmh', 'soc', 'G\_poa', 'Tamb\_C', 'Tcell\_C', 'P\_pv', 'P\_aux', 'P\_vehicle\_load\_w', 'P\_pack', 'I', 'V', 'OCV', 'Rint', 'Rline', 'eff\_drv', 'eff\_reg', 'F\_aero', 'F\_roll', 'F\_grade', 'P\_inertia', 'param\_m', 'param\_CdA', 'param\_Crr', 'param\_P\_aux', 'param\_E\_nom\_Wh', 'map\_drive\_eff\_map', 'map\_regen\_eff\_map', 'map\_rint\_map', 'map\_panel\_eff\_map', 'map\_mppt\_eff\_map', 'map\_ocv\_soc\_map'\} の結果を代入する。 \\
+401 & 関数 audit\_fullsim\_detail を定義する。 \\
+477 & 関数 interpolate\_at\_distance を定義する。 \\
+496 & 関数 moving\_speed\_in\_interval を定義する。 \\
+511 & 関数 build\_human\_mpc\_distance\_comparison を定義する。 \\
+549 & 関数 build\_daily\_progress\_comparison を定義する。 \\
+570 & 関数 write\_human\_mpc\_distance\_plot を定義する。 \\
+627 & 関数 md\_table を定義する。 \\
+645 & 関数 tex\_kv\_table を定義する。 \\
+661 & 関数 tex\_df\_table を定義する。 \\
+698 & 関数 build\_report を定義する。 \\
+1560 & 関数 main を定義する。 \\
+1604 & 条件 \_\_name\_\_ == '\_\_main\_\_' を判定し、真なら内部処理を行う。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            2 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+4 & \path|import argparse| & CLI 引数を宣言し、実行時パラメータを外から受け取るため。 このファイル内での主な使用位置は L1561。 \\
+5 & \path|import json| & manifest、checkpoint、UDP payload をやり取りするため。 このファイル内での主な使用位置は L290, L1592。 \\
+6 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+7 & \path|import os| & パス、環境変数、プロセス外部状態を扱うため。 このファイル内での主な使用位置は L74。 \\
+8 & \path|import sys| & sys モジュールを利用するため。 このファイル内での主な使用位置は L22, L23。 \\
+9 & \path|import textwrap| & textwrap モジュールを利用するため。 このファイル内での主な使用位置は L647, L675, L688, L1555。 \\
+10 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L21, L38, L39, L71, L77, L88, L175, L238, ...。 \\
+11 & \path|from typing import Dict, Iterable| & typing から Dict, Iterable を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L133, L175, L281, L326, L405, L645。 \\
+13 & \path|import matplotlib| & matplotlib モジュールを利用するため。 このファイル内での主な使用位置は L18。 \\
+14 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L121, L124, L163, L165, L167, L168, L169, L216, ...。 \\
+15 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L119, L120, L128, L142, L145, L180, L181, L182, ...。 \\
+16 & \path|import yaml| & profile、stop、schedule、summary YAML を読み書きするため。 このファイル内での主な使用位置は L90, L239, L707, L708, L750, L847, L958, L988。 \\
+19 & \path|import matplotlib.pyplot as plt| & matplotlib.pyplot モジュールを利用するため。 このファイル内での主な使用位置は L579, L623。 \\
+25 & \path|from scripts.build_bwsc2025_fitted_package import BATTERY_E_NOM_MAX_WH, BATTERY_E_NOM_MIN_WH, BATTERY_ETA_CHARGE_MAX, BATTERY_ETA_CHARGE_MIN, BATTERY_RINT_SCALE_MAX, BATTERY_RINT_SCALE_MIN, compile_tex, ensure_dir| & build\_bwsc2025\_fitted\_package.py から BATTERY\_E\_NOM\_MAX\_WH, BATTERY\_E\_NOM\_MIN\_WH, BATTERY\_ETA\_CHARGE\_MAX, BATTERY\_ETA\_CHARGE\_MIN, BATTERY\_RINT\_SCALE\_MAX, BATTERY\_RINT\_SCALE\_MIN, compile\_tex, ensure\_dir を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは scripts/build\_bwsc2025\_fitted\_package.py。 このファイル内での主な使用位置は L756, L796, L798, L800, L806, L807, L808, L809, ...。 \\
+35 & \path|from scripts.audit_identification_residuals import weather_and_cruise_metrics| & audit\_identification\_residuals.py から weather\_and\_cruise\_metrics を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは scripts/audit\_identification\_residuals.py。 このファイル内での主な使用位置は L720, L721。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L38 関数 \path|resolve_path|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|resolve_path(base_dir, raw)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, exists, is\_absolute, resolve, str, strip
+              \item 戻り値の要点: (base\_dir / path).resolve() / base\_dir / path / rooted
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item path に Path(str(raw or '').strip()) の結果を代入する。
+\item 条件 not path を判定し、真なら内部処理を行う。
+\item 条件 path.is\_absolute() を判定し、真なら内部処理を行う。
+\item rooted に (ROOT / path).resolve() の結果を代入する。
+\item 条件 rooted.exists() を判定し、真なら内部処理を行う。
+\item (base\_dir / path).resolve() を返す。
+            \end{enumerate}
+
+\subsection*{L50 関数 \path|latex_escape|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|latex_escape(text)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: items, replace, str
+              \item 戻り値の要点: value
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item value に str(text) の結果を代入する。
+\item repl に \{'\textbackslash{}\textbackslash{}': '\textbackslash{}\textbackslash{}textbackslash\{\}', '\&': '\textbackslash{}\textbackslash{}\&', '\%': '\textbackslash{}\textbackslash{}\%', '\$': '\textbackslash{}\textbackslash{}\$', '\#': '\textbackslash{}\textbackslash{}\#', '\_': '\textbackslash{}\textbackslash{}\_', '\{': '\textbackslash{}\textbackslash{}\{', '\}': '\textbackslash{}\textbackslash{}\}', '\textasciitilde{}': '\textbackslash{}\textbackslash{}textasciitilde\{\}', '\textasciicircum{}': '\textbackslash{}\textbackslash{}textasciicircum\{\}'\} の結果を代入する。
+\item repl.items() を順に走査し、各要素を (src, dst) に入れて処理する。
+\item value に value.replace('/', '/\textbackslash{}\textbackslash{}allowbreak\{\}') の結果を代入する。
+\item value に value.replace('\textbackslash{}\textbackslash{}\_', '\textbackslash{}\textbackslash{}\_\textbackslash{}\textbackslash{}allowbreak\{\}') の結果を代入する。
+\item value を返す。
+            \end{enumerate}
+
+\subsection*{L71 関数 \path|rel_display|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|rel_display(path, base_dir)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: relpath, replace
+              \item 戻り値の要点: os.path.relpath(path, base\_dir).replace('\textbackslash{}\textbackslash{}', '/') / 'not found'
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 path is None を判定し、真なら内部処理を行う。
+\item os.path.relpath(path, base\_dir).replace('\textbackslash{}\textbackslash{}', '/') を返す。
+            \end{enumerate}
+
+\subsection*{L77 関数 \path|locate_package_dir|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|locate_package_dir(profile_yaml)|
+              \item docstring: Return the owning project package even for versioned run profiles.
+              \item このブロックが直接呼ぶ主な関数・メソッド: is\_dir, resolve
+              \item 戻り値の要点: profile\_yaml.parent / candidate
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item profile\_yaml に profile\_yaml.resolve() の結果を代入する。
+\item (profile\_yaml.parent, *profile\_yaml.parents) を順に走査し、各要素を candidate に入れて処理する。
+\item profile\_yaml.parent を返す。
+            \end{enumerate}
+
+\subsection*{L88 関数 \path|locate_fit_summary|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|locate_fit_summary(package_dir, profile_yaml)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: FileNotFoundError, exists, get, glob, read\_text, safe\_load, sorted, stat, str, strip
+              \item 戻り値の要点: candidates[0] / preferred / tagged
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 profile\_yaml is not None and profile\_yaml.exists() を判定し、真なら内部処理を行う。
+\item preferred に package\_dir / 'outputs' / 'identification' / f'\{package\_dir.name\}\_generic\_fit\_summary.yaml' の結果を代入する。
+\item 条件 preferred.exists() を判定し、真なら内部処理を行う。
+\item candidates に sorted((package\_dir / 'outputs' / 'identification').glob('*\_generic\_fit\_summary.yaml'), key=lambda p: p.stat().st\_mtime, reverse=True) の結果を代入する。
+\item 条件 not candidates を判定し、真なら内部処理を行う。
+\item candidates[0] を返す。
+            \end{enumerate}
+
+\subsection*{L119 関数 \path|rms|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|rms(values)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, isfinite, mean, sqrt, to\_numeric, to\_numpy
+              \item 戻り値の要点: float(np.sqrt(np.mean(arr ** 2))) / float('nan')
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item arr に pd.to\_numeric(values, errors='coerce').to\_numpy(dtype=float) の結果を代入する。
+\item arr に arr[np.isfinite(arr)] の結果を代入する。
+\item 条件 arr.size == 0 を判定し、真なら内部処理を行う。
+\item float(np.sqrt(np.mean(arr ** 2))) を返す。
+            \end{enumerate}
+
+\subsection*{L127 関数 \path|day_block_bootstrap_rmse|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|day_block_bootstrap_rmse(df, residual_column, draws, seed)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, agg, assign, astype, default\_rng, dropna, float, groupby, int, integers, len, quantile
+              \item 戻り値の要点: \{'rmse': float(np.sqrt(sse.sum() / count.sum())), 'ci95\_min': float(np.quantile(sampled\_rmse, 0.025)), 'ci95\_max': float(np.quantile(sampled\_rmse, 0.975)), 'day\_blocks': int(len(blocks)), 'draws': int(draws)\} / \{'rmse': float('nan'), 'ci95\_min': float('nan'), 'ci95\_max': float('nan'), 'day\_blocks': 0, 'draws': 0\} / \{'rmse': float('nan'), 'ci95\_min': float('nan'), 'ci95\_max': float('nan'), 'day\_blocks': 0, 'draws': 0\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 df.empty or 'local\_date' not in df.columns or residual\_column not in df.columns を判定し、真なら内部処理を行う。
+\item work に pd.DataFrame(\{'local\_date': df['local\_date'].astype(str), 'residual': pd.to\_numeric(df[residual\_column], errors='coerce')\}).dropna() の結果を代入する。
+\item 条件 work.empty を判定し、真なら内部処理を行う。
+\item blocks に work.assign(sq=lambda frame: frame['residual'] ** 2).groupby('local\_date').agg(sse=('sq', 'sum'), count=('sq', 'size')) の結果を代入する。
+\item sse に blocks['sse'].to\_numpy(dtype=float) の結果を代入する。
+\item count に blocks['count'].to\_numpy(dtype=float) の結果を代入する。
+\item rng に np.random.default\_rng(seed) の結果を代入する。
+\item samples に rng.integers(0, len(blocks), size=(int(draws), len(blocks))) の結果を代入する。
+\item sampled\_rmse に np.sqrt(sse[samples].sum(axis=1) / count[samples].sum(axis=1)) の結果を代入する。
+\item \{'rmse': float(np.sqrt(sse.sum() / count.sum())), 'ci95\_min': float(np.quantile(sampled\_rmse, 0.025)), 'ci95\_max': float(np.quantile(sampled\_rmse, 0.975)), 'day\_blocks': int(len(blocks)), 'draws': int(draws)\} を返す。
+            \end{enumerate}
+
+\subsection*{L175 関数 \path|load_replay_diagnostics|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|load_replay_diagnostics(package_dir, replay_csv)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, abs, agg, astype, copy, exists, fillna, float, getattr, groupby, mean, nlargest
+              \item 戻り値の要点: \{'replay\_csv': replay\_csv, 'frame': df, 'clean\_frame': clean, 'daily': daily, 'worst\_power': worst\_power, 'worst\_voltage': worst\_voltage\} / \{'replay\_csv': replay\_csv, 'frame': pd.DataFrame(), 'clean\_frame': pd.DataFrame(), 'daily': pd.DataFrame(), 'worst\_power': pd.DataFrame(), 'worst\_voltage': pd.DataFrame()\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item replay\_csv に replay\_csv or package\_dir / 'outputs' / 'identification' / 'replay\_validation.csv' の結果を代入する。
+\item 条件 not replay\_csv.exists() を判定し、真なら内部処理を行う。
+\item df に pd.read\_csv(replay\_csv, low\_memory=False) の結果を代入する。
+\item fallback\_ts に pd.to\_datetime(df['time\_utc'], format='mixed', utc=True, errors='coerce').dt.tz\_convert('Australia/Darwin').dt.tz\_localize(None) の結果を代入する。
+\item 条件 'time\_local' in df.columns を判定し、真なら内部処理を行う。
+\item df['local\_date'] に ts.dt.strftime('\%Y-\%m-\%d') の結果を代入する。
+\item df['power\_resid\_w'] に pd.to\_numeric(df['battery\_power\_w\_obs'], errors='coerce') - pd.to\_numeric(df['battery\_power\_w\_pred'], errors='coerce') の結果を代入する。
+\item df['voltage\_resid\_v'] に pd.to\_numeric(df['battery\_voltage\_v\_obs'], errors='coerce') - pd.to\_numeric(df['battery\_voltage\_v\_pred'], errors='coerce') の結果を代入する。
+\item 条件 'exclude\_power\_fit' in df.columns を判定し、真なら内部処理を行う。
+\item 条件 'exclude\_voltage\_fit' in df.columns を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L238 関数 \path|locate_fullsim_manifest|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|locate_fullsim_manifest(package_dir, profile_yaml)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, exists, get, is\_absolute, read\_text, resolve, safe\_load, str, strip
+              \item 戻り値の要点: None / configured if configured.exists() else None / path
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item profile\_cfg に yaml.safe\_load(profile\_yaml.read\_text(encoding='utf-8')) or \{\} の結果を代入する。
+\item sim に profile\_cfg.get('simulation', \{\}) or \{\} の結果を代入する。
+\item raw に str(sim.get('latest\_manifest\_json', '') or '').strip() の結果を代入する。
+\item 条件 raw を判定し、真なら内部処理を行う。
+\item candidates に [package\_dir / 'outputs' / 'prerace\_fullsim\_selflearned' / 'latest\_simulation\_run.json', package\_dir / 'outputs' / 'prerace\_final\_selflearned' / 'latest\_simulation\_run.json', package\_dir / 'outputs' / 'prerace' / 'latest\_simulation\_run.json'] の結果を代入する。
+\item candidates を順に走査し、各要素を path に入れて処理する。
+\item None を返す。
+            \end{enumerate}
+
+\subsection*{L266 関数 \path|resolve_manifest_artifact|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|resolve_manifest_artifact(manifest_path, raw, package_dir)|
+              \item docstring: Resolve copied manifests whose original absolute path belongs to another host.
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, is\_file, resolve\_path, str, strip
+              \item 戻り値の要点: resolve\_path(package\_dir, str(raw or '')) / path / local\_sibling
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item path に Path(str(raw or '').strip()) の結果を代入する。
+\item 条件 path.is\_file() を判定し、真なら内部処理を行う。
+\item local\_sibling に manifest\_path.parent / path.name の結果を代入する。
+\item 条件 local\_sibling.is\_file() を判定し、真なら内部処理を行う。
+\item resolve\_path(package\_dir, str(raw or '')) を返す。
+            \end{enumerate}
+
+\subsection*{L277 関数 \path|load_fullsim_summary|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|load_fullsim_summary(package_dir, profile_yaml, manifest_path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, agg, clip, exists, fillna, get, getattr, groupby, issubset, items, loads, locate\_fullsim\_manifest
+              \item 戻り値の要点: \{'manifest\_path': manifest\_path, 'manifest': manifest, 'frame': df, 'daily': daily\} / \{'manifest\_path': None, 'manifest': \{\}, 'frame': pd.DataFrame(), 'daily': pd.DataFrame()\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item manifest\_path に manifest\_path or locate\_fullsim\_manifest(package\_dir, profile\_yaml) の結果を代入する。
+\item 条件 manifest\_path is None を判定し、真なら内部処理を行う。
+\item manifest に json.loads(manifest\_path.read\_text(encoding='utf-8')) の結果を代入する。
+\item out\_csv に resolve\_manifest\_artifact(manifest\_path, manifest.get('out\_csv', ''), package\_dir) の結果を代入する。
+\item df に pd.DataFrame() の結果を代入する。
+\item daily に pd.DataFrame() の結果を代入する。
+\item 条件 out\_csv.exists() を判定し、真なら内部処理を行う。
+\item \{'manifest\_path': manifest\_path, 'manifest': manifest, 'frame': df, 'daily': daily\} を返す。
+            \end{enumerate}
+
+\subsection*{L401 関数 \path|audit_fullsim_detail|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|audit_fullsim_detail(package_dir, manifest_path, manifest)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: bool, count\_nonzero, difference, float, get, int, is\_file, isclose, isfinite, len, list, max
+              \item 戻り値の要点: \{'available': True, 'detail\_csv': str(detail\_path), 'row\_count': rows, 'column\_count': len(header), 'required\_column\_count': len(DETAIL\_REQUIRED\_COLUMNS), 'missing\_required\_columns': missing, 'min\_step\_dt\_sec': min\_dt if np.isfinite(min\_dt) else float('nan'), 'max\_step\_dt\_sec': max\_dt if np.isfinite(max\_dt) else float('nan'), 'nominal\_one\_second\_rows': nominal\_rows, 'boundary\_partial\_rows': boundary\_partial\_rows, 'nonfinite\_step\_rows': nonfinite\_step\_rows, 'nonpositive\_step\_rows': nonpositive\_rows, 'over\_one\_second\_rows': over\_one\_second\_rows, 'target\_not\_one\_second\_rows': target\_not\_one\_second\_rows, 'contract\_pass': bool(not missing and rows > 0 and (nonfinite\_step\_rows == 0) and (nonpositive\_rows == 0) and (over\_one\_second\_rows == 0) and (target\_not\_one\_second\_rows == 0))\} / \{'available': False, 'reason': 'detail\_csv\_not\_declared'\} / \{'available': False, 'reason': 'detail\_csv\_missing', 'detail\_csv': str(detail\_path)\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item raw に str(manifest.get('detail\_csv', '') or '').strip() の結果を代入する。
+\item 条件 not raw or manifest\_path is None を判定し、真なら内部処理を行う。
+\item detail\_path に resolve\_manifest\_artifact(manifest\_path, raw, package\_dir) の結果を代入する。
+\item 条件 not detail\_path.is\_file() を判定し、真なら内部処理を行う。
+\item header に list(pd.read\_csv(detail\_path, nrows=0).columns) の結果を代入する。
+\item missing に sorted(DETAIL\_REQUIRED\_COLUMNS.difference(header)) の結果を代入する。
+\item rows に 0 の結果を代入する。
+\item nominal\_rows に 0 の結果を代入する。
+\item boundary\_partial\_rows に 0 の結果を代入する。
+\item nonfinite\_step\_rows に 0 の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L477 関数 \path|interpolate_at_distance|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|interpolate_at_distance(df, column, distance_km)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, dropna, float, groupby, interp, last, sort\_values, to\_numeric, to\_numpy
+              \item 戻り値の要点: float(np.interp(float(distance\_km), x, y)) / float('nan') / float('nan') / float('nan')
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 df.empty or 's\_km' not in df.columns or column not in df.columns を判定し、真なら内部処理を行う。
+\item work に pd.DataFrame(\{'s\_km': pd.to\_numeric(df['s\_km'], errors='coerce'), 'value': pd.to\_numeric(df[column], errors='coerce')\}).dropna() の結果を代入する。
+\item 条件 work.empty を判定し、真なら内部処理を行う。
+\item work に work.groupby('s\_km', as\_index=False)['value'].last().sort\_values('s\_km') の結果を代入する。
+\item x に work['s\_km'].to\_numpy(dtype=float) の結果を代入する。
+\item y に work['value'].to\_numpy(dtype=float) の結果を代入する。
+\item 条件 distance\_km < x[0] or distance\_km > x[-1] を判定し、真なら内部処理を行う。
+\item float(np.interp(float(distance\_km), x, y)) を返す。
+            \end{enumerate}
+
+\subsection*{L496 関数 \path|moving_speed_in_interval|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|moving_speed_in_interval(df, column, start_km, end_km)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: dropna, float, mean, to\_numeric
+              \item 戻り値の要点: float(values.mean()) if not values.empty else float('nan') / float('nan')
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 df.empty or 's\_km' not in df.columns or column not in df.columns を判定し、真なら内部処理を行う。
+\item distance に pd.to\_numeric(df['s\_km'], errors='coerce') の結果を代入する。
+\item speed に pd.to\_numeric(df[column], errors='coerce') の結果を代入する。
+\item mask に (distance > start\_km) \& (distance <= end\_km) \& (speed > 5.0) の結果を代入する。
+\item values に speed.loc[mask].dropna() の結果を代入する。
+\item float(values.mean()) if not values.empty else float('nan') を返す。
+            \end{enumerate}
+
+\subsection*{L511 関数 \path|build_human_mpc_distance_comparison|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|build_human_mpc_distance_comparison(replay_df, fullsim_df, retire_distance_km)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, append, dropna, float, get, interpolate\_at\_distance, moving\_speed\_in\_interval, sorted, to\_numeric
+              \item 戻り値の要点: pd.DataFrame(rows) / pd.DataFrame() / pd.DataFrame()
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 replay\_df.empty or fullsim\_df.empty を判定し、真なら内部処理を行う。
+\item endpoints に [500.0, 1000.0, 1500.0, 2000.0, 2500.0, float(retire\_distance\_km)] の結果を代入する。
+\item endpoints に sorted(\{value for value in endpoints if 0.0 < value <= retire\_distance\_km\}) の結果を代入する。
+\item human\_soc\_series に pd.to\_numeric(replay\_df.get('soc\_pred'), errors='coerce').dropna() の結果を代入する。
+\item mpc\_soc\_series に pd.to\_numeric(fullsim\_df.get('soc'), errors='coerce').dropna() の結果を代入する。
+\item 条件 human\_soc\_series.empty or mpc\_soc\_series.empty を判定し、真なら内部処理を行う。
+\item rows に [] の結果を代入する。
+\item start\_km に 0.0 の結果を代入する。
+\item endpoints を順に走査し、各要素を end\_km に入れて処理する。
+\item pd.DataFrame(rows) を返す。
+            \end{enumerate}
+
+\subsection*{L549 関数 \path|build_daily_progress_comparison|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|build_daily_progress_comparison(replay_df, fullsim_df)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, groupby, max, merge, rename, reset\_index, sort\_values
+              \item 戻り値の要点: out.reset\_index(drop=True) / pd.DataFrame()
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 replay\_df.empty or fullsim\_df.empty or 'local\_date' not in replay\_df or ('local\_date' not in fullsim\_df) を判定し、真なら内部処理を行う。
+\item human に replay\_df.groupby('local\_date', as\_index=False)['s\_km'].max().rename(columns=\{'s\_km': 'human\_end\_s\_km'\}) の結果を代入する。
+\item mpc に fullsim\_df.groupby('local\_date', as\_index=False)['s\_km'].max().rename(columns=\{'s\_km': 'mpc\_end\_s\_km'\}) の結果を代入する。
+\item out に human.merge(mpc, on='local\_date', how='outer').sort\_values('local\_date') の結果を代入する。
+\item out['mpc\_progress\_lead\_km'] に out['mpc\_end\_s\_km'] - out['human\_end\_s\_km'] の結果を代入する。
+\item out.reset\_index(drop=True) を返す。
+            \end{enumerate}
+
+\subsection*{L570 関数 \path|write_human_mpc_distance_plot|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|write_human_mpc_distance_plot(replay_df, fullsim_df, comparison, output_path, retire_distance_km)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: apply, axvline, close, dropna, grid, groupby, last, legend, plot, savefig, set\_xlabel, set\_ylabel
+              \item 戻り値の要点: output\_path / None
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 comparison.empty を判定し、真なら内部処理を行う。
+\item (fig, axes) に plt.subplots(2, 1, figsize=(10.0, 7.0), sharex=True) の結果を代入する。
+\item ((replay\_df, 'soc\_pred', 'Historical replay reconstruction', 'black', '-'), (fullsim\_df, 'soc', 'MPC no-trouble fullsim', '0.35', '--')) を順に走査し、各要素を (df, value\_col, label, color, linestyle) に入れて処理する。
+\item axes[0].axvline(...) を実行する。
+\item axes[0].set\_ylabel(...) を実行する。
+\item axes[0].grid(...) を実行する。
+\item axes[0].legend(...) を実行する。
+\item axes[1].plot(...) を実行する。
+\item axes[1].plot(...) を実行する。
+\item axes[1].axvline(...) を実行する。
+            \end{enumerate}
+
+\subsection*{L627 関数 \path|md_table|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|md_table(df)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: copy, extend, is\_float\_dtype, itertuples, join, len, map, notna, str
+              \item 戻り値の要点: '\textbackslash{}n'.join(lines) / '\_no data\_'
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 df.empty を判定し、真なら内部処理を行う。
+\item data に df.copy() の結果を代入する。
+\item data.columns を順に走査し、各要素を col に入れて処理する。
+\item headers に [str(c) for c in data.columns] の結果を代入する。
+\item rows に [[str(v) for v in row] for row in data.itertuples(index=False, name=None)] の結果を代入する。
+\item sep に ['---'] * len(headers) の結果を代入する。
+\item lines に ['| ' + ' | '.join(headers) + ' |', '| ' + ' | '.join(sep) + ' |'] の結果を代入する。
+\item lines.extend(...) を実行する。
+\item '\textbackslash{}n'.join(lines) を返す。
+            \end{enumerate}
+
+\subsection*{L645 関数 \path|tex_kv_table|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|tex_kv_table(items)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: dedent, join, latex\_escape, strip
+              \item 戻り値の要点: textwrap.dedent(f'\textbackslash{}n        \textbackslash{}\textbackslash{}begin\{\{longtable\}\}\{\{p\{\{0.46\textbackslash{}\textbackslash{}linewidth\}\}p\{\{0.36\textbackslash{}\textbackslash{}linewidth\}\}\}\}\textbackslash{}n        \textbackslash{}\textbackslash{}toprule\textbackslash{}n        項目 \& 値 \textbackslash{}\textbackslash{}\textbackslash{}\textbackslash{}\textbackslash{}n        \textbackslash{}\textbackslash{}midrule\textbackslash{}n        \textbackslash{}\textbackslash{}endhead\textbackslash{}n        \{rows\}\textbackslash{}n        \textbackslash{}\textbackslash{}bottomrule\textbackslash{}n        \textbackslash{}\textbackslash{}end\{\{longtable\}\}\textbackslash{}n        ').strip()
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rows に '\textbackslash{}n'.join((f'\{latex\_escape(k)\} \& \{latex\_escape(v)\} \textbackslash{}\textbackslash{}\textbackslash{}\textbackslash{}' for k, v in items)) の結果を代入する。
+\item textwrap.dedent(f'\textbackslash{}n        \textbackslash{}\textbackslash{}begin\{\{longtable\}\}\{\{p\{\{0.46\textbackslash{}\textbackslash{}linewidth\}\}p\{\{0.36\textbackslash{}\textbackslash{}linewidth\}\}\}\}\textbackslash{}n        \textbackslash{}\textbackslash{}toprule\textbackslash{}n        項目 \& 値 \textbackslash{}\textbackslash{}\textbackslash{}\textbackslash{}\textbackslash{}n        \textbackslash{}\textbackslash{}midrule\textbackslash{}n        \textbackslash{}\textbackslash{}endhead\textbackslash{}n        \{rows\}\textbackslash{}n        \textbackslash{}\textbackslash{}bottomrule\textbackslash{}n        \textbackslash{}\textbackslash{}end\{\{longtable\}\}\textbackslash{}n        ').strip() を返す。
+            \end{enumerate}
+
+\subsection*{L661 関数 \path|tex_df_table|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|tex_df_table(df, title)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: astype, copy, dedent, is\_float\_dtype, isna, itertuples, join, latex\_escape, len, map, max, ravel
+              \item 戻り値の要点: textwrap.dedent(f'\textbackslash{}n        \textbackslash{}\textbackslash{}paragraph\{\{\{latex\_escape(title)\}\}\}\textbackslash{}n        \textbackslash{}\textbackslash{}begin\{\{center\}\}\textbackslash{}n        \{table\}\textbackslash{}n        \textbackslash{}\textbackslash{}end\{\{center\}\}\textbackslash{}n        ').strip() / f'\textbackslash{}\textbackslash{}paragraph\{\{\{latex\_escape(title)\}\}\} no data available.'
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 df.empty を判定し、真なら内部処理を行う。
+\item data に df.copy() の結果を代入する。
+\item data.columns を順に走査し、各要素を col に入れて処理する。
+\item headers に ' \& '.join((latex\_escape(c) for c in data.columns)) + ' \textbackslash{}\textbackslash{}\textbackslash{}\textbackslash{}' の結果を代入する。
+\item rows に '\textbackslash{}n'.join((' \& '.join((latex\_escape(v) for v in row)) + ' \textbackslash{}\textbackslash{}\textbackslash{}\textbackslash{}' for row in data.astype(str).itertuples(index=False, name=None))) の結果を代入する。
+\item max\_cell\_len に max((len(str(value)) for value in data.to\_numpy().ravel()), default=0) の結果を代入する。
+\item 条件 len(data.columns) == 2 and max\_cell\_len > 48 を判定し、真なら内部処理を行う。
+\item table に textwrap.dedent(f'\textbackslash{}n        \textbackslash{}\textbackslash{}begin\{\{tabular\}\}\{\{\{colspec\}\}\}\textbackslash{}n        \textbackslash{}\textbackslash{}toprule\textbackslash{}n        \{headers\}\textbackslash{}n        \textbackslash{}\textbackslash{}midrule\textbackslash{}n        \{rows\}\textbackslash{}n        \textbackslash{}\textbackslash{}bottomrule\textbackslash{}n        \textbackslash{}\textbackslash{}end\{\{tabular\}\}\textbackslash{}n        ').strip() の結果を代入する。
+\item 条件 len(data.columns) >= 4 を判定し、真なら内部処理を行う。
+\item textwrap.dedent(f'\textbackslash{}n        \textbackslash{}\textbackslash{}paragraph\{\{\{latex\_escape(title)\}\}\}\textbackslash{}n        \textbackslash{}\textbackslash{}begin\{\{center\}\}\textbackslash{}n        \{table\}\textbackslash{}n        \textbackslash{}\textbackslash{}end\{\{center\}\}\textbackslash{}n        ').strip() を返す。
+            \end{enumerate}
+
+\subsection*{L698 関数 \path|build_report|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|build_report(package_dir, profile_yaml, fit_summary_path, replay_csv, fullsim_manifest)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, Path, Series, abs, any, append, audit\_fullsim\_detail, bool, build\_daily\_progress\_comparison, build\_human\_mpc\_distance\_comparison, compile\_tex, day\_block\_bootstrap\_rmse
+              \item 戻り値の要点: (md\_path, tex\_path.with\_suffix('.pdf'))
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item fit\_summary\_path に fit\_summary\_path or locate\_fit\_summary(package\_dir, profile\_yaml) の結果を代入する。
+\item fit\_summary に yaml.safe\_load(fit\_summary\_path.read\_text(encoding='utf-8')) or \{\} の結果を代入する。
+\item profile に yaml.safe\_load(profile\_yaml.read\_text(encoding='utf-8')) or \{\} の結果を代入する。
+\item 条件 replay\_csv is None を判定し、真なら内部処理を行う。
+\item replay に load\_replay\_diagnostics(package\_dir, replay\_csv) の結果を代入する。
+\item end\_to\_end\_replay\_path に fit\_summary\_path.parent / 'replay\_validation\_end\_to\_end.csv' の結果を代入する。
+\item end\_to\_end\_replay に pd.read\_csv(end\_to\_end\_replay\_path, low\_memory=False) if end\_to\_end\_replay\_path.is\_file() else replay.get('frame', pd.DataFrame()) の結果を代入する。
+\item (weather\_daily, \_) に weather\_and\_cruise\_metrics(end\_to\_end\_replay) の結果を代入する。
+\item (\_, cruise\_70kmh) に weather\_and\_cruise\_metrics(replay.get('frame', pd.DataFrame())) の結果を代入する。
+\item cruise\_70kmh\_rows に pd.DataFrame([\{'metric': key, 'value': value\} for key, value in cruise\_70kmh.items()]) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L1560 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ArgumentParser, add\_argument, build\_report, dumps, locate\_package\_dir, parse\_args, print, resolve\_path, str
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item ap に argparse.ArgumentParser() の結果を代入する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item args に ap.parse\_args() の結果を代入する。
+\item profile\_yaml に resolve\_path(ROOT, args.profile) の結果を代入する。
+\item package\_dir に locate\_package\_dir(profile\_yaml) の結果を代入する。
+\item fit\_summary\_path に resolve\_path(ROOT, args.fit\_summary) if args.fit\_summary else None の結果を代入する。
+\item replay\_csv に resolve\_path(ROOT, args.replay\_csv) if args.replay\_csv else None の結果を代入する。
+            \end{enumerate}
+
+
+
+
+
+
+
+        \subsection*{CLI 引数}
+            \begin{longtable}{p{0.07\linewidth} p{0.78\linewidth}}
+            \toprule
+            行 & 引数 \\
+            \midrule
+            1562 & \path|--profile| \\
+1563 & \path|--fit-summary| \\
+1568 & \path|--replay-csv| \\
+1573 & \path|--fullsim-manifest| \\
+            \bottomrule
+            \end{longtable}
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item CLI 引数を解釈し、main() から処理を起動する。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|scripts/generate_fit_fullsim_report.py| を
+        \textbf{report}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

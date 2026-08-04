@@ -1,0 +1,266 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={live 自動校正ノード},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{24. live 自動校正ノード}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/solar_autocal_node.py| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & 観測 solar/pack power と planner 予測との差から solar\_gain、drive\_power\_gain、aux\_power\_w を推定 publish する。 \\
+        起動文脈 & 運用中に mpc\_node の係数を微調整する補助ノード。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        観測 solar/pack power と planner 予測との差から solar\_gain、drive\_power\_gain、aux\_power\_w を推定 publish する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item /calib/* topic を publish する。
+\item mpc\_node がそれを購読して内部 gain を更新する。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/live_launch.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_autocal_logic.py|
+\item \path|mpc_solarcar/mpc_node.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_autocal_logic.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+return max(float(lo), min(float(hi), float(value)))
+
+
+class SolarAutocalNode(Node):
+    def __init__(self) -> None:
+        super().__init__("solar_autocal_node")
+        self.declare_parameter("publish_period_sec", 30.0)
+        self.declare_parameter("stationary_speed_kmh", 2.0)
+        self.declare_parameter("drive_speed_kmh", 25.0)
+        self.declare_parameter("day_ghi_threshold", 150.0)
+        self.declare_parameter("alpha", 0.2)
+        self.declare_parameter("solar_gain_init", 1.0)
+        self.declare_parameter("drive_power_gain_init", 1.0)
+        self.declare_parameter("aux_power_w_init", 8.0)
+        self.declare_parameter("solar_gain_min", 0.5)
+        self.declare_parameter("solar_gain_max", 1.5)
+        self.declare_parameter("drive_power_gain_min", 0.7)
+        self.declare_parameter("drive_power_gain_max", 1.4)
+        self.declare_parameter("aux_power_w_min", 0.0)
+        self.declare_parameter("aux_power_w_max", 300.0)
+
+        self.period = max(1.0, float(self.get_parameter("publish_period_sec").value))
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは SolarAutocalNode。 主要関数は main。 ROS パラメータ宣言は 14 件。 ROS I/O は publisher 4 件、subscription 6 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            17 & class & \path|SolarAutocalNode| & bases: Node \\
+13 & function & \path|_clamp| & args: value, lo, hi \\
+18 & function & \path|__init__| & args: self \\
+74 & function & \path|_on_speed| & args: self, msg \\
+77 & function & \path|_on_current| & args: self, msg \\
+82 & function & \path|_on_voltage| & args: self, msg \\
+87 & function & \path|_on_solar| & args: self, msg \\
+90 & function & \path|_on_env| & args: self, msg \\
+95 & function & \path|_on_metrics| & args: self, msg \\
+102 & function & \path|_ema| & args: self, current, estimate, lo, hi \\
+106 & function & \path|_step| & args: self \\
+153 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            13 & 関数 \_clamp を定義する。 \\
+17 & クラス SolarAutocalNode を定義する。 \\
+153 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L50, L51, L52, L53, L54, L55, L69, L70, ...。 \\
+5 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L154, L156, L158。 \\
+6 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L17。 \\
+8 & \path|from std_msgs.msg import Float32, Float32MultiArray, String| & Float32 や String など軽量メッセージで planner / vehicle 値を publish するため。 このファイル内での主な使用位置は L57, L58, L59, L60, L62, L63, L64, L65, ...。 \\
+10 & \path|from .solar_autocal_logic import daytime_stationary_aux_estimate| & 自動校正ロジック関数群 から daytime\_stationary\_aux\_estimate を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_autocal\_logic.py。 このファイル内での主な使用位置は L110。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L13 関数 \path|_clamp|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|_clamp(value, lo, hi)|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: float, max, min
+  \item 戻り値の要点: max(float(lo), min(float(hi), float(value)))
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item max(float(lo), min(float(hi), float(value))) を返す。
+\end{enumerate}
+
+\subsection*{L17 クラス \path|SolarAutocalNode|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|SolarAutocalNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, String, \_\_init\_\_, \_clamp, \_ema, abs, create\_publisher, create\_subscription, create\_timer, daytime\_stationary\_aux\_estimate, declare\_parameter, float
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_on\_speed を定義する。
+\item 関数 \_on\_current を定義する。
+\item 関数 \_on\_voltage を定義する。
+\item 関数 \_on\_solar を定義する。
+\item 関数 \_on\_env を定義する。
+\item 関数 \_on\_metrics を定義する。
+\item 関数 \_ema を定義する。
+\item 関数 \_step を定義する。
+            \end{enumerate}
+
+\subsection*{L153 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: SolarAutocalNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に SolarAutocalNode() の結果を代入する。
+\item rclpy.spin(...) を実行する。
+\item node.destroy\_node(...) を実行する。
+\item rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+
+        \subsection*{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            20 & \path|publish_period_sec| & 30.0 \\
+21 & \path|stationary_speed_kmh| & 2.0 \\
+22 & \path|drive_speed_kmh| & 25.0 \\
+23 & \path|day_ghi_threshold| & 150.0 \\
+24 & \path|alpha| & 0.2 \\
+25 & \path|solar_gain_init| & 1.0 \\
+26 & \path|drive_power_gain_init| & 1.0 \\
+27 & \path|aux_power_w_init| & 8.0 \\
+28 & \path|solar_gain_min| & 0.5 \\
+29 & \path|solar_gain_max| & 1.5 \\
+30 & \path|drive_power_gain_min| & 0.7 \\
+31 & \path|drive_power_gain_max| & 1.4 \\
+32 & \path|aux_power_w_min| & 0.0 \\
+33 & \path|aux_power_w_max| & 300.0 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            57 & publisher & \path|/calib/solar_gain| & publisher \\
+58 & publisher & \path|/calib/drive_power_gain| & publisher \\
+59 & publisher & \path|/calib/aux_power_w| & publisher \\
+60 & publisher & \path|/calib/status| & publisher \\
+62 & subscription & \path|/vehicle/speed_kmh| & self.\_on\_speed \\
+63 & subscription & \path|/vehicle/batt_current_a| & self.\_on\_current \\
+64 & subscription & \path|/vehicle/batt_voltage_v| & self.\_on\_voltage \\
+65 & subscription & \path|/vehicle/solar_power_w| & self.\_on\_solar \\
+66 & subscription & \path|/planner/env| & self.\_on\_env \\
+67 & subscription & \path|/planner/metrics| & self.\_on\_metrics \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/solar_autocal_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

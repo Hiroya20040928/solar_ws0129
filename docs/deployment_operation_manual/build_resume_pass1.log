@@ -1,0 +1,166 @@
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+(solar_mpc_deployment_operation_manual.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size10.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/unicode-math\unicode-mat
+h.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/unicode-math\unicode-mat
+h-xetex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/l3keys2e\l3ke
+ys2e.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fix-cm.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\ts1enc.def))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/unicode-math\unicode-mat
+h-table.tex)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/lm\lmodern.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/upquote\upquote.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\textcomp.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/microtype\microtype.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/microtype\microtype-xete
+x.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/microtype\microtype.cfg)
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/parskip\parskip.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fancyvrb\fancyvrb.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\calc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/footnotehyper\footnotehy
+per.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/babel\babel.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/babel\xebabel.def)
+*************************************
+* Local config file bblopts.cfg used
+*
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/arabi\bblopts.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/babel/locale/ja\babel-
+japanese.tex)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/babel/locale/ja\babel-
+japanese.tex))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/bookmark\bookmark.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/bookmark\bkm-xetex.def))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xurl\xurl.sty)
+(solar_mpc_deployment_operation_manual.aux)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/microtype\mt-LatinModern
+Roman.cfg) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/lm\omllmm.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/microtype\mt-msa.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/microtype\mt-msb.cfg)
+(solar_mpc_deployment_operation_manual.toc [1])
+
+Package xeCJK Warning: Unknown CJK family `\CJKttdefault' is being ignored.
+(xeCJK)                
+(xeCJK)                Try to use `\setCJKmonofont[<...>]{<...>}' to define
+(xeCJK)                it.
+
+[2]
+
+Package longtable Warning: Column widths have changed
+(longtable)                in none 1 on input line 274.
+
+[3]
+Overfull \hbox (41.63676pt too wide) in paragraph at lines 308--310
+[]\TU/YuGothic(0)/m/n/10 生 成 済 み 結 果 を 上 書 き 編 集 し な い。| \TU/lmr/m/n/10 profile
+ \TU/YuGothic(0)/m/n/10 を 説 明 的 な 別 名 で 保 存 し、| \TU/lmtt/m/n/10 latest_simulati
+on_run.json
+
+Underfull \hbox (badness 10000) in paragraph at lines 329--330
+[]\TU/lmr/m/n/10 action \TU/YuGothic(0)/m/n/10 は \TU/lmtt/m/n/10 up/ build/ sta
+rt/ stop/ restart/ status/ graph/ simulate/
+
+Underfull \hbox (badness 5161) in paragraph at lines 329--330
+\TU/lmtt/m/n/10 forecast/ identify/ fit/ learn/ audit/ package/ blank/ log\TU/Y
+uGothic(0)/m/n/10 、| \TU/lmr/m/n/10 mode \TU/YuGothic(0)/m/n/10 は
+
+Overfull \hbox (8.51143pt too wide) in paragraph at lines 348--348
+[]|\TU/lmtt/m/n/10 solarcar_sim.launch.py|  
+
+Overfull \hbox (34.76143pt too wide) in paragraph at lines 350--350
+[]|\TU/lmtt/m/n/10 solar_measurement.launch.py|  
+
+Overfull \hbox (24.26143pt too wide) in paragraph at lines 352--352
+[]|\TU/lmtt/m/n/10 solar_race_live.launch.py|  
+
+Overfull \hbox (50.51143pt too wide) in paragraph at lines 354--354
+[]|\TU/lmtt/m/n/10 solar_race_live_wifi.launch.py|  
+[4] [5] [6] [7] [8]
+
+Package longtable Warning: Column widths have changed
+(longtable)                in none 4 on input line 638.
+
+[9]
+
+Package longtable Warning: Table widths have changed. Rerun LaTeX.
+
+[10] (solar_mpc_deployment_operation_manual.aux)
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+ )
+(see the transcript file for additional information)
+Output written on solar_mpc_deployment_operation_manual.pdf (10 pages).
+Transcript written on solar_mpc_deployment_operation_manual.log.

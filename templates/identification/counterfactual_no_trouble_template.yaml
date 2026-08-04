@@ -1,0 +1,11 @@
+scenario:
+  name: no_trouble_counterfactual
+  assumptions:
+    - Remove only verified trouble stops, not control stops or regulation-driven halts.
+    - Keep weather and route identical unless a separate scenario explicitly changes them.
+  edits:
+    - label: remove_trouble_stop_example
+      action: delete_event
+      target_event_label: puncture_stop_example
+  notes:
+    - Use this file to document replay-vs-no-trouble comparisons with traceable assumptions.

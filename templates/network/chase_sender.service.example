@@ -1,0 +1,15 @@
+[Unit]
+Description=Chase Vehicle UDP Sender
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/solar_sender
+ExecStart=/usr/bin/python3 /home/pi/solar_sender/chase_sender.py --host 192.168.50.10 --port 52001
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

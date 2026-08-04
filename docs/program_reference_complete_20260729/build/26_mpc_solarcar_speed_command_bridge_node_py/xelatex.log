@@ -1,0 +1,515 @@
+===== xelatex pass 1 =====
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/26_mpc_solarcar_speed_command_bridge_node_py.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\26_mpc_solarcar_speed_command_bridge_node_py\26_mpc
+_solarcar_speed_command_bridge_node_py.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\26_mpc_solarcar_speed_command_bridge_node_py\26_mpc
+_solarcar_speed_command_bridge_node_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\26_mpc_solarcar_speed_command_bridge_node_py\26_mpc
+_solarcar_speed_command_bridge_node_py.out)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\26_mpc_solarcar_speed_command_bridge_node_py\26_mpc
+_solarcar_speed_command_bridge_node_py.toc [1]) [2]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[3]
+Overfull \hbox (5.83305pt too wide) in paragraph at lines 128--128
+[]|$[][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 154--154
+[]|$[][][][] [] [][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 160--160
+[]|$[][][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 161--161
+[]|$[][][][] [] [][][][][][] []
+
+Overfull \hbox (1.43753pt too wide) in paragraph at lines 161--161
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 162--162
+[]|$[][][][] [] [][][][][] [] [][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 162--162
+[][][][][][][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 6927) in paragraph at lines 162--163
+\TU/YuGothic(0)/m/n/10.95 を 読 み 込 み、|  こ の フ ァ イ ル の 内 部 処 理
+
+Underfull \hbox (badness 10000) in paragraph at lines 162--163
+\TU/YuGothic(0)/m/n/10.95 を 分 担 さ せ る た め。|  実 体 フ ァ イ ル は
+
+Underfull \hbox (badness 4954) in paragraph at lines 162--163
+\TU/TimesNewRoman(0)/m/n/10.95 mpc_solarcar/solar_preflight_logic.py\TU/YuGothi
+c(0)/m/n/10.95 。|  こ の フ ァ イ
+
+Underfull \hbox (badness 10000) in paragraph at lines 163--163
+[]|$[][][][] [] [][][][][][][][][] []
+ignored error: Infinite glue shrinkage found in box being split [4]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 185.
+
+[5] [6] [7] [8]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[9] [10]
+Underfull \hbox (badness 10000) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 self._on_upper_speed_cmd, self._step, self.creat
+e_publisher, self.create_subscription, self.create_timer,
+
+Underfull \hbox (badness 10000) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 self.declare_parameter, self.get_logger, self.ge
+t_parameter, self.limiter, self.output_drive_mode_topic,
+
+Overfull \hbox (28.57816pt too wide) in paragraph at lines 497--498
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.applied_drive_mode, self.drive_mode_min_hold_sec, self.input_time
+out_sec,
+
+Underfull \hbox (badness 10000) in paragraph at lines 497--498
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_drive_mode, self.last_drive_mode_chang
+e, self.last_gate_reason, self.last_mode_input_time,
+
+Underfull \hbox (badness 3803) in paragraph at lines 497--498
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_speed_cmd, self.last_speed_input_time,
+ self.last_system_state_time, self.last_udp_error_log_time,
+
+Overfull \hbox (8.85464pt too wide) in paragraph at lines 497--498
+\TU/TimesNewRoman(0)/m/n/10.95 self.publish_rate_hz, self.require_system_runnin
+g, self.safe_speed_kmh, self.sock, self.speed_pub, self.start_time,
+[11] [12]
+Overfull \hbox (51.22292pt too wide) in paragraph at lines 539--540
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.limiter \TU/YuGothic(0)/m/n/10.95 に \TU/T
+imesNewRoman(0)/m/n/10.95 SmoothRateLimiter(min_value=0.0, max_value=float(self
+.get_parameter(’max_output_speed_kmh’).value),
+
+Overfull \hbox (45.64897pt too wide) in paragraph at lines 539--540
+\TU/TimesNewRoman(0)/m/n/10.95 tau_sec=float(self.get_parameter(’filter_tau_sec
+’).value), rise_rate=float(self.get_parameter(’accel_limit_kmhps’).value),
+
+Overfull \hbox (91.27751pt too wide) in paragraph at lines 539--540
+\TU/TimesNewRoman(0)/m/n/10.95 fall_rate=float(self.get_parameter(’decel_limit_
+kmhps’).value), deadband=float(self.get_parameter(’speed_deadband_kmh’).value),
+
+
+Overfull \hbox (4.96608pt too wide) in paragraph at lines 539--540
+\TU/TimesNewRoman(0)/m/n/10.95 quantize_step=float(self.get_parameter(’speed_qu
+antize_step_kmh’).value), initial_value=self.safe_speed_kmh)
+[13] [14] [15] [16]
+Overfull \hbox (59.75789pt too wide) in paragraph at lines 734--735
+\TU/TimesNewRoman(0)/m/n/10.95 self.input_timeout_sec, self.last_drive_mode, se
+lf.last_drive_mode_change, self.last_gate_reason, self.last_mode_input_time,
+
+Underfull \hbox (badness 3803) in paragraph at lines 734--735
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_speed_cmd, self.last_speed_input_time,
+ self.last_system_state_time, self.last_udp_error_log_time,
+
+Underfull \hbox (badness 1484) in paragraph at lines 734--735
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_upper_speed_cmd, self.limiter, self.mo
+de_pub, self.require_system_running, self.safe_speed_kmh,
+
+Overfull \hbox (4.0052pt too wide) in paragraph at lines 734--735
+\TU/TimesNewRoman(0)/m/n/10.95 self.sock, self.speed_pub, self.start_time, self
+.startup_hold_sec, self.system_state, self.system_state_timeout_sec,
+
+Overfull \hbox (10.90738pt too wide) in paragraph at lines 735--736
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.applied_drive_mode, self.last_drive_mode_change, self.last_gate_r
+eason,
+
+Overfull \hbox (60.63576pt too wide) in paragraph at lines 749--750
+[]\TU/TimesNewRoman(0)/m/n/10.95 gate \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewR
+oman(0)/m/n/10.95 evaluate_command_gate(elapsed_sec=now - self.start_time, spee
+d_input_age_sec=None if self.last_speed_input_time
+
+Overfull \hbox (15.60608pt too wide) in paragraph at lines 749--750
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_system_state_time is None else now - s
+elf.last_system_state_time, startup_hold_sec=self.startup_hold_sec,
+
+Underfull \hbox (badness 10000) in paragraph at lines 749--750
+\TU/TimesNewRoman(0)/m/n/10.95 input_timeout_sec=self.input_timeout_sec, system
+_state_timeout_sec=self.system_state_timeout_sec, re-
+[17]
+Underfull \hbox (badness 6592) in paragraph at lines 754--755
+[]\TU/TimesNewRoman(0)/m/n/10.95 mode_is_fresh \TU/YuGothic(0)/m/n/10.95 に \TU/
+TimesNewRoman(0)/m/n/10.95 self.last_mode_input_time is not None and now - self
+.last_mode_input_time <=
+
+Overfull \hbox (58.14177pt too wide) in paragraph at lines 760--761
+[]\TU/YuGothic(0)/m/n/10.95 条 件 \TU/TimesNewRoman(0)/m/n/10.95 requested_mode !
+= self.applied_drive_mode and now - self.last_drive_mode_change >= self.drive_m
+ode_min_hold_sec
+[18] [19] [20] [21]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\26_mpc_solarcar_speed_command_bridge_node_py\26_mpc
+_solarcar_speed_command_bridge_node_py.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\26_mpc_solarcar_speed_command_brid
+ge_node_py\26_mpc_solarcar_speed_command_bridge_node_py.pdf (21 pages).
+Transcript written on "C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-ma
+in\docs\program_reference_complete_20260729\build\26_mpc_solarcar_speed_command
+_bridge_node_py\26_mpc_solarcar_speed_command_bridge_node_py.log".
+
+miktex-dvipdfmx: major issue: So far, you have not checked for MiKTeX updates.
+xelatex: major issue: So far, you have not checked for MiKTeX updates.
+
+
+===== xelatex pass 2 =====
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/26_mpc_solarcar_speed_command_bridge_node_py.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\26_mpc_solarcar_speed_command_bridge_node_py\26_mpc
+_solarcar_speed_command_bridge_node_py.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\26_mpc_solarcar_speed_command_bridge_node_py\26_mpc
+_solarcar_speed_command_bridge_node_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\26_mpc_solarcar_speed_command_bridge_node_py\26_mpc
+_solarcar_speed_command_bridge_node_py.out)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\26_mpc_solarcar_speed_command_bridge_node_py\26_mpc
+_solarcar_speed_command_bridge_node_py.toc [1]) [2]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[3]
+Overfull \hbox (5.83305pt too wide) in paragraph at lines 128--128
+[]|$[][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 154--154
+[]|$[][][][] [] [][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 160--160
+[]|$[][][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 161--161
+[]|$[][][][] [] [][][][][][] []
+
+Overfull \hbox (1.43753pt too wide) in paragraph at lines 161--161
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 162--162
+[]|$[][][][] [] [][][][][] [] [][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 162--162
+[][][][][][][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 6927) in paragraph at lines 162--163
+\TU/YuGothic(0)/m/n/10.95 を 読 み 込 み、|  こ の フ ァ イ ル の 内 部 処 理
+
+Underfull \hbox (badness 10000) in paragraph at lines 162--163
+\TU/YuGothic(0)/m/n/10.95 を 分 担 さ せ る た め。|  実 体 フ ァ イ ル は
+
+Underfull \hbox (badness 4954) in paragraph at lines 162--163
+\TU/TimesNewRoman(0)/m/n/10.95 mpc_solarcar/solar_preflight_logic.py\TU/YuGothi
+c(0)/m/n/10.95 。|  こ の フ ァ イ
+
+Underfull \hbox (badness 10000) in paragraph at lines 163--163
+[]|$[][][][] [] [][][][][][][][][] []
+ignored error: Infinite glue shrinkage found in box being split [4]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 185.
+
+[5] [6] [7] [8]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[9] [10]
+Underfull \hbox (badness 10000) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 self._on_upper_speed_cmd, self._step, self.creat
+e_publisher, self.create_subscription, self.create_timer,
+
+Underfull \hbox (badness 10000) in paragraph at lines 496--497
+\TU/TimesNewRoman(0)/m/n/10.95 self.declare_parameter, self.get_logger, self.ge
+t_parameter, self.limiter, self.output_drive_mode_topic,
+
+Overfull \hbox (28.57816pt too wide) in paragraph at lines 497--498
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.applied_drive_mode, self.drive_mode_min_hold_sec, self.input_time
+out_sec,
+
+Underfull \hbox (badness 10000) in paragraph at lines 497--498
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_drive_mode, self.last_drive_mode_chang
+e, self.last_gate_reason, self.last_mode_input_time,
+
+Underfull \hbox (badness 3803) in paragraph at lines 497--498
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_speed_cmd, self.last_speed_input_time,
+ self.last_system_state_time, self.last_udp_error_log_time,
+
+Overfull \hbox (8.85464pt too wide) in paragraph at lines 497--498
+\TU/TimesNewRoman(0)/m/n/10.95 self.publish_rate_hz, self.require_system_runnin
+g, self.safe_speed_kmh, self.sock, self.speed_pub, self.start_time,
+[11] [12]
+Overfull \hbox (51.22292pt too wide) in paragraph at lines 539--540
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.limiter \TU/YuGothic(0)/m/n/10.95 に \TU/T
+imesNewRoman(0)/m/n/10.95 SmoothRateLimiter(min_value=0.0, max_value=float(self
+.get_parameter(’max_output_speed_kmh’).value),
+
+Overfull \hbox (45.64897pt too wide) in paragraph at lines 539--540
+\TU/TimesNewRoman(0)/m/n/10.95 tau_sec=float(self.get_parameter(’filter_tau_sec
+’).value), rise_rate=float(self.get_parameter(’accel_limit_kmhps’).value),
+
+Overfull \hbox (91.27751pt too wide) in paragraph at lines 539--540
+\TU/TimesNewRoman(0)/m/n/10.95 fall_rate=float(self.get_parameter(’decel_limit_
+kmhps’).value), deadband=float(self.get_parameter(’speed_deadband_kmh’).value),
+
+
+Overfull \hbox (4.96608pt too wide) in paragraph at lines 539--540
+\TU/TimesNewRoman(0)/m/n/10.95 quantize_step=float(self.get_parameter(’speed_qu
+antize_step_kmh’).value), initial_value=self.safe_speed_kmh)
+[13] [14] [15] [16]
+Overfull \hbox (59.75789pt too wide) in paragraph at lines 734--735
+\TU/TimesNewRoman(0)/m/n/10.95 self.input_timeout_sec, self.last_drive_mode, se
+lf.last_drive_mode_change, self.last_gate_reason, self.last_mode_input_time,
+
+Underfull \hbox (badness 3803) in paragraph at lines 734--735
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_speed_cmd, self.last_speed_input_time,
+ self.last_system_state_time, self.last_udp_error_log_time,
+
+Underfull \hbox (badness 1484) in paragraph at lines 734--735
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_upper_speed_cmd, self.limiter, self.mo
+de_pub, self.require_system_running, self.safe_speed_kmh,
+
+Overfull \hbox (4.0052pt too wide) in paragraph at lines 734--735
+\TU/TimesNewRoman(0)/m/n/10.95 self.sock, self.speed_pub, self.start_time, self
+.startup_hold_sec, self.system_state, self.system_state_timeout_sec,
+
+Overfull \hbox (10.90738pt too wide) in paragraph at lines 735--736
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.applied_drive_mode, self.last_drive_mode_change, self.last_gate_r
+eason,
+
+Overfull \hbox (60.63576pt too wide) in paragraph at lines 749--750
+[]\TU/TimesNewRoman(0)/m/n/10.95 gate \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewR
+oman(0)/m/n/10.95 evaluate_command_gate(elapsed_sec=now - self.start_time, spee
+d_input_age_sec=None if self.last_speed_input_time
+
+Overfull \hbox (15.60608pt too wide) in paragraph at lines 749--750
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_system_state_time is None else now - s
+elf.last_system_state_time, startup_hold_sec=self.startup_hold_sec,
+
+Underfull \hbox (badness 10000) in paragraph at lines 749--750
+\TU/TimesNewRoman(0)/m/n/10.95 input_timeout_sec=self.input_timeout_sec, system
+_state_timeout_sec=self.system_state_timeout_sec, re-
+[17]
+Underfull \hbox (badness 6592) in paragraph at lines 754--755
+[]\TU/TimesNewRoman(0)/m/n/10.95 mode_is_fresh \TU/YuGothic(0)/m/n/10.95 に \TU/
+TimesNewRoman(0)/m/n/10.95 self.last_mode_input_time is not None and now - self
+.last_mode_input_time <=
+
+Overfull \hbox (58.14177pt too wide) in paragraph at lines 760--761
+[]\TU/YuGothic(0)/m/n/10.95 条 件 \TU/TimesNewRoman(0)/m/n/10.95 requested_mode !
+= self.applied_drive_mode and now - self.last_drive_mode_change >= self.drive_m
+ode_min_hold_sec
+[18] [19] [20] [21]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\26_mpc_solarcar_speed_command_bridge_node_py\26_mpc
+_solarcar_speed_command_bridge_node_py.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\26_mpc_solarcar_speed_command_brid
+ge_node_py\26_mpc_solarcar_speed_command_bridge_node_py.pdf (21 pages).
+Transcript written on "C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-ma
+in\docs\program_reference_complete_20260729\build\26_mpc_solarcar_speed_command
+_bridge_node_py\26_mpc_solarcar_speed_command_bridge_node_py.log".
+
+miktex-dvipdfmx: major issue: So far, you have not checked for MiKTeX updates.
+xelatex: major issue: So far, you have not checked for MiKTeX updates.
+

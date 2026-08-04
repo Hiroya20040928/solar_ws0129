@@ -1,0 +1,793 @@
+\begin{document}
+\begin{titlepage}
+\centering
+{\Huge\bfseries ソーラーカーMPC-EMS\\完全処理フロー体験書\par}
+\vspace{8mm}
+{\Large \editionlabel\par}
+\vspace{10mm}
+\begin{tcolorbox}[colback=white,colframe=black,width=0.92\textwidth]
+本書は、初見の運用者が PowerShell 起動、UDP 文字列受信、ROS 2 topic、
+物理モデル、効率 map、上位・下位 MPC、指令送信、CSV 保存、MLE 再同定までを
+一つの時系列として手計算できるようにした教材である。
+\end{tcolorbox}
+\vfill
+対象版: MLE35 expanded-grade / single-source solar / charge-SoC and 1-RC battery corrected\\
+作成日: 2026-07-16
+\end{titlepage}
+\tableofcontents
+\newpage
+
+\section{到達目標}
+修了時には次を説明し、数値で追跡できることを目標とする。
+\begin{enumerate}
+  \item \verb|SolarSim.ps1| が mode と profile をどこへ渡すか。
+  \item UDP 文字列がどの ROS 2 topic へ変換されるか。
+  \item filter、距離、勾配、向かい風がどう更新されるか。
+  \item 効率 map の二線形補間から pack 電力を得る方法。
+  \item battery IV、SoC、温度を一段予測する方法。
+  \item 上位距離 MPC と下位 1 Hz MPC の違い。
+  \item CEM と L-BFGS-B がどの変数をどう更新するか。
+  \item 安全 bridge が最終速度指令をどう制限するか。
+  \item logger、dashboard、manifest の保存先。
+  \item MLE が map と scalar をどう実運用 profile に反映するか。
+\end{enumerate}
+
+\section{起動前に読む profile}
+\begin{tcolorbox}[title=一つの source of truth]
+\verb|profile.yaml| は、paths、runtime、simulation、measurement、
+identification、live、model、mpc をまとめる。相対 path は profile 所在ディレクトリ基準で解決する。
+実行時に resolved profile を保存し、入力版を後から追跡できるようにする。
+\end{tcolorbox}
+
+\begin{longtable}{p{0.20\linewidth}p{0.73\linewidth}}
+\toprule
+block & この周期で使うもの\\
+\midrule
+\endhead
+paths & route、weather、drive/regen、Rint、panel、MPPT、OCV maps\\
+runtime & timezone、dashboard host/port\\
+live & UDP bind/remote、filter 時定数、timeout、weather、autocal、command bridge\\
+model & $m,C_dA,C_{rr},P_{\rm aux},P_{\rm aux,stopped},E_{\rm nom}$、電圧・電流限界\\
+mpc & horizon、replan、上位目的関数、下位追従重み、rate limits\\
+\bottomrule
+\end{longtable}
+
+\question{Q1}{夜間にだけ補機を切るチーム運用を表す三つの値を書け。}
+\answer{$P_{\rm aux}=21.021\,{\rm W}$（走行時）、$P_{\rm aux,stopped}=21.021\,{\rm W}$（日中停車）、$P_{\rm aux,night}=0\,{\rm W}$（日射20 W/m$^2$以下）。}
+
+\section{PowerShell から node 起動まで}
+\begin{center}
+\begin{tabular}{c}
+\flow{Windows: SolarSim.ps1 -Mode live\_wifi -Action up -Profile ...}\\[2mm]
+$\Downarrow$\\[2mm]
+\flow{WSL: scripts/solar\_control.sh が profile を検証して colcon build / ros2 launch}\\[2mm]
+$\Downarrow$\\[2mm]
+\flow{launch/solar\_race\_live\_wifi.launch.py}\\[2mm]
+$\Downarrow$\\[2mm]
+\flow{telemetry, weather, wind, distance, grade, MPC, command, logger, dashboard}
+\end{tabular}
+\end{center}
+
+\question{Q2}{offline 大会全体 CSV と、live WiFi を起動する PowerShell action/mode を書け。}
+\answer{offline は \texttt{-Action simulate}。live WiFi は \texttt{-Mode live\_wifi -Action up}。}
+
+\section{受信周期の与条件}
+次の 1 秒周期を手計算する。受信 packet は UTF-8 UDP JSON である。
+\begin{lstlisting}
+{"type":"vehicle_state","timestamp_utc":"2027-08-28T01:23:45Z",
+ "speed_kmh":72.3,"soc":0.8300,"batt_temp_c":34.2,
+ "batt_current_a":8.5,"batt_voltage_v":97.6,"solar_power_w":410.0}
+{"type":"chase_state","timestamp_utc":"2027-08-28T01:23:45Z",
+ "lat":-22.0,"lon":133.0,"wind_speed_ms":6.5,
+ "wind_dir_deg":121.0,"course_deg":176.0}
+\end{lstlisting}
+
+前周期は $v_f=70.0\,{\rm km/h}$、$s=1200.000\,{\rm km}$、
+勾配 filter 出力 $2.0\%$ とする。速度 filter 時定数は
+$\tau_v=0.6\,{\rm s}$、$\Delta t=1.0\,{\rm s}$ である。
+
+\subsection{timestamp と range gate}
+bridge は timestamp の鮮度、NaN、速度上限、加減速、距離後退量、電池範囲を検査する。
+既定では timestamp 欠損、5秒より古い、2秒より未来、重複・順序逆転 packet は
+値を更新せず、timeout 後は safe command へ移る。送信 Raspberry Pi は起動前に
+NTP / chrony で UTC 同期する。
+
+\question{Q3}{送信側 timestamp を UTC に統一する理由を二つ書け。}
+\answer{race timezone とPC timezoneの混同を防ぐため。複数Raspberry Piのpacketを同じ時間軸で並べ、遅延・再送・順序逆転を判定し、forecastとloggerを再現可能にするため。}
+
+\section{測定 filter、距離、勾配}
+\subsection{速度一次遅れ filter}
+\[
+ \alpha_v=\frac{\Delta t}{\tau_v+\Delta t}
+ =\frac{1}{0.6+1}=0.625
+\]
+\[
+ v_f^+=v_f+\alpha_v(v_{\rm raw}-v_f)
+ =70+0.625(72.3-70)=71.4375\,{\rm km/h}.
+\]
+
+\question{Q4}{$\tau_v$ を大きくすると noise と遅れはどう変わるか。}
+\answer{noise は減るが応答遅れが増える。}
+
+\subsection{距離積分}
+\[
+ \Delta s=\frac{v_f^+}{3600}\Delta t
+ =\frac{71.4375}{3600}=0.019844\,{\rm km},
+ \qquad s^+=1200.019844\,{\rm km}.
+\]
+distance node は大きすぎる増分と許容外の後退を reject する。
+
+\subsection{勾配}
+20 m 進む間に標高が 1.2 m 上昇したとする。
+\[
+ g_{\rm raw}=100\frac{1.2}{20}=6.0\%,\qquad
+ g_f^+=2.0+0.2(6.0-2.0)=2.8\%.
+\]
+\question{Q5}{速度 $71.4375$ km/h の 1 秒距離増分と filter 後勾配を書け。}
+\answer{$0.019844$ km、$2.8\%$。}
+
+\section{風補正}
+風向と進行方位を同じ北基準方位にそろえる。簡略例では
+\[
+ w_{\rm head}=u\cos(\phi-\psi)
+ =6.5\cos(121^\circ-176^\circ)=3.728\,{\rm m/s}.
+\]
+符号規約は実装と送信側で統一する。気象の \emph{from} 方位をそのまま速度 vector の
+\emph{to} 方位として扱ってはならない。wind correction は観測残差を距離・時間相関で
+forecast へ反映し、nominal と risk scenario を別々に保存する。
+
+\question{Q6}{最尤 nominal plan に日数とともに増える uncertainty reserve を混ぜるべきか。}
+\answer{混ぜない。nominal は最尤 weather を使い、上側・下側の risk plan を別 scenario として示す。}
+
+\section{車輪出力と効率 map}
+\subsection{抵抗}
+$v=71.4375/3.6=19.844\,{\rm m/s}$、
+$v_{\rm rel}=v+w_{\rm head}=23.572\,{\rm m/s}$ とする。
+\[
+ F_{\rm aero}=\frac{1}{2}\rho C_dA v_{\rm rel}^2
+ =\frac{1}{2}(1.18)(0.107523)(23.572)^2=35.25\,{\rm N},
+\]
+\[
+ F_{\rm roll}=mgC_{rr}=235(9.80665)(0.007638)=17.59\,{\rm N},
+\]
+\[
+ F_{\rm grade}\simeq mg(0.028)=64.48\,{\rm N}.
+\]
+\[
+ P_{\rm wheel}=(F_{\rm aero}+F_{\rm roll}+F_{\rm grade})v
+ =2.328\,{\rm kW}.
+\]
+
+\subsection{二線形 map 補間}
+速度軸 $x_0,x_1$、torque 軸 $y_0,y_1$ の四隅を
+$q_{00},q_{10},q_{01},q_{11}$ とする。
+\[
+ a=\frac{x-x_0}{x_1-x_0},\quad b=\frac{y-y_0}{y_1-y_0},
+\]
+\[
+ \eta=(1-a)(1-b)q_{00}+a(1-b)q_{10}+(1-a)bq_{01}+abq_{11}.
+\]
+例として $a=0.5,b=0.4$、
+$(q_{00},q_{10},q_{01},q_{11})=(0.90,0.92,0.91,0.93)$ なら
+$\eta_{\rm drive}=0.914$ である。したがって
+\[
+ P_{\rm drive,dc}=\frac{P_{\rm wheel}}{\eta_{\rm drive}}
+ =\frac{2328}{0.914}=2547\,{\rm W}.
+\]
+
+\question{Q7}{補機を wheel power に足してから $\eta_{\rm drive}$ で割る実装が不適切な理由を書け。}
+\answer{補機はモーター機械負荷ではなく pack の電気負荷であり、駆動効率 map を通すと21.178 Wより大きく誤計上するため。}
+
+\section{PV、pack、battery IV、SoC}
+\subsection{PV}
+\[
+ P_{\rm pv}=\eta_{\rm panel}(G,T_c)\eta_{\rm mppt}(G,T_c)A_{\rm pv}G.
+\]
+この周期は受信した検証済み $P_{\rm pv}=410\,{\rm W}$ を使う。
+\[
+ P_{\rm pack}=P_{\rm drive,dc}-P_{\rm regen,dc}
+ +P_{\rm aux}-P_{\rm pv}
+ =2547+21.178-410=2158.2\,{\rm W}.
+\]
+
+\subsection{battery IV}
+Thevenin 近似 $V=V_{\rm oc}-IR$ と $P=VI$ から
+\[
+ RI^2-V_{\rm oc}I+P_{\rm pack}=0,
+\quad
+ I=\frac{V_{\rm oc}-\sqrt{V_{\rm oc}^2-4RP_{\rm pack}}}{2R}.
+\]
+$V_{\rm oc}=98.5\,{\rm V},R=0.25\,\Omega$ なら
+$I=23.28\,{\rm A}$、$V=92.68\,{\rm V}$ となる。判別式が負なら要求電力は
+その状態で実現不能であり、電流・電圧制約とともに candidate を penalize する。
+
+\subsection{SoC と温度}
+\[
+ z^+=z-\frac{P_{\rm pack}\Delta t}{3600E_{\rm nom}}
+ =0.8300-\frac{2158.2}{3600(3187.6)}
+ =0.829812.
+\]
+\[
+ T^+=T+\frac{\Delta t}{C_{\rm th}}
+ \left(I^2R-h(T-T_{\rm amb})\right).
+\]
+
+\question{Q8}{この周期の $P_{\rm pack}$ と更新後 SoC を書け。}
+\answer{$2158.2$ W、$0.829812$。}
+
+\question{Q9}{夜間停止、$G=0$、$v=0$ のとき理想的な pack 電力はいくらか。}
+\answer{$P_{\rm aux,stopped}=0$ なので 0 W。数値補間の微小丸めを除きSoCは低下しない。}
+
+\section{上位距離領域 MPC}
+上位 state を $x_k=[s_k,t_k,z_k,T_k]^\top$、速度 decision を
+$u_k=v_k$ とする。
+\[
+ x_{k+1}=f_d(x_k,u_k,r_k,w_k,\mathcal M;\theta),
+\]
+ここで $r_k$ は route、$w_k$ は weather、$\mathcal M$ は maps、
+$\theta$ は scalar model である。
+
+代表目的関数は
+\[
+\begin{split}
+J=&w_tT_{\rm travel}+w_{\Delta v}\sum(\Delta v_k)^2
+ + w_I\sum I_k^2+w_E\sum E_{{\rm pack},k}
+ +w_J\sum I_k^2R_k\Delta t_k\\
+&+w_{\rm full}T_{\rm daylight,full}
+ +w_f(z_N-z_{\rm target})^2
+ +J_{\rm voltage/current/soc/schedule}.
+\end{split}
+\]
+nominal の全コース距離は 3026.9 km であり、2831 km で打ち切らない。
+
+\subsection{CEM global candidates}
+重みを正値に保つため、外側 self-learning は $y_i=\log w_i$ を探索する。
+\[
+ y^{(j)}\sim\mathcal N(\mu,\operatorname{diag}\sigma^2),
+\quad
+ \mu^+=(1-\beta)\mu+\beta\bar y_{\rm elite},
+\]
+\[
+ \sigma^+=(1-\beta)\sigma+
+\beta\sqrt{\operatorname{Var}(y_{\rm elite})+\epsilon}.
+\]
+現在の探索は約15次元で、speed smooth/limit、current、pack energy、
+Joule/aero/mechanical energy、kinetic、pack slew、quartic speed、
+solar headroom、SoC barrier、terminal/day-end/finish SoC を含む。
+
+\subsection{L-BFGS-B local refinement}
+固定した重みに対して上位 speed decision を bound 内で局所改善する。
+\[
+ u_{j+1}=\Pi_{[l,h]}\left(u_j-\alpha_jH_j\nabla J(u_j)\right).
+\]
+$H_j$ は全 Hessian を保存せず、直近の
+$s_j=u_{j+1}-u_j$ と $y_j=\nabla J_{j+1}-\nabla J_j$ から二ループ再帰で作用を近似する。
+finite difference の一成分は
+\[
+ \frac{\partial J}{\partial u_i}\simeq
+ \frac{J(u+\epsilon e_i)-J(u-\epsilon e_i)}{2\epsilon}.
+\]
+
+\question{Q10}{CEM と L-BFGS-B の役割の違いを書け。}
+\answer{CEMは局所解に依存しにくいglobal candidate/外側重み探索、L-BFGS-Bはbound付きの局所連続最適化。}
+
+\question{Q11}{offline profile の \texttt{upper\_replan\_sec: 0} は何を意味するか。}
+\answer{一度の全コース最適化を実行する。MPC prediction modelではあるが、そのrunは毎時のreceding-horizon再計画ではない。}
+
+\section{下位 1 Hz MPC と安全 bridge}
+下位 MPC は短い horizon で
+\[
+ J_{\rm low}=\sum_i w_{\rm track}(v_i-v_{{\rm ref},i})^2
+ +w_u u_i^2+w_{\Delta u}(u_i-u_{i-1})^2
+\]
+を最小化する。上位の段差 reference は、次の加速上限と減速上限で滑らかにする。
+\begin{center}\small\ttfamily
+lower\_ref\_accel\_limit\_kmhps\\
+lower\_ref\_decel\_limit\_kmhps
+\end{center}
+
+planner が 72 km/h を出し、bridge 前回出力が 70 km/h、加速上限が
+1.2 km/h/s、$\Delta t=1$ s なら rate limit 後は
+\[
+ v_{\rm out}\le70+1.2=71.2\,{\rm km/h}.
+\]
+さらに low-pass、deadband、0.1 km/h quantize、drive-mode minimum hold を適用する。
+planner input timeout 時は safe speed へ移る。
+
+\question{Q12}{上の条件で送信可能な最大速度指令を書け。}
+\answer{$71.2$ km/h。0.1 km/h量子化後も $71.2$ km/h。}
+
+\section{outbound、logger、dashboard}
+outbound JSON の例:
+\begin{lstlisting}
+{"type":"planner_command","timestamp_utc":"2027-08-28T01:23:46Z",
+ "planner":{"speed_cmd_kmh":71.2,"drive_mode":"eco"},
+ "status":{"input_fresh":true,"upper_plan_fresh":true}}
+\end{lstlisting}
+
+同じ timestamp の topic を logger が CSV 行へまとめる。dashboard は
+speed、command、distance、SoC、voltage/current、PV、wind、forecast、
+upper/lower status、通信鮮度、警告を一画面に表示する。
+
+\question{Q13}{結果を再現するためCSV以外に必ず残す二つを書け。}
+\answer{resolved profile と latest/versioned manifest。mapのhash/source inventoryも版照合に使う。}
+
+\section{1周期タイムライン}
+\begin{longtable}{p{0.16\linewidth}p{0.77\linewidth}}
+\toprule
+時刻目安 & 処理\\
+\midrule
+\endhead
+0--5 ms & UDP datagram受信、UTF-8 decode、JSON/key-value parse\\
+5--15 ms & timestamp/range/rate gate、一次filter、ROS topic publish\\
+15--30 ms & distance、grade、wind correction、measurement cache更新\\
+30--100 ms & lower MPC rollout、reference更新\\
+100--150 ms & command bridge filter/rate/deadband/quantize、安全状態判定\\
+150--200 ms & UDP/ROS command送信、logger行、dashboard state更新\\
+毎時またはtrigger & weather reload と上位remaining-race MPC再計画\\
+30 s周期 & bounded autocal。条件が識別可能な区間だけ更新\\
+\bottomrule
+\end{longtable}
+
+\question{Q14}{packetが3秒以上途絶した場合、古い速度計画を送信し続けてよいか。}
+\answer{不可。input timeoutを立て、安全速度または停止指令へ遷移し、dashboard/loggerへ警告を残す。}
+
+\section{MLE から実運用 profile まで}
+観測を $y_i$、モデルを $\hat y_i(\theta)$、標準偏差を $\sigma_i$ とすると、
+Gaussian maximum likelihood の負対数尤度は
+\[
+ -\log L(\theta)
+ =\frac{1}{2}\sum_i\left[
+ \frac{y_i-\hat y_i(\theta)}{\sigma_i}\right]^2
+ +\sum_i\log\sigma_i+\mathrm{const}.
+\]
+外れ値・トラブル区間・control stop は manifest と規則に基づいて分類し、
+単純に全点を同じ正常走行として fit しない。grounded base map を公式仕様・試験・
+独立測定から作り、MLE は小さな scale と局所 shape correction を推定する。
+
+例として観測電圧 88.30 V、予測 87.95 V、$\sigma_V=1.0$ V なら
+この一点の二乗正規化残差は $(0.35)^2=0.1225$ である。
+2831 km 終端は voltage/current/temperature と OCV/Rint を同時に用いて
+SoC anchor を推定し、replay 終端だけでなく日別hold-outを検証する。
+
+\question{Q15}{training RMSEだけで高精度と断言できない理由を書け。}
+\answer{同じデータへの過適合、時刻同期ずれ、識別不能な係数相殺、day別ドリフトを見逃すため。hold-out、独立anchor、残差構造が必要。}
+
+\section{総合問題}
+\question{Q16}{Q3--Q12の計算を、入力、filter後状態、wheel power、pack power、battery状態、送信commandの順に一行でまとめよ。}
+\answer{UTC packet $\rightarrow v_f=71.4375$ km/h、$s=1200.019844$ km、grade $2.8\%$、headwind $3.728$ m/s $\rightarrow P_{\rm wheel}=2328$ W $\rightarrow P_{\rm pack}=2158.2$ W $\rightarrow I=23.28$ A、$V=92.68$ V、$z^+=0.829812$ $\rightarrow$ rate-limit後 command $71.2$ km/h。}
+
+\question{Q17}{SoCが日中0.98に張り付いたまま速度が低い計画に対し、同期問題以外の目的関数上の原因を三つ挙げよ。}
+\answer{所要時間penaltyが弱い、終端SoC targetより余剰SoC penaltyが弱い、daylight full-SoC/solar disposal penaltyが弱い、またはenergy/smooth penaltyが強すぎる。}
+
+\question{Q18}{2831 kmでsimulationを止めてはいけない理由を書け。}
+\answer{2831 kmは実車事故リタイア地点でありBWSC全コース終端ではない。no-trouble YATAの能力評価は3026.9 kmまで最適化・伝播する必要がある。}
+
+\question{Q19}{最新結果を配布copyへ移す正しい手順を書け。}
+\answer{canonical profile/map/reportを確定し、solar-only builderとblank builderを再実行し、manifest、PASSO/magnetic残存、templateの空性、tests/PDFを検査する。}
+
+\question{Q20}{live移行前の最小release gateを五つ書け。}
+\answer{unit tests、対象ROS 2でbuild、全mode起動と実nodeのrqt graph、UDP loopback/stale test、full-course sim、shadow road testのうち五つ以上。}
+
+\section{完全手計算演習: 上位MPCを一回解く}
+この章では電卓だけを用い、添付の旧教材と同じ順序で一回の上位MPCを最後まで解く。
+記号だけを追うのではなく、各空欄へ単位付き数値を書き、最後にCSVの一行と照合すること。
+
+\subsection{演習条件とcontrol展開}
+予測区間は $\Delta s=10$ km、$N_p=6$、control間隔は20 kmとする。
+決定変数は $u=[u_0,u_1,u_2]=[50,70,90]$ km/hであり、線形補間で
+prediction速度へ展開する。
+
+\begin{center}
+\begin{tabular}{c c c c}
+\toprule
+$k$ & $s_k$ [km] & 展開式 & $v_k$ [km/h]\\
+\midrule
+0&0&$u_0$&\rule{20mm}{0.4pt}\\
+1&10&$0.5u_0+0.5u_1$&\rule{20mm}{0.4pt}\\
+2&20&$u_1$&\rule{20mm}{0.4pt}\\
+3&30&$0.5u_1+0.5u_2$&\rule{20mm}{0.4pt}\\
+4&40&$u_2$&\rule{20mm}{0.4pt}\\
+5&50&$u_2$&\rule{20mm}{0.4pt}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\question{Q21}{6個のprediction速度と、各区間の
+$\Delta t_k=3600\Delta s/v_k$ をすべて求めよ。}
+\answer{$v=[50,60,70,80,90,90]$ km/h、
+$\Delta t=[720,600,514.286,450,400,400]$ s。}
+
+\subsection{一段目の抵抗を数値化する}
+演習の一段目だけは、比較しやすいよう速度60 km/hを用いる。
+与条件は
+\[
+ m=235\,\mathrm{kg},\quad \rho=1.18,\quad C_dA=0.107523\,\mathrm{m^2},
+ \quad C_{rr}=0.007638,
+\]
+\[
+g=9.80665\,\mathrm{m/s^2},\quad w_{head}=2.0\,\mathrm{m/s},
+\quad \mathrm{slope}=1.0\%.
+\]
+$v=60/3.6$、$v_{rel}=v+w_{head}$、
+$\theta=\tan^{-1}(0.01)$ として、次を空欄まで計算する。
+\[
+F_{aero}=\tfrac12\rho C_dA v_{rel}^2=\underline{\hspace{22mm}}\,\mathrm{N},
+\]
+\[
+F_{roll}=C_{rr}mg\cos\theta=\underline{\hspace{22mm}}\,\mathrm{N},\qquad
+F_{grade}=mg\sin\theta=\underline{\hspace{22mm}}\,\mathrm{N}.
+\]
+\[
+P_{wheel}=(F_{aero}+F_{roll}+F_{grade})v
+=\underline{\hspace{25mm}}\,\mathrm{W}.
+\]
+
+\question{Q22}{上の4つの数値を有効数字4桁で求めよ。}
+\answer{$F_{aero}=22.10$ N、$F_{roll}=17.60$ N、
+$F_{grade}=23.04$ N、$P_{wheel}=1045.84$ W。}
+
+速度を変更する周期ではroad loadに加え、
+\[
+\Delta E_k=\tfrac12m(v_k^2-v_{k-1}^2),\qquad
+P_{inertia}=\Delta E_k/\Delta t
+\]
+をwheel powerへ一度だけ加える。
+\question{Q22b}{$m=235$ kg、60 km/hから70 km/hへ10 sで変化するとき、
+$\Delta E_k$ [J]、[Wh]、$P_{inertia}$ [W]を求めよ。}
+\answer{$11786.27$ J、$3.27396$ Wh、$1178.63$ W。
+この電力をSoC式へ入れずsmooth penaltyだけを課す実装は物理的に不足する。}
+
+\subsection{drive mapを四隅から補間する}
+この点を囲むmapセルを次とする。
+\begin{center}
+\begin{tabular}{c|cc}
+ & $\tau=5$ Nm & $\tau=10$ Nm\\\hline
+$v=15$ m/s & 0.900 & 0.910\\
+$v=20$ m/s & 0.920 & 0.930
+\end{tabular}
+\end{center}
+$v=16.667$ m/s、$\tau=7.5$ Nmなら、
+$a=(16.667-15)/5=0.3334$、$b=(7.5-5)/5=0.5$ である。
+\[
+\eta_d=(1-a)(1-b)q_{00}+a(1-b)q_{10}
+ +(1-a)bq_{01}+abq_{11}.
+\]
+
+\question{Q23}{$\eta_d$ を計算し、map外をclipする理由も書け。}
+\answer{$\eta_d=0.91167$。外挿で効率が1超または負になることを防ぎ、
+仕様・試験で確認した領域外を根拠なく使わないため。}
+
+\subsection{PV map、pack、IVを同じ段で閉じる}
+実際の採用値との比較用に、ここでは $\eta_d=0.92$、$\eta_{inv}=0.98$、
+$P_{aux}=21.178$ W、$P_{pv}=500$ Wを用いる。
+\[
+P_{dc}=\frac{1045.844}{0.92\times0.98}
+=\underline{\hspace{22mm}}\,\mathrm{W},
+\]
+\[
+P_{pack}=P_{dc}+P_{aux}-P_{pv}
+=\underline{\hspace{22mm}}\,\mathrm{W}.
+\]
+$OCV=96$ V、$R_{int}+R_{line}=0.20\,\Omega$ とする。
+\[
+D=OCV^2-4RP_{pack}=\underline{\hspace{28mm}}\,\mathrm{V^2},
+\]
+\[
+I=\frac{OCV-\sqrt D}{2R}=\underline{\hspace{20mm}}\,\mathrm{A},\qquad
+V=OCV-IR=\underline{\hspace{20mm}}\,\mathrm{V}.
+\]
+
+\question{Q24}{$P_{dc},P_{pack},D,I,V$を求め、$VI=P_{pack}$を検算せよ。}
+\answer{$P_{dc}=1159.987$ W、$P_{pack}=681.165$ W、
+$D=8671.068$ V$^2$、$I=7.20358$ A、$V=94.5593$ V。
+$VI=681.165$ Wで一致する。}
+
+\subsection{6段の状態遷移表を完成させる}
+$z_0=0.8$、$E_{nom}=3187.6$ Wh、全段600 sとし、計算済みpack電力を
+$[681.165,400,-100,900,1200,500]$ Wとする。充電効率はこの演習だけ1とする。
+\[
+z_{k+1}=z_k-\frac{P_{pack,k}\Delta t}{3600E_{nom}}.
+\]
+\begin{center}
+\small
+\begin{tabular}{c r r r r}
+\toprule
+$k$&$P_{pack}$ [W]&$z_k$&$\Delta z_k$&$z_{k+1}$\\
+\midrule
+0&681.165&0.800000&\rule{17mm}{0.4pt}&\rule{17mm}{0.4pt}\\
+1&400&\rule{17mm}{0.4pt}&\rule{17mm}{0.4pt}&\rule{17mm}{0.4pt}\\
+2&-100&\rule{17mm}{0.4pt}&\rule{17mm}{0.4pt}&\rule{17mm}{0.4pt}\\
+3&900&\rule{17mm}{0.4pt}&\rule{17mm}{0.4pt}&\rule{17mm}{0.4pt}\\
+4&1200&\rule{17mm}{0.4pt}&\rule{17mm}{0.4pt}&\rule{17mm}{0.4pt}\\
+5&500&\rule{17mm}{0.4pt}&\rule{17mm}{0.4pt}&\rule{17mm}{0.4pt}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\question{Q25}{表を完成させ、$z_6$と安全下限0.1より上に残る使用可能Whを求めよ。}
+\answer{$z=[0.800000,0.764385,0.743470,0.748699,0.701642,0.638898,0.612755]$。
+終端使用可能エネルギーは
+$(0.612755-0.1)3187.6=1634.46$ Whであり、最短時間解としては明らかに使い残しである。}
+
+\subsection{最短時間・終端使い切り問題を書く}
+nominal計画は重みの足し算ではなく、次の制約付き問題とする。
+\[
+\min_u\ T(u)=\sum_k\{\Delta t_{wait,k}+3600\Delta s_k/v_k\},
+\]
+\[
+z_{min}\le z_k\le z_{max},\quad I_{chg,min}\le I_k\le I_{max},
+\quad V_{min}\le V_k\le V_{max},
+\]
+\[
+z_{min}\le z_N\le z_{min}+\varepsilon_z.
+\]
+ここで $z_{min}$ 未満は「使えない安全領域」であり、
+$E_{usable,N}=E_{nom}\max(0,z_N-z_{min})$ である。
+
+\question{Q26}{$z_{min}=0.1,\varepsilon_z=0.005,E_{nom}=3187.6$ Whなら、
+許されるゴール時使用可能エネルギー上限はいくらか。}
+\answer{$3187.6\times0.005=15.938$ Wh。}
+
+\subsection{有限差分とL-BFGS一反復}
+二変数の簡略目的
+\[
+J(u)=36000/u_0+36000/u_1,\qquad u^{(0)}=[60,80]
+\]
+を使う。$J(u^{(0)})=1050$ sであり、中心差分 $\epsilon=10^{-3}$ で
+\[
+g_i\simeq\frac{J(u+\epsilon e_i)-J(u-\epsilon e_i)}{2\epsilon}
+\]
+を求める。
+
+\question{Q27}{$g^{(0)}$、$p^{(0)}=-g^{(0)}$、$\alpha=0.5$の
+$u^{(1)}$を求めよ。}
+\answer{$g^{(0)}=[-10.0000,-5.6250]$、$p^{(0)}=[10,5.625]$、
+$u^{(1)}=[65,82.8125]$ km/h。}
+
+$g^{(1)}=[-8.520710,-5.249413]$ とする。
+$s=u^{(1)}-u^{(0)}$、$y=g^{(1)}-g^{(0)}$、$\rho=(y^Ts)^{-1}$ を求め、
+memory 1の二ループ再帰
+\[
+q\leftarrow g,\ a=\rho s^Tq,\ q\leftarrow q-ay,
+\]
+\[
+\gamma=\frac{s^Ty}{y^Ty},\ r\leftarrow\gamma q,
+\ b=\rho y^Tr,\ r\leftarrow r+s(a-b),\quad p=-r
+\]
+を実行する。
+
+\question{Q28}{$s,y,\rho,\gamma,p^{(1)}$を求めよ。}
+\answer{$s=[5,2.8125]$、$y=[1.479290,0.375587]$、
+$\rho=0.118304$、$\gamma=3.628796$、$p^{(1)}=[31.0682,30.3755]$。
+実装はこの後line searchとbound射影を行う。}
+
+\subsection{有限格子の大域最良を自分で証明する}
+100 km区間を2つ、速度候補を $\{50,80,110\}$ km/h、
+使用可能エネルギーを1600 Whとする。簡略消費式は
+\[
+E(u)=0.08(u_0^2+u_1^2)+200\quad[\mathrm{Wh}],
+\qquad T(u)=100/u_0+100/u_1\quad[\mathrm{h}].
+\]
+9組を一つも省略せず列挙する。
+\begin{center}\small
+\begin{tabular}{ccrrc}
+\toprule
+$u_0$&$u_1$&$E$ [Wh]&$T$ [h]&feasible\\\midrule
+50&50&\rule{15mm}{0.4pt}&\rule{15mm}{0.4pt}&\\
+50&80&\rule{15mm}{0.4pt}&\rule{15mm}{0.4pt}&\\
+50&110&\rule{15mm}{0.4pt}&\rule{15mm}{0.4pt}&\\
+80&50&\rule{15mm}{0.4pt}&\rule{15mm}{0.4pt}&\\
+80&80&\rule{15mm}{0.4pt}&\rule{15mm}{0.4pt}&\\
+80&110&\rule{15mm}{0.4pt}&\rule{15mm}{0.4pt}&\\
+110&50&\rule{15mm}{0.4pt}&\rule{15mm}{0.4pt}&\\
+110&80&\rule{15mm}{0.4pt}&\rule{15mm}{0.4pt}&\\
+110&110&\rule{15mm}{0.4pt}&\rule{15mm}{0.4pt}&\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\question{Q29}{表を完成させ、この有限集合で大域最良の組を証明せよ。}
+\answer{順に $(E,T)$ は\par
+$(600,4.0),(912,3.25),(1368,2.9091)$、\par
+$(912,3.25),(1224,2.5),(1680,2.1591)$、\par
+$(1368,2.9091),(1680,2.1591),(2136,1.8182)$。
+後三つのうちエネルギー超過を除くと最短は$[80,80]$の2.5 h。
+全9組を評価したため、この3値格子内では数学的に大域最良である。}
+
+連続対称解では $0.16v^2+200=1600$ より
+$v=93.541$ km/h、$T=2.1381$ hとなる。
+実装のSHGOはこの連続探索を担うが、有限回の結果を無条件の厳密証明とは呼ばない。
+manifestは格子全列挙の証明範囲、SHGOサンプル数、局所最小数を分けて保存する。
+
+\question{Q30}{CEMを1万世代回しても、それだけで大域最適性の数学的証明にならない理由を書け。}
+\answer{確率的に未探索領域が残り得て、得られた上界より小さい解が存在しないことを示す下界がないため。
+全列挙、interval branch-and-bound、または仮定を明記した収束定理が必要である。}
+
+\subsection{detail CSVとの照合}
+手計算後は一行の次の列を照合する。
+\begin{center}\small
+\begin{tabular}{p{0.30\linewidth}p{0.62\linewidth}}
+\toprule
+計算段階&detail列\\\midrule
+時刻・区間&\texttt{time\_utc,time\_end\_utc,step\_dt\_sec,s\_km,s\_end\_km}\\
+PV&\texttt{eta\_panel,eta\_mppt,P\_pv\_raw,P\_pv,E\_pv\_cumulative\_Wh}\\
+機械&\texttt{F\_aero,F\_roll,F\_grade,torque\_drive\_nm,eff\_drv}\\
+電池&\texttt{P\_pack,I,V,OCV,Rtotal,iv\_discriminant,soc,soc\_end}\\
+検算&\texttt{power\_balance\_residual\_W,battery\_energy\_used\_step\_Wh}\\
+電力の意味&\texttt{P\_vehicle\_load\_w,P\_solar\_w,P\_net\_battery\_w}\\
+刻みの意味&\texttt{outer\_step\_index,detail\_step\_kind,outer\_step\_boundary\_reason}\\
+採用定数&\texttt{param\_*}全列と\texttt{map\_*}全列\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\question{Q31}{detail CSVで $|P_{pack}-VI|$ が大きい行を見つけたときの調査順を書け。}
+\answer{同一行の$Rtotal$と判別式、単位、平均化区間、clip、NaN、
+開始/終了時刻を確認し、その後map補間とsubstep集約を確認する。}
+
+\section{天候API、70 km/h消費、端数刻みを手計算する}
+\subsection{日射量の時刻定義}
+Open-Meteo Historical Weather APIの通常の
+\path{shortwave_radiation}は、表示時刻までの直前1時間の平均値である。
+現行パッケージは\path{shortwave_radiation_instant}、
+\path{direct_normal_irradiance_instant}、
+\path{diffuse_radiation_instant}を使用する。
+
+\question{Q32}{通常変数の10:00の値が600 W/m$^2$であるとき、
+その平均対象区間と代表中心時刻を書け。これを10:00瞬時値として扱うと、
+中心時刻に対して何分の位相ずれになるか。}
+\answer{平均対象は09:00--10:00、中心時刻は09:30である。
+10:00瞬時値として扱えば中心に対して30分遅く配置する。
+したがって瞬時値との比較や走行位置との同期には\texttt{*\_instant}を使う。}
+
+\subsection{時刻・距離格子から実車位置を補間する}
+天候CSVは全時刻・全距離の反実仮想格子であり、1行をそのまま実車値としない。
+時刻比$a$、距離比$b$に対する双線形補間は
+\[
+G=(1-a)(1-b)G_{00}+a(1-b)G_{10}+(1-a)bG_{01}+abG_{11}.
+\]
+\question{Q33}{$a=0.25,b=0.40$、4隅のGHIが
+$G_{00}=300,G_{10}=500,G_{01}=340,G_{11}=540$ W/m$^2$のとき、
+実車が使うGHIを求めよ。}
+\answer{$0.75\times0.60\times300+0.25\times0.60\times500+
+0.75\times0.40\times340+0.25\times0.40\times540=366$ W/m$^2$。
+生格子に540があっても、実車入力は366である。}
+
+\subsection{70 km/hで約800 Wを検算する}
+$v=70/3.6=19.444$ m/s、$m=235$ kg、$\rho=1.18$ kg/m$^3$、
+$C_dA=0.111167$ m$^2$、$C_{rr}=0.006262$、平坦・無風、
+map補間値$0.897351$に倍率$1.034296$を一度だけ掛けた
+$\eta_{drv}=0.928126$、$\eta_{inv}=1.0$、$P_{aux}=21.021$ Wとする。
+\[
+F_{aero}=\tfrac12\rho C_dAv^2,\quad F_{roll}=mgC_{rr},\quad
+P_{vehicle}=\frac{(F_{aero}+F_{roll})v}{\eta_{drv}\eta_{inv}}+P_{aux}.
+\]
+\question{Q34}{$F_{aero},F_{roll},P_{wheel},P_{vehicle}$を求め、
+実ログの68--72 km/h平坦・低風中央値826--846 Wと比較せよ。}
+\answer{$F_{aero}=24.798$ N、$F_{roll}=14.431$ N、
+$P_{wheel}=762.792$ W、$P_{vehicle}=842.883$ W。
+観測中央値内にあり、「70 km/hで約800 W」と整合する。
+\texttt{P\_net\_battery\_w}はここからPVを引くため、車両総消費とは別量である。}
+
+detail CSVでは定速抵抗分を\texttt{P\_road\_load}、速度変化分を
+\texttt{P\_inertia}、両者の和を\texttt{P\_mech\_wheel}として区別する。
+
+\subsection{冬季日射からPVと電池電力を求める}
+$G=500$ W/m$^2$、$T_{amb}=12.6\,^{\circ}$C、$k_T=0.015$、
+$A=6$ m$^2$ とする。MLE35のactive panel/MPPT mapを二線形補間すると、
+$G=500$ W/m$^2$、$T_{cell}=20.1\,^{\circ}$Cで
+$\eta_{panel,map}=0.237780$、$\eta_{mppt}=0.961509$となる。
+実装はさらに独立同定した$g_{panel}=0.712687$を一度だけ掛け、
+$\eta_{panel}=0.237780\times0.712687=0.169463$とする。
+\[
+T_{cell}=T_{amb}+k_TG,\quad
+P_{solar}=GA\eta_{panel}(G,T_{cell})\eta_{mppt}(G,T_{cell}).
+\]
+\question{Q35}{$T_{cell}$、$P_{solar}$と、Q34の走行時の
+$P_{net,batt}=P_{vehicle}-P_{solar}$を求めよ。}
+\answer{$T_{cell}=20.1\,^{\circ}$C、$P_{solar}=488.820$ W、
+$P_{net,batt}=842.883-488.820=354.063$ W（放電）。}
+
+\subsection{上位区間と1秒detailの関係}
+上位計画のある距離区間の所要時間が1211.747251 sなら、
+600 sの外側積分上限で
+\[
+1211.747251=600+600+11.747251
+\]
+と分割される。これは不規則な同期ずれではなく、距離区間終端を厳密に踏むためである。
+
+\question{Q36}{下位司令を1 Hzで全行保存するとき、上の区間のdetail行数と
+最後の行の$\Delta t$、境界理由を求めよ。}
+\answer{最初の600行、次の600行、最後は1秒を11行と0.747251秒を1行なので、
+合計1212行。最後は\path{step_dt_sec=0.747251}、
+\path{detail_step_kind=boundary_remainder}、
+\path{outer_step_boundary_reason=upper_plan_segment_end}である。}
+
+\subsection{下り坂の回生を過大評価しない}
+回生mapの効率$\eta_{\mathrm{regen}}$と、負の機械仕事のうち実際に電気回生へ
+使う割合$u_{\mathrm{regen}}$を分ける。
+\[
+P_{\mathrm{regen,dc}}=
+u_{\mathrm{regen}}\eta_{\mathrm{regen}}\eta_{\mathrm{gear}}
+\eta_{\mathrm{inv}}\max(-P_{\mathrm{mech}},0).
+\]
+
+\question{Q37}{$P_{\mathrm{mech}}=-600$ W、$u_{\mathrm{regen}}=0.20$、
+$\eta_{\mathrm{regen}}=0.75$、$\eta_{\mathrm{gear}}=\eta_{\mathrm{inv}}=0.98$、
+$P_{\mathrm{aux}}=21$ W、$P_{\mathrm{solar}}=100$ Wのとき、
+回生DC電力と$P_{\mathrm{pack}}=P_{\mathrm{aux}}-P_{\mathrm{solar}}-
+P_{\mathrm{regen,dc}}$を求めよ。}
+\answer{$P_{\mathrm{regen,dc}}=86.436$ W、
+$P_{\mathrm{pack}}=21-100-86.436=-165.436$ W。
+$u_{\mathrm{regen}}=1$と置く旧モデルなら432.18 Wを回収すると誤認し、
+下り区間を過度に楽観評価する。}
+
+\subsection{同期誤差とエネルギー誤差を分ける}
+実ログの開始時刻がcontrol stopから逆算され、5秒標本が過渡を取り逃す場合、
+同じエネルギーでも予測波形と観測波形が一標本ずれることがある。
+
+\question{Q38}{5秒ごとの残差$[300,-300,200,-200]$ Wについて、
+点RMSE、20秒平均残差、20秒積算エネルギー残差を求め、
+どの検証指標を併用すべきか答えよ。}
+\answer{点RMSEは254.95 W、平均残差は0 W、積算残差は0 Wh。
+点RMSEに加え、120秒集約、10/25 km区間Wh、日別SoC・終端anchorを併用する。
+ただし同期ずれを理由に点誤差を無視せず、時刻の実測根拠と残差自己相関を記録する。}
+
+\subsection{公式control stopとfinish締切を手計算する}
+no-trouble計画でも公式control stopは省略しない。Katherineの開場を
+\path{2025-08-24T01:30:00Z}、閉鎖を\path{2025-08-24T07:30:00Z}、
+義務停止を1800 sとする。大会開始は\path{2025-08-23T22:51:00Z}、
+Adelaide締切は\path{2025-08-29T08:00:00Z}とする。
+
+\question{Q39}{Katherineへ\path{2025-08-24T00:50:00Z}に着いた場合の
+開場待ち、義務停止、最早出発時刻を求めよ。次にelapsedが
+126.008784722 hの候補についてfinish UTCと締切余裕を求め、公式時刻ゲートを
+通るか判定せよ。}
+\answer{開場待ちは40分、義務停止は30分なので最早出発は
+\path{2025-08-24T02:00:00Z}。finishは
+\path{2025-08-29T04:51:31.625Z}、締切余裕は
+3時間8分28.375秒である。Katherine閉鎖前かつfinish締切前なので、この二つの
+時刻条件は通る。ただし他の8地点、SoC、電流、電圧、1 Hz replayも別に通す必要がある。}
+
+\section{根拠文献}
+\begin{thebibliography}{9}
+\bibitem{rawlings}
+J. B. Rawlings, D. Q. Mayne, M. Diehl,
+\textit{Model Predictive Control: Theory, Computation, and Design}, 2nd ed., 2020.
+\bibitem{lbfgsb}
+R. H. Byrd, P. Lu, J. Nocedal, C. Zhu,
+A Limited Memory Algorithm for Bound Constrained Optimization,
+\textit{SIAM Journal on Scientific Computing}, 16(5), 1995.
+\bibitem{cem}
+P.-T. de Boer et al.,
+A Tutorial on the Cross-Entropy Method,
+\textit{Annals of Operations Research}, 134, 2005.
+\bibitem{plett}
+G. L. Plett,
+\textit{Battery Management Systems, Volume I: Battery Modeling},
+Artech House, 2015.
+\bibitem{shgo}
+S. C. Endres, C. Sandrock, W. W. Focke,
+A simplicial homology algorithm for lipschitz optimisation,
+\textit{Journal of Global Optimization}, 72, 181--217, 2018,
+doi:10.1007/s10898-018-0645-y.
+\bibitem{openmeteo}
+{\raggedright Open-Meteo, Historical Weather API Documentation,
+\url{https://open-meteo.com/en/docs/historical-weather-api},
+accessed 2026-07-16.\par}
+\bibitem{liu-grade}
+H. Liu et al., Evaluation of mobile vehicle emissions and their contribution to air quality,
+\textit{Atmospheric Environment}, 2014, doi:10.1016/j.atmosenv.2013.12.025.
+\bibitem{wang-sync}
+J. Wang et al., Energy consumption decomposition with synchronized vehicle data,
+University of California eScholarship, \url{https://escholarship.org/uc/item/2bp8x04q}.
+\end{thebibliography}
+
+\section*{採点目安}
+Q1--Q20は概念確認、Q21--Q39は数値計算として別々に採点する。
+概念80\%以上、数値計算80\%以上、かつ
+Q3、Q7、Q9、Q11、Q14、Q18、Q24、Q25、Q29、Q32、Q34、Q36、Q37、Q38、Q39を
+正答した者を live shadow mode 担当可能とする。
+
+\end{document}

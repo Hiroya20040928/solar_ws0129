@@ -1,0 +1,699 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={sim GPS 軌跡ノード},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{31. sim GPS 軌跡ノード}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/gps_sim_node.py| \\
+        ソースSHA-256 & \path|436c6e1e726b4e3c6443abc17a07d1f310ebec701f5577a15383b92e6570a591| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & planner/speed\_cmd を積分して route waypoints 上の現在位置を求め、/sim/gps を publish する。 \\
+        起動文脈 & sim モードの地図上位置源。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        planner/speed\_cmd を積分して route waypoints 上の現在位置を求め、/sim/gps を publish する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item 純粋に速度指令から位置を進める。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|launch/solarcar_sim.launch.py|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_state_node.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/path_utils.py|
+\item \path|mpc_solarcar/route_utils.py|
+\item \path|mpc_solarcar/solar_profile.py|
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from .path_utils import resolve_path
+from .solar_profile import require_csv_data_rows
+
+class GPSSimNode(Node):
+    def __init__(self):
+        super().__init__('gps_sim_node')
+        self.declare_parameter('route_csv', 'inputs/route_waypoints.csv')
+        self.declare_parameter('dt', 1.0)  # Hz
+        self.declare_parameter('init_speed_kmh', 40.0)
+        route_csv = self.get_parameter('route_csv').value
+        route_csv = resolve_path(route_csv, 'inputs')
+        route_csv = require_csv_data_rows(
+            route_csv,
+            label='route waypoints',
+            required_columns=('dist_km',),
+        )
+        self.route = pd.read_csv(route_csv)
+        self.dt = float(self.get_parameter('dt').value)
+        self.speed_kmh = float(self.get_parameter('init_speed_kmh').value)
+        self.s_km = float(self.route['dist_km'].iloc[0])
+        self.pub_gps = self.create_publisher(NavSatFix, '/sim/gps', 10)
+        self.sub_speed = self.create_subscription(Float32, '/planner/speed_cmd', self.on_speed, 10)
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要クラスは GPSSimNode。 主要関数は on\_speed, step, main。 ROS パラメータ宣言は 3 件。 ROS I/O は publisher 1 件、subscription 1 件。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            11 & class & \path|GPSSimNode| & bases: Node \\
+12 & function & \path|__init__| & args: self \\
+32 & function & \path|on_speed| & args: self, msg \\
+34 & function & \path|step| & args: self \\
+47 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            11 & クラス GPSSimNode を定義する。 \\
+47 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L48, L50。 \\
+2 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L11。 \\
+3 & \path|from sensor_msgs.msg import NavSatFix| & GPS 緯度経度高度を ROS topic でやり取りするため。 このファイル内での主な使用位置は L28, L38。 \\
+4 & \path|from std_msgs.msg import Float32| & Float32、Bool、Stringなどの標準ROS messageで値をpublishまたはsubscribeするため。 このファイル内での主な使用位置は L29, L32。 \\
+5 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L24。 \\
+7 & \path|from .route_utils import interpolate_route_with_alt| & route\_utils.py から interpolate\_route\_with\_alt を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/route\_utils.py。 このファイル内での主な使用位置は L37。 \\
+8 & \path|from .path_utils import resolve_path| & ROS share / 相対パス解決 から resolve\_path を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/path\_utils.py。 このファイル内での主な使用位置は L18。 \\
+9 & \path|from .solar_profile import require_csv_data_rows| & profile YAML 読込と検証 から require\_csv\_data\_rows を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_profile.py。 このファイル内での主な使用位置は L19。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{class、独自クラス、インスタンス、self、継承}
+クラスは、保持するデータと、そのデータを扱う関数を一つの型としてまとめる設計単位である。「独自クラス」とはPythonやROS 2が最初から用意した型ではなく、このプロジェクトが目的に合わせて定義した新しい型を指す。
+
+
+`class MPCNode(Node)`は、rclpyのNodeを基底クラスとして継承し、Nodeが持つpublisher、subscription、timer、parameterなどの機能にMPC固有機能を追加する。丸括弧内は関数引数ではなく基底クラス指定である。
+
+
+`MPCNode()`はクラスオブジェクトを呼び出して新しいインスタンスを作る。Pythonは新しい実体を用意し、その実体を第1引数selfとして`\_\_init\_\_`へ渡す。`self`は予約語ではなく慣習的な名前だが、この慣習を守ることでコードの意味が共有される。
+
+
+\begin{lstlisting}[language=python]
+class Counter:
+    def __init__(self):
+        self.value = 0
+
+    def increment(self):
+        self.value += 1
+
+counter = Counter()
+counter.increment()
+\end{lstlisting}
+
+
+`super().\_\_init\_\_(...)`は継承元の初期化処理を呼ぶ。MPCNodeではこれを省くとROSノードとして必要な内部実体が作られず、`create\_publisher`などを正しく使えない。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{先頭アンダースコア、\_\_init\_\_、名前付けの作法}
+`self.\_step\_solar`の先頭1個のアンダースコアは「クラス内部で使う実装詳細」という慣習であり、アクセスを強制禁止する機構ではない。外部コードから呼べるが、公開APIとして依存しない意思表示である。
+
+
+`\_\_init\_\_`の前後2個のアンダースコアはPythonが定めた特殊メソッド名である。クラス生成時に自動で呼ばれる。任意の名前に前後2個を付けて独自仕様を作ることは避ける。
+
+
+`\_`で始まるローカル変数は、未使用または外部へ見せない意図を示す場合がある。例えば`\_base\_csv`は戻り値として受け取る必要はあるが、その後の処理では使わないことを読者へ示す。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{list、dict、deque、NumPy配列、pandas DataFrame}
+listは順序付き可変列、tupleは順序付きで通常変更しない列、dictはキーから値を引く対応表、dequeは両端追加・削除が効率的なキューである。どの構造を選ぶかはアクセス方法と更新方法で決まる。
+
+
+NumPy配列は同種数値を連続的に扱い、要素ごとの演算、clip、補間、線形代数を簡潔に書く。shapeは各次元の要素数であり、速度系列なら通常`(N,)`、候補集団なら`(population, N)`となる。
+
+
+pandas DataFrameは列名を持つ表である。CSV読込後は列型、欠損、単位、timezone、並び順、重複を明示的に処理しなければ、数値計算が動いても意味が誤る。
+
+
+
+\subsection{rclpy、rcl、rmw、DDS/RTPSの層}
+rclpyはPython利用者向けROS 2 client libraryである。利用者のNode、publisher、subscriptionなどをPython APIとして提供し、その下で共通C層のrclを利用する。
+
+
+\begin{lstlisting}
+本プロジェクトのPythonコード -> rclpy -> rcl -> rmw -> DDS/RTPS実装 -> ネットワークまたは同一PC内通信
+\end{lstlisting}
+
+
+rclは言語に依存しない共通ROS機能を提供するC API、rmwはROS 2と具体的middleware実装の境界である。DDS/RTPS側が探索、serialize、publish/subscribe、request/replyなどを担う。executorの実行モデルはrclだけで完結せずclient library側にも実装される。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Concepts/About-Internal-Interfaces.html}{ROS 2 Humble公式: Internal ROS 2 interfaces}
+\end{itemize}
+
+\subsection{ROS graph、Node、topic、service、action、parameter}
+ROS graphは、実行中Nodeと、それらが持つpublisher、subscription、service、actionなどの接続関係である。Pythonクラス、プロセス、ROS graph上のNode名は関連するが同一物ではない。
+
+
+topicは継続データ向けの非同期一方向publish/subscribe、serviceは短いrequest/response、actionは時間のかかる目標へfeedback、cancel、resultを持たせる。parameterはNodeごとの設定値である。
+
+
+publisherが送った時点とsubscription callbackが実行される時点は同じとは限らない。通信遅延、QoS queue、executor待ちを挟むため、センサ値にはtimestampとfreshness判定が必要になる。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/Interfaces-Topics-Services-Actions.html}{ROS 2 Humble公式: Topics, Services, Actions}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/About-Parameters.html}{ROS 2 Humble公式: Parameters}
+\end{itemize}
+
+\subsection{callback、timer、Executor、spin、Callback Group}
+callbackは、メッセージ受信、timer満了、service requestなどのイベントが成立した後でExecutorから呼ばれる関数である。登録時に`self.\_on\_speed`と括弧なしで渡すのは、今実行せず後で呼ぶ関数オブジェクトを渡すためである。
+
+
+Executorは実行可能になったcallbackを見つけ、Callback Groupの条件を確認して実行する。`spin()`は終了要求まで待機・dispatchを続けるため、通常運転中はmainの次の行へ戻らない。
+
+
+MutuallyExclusiveCallbackGroupは同じgroup内のcallbackを同時実行させない。別group間はMultiThreadedExecutorで並行実行し得る。groupを分けただけでは共有属性への完全な排他にはならないため、複数groupが同じ状態を読む・書く場合は設計確認が必要である。
+
+
+\begin{lstlisting}
+DDS受信またはtimer満了 -> wait setでready -> Executorが選択 -> Callback Groupが許可 -> worker threadがcallback実行 -> 終了後Executorへ戻る
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Executors.html}{ROS 2公式: Executors}
+\item \href{https://docs.ros.org/en/humble/Concepts/About-Internal-Interfaces.html}{ROS 2 Humble公式: Internal ROS 2 interfaces}
+\end{itemize}
+
+\subsection{rqt\_graph、ros2 CLI、rosbag2をいつ使うか}
+rqt\_graphは接続関係を見る道具であり、数値の正しさや更新周期までは保証しない。起動直後、topic名変更後、publisherが複数存在する疑いがある時に使う。
+
+
+\begin{lstlisting}[language=bash]
+ros2 node list
+ros2 node info /mpc_node
+ros2 topic list -t
+ros2 topic info -v /planner/speed_cmd
+ros2 topic hz /planner/speed_cmd
+ros2 topic echo /planner/status
+rqt_graph
+\end{lstlisting}
+
+
+rosbag2はtopicメッセージを時系列のまま記録・再生する。通信不具合、freshness、再計画trigger、実車とSILSの差を再現可能にするため、本番前試験では制御入力だけでなく原因となる全telemetry、status、parameter情報を記録する。
+
+
+\begin{lstlisting}[language=bash]
+ros2 bag record -o outputs/bags/preflight \
+  /vehicle/s_km /vehicle/speed_kmh /vehicle/batt_soc \
+  /vehicle/batt_temp_c /vehicle/batt_current_a /vehicle/batt_voltage_v \
+  /planner/upper_speed_cmd /planner/speed_cmd /planner/status
+
+ros2 bag info outputs/bags/preflight
+ros2 bag play outputs/bags/preflight --clock
+\end{lstlisting}
+
+
+bag再生時はQoS互換性、simulation time、外部publisherとの二重入力に注意する。実車Nodeを同時に動かす場合はnamespaceまたはremappingで入力源を明確に分離する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/ros2_packages/humble/api/rqt_graph/index.html}{ROS 2 Humble公式: rqt\_graph}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html}{ROS 2 Humble公式: Recording and playing back data}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L11 クラス GPSSimNode}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L11--L46
+              \item 所属: module直下
+              \item 定義: \path|GPSSimNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 on\_speed を定義する。
+\item 関数 step を定義する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class GPSSimNode(Node):
+    def __init__(self):
+        super().__init__('gps_sim_node')
+        self.declare_parameter('route_csv', 'inputs/route_waypoints.csv')
+        self.declare_parameter('dt', 1.0)  # Hz
+        self.declare_parameter('init_speed_kmh', 40.0)
+        route_csv = self.get_parameter('route_csv').value
+        route_csv = resolve_path(route_csv, 'inputs')
+        route_csv = require_csv_data_rows(
+            route_csv,
+            label='route waypoints',
+            required_columns=('dist_km',),
+        )
+        self.route = pd.read_csv(route_csv)
+        self.dt = float(self.get_parameter('dt').value)
+        self.speed_kmh = float(self.get_parameter('init_speed_kmh').value)
+        self.s_km = float(self.route['dist_km'].iloc[0])
+        self.pub_gps = self.create_publisher(NavSatFix, '/sim/gps', 10)
+        self.sub_speed = self.create_subscription(Float32, '/planner/speed_cmd', self.on_speed, 10)
+        self.timer = self.create_timer(1.0/self.dt, self.step)
+        self.get_logger().info('GPSSimNode started.')
+    def on_speed(self, msg: Float32):
+        self.speed_kmh = float(msg.data)
+    def step(self):
+        # advance along route based on commanded speed
+        self.s_km += (self.speed_kmh/3.6)*(1.0/self.dt)/1000.0  # km
+        lat, lon, alt = interpolate_route_with_alt(self.route, self.s_km)
+        msg = NavSatFix()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.latitude = lat
+        msg.longitude = lon
+        if alt is not None:
+            msg.altitude = float(alt)
+        else:
+            msg.altitude = 0.0
+...
+\end{lstlisting}
+
+\subsection{L12 関数 GPSSimNode.\_\_init\_\_}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L12--L31
+              \item 所属: \path|GPSSimNode|
+              \item 定義: \path|__init__(self)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_\_init\_\_, create\_publisher, create\_subscription, create\_timer, declare\_parameter, float, get\_logger, get\_parameter, info, read\_csv, require\_csv\_data\_rows, resolve\_path
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: route\_csv
+              \item 読み取る主なインスタンス属性: self.create\_publisher, self.create\_subscription, self.create\_timer, self.declare\_parameter, self.dt, self.get\_logger, self.get\_parameter, self.on\_speed, self.route, self.step
+              \item 更新する主なインスタンス属性: self.dt, self.pub\_gps, self.route, self.s\_km, self.speed\_kmh, self.sub\_speed, self.timer
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item super().\_\_init\_\_(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item route\_csv に self.get\_parameter('route\_csv').value の結果を代入する。
+\item route\_csv に resolve\_path(route\_csv, 'inputs') の結果を代入する。
+\item route\_csv に require\_csv\_data\_rows(route\_csv, label='route waypoints', required\_columns=('dist\_km',)) の結果を代入する。
+\item self.route に pd.read\_csv(route\_csv) の結果を代入する。
+\item self.dt に float(self.get\_parameter('dt').value) の結果を代入する。
+\item self.speed\_kmh に float(self.get\_parameter('init\_speed\_kmh').value) の結果を代入する。
+\item self.s\_km に float(self.route['dist\_km'].iloc[0]) の結果を代入する。
+\item self.pub\_gps に self.create\_publisher(NavSatFix, '/sim/gps', 10) の結果を代入する。
+\item self.sub\_speed に self.create\_subscription(Float32, '/planner/speed\_cmd', self.on\_speed, 10) の結果を代入する。
+\item self.timer に self.create\_timer(1.0 / self.dt, self.step) の結果を代入する。
+\item self.get\_logger().info(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def __init__(self):
+        super().__init__('gps_sim_node')
+        self.declare_parameter('route_csv', 'inputs/route_waypoints.csv')
+        self.declare_parameter('dt', 1.0)  # Hz
+        self.declare_parameter('init_speed_kmh', 40.0)
+        route_csv = self.get_parameter('route_csv').value
+        route_csv = resolve_path(route_csv, 'inputs')
+        route_csv = require_csv_data_rows(
+            route_csv,
+            label='route waypoints',
+            required_columns=('dist_km',),
+        )
+        self.route = pd.read_csv(route_csv)
+        self.dt = float(self.get_parameter('dt').value)
+        self.speed_kmh = float(self.get_parameter('init_speed_kmh').value)
+        self.s_km = float(self.route['dist_km'].iloc[0])
+        self.pub_gps = self.create_publisher(NavSatFix, '/sim/gps', 10)
+        self.sub_speed = self.create_subscription(Float32, '/planner/speed_cmd', self.on_speed, 10)
+        self.timer = self.create_timer(1.0/self.dt, self.step)
+        self.get_logger().info('GPSSimNode started.')
+\end{lstlisting}
+
+\subsection{L32 関数 GPSSimNode.on\_speed}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L32--L33
+              \item 所属: \path|GPSSimNode|
+              \item 定義: \path|on_speed(self, msg: Float32)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: self.speed\_kmh
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.speed\_kmh に float(msg.data) の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def on_speed(self, msg: Float32):
+        self.speed_kmh = float(msg.data)
+\end{lstlisting}
+
+\subsection{L34 関数 GPSSimNode.step}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L34--L46
+              \item 所属: \path|GPSSimNode|
+              \item 定義: \path|step(self)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: NavSatFix, float, get\_clock, interpolate\_route\_with\_alt, now, publish, to\_msg
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: alt, lat, lon, msg
+              \item 読み取る主なインスタンス属性: self.dt, self.get\_clock, self.pub\_gps, self.route, self.s\_km, self.speed\_kmh
+              \item 更新する主なインスタンス属性: self.s\_km
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.s\_km を Add で更新する。
+\item (lat, lon, alt) に interpolate\_route\_with\_alt(self.route, self.s\_km) の結果を代入する。
+\item msg に NavSatFix() の結果を代入する。
+\item msg.header.stamp に self.get\_clock().now().to\_msg() の結果を代入する。
+\item msg.latitude に lat の結果を代入する。
+\item msg.longitude に lon の結果を代入する。
+\item 条件 alt is not None を判定し、真なら内部処理を行う。
+\item   msg.altitude に float(alt) の結果を代入する。
+\item   上の条件が偽の場合:
+\item   msg.altitude に 0.0 の結果を代入する。
+\item self.pub\_gps.publish(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def step(self):
+        # advance along route based on commanded speed
+        self.s_km += (self.speed_kmh/3.6)*(1.0/self.dt)/1000.0  # km
+        lat, lon, alt = interpolate_route_with_alt(self.route, self.s_km)
+        msg = NavSatFix()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.latitude = lat
+        msg.longitude = lon
+        if alt is not None:
+            msg.altitude = float(alt)
+        else:
+            msg.altitude = 0.0
+        self.pub_gps.publish(msg)
+\end{lstlisting}
+
+\subsection{L47 関数 main}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L47--L50
+              \item 所属: module直下
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: GPSSimNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: node
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に GPSSimNode() の結果を代入する。
+\item rclpy.spin(...) を実行する。
+\item node.destroy\_node(...) を実行する。
+\item rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def main():
+    rclpy.init()
+    node = GPSSimNode()
+    rclpy.spin(node); node.destroy_node(); rclpy.shutdown()
+\end{lstlisting}
+
+        \subsection{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            14 & \path|route_csv| & inputs/route\_waypoints.csv \\
+15 & \path|dt| & 1.0 \\
+16 & \path|init_speed_kmh| & 40.0 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            28 & publisher & \path|/sim/gps| & publisher \\
+29 & subscription & \path|/planner/speed_cmd| & self.on\_speed \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/gps_sim_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

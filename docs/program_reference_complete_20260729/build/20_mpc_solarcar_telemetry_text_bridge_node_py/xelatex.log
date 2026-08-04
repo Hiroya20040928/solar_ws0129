@@ -1,0 +1,685 @@
+===== xelatex pass 1 =====
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/20_mpc_solarcar_telemetry_text_bridge_node_py.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\20_mpc_solarcar_telemetry_text_bridge_node_py\20_mp
+c_solarcar_telemetry_text_bridge_node_py.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\20_mpc_solarcar_telemetry_text_bridge_node_py\20_mp
+c_solarcar_telemetry_text_bridge_node_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\20_mpc_solarcar_telemetry_text_bridge_node_py\20_mp
+c_solarcar_telemetry_text_bridge_node_py.out)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\20_mpc_solarcar_telemetry_text_bridge_node_py\20_mp
+c_solarcar_telemetry_text_bridge_node_py.toc [1]) [2]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[3]
+Overfull \hbox (11.85341pt too wide) in paragraph at lines 129--129
+[]|$[][][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 138--138
+[]|$[][][][][][][] [] [][][][][][][] []
+ignored error: Infinite glue shrinkage found in box being split [4]
+Underfull \hbox (badness 10000) in paragraph at lines 166--166
+[]|$[][][][] [] [][][][][][][] []
+
+Overfull \hbox (13.47824pt too wide) in paragraph at lines 171--171
+[]|$[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 174--174
+[]|$[][][][][][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 175--175
+[]|$[][][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 175--175
+[][][][][][][][][][][][][][][][] [][] [][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 176--176
+[]|$[][][][] [] [][][][][][] []
+
+Overfull \hbox (7.45789pt too wide) in paragraph at lines 176--176
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 177--177
+[]|$[][][][] [] [][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 177--177
+[][][][][][][][][][][][][][][][][] [] [][][] [] [][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 177--178
+[]|\TU/TimesNewRoman(0)/m/n/10.95 telemetry_protocol.py \TU/YuGothic(0)/m/n/10.
+95 か ら \TU/TimesNewRoman(0)/m/n/10.95 utc_iso_now, vali-
+
+Underfull \hbox (badness 1360) in paragraph at lines 177--178
+\TU/TimesNewRoman(0)/m/n/10.95 date_source_timestamp \TU/YuGothic(0)/m/n/10.95 
+を 読 み 込 み、|  こ の フ ァ イ
+[5]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 199.
+
+[6] [7] [8]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[9] [10] [11] [12] [13] [14] [15]
+Underfull \hbox (badness 3547) in paragraph at lines 717--718
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._poll_socket, self._send_outbound, self._set_outbound,
+
+Underfull \hbox (badness 1881) in paragraph at lines 718--719
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.chase_remote, self.enable_inbound, self.enable_outbound,
+
+Overfull \hbox (1.0941pt too wide) in paragraph at lines 718--719
+\TU/TimesNewRoman(0)/m/n/10.95 self.headwind_filter, self.i_filter, self.last_s
+ource_unix, self.max_abs_headwind_ms, self.max_future_skew_sec,
+
+Underfull \hbox (badness 10000) in paragraph at lines 718--719
+\TU/TimesNewRoman(0)/m/n/10.95 self.max_out_of_order_sec, self.max_packet_age_s
+ec, self.outbound_state, self.prefer_direct_distance,
+
+Underfull \hbox (badness 2443) in paragraph at lines 718--719
+\TU/TimesNewRoman(0)/m/n/10.95 self.pub_raw_chase, self.pub_raw_solar, self.pub
+_solar_source_time, self.pub_status, self.pub_vehicle_alt,
+[16] [17]
+Underfull \hbox (badness 10000) in paragraph at lines 769--770
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.speed_filter \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 RobustScalarFilter(tau_sec=float(self.get_parame
+ter(’speed_filter_tau_sec’).value),
+
+Overfull \hbox (173.66167pt too wide) in paragraph at lines 769--770
+\TU/TimesNewRoman(0)/m/n/10.95 min_value=0.0, max_value=float(self.get_paramete
+r(’speed_max_kmh’).value), rise_rate=float(self.get_parameter(’speed_max_accel_
+kmhps’).value),
+
+Underfull \hbox (badness 10000) in paragraph at lines 770--771
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.soc_filter \TU/YuGothic(0)/m/n/10.95 に \T
+U/TimesNewRoman(0)/m/n/10.95 RobustScalarFilter(tau_sec=float(self.get_paramete
+r(’battery_filter_tau_sec’).value),
+
+Underfull \hbox (badness 10000) in paragraph at lines 771--772
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.tb_filter \TU/YuGothic(0)/m/n/10.95 に \TU
+/TimesNewRoman(0)/m/n/10.95 RobustScalarFilter(tau_sec=float(self.get_parameter
+(’battery_filter_tau_sec’).value),
+
+Overfull \hbox (21.99261pt too wide) in paragraph at lines 773--774
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.v_filter \TU/YuGothic(0)/m/n/10.95 に \TU/
+TimesNewRoman(0)/m/n/10.95 RobustScalarFilter(tau_sec=float(self.get_parameter(
+’battery_filter_tau_sec’).value), min_value=0.0,
+
+Overfull \hbox (0.42693pt too wide) in paragraph at lines 775--776
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.headwind_filter \TU/YuGothic(0)/m/n/10.95
+ に \TU/TimesNewRoman(0)/m/n/10.95 RobustScalarFilter(tau_sec=float(self.get_par
+ameter(’headwind_filter_tau_sec’).value),
+[18]
+Overfull \hbox (57.05699pt too wide) in paragraph at lines 802--803
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.solar_remote \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 (str(self.get_parameter(’solar_remote_host’).val
+ue), int(self.get_parameter(’solar_remote_port’).value))
+
+Overfull \hbox (67.36005pt too wide) in paragraph at lines 803--804
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.chase_remote \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 (str(self.get_parameter(’chase_remote_host’).val
+ue), int(self.get_parameter(’chase_remote_port’).value))
+
+Underfull \hbox (badness 2343) in paragraph at lines 806--807
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.outbound_state \TU/YuGothic(0)/m/n/10.95 
+に \TU/TimesNewRoman(0)/m/n/10.95 {’speed_cmd_kmh’: 0.0, ’upper_speed_cmd_kmh’: 
+0.0, ’drive_mode’: ’stop’,
+[19] [20]
+Overfull \hbox (29.15024pt too wide) in paragraph at lines 889--890
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._handle_chase_payload, self._handle_vehicle_payload, self.last_so
+urce_unix,
+
+Overfull \hbox (35.47578pt too wide) in paragraph at lines 889--890
+\TU/TimesNewRoman(0)/m/n/10.95 self.pub_raw_chase, self.pub_raw_solar, self.pub
+_solar_source_time, self.pub_status, self.sock, self.timestamp_required 
+[21]
+Overfull \hbox (49.90567pt too wide) in paragraph at lines 917--918
+[]\TU/TimesNewRoman(0)/m/n/10.95 validation \TU/YuGothic(0)/m/n/10.95 に \TU/Tim
+esNewRoman(0)/m/n/10.95 validate_source_timestamp(payload, now_unix=time.time()
+, last_source_unix=self.last_source_unix[source],
+
+Overfull \hbox (71.52408pt too wide) in paragraph at lines 917--918
+\TU/TimesNewRoman(0)/m/n/10.95 required=self.timestamp_required, max_age_sec=se
+lf.max_packet_age_sec, max_future_skew_sec=self.max_future_skew_sec,
+[22]
+Underfull \hbox (badness 3354) in paragraph at lines 976--977
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][][]
+[] [] [][][][][][][][] [][] [][][] [][] [][][] [] [][][][][] [] [][][][] [][] [
+][][] [] [][][][][] [] [][][][] [][] [][][] [] [][][][][] [] [][][][] [][] [][]
+[][][][] []
+[23] [24]
+Overfull \hbox (24.82193pt too wide) in paragraph at lines 1034--1035
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._publish_gps, self._publish_weather, self.i_filter, self.prefer_d
+irect_distance,
+
+Underfull \hbox (badness 7256) in paragraph at lines 1034--1035
+\TU/TimesNewRoman(0)/m/n/10.95 self.pub_vehicle_alt, self.pub_vehicle_gps, self
+.pub_vehicle_i, self.pub_vehicle_s, self.pub_vehicle_soc,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1034--1035
+\TU/TimesNewRoman(0)/m/n/10.95 self.pub_vehicle_solar, self.pub_vehicle_speed, 
+self.pub_vehicle_tb, self.pub_vehicle_v, self.soc_filter,
+[25] [26]
+Underfull \hbox (badness 2726) in paragraph at lines 1129--1130
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._publish_gps, self._publish_weather, self.pub_chase_alt,
+[27]
+Underfull \hbox (badness 2393) in paragraph at lines 1180--1181
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.headwind_filter, self.pub_course_dir, self.pub_headwind,
+[28] [29]
+Underfull \hbox (badness 2368) in paragraph at lines 1267--1268
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._send_payload, self.chase_remote, self.enable_outbound,
+
+Overfull \hbox (109.54002pt too wide) in paragraph at lines 1281--1282
+\TU/TimesNewRoman(0)/m/n/10.95 {’speed_cmd_kmh’: self.outbound_state[’speed_cmd
+_kmh’], ’upper_speed_cmd_kmh’: self.outbound_state[’upper_speed_cmd_kmh’],
+
+Overfull \hbox (34.64552pt too wide) in paragraph at lines 1281--1282
+\TU/TimesNewRoman(0)/m/n/10.95 ’drive_mode’: self.outbound_state[’drive_mode’]}
+, ’vehicle’: {’speed_kmh’: self.outbound_state[’speed_meas_kmh’],
+[30] [31]
+ignored error: Infinite glue shrinkage found in box being split [32]
+Underfull \hbox (badness 10000) in paragraph at lines 1407--1407
+[]|$[][][][][][][][][][] [] [][][][][] [] [][][][][][] [] [][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 1408--1408
+[]|$[][][][][][][][][][] [] [][][][][] [] [][][][][][] [] [][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 1409--1410
+[]|\TU/TimesNewRoman(0)/m/n/10.95 lambda msg:
+
+Overfull \hbox (28.49448pt too wide) in paragraph at lines 1409--1410
+\TU/TimesNewRoman(0)/m/n/10.95 self._set_outbound(’speed_cmd_kmh’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1410--1411
+[]|\TU/TimesNewRoman(0)/m/n/10.95 lambda msg:
+
+Overfull \hbox (59.5052pt too wide) in paragraph at lines 1410--1411
+\TU/TimesNewRoman(0)/m/n/10.95 self._set_outbound(’upper_speed_cmd_kmh’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1411--1412
+[]|\TU/TimesNewRoman(0)/m/n/10.95 lambda msg:
+
+Overfull \hbox (7.19865pt too wide) in paragraph at lines 1411--1412
+\TU/TimesNewRoman(0)/m/n/10.95 self._set_outbound(’drive_mode’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1412--1413
+[]|\TU/TimesNewRoman(0)/m/n/10.95 lambda msg:
+
+Overfull \hbox (32.1409pt too wide) in paragraph at lines 1412--1413
+\TU/TimesNewRoman(0)/m/n/10.95 self._set_outbound(’speed_meas_kmh’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1413--1414
+[]|\TU/TimesNewRoman(0)/m/n/10.95 lambda msg:
+
+Underfull \hbox (badness 10000) in paragraph at lines 1413--1414
+\TU/TimesNewRoman(0)/m/n/10.95 self._set_outbound(’soc’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1414--1415
+[]|\TU/TimesNewRoman(0)/m/n/10.95 lambda msg:
+
+Underfull \hbox (badness 10000) in paragraph at lines 1414--1415
+\TU/TimesNewRoman(0)/m/n/10.95 self._set_outbound(’s_km’,
+ignored error: Infinite glue shrinkage found in box being split [33] [34]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\20_mpc_solarcar_telemetry_text_bridge_node_py\20_mp
+c_solarcar_telemetry_text_bridge_node_py.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\20_mpc_solarcar_telemetry_text_bri
+dge_node_py\20_mpc_solarcar_telemetry_text_bridge_node_py.pdf (34 pages).
+Transcript written on "C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-ma
+in\docs\program_reference_complete_20260729\build\20_mpc_solarcar_telemetry_tex
+t_bridge_node_py\20_mpc_solarcar_telemetry_text_bridge_node_py.log".
+
+miktex-dvipdfmx: major issue: So far, you have not checked for MiKTeX updates.
+xelatex: major issue: So far, you have not checked for MiKTeX updates.
+
+
+===== xelatex pass 2 =====
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/20_mpc_solarcar_telemetry_text_bridge_node_py.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\20_mpc_solarcar_telemetry_text_bridge_node_py\20_mp
+c_solarcar_telemetry_text_bridge_node_py.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\20_mpc_solarcar_telemetry_text_bridge_node_py\20_mp
+c_solarcar_telemetry_text_bridge_node_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\20_mpc_solarcar_telemetry_text_bridge_node_py\20_mp
+c_solarcar_telemetry_text_bridge_node_py.out)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\20_mpc_solarcar_telemetry_text_bridge_node_py\20_mp
+c_solarcar_telemetry_text_bridge_node_py.toc [1]) [2]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[3]
+Overfull \hbox (11.85341pt too wide) in paragraph at lines 129--129
+[]|$[][][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 138--138
+[]|$[][][][][][][] [] [][][][][][][] []
+ignored error: Infinite glue shrinkage found in box being split [4]
+Underfull \hbox (badness 10000) in paragraph at lines 166--166
+[]|$[][][][] [] [][][][][][][] []
+
+Overfull \hbox (13.47824pt too wide) in paragraph at lines 171--171
+[]|$[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 174--174
+[]|$[][][][][][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 175--175
+[]|$[][][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 175--175
+[][][][][][][][][][][][][][][][] [][] [][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 176--176
+[]|$[][][][] [] [][][][][][] []
+
+Overfull \hbox (7.45789pt too wide) in paragraph at lines 176--176
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 177--177
+[]|$[][][][] [] [][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 177--177
+[][][][][][][][][][][][][][][][][] [] [][][] [] [][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 177--178
+[]|\TU/TimesNewRoman(0)/m/n/10.95 telemetry_protocol.py \TU/YuGothic(0)/m/n/10.
+95 か ら \TU/TimesNewRoman(0)/m/n/10.95 utc_iso_now, vali-
+
+Underfull \hbox (badness 1360) in paragraph at lines 177--178
+\TU/TimesNewRoman(0)/m/n/10.95 date_source_timestamp \TU/YuGothic(0)/m/n/10.95 
+を 読 み 込 み、|  こ の フ ァ イ
+[5]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 199.
+
+[6] [7] [8]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[9] [10] [11] [12] [13] [14] [15]
+Underfull \hbox (badness 3547) in paragraph at lines 717--718
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._poll_socket, self._send_outbound, self._set_outbound,
+
+Underfull \hbox (badness 1881) in paragraph at lines 718--719
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.chase_remote, self.enable_inbound, self.enable_outbound,
+
+Overfull \hbox (1.0941pt too wide) in paragraph at lines 718--719
+\TU/TimesNewRoman(0)/m/n/10.95 self.headwind_filter, self.i_filter, self.last_s
+ource_unix, self.max_abs_headwind_ms, self.max_future_skew_sec,
+
+Underfull \hbox (badness 10000) in paragraph at lines 718--719
+\TU/TimesNewRoman(0)/m/n/10.95 self.max_out_of_order_sec, self.max_packet_age_s
+ec, self.outbound_state, self.prefer_direct_distance,
+
+Underfull \hbox (badness 2443) in paragraph at lines 718--719
+\TU/TimesNewRoman(0)/m/n/10.95 self.pub_raw_chase, self.pub_raw_solar, self.pub
+_solar_source_time, self.pub_status, self.pub_vehicle_alt,
+[16] [17]
+Underfull \hbox (badness 10000) in paragraph at lines 769--770
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.speed_filter \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 RobustScalarFilter(tau_sec=float(self.get_parame
+ter(’speed_filter_tau_sec’).value),
+
+Overfull \hbox (173.66167pt too wide) in paragraph at lines 769--770
+\TU/TimesNewRoman(0)/m/n/10.95 min_value=0.0, max_value=float(self.get_paramete
+r(’speed_max_kmh’).value), rise_rate=float(self.get_parameter(’speed_max_accel_
+kmhps’).value),
+
+Underfull \hbox (badness 10000) in paragraph at lines 770--771
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.soc_filter \TU/YuGothic(0)/m/n/10.95 に \T
+U/TimesNewRoman(0)/m/n/10.95 RobustScalarFilter(tau_sec=float(self.get_paramete
+r(’battery_filter_tau_sec’).value),
+
+Underfull \hbox (badness 10000) in paragraph at lines 771--772
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.tb_filter \TU/YuGothic(0)/m/n/10.95 に \TU
+/TimesNewRoman(0)/m/n/10.95 RobustScalarFilter(tau_sec=float(self.get_parameter
+(’battery_filter_tau_sec’).value),
+
+Overfull \hbox (21.99261pt too wide) in paragraph at lines 773--774
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.v_filter \TU/YuGothic(0)/m/n/10.95 に \TU/
+TimesNewRoman(0)/m/n/10.95 RobustScalarFilter(tau_sec=float(self.get_parameter(
+’battery_filter_tau_sec’).value), min_value=0.0,
+
+Overfull \hbox (0.42693pt too wide) in paragraph at lines 775--776
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.headwind_filter \TU/YuGothic(0)/m/n/10.95
+ に \TU/TimesNewRoman(0)/m/n/10.95 RobustScalarFilter(tau_sec=float(self.get_par
+ameter(’headwind_filter_tau_sec’).value),
+[18]
+Overfull \hbox (57.05699pt too wide) in paragraph at lines 802--803
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.solar_remote \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 (str(self.get_parameter(’solar_remote_host’).val
+ue), int(self.get_parameter(’solar_remote_port’).value))
+
+Overfull \hbox (67.36005pt too wide) in paragraph at lines 803--804
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.chase_remote \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 (str(self.get_parameter(’chase_remote_host’).val
+ue), int(self.get_parameter(’chase_remote_port’).value))
+
+Underfull \hbox (badness 2343) in paragraph at lines 806--807
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.outbound_state \TU/YuGothic(0)/m/n/10.95 
+に \TU/TimesNewRoman(0)/m/n/10.95 {’speed_cmd_kmh’: 0.0, ’upper_speed_cmd_kmh’: 
+0.0, ’drive_mode’: ’stop’,
+[19] [20]
+Overfull \hbox (29.15024pt too wide) in paragraph at lines 889--890
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._handle_chase_payload, self._handle_vehicle_payload, self.last_so
+urce_unix,
+
+Overfull \hbox (35.47578pt too wide) in paragraph at lines 889--890
+\TU/TimesNewRoman(0)/m/n/10.95 self.pub_raw_chase, self.pub_raw_solar, self.pub
+_solar_source_time, self.pub_status, self.sock, self.timestamp_required 
+[21]
+Overfull \hbox (49.90567pt too wide) in paragraph at lines 917--918
+[]\TU/TimesNewRoman(0)/m/n/10.95 validation \TU/YuGothic(0)/m/n/10.95 に \TU/Tim
+esNewRoman(0)/m/n/10.95 validate_source_timestamp(payload, now_unix=time.time()
+, last_source_unix=self.last_source_unix[source],
+
+Overfull \hbox (71.52408pt too wide) in paragraph at lines 917--918
+\TU/TimesNewRoman(0)/m/n/10.95 required=self.timestamp_required, max_age_sec=se
+lf.max_packet_age_sec, max_future_skew_sec=self.max_future_skew_sec,
+[22]
+Underfull \hbox (badness 3354) in paragraph at lines 976--977
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][][]
+[] [] [][][][][][][][] [][] [][][] [][] [][][] [] [][][][][] [] [][][][] [][] [
+][][] [] [][][][][] [] [][][][] [][] [][][] [] [][][][][] [] [][][][] [][] [][]
+[][][][] []
+[23] [24]
+Overfull \hbox (24.82193pt too wide) in paragraph at lines 1034--1035
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._publish_gps, self._publish_weather, self.i_filter, self.prefer_d
+irect_distance,
+
+Underfull \hbox (badness 7256) in paragraph at lines 1034--1035
+\TU/TimesNewRoman(0)/m/n/10.95 self.pub_vehicle_alt, self.pub_vehicle_gps, self
+.pub_vehicle_i, self.pub_vehicle_s, self.pub_vehicle_soc,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1034--1035
+\TU/TimesNewRoman(0)/m/n/10.95 self.pub_vehicle_solar, self.pub_vehicle_speed, 
+self.pub_vehicle_tb, self.pub_vehicle_v, self.soc_filter,
+[25] [26]
+Underfull \hbox (badness 2726) in paragraph at lines 1129--1130
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._publish_gps, self._publish_weather, self.pub_chase_alt,
+[27]
+Underfull \hbox (badness 2393) in paragraph at lines 1180--1181
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.headwind_filter, self.pub_course_dir, self.pub_headwind,
+[28] [29]
+Underfull \hbox (badness 2368) in paragraph at lines 1267--1268
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._send_payload, self.chase_remote, self.enable_outbound,
+
+Overfull \hbox (109.54002pt too wide) in paragraph at lines 1281--1282
+\TU/TimesNewRoman(0)/m/n/10.95 {’speed_cmd_kmh’: self.outbound_state[’speed_cmd
+_kmh’], ’upper_speed_cmd_kmh’: self.outbound_state[’upper_speed_cmd_kmh’],
+
+Overfull \hbox (34.64552pt too wide) in paragraph at lines 1281--1282
+\TU/TimesNewRoman(0)/m/n/10.95 ’drive_mode’: self.outbound_state[’drive_mode’]}
+, ’vehicle’: {’speed_kmh’: self.outbound_state[’speed_meas_kmh’],
+[30] [31]
+ignored error: Infinite glue shrinkage found in box being split [32]
+Underfull \hbox (badness 10000) in paragraph at lines 1407--1407
+[]|$[][][][][][][][][][] [] [][][][][] [] [][][][][][] [] [][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 1408--1408
+[]|$[][][][][][][][][][] [] [][][][][] [] [][][][][][] [] [][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 1409--1410
+[]|\TU/TimesNewRoman(0)/m/n/10.95 lambda msg:
+
+Overfull \hbox (28.49448pt too wide) in paragraph at lines 1409--1410
+\TU/TimesNewRoman(0)/m/n/10.95 self._set_outbound(’speed_cmd_kmh’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1410--1411
+[]|\TU/TimesNewRoman(0)/m/n/10.95 lambda msg:
+
+Overfull \hbox (59.5052pt too wide) in paragraph at lines 1410--1411
+\TU/TimesNewRoman(0)/m/n/10.95 self._set_outbound(’upper_speed_cmd_kmh’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1411--1412
+[]|\TU/TimesNewRoman(0)/m/n/10.95 lambda msg:
+
+Overfull \hbox (7.19865pt too wide) in paragraph at lines 1411--1412
+\TU/TimesNewRoman(0)/m/n/10.95 self._set_outbound(’drive_mode’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1412--1413
+[]|\TU/TimesNewRoman(0)/m/n/10.95 lambda msg:
+
+Overfull \hbox (32.1409pt too wide) in paragraph at lines 1412--1413
+\TU/TimesNewRoman(0)/m/n/10.95 self._set_outbound(’speed_meas_kmh’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1413--1414
+[]|\TU/TimesNewRoman(0)/m/n/10.95 lambda msg:
+
+Underfull \hbox (badness 10000) in paragraph at lines 1413--1414
+\TU/TimesNewRoman(0)/m/n/10.95 self._set_outbound(’soc’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1414--1415
+[]|\TU/TimesNewRoman(0)/m/n/10.95 lambda msg:
+
+Underfull \hbox (badness 10000) in paragraph at lines 1414--1415
+\TU/TimesNewRoman(0)/m/n/10.95 self._set_outbound(’s_km’,
+ignored error: Infinite glue shrinkage found in box being split [33] [34]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\20_mpc_solarcar_telemetry_text_bridge_node_py\20_mp
+c_solarcar_telemetry_text_bridge_node_py.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\20_mpc_solarcar_telemetry_text_bri
+dge_node_py\20_mpc_solarcar_telemetry_text_bridge_node_py.pdf (34 pages).
+Transcript written on "C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-ma
+in\docs\program_reference_complete_20260729\build\20_mpc_solarcar_telemetry_tex
+t_bridge_node_py\20_mpc_solarcar_telemetry_text_bridge_node_py.log".
+
+miktex-dvipdfmx: major issue: So far, you have not checked for MiKTeX updates.
+xelatex: major issue: So far, you have not checked for MiKTeX updates.
+

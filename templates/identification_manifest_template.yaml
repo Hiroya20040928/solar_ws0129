@@ -1,0 +1,53 @@
+builder: generic_replay_mle
+inputs:
+  normalized_replay_log_csv: data/identification/raw/observed_replay_log.csv
+  actual_event_yaml: data/identification/evidence/actual_event_annotations.yaml
+  counterfactual_event_yaml: data/identification/evidence/counterfactual_no_trouble.yaml
+  terminal_anchor_yaml: data/identification/evidence/terminal_anchor.yaml
+grounded_sources:
+  grounded_map_summary_yaml: data/identification/evidence/grounded_map_sources.yaml
+  drive_eff_map_csv:
+  drive_map_eco_csv:
+  drive_map_power_csv:
+  regen_eff_map_csv:
+  regen_map_eco_csv:
+  regen_map_power_csv:
+  rint_map_csv:
+  r1_map_csv:
+  tau_map_csv:
+  panel_eff_map_csv:
+  mppt_eff_map_csv:
+  ocv_soc_map_csv:
+evidence:
+  source_inventory_json:
+  notes_markdown: data/identification/evidence/evidence_notes.md
+  external_documents: []
+options:
+  terminal_anchor_role: independent_consensus
+  allow_map_shape_fit: true
+  use_grounded_base_maps: false
+  terminal_anchor_km:
+  acceleration_observation:
+    enabled: true
+    candidate_filters:
+    - {method: median, window_samples: 5}
+    - {method: median, window_samples: 9}
+    - {method: median, window_samples: 15}
+    - {method: savgol, window_samples: 11}
+    - {method: savgol, window_samples: 15}
+    - {method: savgol, window_samples: 21}
+    candidate_lag_sec: [-120, -90, -60, -45, -30, -20, -15, -10, -5, 0, 5, 10, 15, 20, 30, 45, 60, 90, 120]
+    holdout_day: 0
+    min_speed_kmh: 12.0
+    minimum_train_samples: 500
+    minimum_validation_samples: 100
+    minimum_training_improvement_w: 2.0
+    maximum_validation_rmse_ratio: 1.02
+  notes:
+  - Fill maps/*.csv with measured or theory-grounded maps before running identification.
+  - Align time, distance, weather, and battery channels as far as possible before fitting; the bounded acceleration observation check then selects only a GNSS quantization filter and residual GPS-to-power timestamp offset using a held-out day.
+  - Set acceleration_observation.holdout_day to the last complete independent drive day. Zero selects the last available day automatically.
+  - Put event annotations, terminal SoC anchors, and source provenance under data/identification/evidence/.
+  - If grounded_sources.*_csv is filled, those files become the base maps for identification.
+  - Battery rint_map_csv is pack-level R0,total. It requires a passing battery_ecm_identification_summary.json; do not supply a fixed cell prior.
+  - If you only want scalar fitting on top of fixed measured maps, set allow_map_shape_fit to false.

@@ -1,0 +1,30 @@
+\usepackage[top=15mm,bottom=18mm,left=15mm,right=15mm]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setmainfont{Times New Roman}
+\setCJKmainfont{Yu Gothic}
+\setmonofont{Consolas}
+\setCJKmonofont{Yu Gothic}
+\usepackage{amsmath,amssymb,booktabs,longtable,array,enumitem}
+\usepackage[most]{tcolorbox}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage[unicode,hidelinks]{hyperref}
+\definecolor{navy}{gray}{0}
+\definecolor{answerblue}{gray}{0}
+\setlength{\parindent}{1em}
+\setlength{\parskip}{0.35em}
+\renewcommand{\arraystretch}{1.15}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,backgroundcolor=\color{white}}
+\newcommand{\flow}[1]{\fcolorbox{black}{white}{\parbox{0.88\linewidth}{\centering #1}}}
+\newcounter{questioncounter}
+\newcommand{\question}[2]{%
+  \refstepcounter{questioncounter}
+  \begin{tcolorbox}[title={#1},colback=white,colframe=black,colbacktitle=white,coltitle=black,fonttitle=\bfseries]
+  #2
+  \end{tcolorbox}}
+\ifsolutions
+  \newcommand{\answer}[1]{\begin{tcolorbox}[title=解答,colback=white,colframe=black,colbacktitle=white,coltitle=black,fonttitle=\bfseries]#1\end{tcolorbox}}
+\else
+  \newcommand{\answer}[1]{\vspace{10mm}}
+\fi

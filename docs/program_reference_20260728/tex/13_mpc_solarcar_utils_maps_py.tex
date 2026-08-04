@@ -1,0 +1,244 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={効率マップ・抵抗マップ読込補間},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{13. 効率マップ・抵抗マップ読込補間}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/utils_maps.py| \\
+        種別 & Python \\
+        区分 & model helper \\
+        役割 & CSV で持つ drive/regen efficiency、Rint、OCV などを読み、補間可能な配列へ変換する。 \\
+        起動文脈 & SolarCarModel の map backend。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        CSV で持つ drive/regen efficiency、Rint、OCV などを読み、補間可能な配列へ変換する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item read\_eff\_map、read\_Rint\_map、read\_map、read\_1d\_map が入口。
+\item bilinear\_interp が 2D 補間の核。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/model.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 特記事項なし。
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+import numpy as np
+import pandas as pd
+def bilinear_interp(xg, yg, Z, x, y):
+    xg = np.asarray(xg); yg=np.asarray(yg); Z=np.asarray(Z)
+    x = np.clip(x, xg[0], xg[-1]); y=np.clip(y, yg[0], yg[-1])
+    i = np.searchsorted(xg, x)-1; i=np.clip(i,0,len(xg)-2)
+    j = np.searchsorted(yg, y)-1; j=np.clip(j,0,len(yg)-2)
+    x0,x1=xg[i],xg[i+1]; y0,y1=yg[j],yg[j+1]
+    Z00=Z[i,j]; Z10=Z[i+1,j]; Z01=Z[i,j+1]; Z11=Z[i+1,j+1]
+    wx=0 if x1==x0 else (x-x0)/(x1-x0)
+    wy=0 if y1==y0 else (y-y0)/(y1-y0)
+    return (1-wx)*(1-wy)*Z00 + wx*(1-wy)*Z10 + (1-wx)*wy*Z01 + wx*wy*Z11
+def read_eff_map(path):
+    df = pd.read_csv(path, index_col=0)
+    return df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)
+def read_Rint_map(path):
+    df = pd.read_csv(path, index_col=0)
+    return df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)
+
+def read_map(path):
+    df = pd.read_csv(path, index_col=0)
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要関数は bilinear\_interp, read\_eff\_map, read\_Rint\_map, read\_map, read\_1d\_map。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            3 & function & \path|bilinear_interp| & args: xg, yg, Z, x, y \\
+13 & function & \path|read_eff_map| & args: path \\
+16 & function & \path|read_Rint_map| & args: path \\
+20 & function & \path|read_map| & args: path \\
+24 & function & \path|read_1d_map| & args: path \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            3 & 関数 bilinear\_interp を定義する。 \\
+13 & 関数 read\_eff\_map を定義する。 \\
+16 & 関数 read\_Rint\_map を定義する。 \\
+20 & 関数 read\_map を定義する。 \\
+24 & 関数 read\_1d\_map を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L4, L5, L6, L7。 \\
+2 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L14, L17, L21, L25, L30。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L3 関数 \path|bilinear_interp|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|bilinear_interp(xg, yg, Z, x, y)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: asarray, clip, len, searchsorted
+              \item 戻り値の要点: (1 - wx) * (1 - wy) * Z00 + wx * (1 - wy) * Z10 + (1 - wx) * wy * Z01 + wx * wy * Z11
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item xg に np.asarray(xg) の結果を代入する。
+\item yg に np.asarray(yg) の結果を代入する。
+\item Z に np.asarray(Z) の結果を代入する。
+\item x に np.clip(x, xg[0], xg[-1]) の結果を代入する。
+\item y に np.clip(y, yg[0], yg[-1]) の結果を代入する。
+\item i に np.searchsorted(xg, x) - 1 の結果を代入する。
+\item i に np.clip(i, 0, len(xg) - 2) の結果を代入する。
+\item j に np.searchsorted(yg, y) - 1 の結果を代入する。
+\item j に np.clip(j, 0, len(yg) - 2) の結果を代入する。
+\item (x0, x1) に (xg[i], xg[i + 1]) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L13 関数 \path|read_eff_map|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|read_eff_map(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: astype, read\_csv
+              \item 戻り値の要点: (df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float))
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item df に pd.read\_csv(path, index\_col=0) の結果を代入する。
+\item (df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)) を返す。
+            \end{enumerate}
+
+\subsection*{L16 関数 \path|read_Rint_map|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|read_Rint_map(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: astype, read\_csv
+              \item 戻り値の要点: (df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float))
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item df に pd.read\_csv(path, index\_col=0) の結果を代入する。
+\item (df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)) を返す。
+            \end{enumerate}
+
+\subsection*{L20 関数 \path|read_map|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|read_map(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: astype, read\_csv
+              \item 戻り値の要点: (df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float))
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item df に pd.read\_csv(path, index\_col=0) の結果を代入する。
+\item (df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)) を返す。
+            \end{enumerate}
+
+\subsection*{L24 関数 \path|read_1d_map|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|read_1d_map(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: astype, read\_csv
+              \item 戻り値の要点: (x, y) / (x, y)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item df に pd.read\_csv(path) の結果を代入する。
+\item 条件 df.shape[1] >= 2 を判定し、真なら内部処理を行う。
+\item df に pd.read\_csv(path, index\_col=0) の結果を代入する。
+\item x に df.index.values.astype(float) の結果を代入する。
+\item y に df.iloc[:, 0].values.astype(float) の結果を代入する。
+\item (x, y) を返す。
+            \end{enumerate}
+
+
+
+
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/utils_maps.py| を
+        \textbf{model helper}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

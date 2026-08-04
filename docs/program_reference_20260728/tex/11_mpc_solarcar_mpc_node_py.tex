@@ -1,0 +1,402 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={live / sim 共通 MPC 本体},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{11. live / sim 共通 MPC 本体}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/mpc_node.py| \\
+        種別 & Python \\
+        区分 & runtime core \\
+        役割 & forecast、route、vehicle telemetry、maps を使って上位速度計画と下位追従指令を出す ROS2 ノード。 \\
+        起動文脈 & sim/live/live\_wifi で中心に動く単一障害点に近いノード。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        forecast、route、vehicle telemetry、maps を使って上位速度計画と下位追従指令を出す ROS2 ノード。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item SolarCarModel を直接生成する。
+\item 1 Hz upper timer と lower timer 群を並列 callback group で回す。
+\item calibration topic で内部係数を上書きする。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|live_launch.py|
+\item \path|solarcar_sim.launch.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/model.py|
+\item \path|mpc_solarcar/upper_cost.py|
+\item \path|mpc_solarcar/estimator.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/estimator.py|
+\item \path|mpc_solarcar/forecast_grid.py|
+\item \path|mpc_solarcar/model.py|
+\item \path|mpc_solarcar/path_utils.py|
+\item \path|mpc_solarcar/route_utils.py|
+\item \path|mpc_solarcar/schedule_utils.py|
+\item \path|mpc_solarcar/signal_utils.py|
+\item \path|mpc_solarcar/upper_cost.py|
+\item \path|mpc_solarcar/upper_horizon.py|
+\item \path|mpc_solarcar/upper_policy.py|
+\item \path|mpc_solarcar/upper_solver.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from .upper_solver import hybrid_bounded_minimize
+
+
+class MPCNode(Node):
+    """
+    MPC node with two modes:
+      - Default: solarcar MPC (forecast-driven)
+      - Passo mode: fuel-minimizing advisory MPC
+    """
+
+    def __init__(self):
+        super().__init__('mpc_node')
+        self.params_cfg = {}
+        # A full-race upper solve can take longer than the 1 Hz control period.
+        # Keep telemetry and lower control responsive while that solve runs.
+        self.telemetry_callback_group = MutuallyExclusiveCallbackGroup()
+        self.upper_callback_group = MutuallyExclusiveCallbackGroup()
+        self.lower_callback_group = MutuallyExclusiveCallbackGroup()
+        self.command_callback_group = MutuallyExclusiveCallbackGroup()
+        self.declare_parameter('passo_mode', False)
+        self.passo_mode = bool(self.get_parameter('passo_mode').value)
+        if self.passo_mode:
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは MPCNode。 主要関数は z\_next\_for, quad\_penalty, cost, expand\_ctrl, build\_balance\_seed, integrate\_stationary\_duration, step\_wait, apply\_control\_stop\_at。 ROS パラメータ宣言は 151 件。 ROS I/O は publisher 14 件、subscription 19 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            42 & class & \path|MPCNode| & bases: Node \\
+49 & function & \path|__init__| & args: self \\
+66 & function & \path|_load_stops| & args: self, stop\_yaml \\
+76 & function & \path|_load_forecast_file| & args: self, path \\
+102 & function & \path|_apply_params_yaml| & args: self, path \\
+172 & function & \path|_maybe_reload_forecast| & args: self \\
+192 & function & \path|_on_s_km_solar| & args: self, msg \\
+208 & function & \path|_on_speed_solar| & args: self, msg \\
+216 & function & \path|_on_soc_solar| & args: self, msg \\
+225 & function & \path|_on_tb_solar| & args: self, msg \\
+234 & function & \path|_on_i_solar| & args: self, msg \\
+242 & function & \path|_on_v_solar| & args: self, msg \\
+250 & function & \path|_measured_distance_km| & args: self \\
+256 & function & \path|_sync_measured_state| & args: self \\
+270 & function & \path|_on_calib_solar_gain| & args: self, msg \\
+276 & function & \path|_on_calib_drive_power_gain| & args: self, msg \\
+284 & function & \path|_on_calib_aux_power| & args: self, msg \\
+291 & function & \path|_init_solar| & args: self \\
+780 & function & \path|_current_bin_index| & args: self \\
+830 & function & \path|_horizon_data| & args: self, k0 \\
+872 & function & \path|_forecast_at_time| & args: self, t\_utc, s\_km, drive, control\_stop \\
+948 & function & \path|_sample_plan_segments| & args: self, dt\_sample \\
+959 & function & \path|_route_value| & args: self, s\_km, field, default \\
+970 & function & \path|_route_average| & args: self, s0\_km, s1\_km, field, default \\
+979 & function & \path|_speed_limit_at| & args: self, s\_km, default\_kmh \\
+987 & function & \path|_soc_guard_speed| & args: self, v\_kmh, s\_km, d0 \\
+999 & function & \path|z_next_for| & args: v\_kmh\_local \\
+1045 & function & \path|_control_stop_catalog| & args: self \\
+1065 & function & \path|_update_live_control_stop_hold| & args: self, s\_km, v\_kmh \\
+1115 & function & \path|_dwell_penalty| & args: self, s\_km, v\_ms \\
+1127 & function & \path|_mpc_solve_solar| & args: self, data \\
+1164 & function & \path|quad_penalty| & args: x, cap \\
+1171 & function & \path|cost| & args: v \\
+1291 & function & \path|_mpc_solve_solar_distance| & args: self, t0\_utc, s0\_km, x0 \\
+1379 & function & \path|expand_ctrl| & args: u\_vec \\
+1382 & function & \path|build_balance_seed| &  \\
+1483 & function & \path|integrate_stationary_duration| & args: t\_utc, z, Tb, s\_km, dt\_wait \\
+1538 & function & \path|step_wait| & args: t\_utc, z, Tb, s\_km \\
+1547 & function & \path|apply_control_stop_at| & args: t\_utc, z, Tb, s\_km \\
+1565 & function & \path|cost| & args: u\_vec \\
+1816 & function & \path|_publish_upper_plan| & args: self \\
+1823 & function & \path|_publish_lower_plan| & args: self, v\_seq\_ms \\
+1830 & function & \path|_publish_plan_path| & args: self, data \\
+1858 & function & \path|_publish_metrics| & args: self, d0, v\_exec\_kmh, s\_for\_profile \\
+1897 & function & \path|_publish_summary| & args: self, \_v\_exec\_kmh \\
+1929 & function & \path|_interp_upper_speed| & args: self, t\_sec \\
+1952 & function & \path|_distance_plan_speed| & args: self, s\_km \\
+1958 & function & \path|_tau_max_for_mode| & args: self, maps, mode \\
+1965 & function & \path|_tau_limits| & args: self \\
+1981 & function & \path|_traction_force| & args: self, tau\_nm \\
+1988 & function & \path|_pack_from_tau| & args: self, v\_ms, tau\_nm, z, Tb, env \\
+2012 & function & \path|_build_lower_ref| & args: self, base\_time\_utc, s\_km, d0 \\
+2039 & function & \path|_lower_rollout| & args: self, v0\_ms, u\_seq, env, z0, Tb0, tau\_drive, tau\_regen \\
+2072 & function & \path|_lower_mpc_solve| & args: self, v0\_ms, s0\_km, z0, Tb0, env, v\_ref\_seq \\
+2185 & function & \path|cost| & args: u\_vec \\
+2273 & function & \path|_step_solar| & args: self \\
+2549 & function & \path|_step_lower| & args: self \\
+2600 & function & \path|_publish_lower_command_cycle| & args: self \\
+2618 & function & \path|_init_passo| & args: self \\
+2709 & function & \path|_on_s_km| & args: self, msg \\
+2712 & function & \path|_on_speed| & args: self, msg \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            42 & クラス MPCNode を定義する。 \\
+2965 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            2 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L196, L199, L254, L259, L261, L264, L267, L616, ...。 \\
+3 & \path|import os| & パス、環境変数、プロセス外部状態を扱うため。 このファイル内での主な使用位置は L180, L434。 \\
+4 & \path|import time| & wall/monotonic time に基づく周期制御や freshness 判定を行うため。 このファイル内での主な使用位置は L175, L437, L1070, L1915, L2017, L2374, L2398, L2401, ...。 \\
+5 & \path|from collections import deque| & 固定長の時系列や遅延キューを効率よく保持するため。 このファイル内での主な使用位置は L2676。 \\
+6 & \path|from datetime import datetime, timezone, timedelta| & UTC 時刻や相対時間を扱うため。 このファイル内での主な使用位置は L713, L717, L718, L786, L810, L815, L824, L846, ...。 \\
+8 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L2966, L2975。 \\
+9 & \path|from rclpy.callback_groups import MutuallyExclusiveCallbackGroup| & 同一ノード内の callback 実行系を分け、upper/lower/telemetry を並列に扱うため。 このファイル内での主な使用位置は L54, L55, L56, L57。 \\
+10 & \path|from rclpy.executors import MultiThreadedExecutor| & 複数 callback group を並列実行する executor を使うため。 このファイル内での主な使用位置は L2968。 \\
+11 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L42。 \\
+12 & \path|from rclpy.parameter import Parameter| & rclpy.parameter から Parameter を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L166, L2750, L2752, L2754, L2756。 \\
+14 & \path|import yaml| & profile、stop、schedule、summary YAML を読み書きするため。 このファイル内での主な使用位置は L70, L105, L2740。 \\
+15 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L77, L79, L98, L100, L451, L460, L1904。 \\
+16 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L221, L230, L265, L268, L272, L278, L542, L545, ...。 \\
+18 & \path|from std_msgs.msg import Bool, Float32, Float32MultiArray, String| & Float32 や String など軽量メッセージで planner / vehicle 値を publish するため。 このファイル内での主な使用位置は L192, L208, L216, L225, L234, L242, L270, L276, ...。 \\
+19 & \path|from nav_msgs.msg import Path| & 将来軌跡を dashboard や logger へ出すため。 このファイル内での主な使用位置は L741, L1833, L2701, L2880。 \\
+20 & \path|from geometry_msgs.msg import PoseStamped| & Path を構成する waypoint pose を組み立てるため。 このファイル内での主な使用位置は L1842, L1851, L2886。 \\
+22 & \path|from scipy.optimize import minimize| & 連続最適化や MHE の逆推定を解くため。 このファイル内での主な使用位置は L1278, L2251, L2874。 \\
+24 & \path|from .model import SolarCarModel, Params| & 車体物理・電気モデル本体 から SolarCarModel, Params を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/model.py。 このファイル内での主な使用位置は L509, L513。 \\
+25 & \path|from .path_utils import resolve_path| & ROS share / 相対パス解決 から resolve\_path を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/path\_utils.py。 このファイル内での主な使用位置は L135, L423, L424, L442, L450, L459, L470, L483, ...。 \\
+26 & \path|from .route_utils import average_profile, interpolate_profile| & route\_utils.py から average\_profile, interpolate\_profile を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/route\_utils.py。 このファイル内での主な使用位置は L963, L974, L983。 \\
+27 & \path|from .schedule_utils import DriveSchedule| & schedule\_utils.py から DriveSchedule を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/schedule\_utils.py。 このファイル内での主な使用位置は L484。 \\
+28 & \path|from .estimator import BatteryMHE, MheInput, MheMeas| & Battery MHE から BatteryMHE, MheInput, MheMeas を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/estimator.py。 このファイル内での主な使用位置は L724, L2493, L2504。 \\
+29 & \path|from .forecast_grid import build_forecast_grid_payload, interp_forecast_grid| & forecast\_grid.py から build\_forecast\_grid\_payload, interp\_forecast\_grid を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/forecast\_grid.py。 このファイル内での主な使用位置は L96, L885, L886, L887, L890, L891, L896, L898, ...。 \\
+30 & \path|from .signal_utils import RobustScalarFilter, finite_float, fresh_enough, slew_limit| & signal\_utils.py から RobustScalarFilter, finite\_float, fresh\_enough, slew\_limit を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/signal\_utils.py。 このファイル内での主な使用位置は L195, L252, L253, L258, L263, L266, L636, L643, ...。 \\
+31 & \path|from .upper_cost import load_upper_cost_config, upper_stage_cost, upper_terminal_cost, quad_penalty| & 上位MPC 目的関数 から load\_upper\_cost\_config, upper\_stage\_cost, upper\_terminal\_cost, quad\_penalty を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/upper\_cost.py。 このファイル内での主な使用位置は L590, L1227, L1231, L1236, L1238, L1242, L1250, L1251, ...。 \\
+32 & \path|from .upper_horizon import build_upper_distance_horizon, plan_segment_index| & 上位MPC 距離メッシュ生成 から build\_upper\_distance\_horizon, plan\_segment\_index を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/upper\_horizon.py。 このファイル内での主な使用位置は L1293, L1953。 \\
+33 & \path|from .upper_policy import absolute_control_distances, interpolate_upper_policy, load_upper_policy_csv, shift_upper_policy_warm_start| & 上位速度計画の補間と warm start から absolute\_control\_distances, interpolate\_upper\_policy, load\_upper\_policy\_csv, shift\_upper\_policy\_warm\_start を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/upper\_policy.py。 このファイル内での主な使用位置は L471, L1335, L1345, L1355。 \\
+39 & \path|from .upper_solver import hybrid_bounded_minimize| & 上位探索ソルバ から hybrid\_bounded\_minimize を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/upper\_solver.py。 このファイル内での主な使用位置は L1719。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L42 クラス \path|MPCNode|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|MPCNode(bases=Node)|
+              \item docstring: MPC node with two modes:
+  - Default: solarcar MPC (forecast-driven)
+  - Passo mode: fuel-minimizing advisory MPC
+              \item このブロックが直接呼ぶ主な関数・メソッド: BatteryMHE, Float32, Float32MultiArray, Index, MheInput, MheMeas, MutuallyExclusiveCallbackGroup, Parameter, Params, Path, PoseStamped, RobustScalarFilter
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item docstring または説明文字列を置く。
+\item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_load\_stops を定義する。
+\item 関数 \_load\_forecast\_file を定義する。
+\item 関数 \_apply\_params\_yaml を定義する。
+\item 関数 \_maybe\_reload\_forecast を定義する。
+\item 関数 \_on\_s\_km\_solar を定義する。
+\item 関数 \_on\_speed\_solar を定義する。
+\item 関数 \_on\_soc\_solar を定義する。
+\item 関数 \_on\_tb\_solar を定義する。
+\item 関数 \_on\_i\_solar を定義する。
+\item 関数 \_on\_v\_solar を定義する。
+            \end{enumerate}
+
+\subsection*{L2965 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: MPCNode, MultiThreadedExecutor, add\_node, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に MPCNode() の結果を代入する。
+\item executor に MultiThreadedExecutor(num\_threads=4) の結果を代入する。
+\item executor.add\_node(...) を実行する。
+\item 例外処理を伴う try ブロックを実行する。
+            \end{enumerate}
+
+        \subsection*{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            58 & \path|passo_mode| & False \\
+292 & \path|forecast_csv| & inputs/forecast\_10min.csv \\
+293 & \path|maps_dir| & maps \\
+294 & \path|drive_eff_map| &  \\
+295 & \path|regen_eff_map| &  \\
+296 & \path|rint_map| &  \\
+297 & \path|drive_map_eco| &  \\
+298 & \path|drive_map_power| &  \\
+299 & \path|regen_map_eco| &  \\
+300 & \path|regen_map_power| &  \\
+301 & \path|panel_eff_map| &  \\
+302 & \path|mppt_eff_map| &  \\
+303 & \path|ocv_soc_map| &  \\
+304 & \path|dt| & 600.0 \\
+305 & \path|horizon_steps| & 9 \\
+306 & \path|v_max_kmh| & 110.0 \\
+307 & \path|terminal_soc_min| & 0.1 \\
+308 & \path|stop_yaml| & inputs/stop\_points.yaml \\
+309 & \path|forecast_time_mode| & auto \\
+310 & \path|forecast_time_tz| & UTC \\
+311 & \path|forecast_start_time_utc| &  \\
+312 & \path|forecast_time_offset_sec| & 0.0 \\
+313 & \path|forecast_reload_sec| & 60.0 \\
+314 & \path|replan_on_forecast_reload| & False \\
+315 & \path|params_yaml| &  \\
+316 & \path|profile_runtime_mode| &  \\
+317 & \path|route_profile_csv| &  \\
+318 & \path|speed_profile_csv| &  \\
+319 & \path|drive_schedule_yaml| &  \\
+320 & \path|initial_upper_policy_csv| &  \\
+321 & \path|use_measured_s| & True \\
+322 & \path|use_measured_speed| & True \\
+323 & \path|soc0| & 0.95 \\
+324 & \path|Tb0| & 30.0 \\
+325 & \path|s0_km| & 0.0 \\
+326 & \path|speed_meas_timeout_sec| & 3.0 \\
+327 & \path|distance_meas_timeout_sec| & 5.0 \\
+328 & \path|battery_meas_timeout_sec| & 15.0 \\
+329 & \path|speed_meas_filter_tau_sec| & 0.6 \\
+330 & \path|speed_meas_max_accel_kmhps| & 12.0 \\
+331 & \path|speed_meas_max_decel_kmhps| & 20.0 \\
+332 & \path|distance_meas_max_rate_kmps| & 0.06 \\
+333 & \path|distance_meas_max_backtrack_km| & 0.02 \\
+334 & \path|battery_meas_filter_tau_sec| & 1.0 \\
+335 & \path|w_dv| & 0.05 \\
+336 & \path|w_dv_limit| & 2.0 \\
+337 & \path|dv_max_kmhps| & 5.0 \\
+338 & \path|w_T| & 5.0 \\
+339 & \path|w_speed_limit| & 50.0 \\
+340 & \path|w_drive_window| & 100000.0 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            737 & publisher & \path|/planner/speed_cmd| & publisher \\
+738 & publisher & \path|/planner/upper_speed_cmd| & publisher \\
+739 & publisher & \path|/planner/throttle_cmd_pct| & publisher \\
+740 & publisher & \path|/planner/drive_mode| & publisher \\
+741 & publisher & \path|/planner/trajectory| & publisher \\
+742 & publisher & \path|/planner/upper_plan| & publisher \\
+743 & publisher & \path|/planner/lower_plan| & publisher \\
+744 & publisher & \path|/planner/env| & publisher \\
+745 & publisher & \path|/planner/metrics| & publisher \\
+746 & publisher & \path|/planner/status| & publisher \\
+2700 & publisher & \path|/planner/speed_cmd| & publisher \\
+2701 & publisher & \path|/planner/trajectory| & publisher \\
+2702 & publisher & \path|/planner/status| & publisher \\
+2703 & publisher & \path|/system/mpc_state| & publisher \\
+749 & subscription & \path|/vehicle/s_km| & self.\_on\_s\_km\_solar \\
+750 & subscription & \path|/vehicle/speed_kmh| & self.\_on\_speed\_solar \\
+751 & subscription & \path|/vehicle/batt_soc| & self.\_on\_soc\_solar \\
+752 & subscription & \path|/vehicle/batt_temp_c| & self.\_on\_tb\_solar \\
+753 & subscription & \path|/vehicle/batt_current_a| & self.\_on\_i\_solar \\
+754 & subscription & \path|/vehicle/batt_voltage_v| & self.\_on\_v\_solar \\
+755 & subscription & \path|/calib/solar_gain| & self.\_on\_calib\_solar\_gain \\
+756 & subscription & \path|/calib/drive_power_gain| & self.\_on\_calib\_drive\_power\_gain \\
+757 & subscription & \path|/calib/aux_power_w| & self.\_on\_calib\_aux\_power \\
+2688 & subscription & \path|/vehicle/s_km| & self.\_on\_s\_km \\
+2689 & subscription & \path|/vehicle/speed_kmh| & self.\_on\_speed \\
+2690 & subscription & \path|/vehicle/fuel_rate_lph| & self.\_on\_fuel \\
+2691 & subscription & \path|/vehicle/throttle_pct| & self.\_on\_throttle \\
+2692 & subscription & \path|/vehicle/obd_ok| & self.\_on\_obd\_ok \\
+2693 & subscription & \path|/vehicle/grade| & self.\_on\_grade \\
+2694 & subscription & \path|/vehicle/idle_fuel_lph| & self.\_on\_idle\_fuel \\
+2695 & subscription & \path|/system/config| & self.\_on\_config \\
+2696 & subscription & \path|/system/config_ready| & self.\_on\_config\_ready \\
+2697 & subscription & \path|/system/state| & self.\_on\_system\_state \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/mpc_node.py| を
+        \textbf{runtime core}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

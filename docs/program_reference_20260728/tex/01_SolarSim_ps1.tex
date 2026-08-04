@@ -1,0 +1,280 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={Windows入口 PowerShell ルータ},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{01. Windows入口 PowerShell ルータ}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|SolarSim.ps1| \\
+        種別 & PowerShell \\
+        区分 & 入口 \\
+        役割 & Windows PowerShell から build、launch、offline script、Grafana 操作をまとめて呼び出す最上位入口。 \\
+        起動文脈 & オペレータが最初に叩くコマンド入口。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        Windows PowerShell から build、launch、offline script、Grafana 操作をまとめて呼び出す最上位入口。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item WSL ディストリビューションを解決する。
+\item Action と Mode を shell 側へ受け渡す。
+\item dashboard や report の自動オープンも担う。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 人間の運用操作
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/solar_control.sh|
+\item \path|launch/solar_race_live_wifi.launch.py|
+\item \path|scripts/solar_sim.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}
+param(
+    [ValidateSet('up', 'build', 'start', 'stop', 'restart', 'status', 'graph', 'simulate', 'historical-weather', 'historical-simulate', 'forecast', 'identify', 'fit', 'learn', 'audit', 'package', 'blank', 'log', 'grafana', 'grafana-stop')]
+    [string]$Action = 'up',
+    [ValidateSet('sim', 'measure', 'live', 'live_wifi')]
+    [string]$Mode = 'sim',
+    [string]$Profile = 'project_packages/bwsc2025_fitted_mle19_energywindow_inertia/profile.yaml',
+    [string]$Distro = '',
+    [switch]$Help
+)
+
+$ErrorActionPreference = 'Stop'
+
+if ($Help) {
+    @'
+SolarSim.ps1 -Action <action> [-Mode <mode>] [-Profile <profile.yaml>] [-Distro <WSL name>]
+
+Actions: up, build, start, stop, restart, status, graph, simulate, forecast,
+         identify, fit, learn, audit, package, blank, log, grafana, grafana-stop
+Modes:   sim, measure, live, live_wifi
+
+Examples:
+  .\SolarSim.ps1 -Action build
+  .\SolarSim.ps1 -Action up -Mode sim
+  .\SolarSim.ps1 -Action simulate -Profile project_packages/<vehicle>/profile.yaml
+'@ | Write-Host
+    exit 0
+}
+
+function Normalize-WslText {
+    param([string]$Text)
+    if ($null -eq $Text) {
+        return ''
+    }
+    return ([string]$Text).Replace("`0", '').Trim()
+}
+
+function Resolve-WslDistro {
+    param([string]$Preferred)
+    if ($Preferred) {
+        return (Normalize-WslText $Preferred)
+    }
+    $installed = (& wsl.exe -l -q) | ForEach-Object { Normalize-WslText $_ } | Where-Object { $_ }
+    foreach ($candidate in @('Ubuntu-22.04', 'Ubuntu', 'Ubuntu-24.04')) {
+        if ($installed -contains $candidate) {
+            return $candidate
+        }
+    }
+    if ($installed.Count -gt 0) {
+        return $installed[0]
+    }
+    throw 'WSL distro was not found.'
+}
+
+function Resolve-WslArgPath {
+    param(
+        [string]$TargetDistro,
+        [string]$PathValue
+    )
+    if ([string]::IsNullOrWhiteSpace($PathValue)) {
+        return ''
+    }
+    if ([System.IO.Path]::IsPathRooted($PathValue)) {
+        return (& wsl.exe -d $TargetDistro wslpath -a $PathValue).Trim()
+    }
+    return ($PathValue -replace '\\', '/')
+}
+
+function Invoke-WslRepoCommand {
+    param(
+        [string]$RepoRoot,
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        action 分岐は 16 件。
+
+
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            1 & param( \\
+2 & [ValidateSet('up', 'build', 'start', 'stop', 'restart', 'status', 'graph', 'simulate', 'historical-weather', 'historical-simulate', 'forecast', 'identify', 'fit', 'learn', 'audit', 'package', 'blank', 'log', 'grafana', 'grafana-stop')] \\
+3 & [string]\$Action = 'up', \\
+4 & [ValidateSet('sim', 'measure', 'live', 'live\_wifi')] \\
+5 & [string]\$Mode = 'sim', \\
+6 & [string]\$Profile = 'project\_packages/bwsc2025\_fitted\_mle19\_energywindow\_inertia/profile.yaml', \\
+7 & [string]\$Distro = '', \\
+8 & [switch]\$Help \\
+9 & ) \\
+11 & \$ErrorActionPreference = 'Stop' \\
+13 & if (\$Help) \{ \\
+14 & @' \\
+15 & SolarSim.ps1 -Action <action> [-Mode <mode>] [-Profile <profile.yaml>] [-Distro <WSL name>] \\
+17 & Actions: up, build, start, stop, restart, status, graph, simulate, forecast, \\
+18 & identify, fit, learn, audit, package, blank, log, grafana, grafana-stop \\
+19 & Modes:   sim, measure, live, live\_wifi \\
+21 & Examples: \\
+22 & .\textbackslash{}SolarSim.ps1 -Action build \\
+23 & .\textbackslash{}SolarSim.ps1 -Action up -Mode sim \\
+24 & .\textbackslash{}SolarSim.ps1 -Action simulate -Profile project\_packages/<vehicle>/profile.yaml \\
+25 & '@ | Write-Host \\
+26 & exit 0 \\
+27 & \} \\
+29 & function Normalize-WslText \{ \\
+30 & param([string]\$Text) \\
+31 & if (\$null -eq \$Text) \{ \\
+32 & return '' \\
+33 & \} \\
+34 & return ([string]\$Text).Replace("`0", '').Trim() \\
+35 & \} \\
+37 & function Resolve-WslDistro \{ \\
+38 & param([string]\$Preferred) \\
+39 & if (\$Preferred) \{ \\
+40 & return (Normalize-WslText \$Preferred) \\
+41 & \} \\
+42 & \$installed = (\& wsl.exe -l -q) | ForEach-Object \{ Normalize-WslText \$\_ \} | Where-Object \{ \$\_ \} \\
+43 & foreach (\$candidate in @('Ubuntu-22.04', 'Ubuntu', 'Ubuntu-24.04')) \{ \\
+44 & if (\$installed -contains \$candidate) \{ \\
+45 & return \$candidate \\
+46 & \} \\
+            \bottomrule
+            \end{longtable}
+
+
+
+        \section*{関数・クラスを上から順に解説}
+        このファイルでは独立した関数・クラス定義が少ない。
+
+
+
+
+
+
+
+
+
+        \subsection*{shell 分岐と外部コマンド}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.67\linewidth}}
+            \toprule
+            行 & 種別 & 内容 \\
+            \midrule
+            250 & action & \path|up| \\
+278 & action & \path|build| \\
+281 & action & \path|start| \\
+284 & action & \path|stop| \\
+287 & action & \path|restart| \\
+290 & action & \path|status| \\
+293 & action & \path|graph| \\
+299 & action & \path|simulate| \\
+306 & action & \path|historical-weather| \\
+309 & action & \path|historical-simulate| \\
+317 & action & \path|forecast| \\
+320 & action & \path|identify| \\
+323 & action & \path|fit| \\
+326 & action & \path|learn| \\
+329 & action & \path|audit| \\
+332 & action & \path|log| \\
+42 & command & \path!$installed = (& wsl.exe -l -q) | ForEach-Object { Normalize-WslText $_ } | Where-Object { $_ }! \\
+63 & command & \path|return (& wsl.exe -d $TargetDistro wslpath -a $PathValue).Trim()| \\
+76 & command & \path|$wslRepo = (& wsl.exe -d $TargetDistro wslpath -a $RepoRoot).Trim()| \\
+81 & command & \path|& wsl.exe -d $TargetDistro bash -lc "cd '$wslRepo' && bash './scripts/solar_control.sh' '$Command' '$TargetMode' '$wslProfile'"| \\
+207 & command & \path|if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {| \\
+214 & command & \path|& docker compose up -d| \\
+216 & command & \path|throw "docker compose up failed with exit code $LASTEXITCODE"| \\
+220 & command & \path|& docker compose down| \\
+222 & command & \path|throw "docker compose down failed with exit code $LASTEXITCODE"| \\
+235 & command & \path|& python $builder --force| \\
+257 & command & \path|if (Get-Command docker -ErrorAction SilentlyContinue) {| \\
+260 & command & \path|& docker compose up -d| \\
+262 & command & \path|throw "docker compose up failed with exit code $LASTEXITCODE"| \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item PowerShell 引数を解釈する。
+\item WSL 側のパスへ変換する。
+\item scripts/solar\_control.sh を action と mode 付きで呼ぶ。
+\item 必要に応じて dashboard、graph、report を開く。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|SolarSim.ps1| を
+        \textbf{入口}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

@@ -1,0 +1,2549 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={GPU 上位速度列探索},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{37. GPU 上位速度列探索}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|scripts/gpu_upper_policy_search.py| \\
+        ソースSHA-256 & \path|a31c97605be77895407a9a6d9e1d153d0674f334f98c516f46c630f0ac9ad6e0| \\
+        種別 & Python \\
+        区分 & planning research \\
+        役割 & 全レース distance-indexed speed policy を GPU 上で多段 coarse-to-fine に探索する。 \\
+        起動文脈 & 本番前の warm start policy 生成側。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        全レース distance-indexed speed policy を GPU 上で多段 coarse-to-fine に探索する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item runtime MPC を置き換えるのではなく warm start policy 候補を作る。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|GPU sbatch / shell campaign|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/validate_gpu_upper_policy_candidates.py|
+\item \path|scripts/run_upper_mesh_convergence.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/route_utils.py|
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        GPU CEM proposer for a fine distance-domain upper speed policy.
+
+This is deliberately a multi-fidelity proposer. Its vectorized energy model
+searches thousands of distance-indexed policies concurrently on CUDA. The selected
+policy must then be re-optimized and validated by ``scripts/solar\_sim.py``;
+the GPU surrogate is never treated as the production acceptance model.
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+)
+
+
+class TensorMap2D:
+    """Bilinear CSV-map interpolation that stays on the selected torch device."""
+
+    def __init__(self, csv_path: Path, device: torch.device):
+        frame = pd.read_csv(csv_path, index_col=0)
+        self.x = torch.as_tensor(frame.index.to_numpy(dtype=np.float32), device=device)
+        self.y = torch.as_tensor(frame.columns.to_numpy(dtype=np.float32), device=device)
+        self.z = torch.as_tensor(frame.to_numpy(dtype=np.float32), device=device)
+        if len(self.x) < 2 or len(self.y) < 2 or self.z.shape != (len(self.x), len(self.y)):
+            raise ValueError(f"invalid 2-D map: {csv_path}")
+
+    def sample(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        x_value = torch.minimum(torch.maximum(x, self.x[0]), self.x[-1]).contiguous()
+        y_value = torch.minimum(torch.maximum(y, self.y[0]), self.y[-1]).contiguous()
+        i1 = torch.clamp(torch.searchsorted(self.x, x_value), 1, len(self.x) - 1)
+        j1 = torch.clamp(torch.searchsorted(self.y, y_value), 1, len(self.y) - 1)
+        i0 = i1 - 1
+        j0 = j1 - 1
+        wx = (x_value - self.x[i0]) / torch.clamp(self.x[i1] - self.x[i0], min=1.0e-9)
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要クラスは TensorMap2D, TensorMap1D, WeatherGrid。 主要関数は resolve, iso\_utc, source\_signature, sample\_cem\_noise, cem\_should\_stop, resolve\_cuda\_graph\_enabled, build\_distance\_segments, kinetic\_power\_w。 CLI 引数宣言は 20 件。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            208 & class & \path|TensorMap2D| &  \\
+236 & class & \path|TensorMap1D| &  \\
+252 & class & \path|WeatherGrid| &  \\
+39 & function & \path|resolve| & args: profile, value \\
+44 & function & \path|iso_utc| & args: value \\
+50 & function & \path|source_signature| & args: paths \\
+62 & function & \path|sample_cem_noise| & args: population, dimensions \\
+85 & function & \path|cem_should_stop| &  \\
+102 & function & \path|resolve_cuda_graph_enabled| & args: requested, integration\_ds\_km \\
+109 & function & \path|build_distance_segments| & args: race\_km, integration\_ds\_km, stop\_distances\_km \\
+133 & function & \path|kinetic_power_w| & args: mass\_kg, speed\_ms, previous\_speed\_ms, dt\_sec \\
+146 & function & \path|slew_limited_segment_kinematics| & args: previous\_speed\_ms, target\_speed\_ms, distance\_km \\
+193 & function & \path|stationary_auxiliary_power_w| & args: irradiance\_wm2 \\
+211 & function & \path|__init__| & args: self, csv\_path, device \\
+219 & function & \path|sample| & args: self, x, y \\
+237 & function & \path|__init__| & args: self, csv\_path, device \\
+244 & function & \path|sample| & args: self, x \\
+253 & function & \path|__init__| & args: self, csv\_path, start\_utc, device \\
+306 & function & \path|refine_time_grid| & args: self, max\_step\_sec \\
+375 & function & \path|_sample_matrix| & args: self, matrix, t\_sec, s\_km \\
+392 & function & \path|sample| & args: self, name, t\_sec, s\_km \\
+395 & function & \path|register_time_integral| & args: self, name, rate \\
+405 & function & \path|sample_integral| & args: self, name, t\_sec, s\_km \\
+428 & function & \path|register_soc_time_integral| & args: self, name, soc\_grid, rate \\
+454 & function & \path|sample_soc_integral| & args: self, name, t\_sec, s\_km, soc \\
+480 & function & \path|interpolate| & args: values, time\_index \\
+498 & function & \path|parse_args| &  \\
+554 & function & \path|main| &  \\
+912 & function & \path|pv_power| & args: t\_sec, s\_km \\
+944 & function & \path|register_stationary_mode| & args: prefix, tilt\_fraction \\
+1010 & function & \path|apply_wait| & args: t\_sec, soc, tb\_c, duration, s\_km \\
+1091 & function & \path|evaluate| & args: policy \\
+1097 & function & \path|append_wait_trace| & args: label, segment\_index, s\_km, t\_before, t\_after, soc\_before, soc\_after, tb\_before, tb\_after \\
+1443 & function & \path|evaluate_population| & args: policy \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            26 & 例外処理を伴う try ブロックを実行する。 \\
+32 & ROOT に Path(\_\_file\_\_).resolve().parents[1] の結果を代入する。 \\
+33 & 条件 str(ROOT) not in sys.path を判定し、真なら内部処理を行う。 \\
+39 & 関数 resolve を定義する。 \\
+44 & 関数 iso\_utc を定義する。 \\
+50 & 関数 source\_signature を定義する。 \\
+62 & 関数 sample\_cem\_noise を定義する。 \\
+85 & 関数 cem\_should\_stop を定義する。 \\
+102 & 関数 resolve\_cuda\_graph\_enabled を定義する。 \\
+109 & 関数 build\_distance\_segments を定義する。 \\
+133 & 関数 kinetic\_power\_w を定義する。 \\
+146 & 関数 slew\_limited\_segment\_kinematics を定義する。 \\
+193 & 関数 stationary\_auxiliary\_power\_w を定義する。 \\
+208 & クラス TensorMap2D を定義する。 \\
+236 & クラス TensorMap1D を定義する。 \\
+252 & クラス WeatherGrid を定義する。 \\
+498 & 関数 parse\_args を定義する。 \\
+554 & 関数 main を定義する。 \\
+1693 & 条件 \_\_name\_\_ == '\_\_main\_\_' を判定し、真なら内部処理を行う。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            10 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+12 & \path|import argparse| & CLI 引数を宣言し、実行時パラメータを外から受け取るため。 このファイル内での主な使用位置は L498, L499, L509, L515, L521, L544。 \\
+13 & \path|import hashlib| & snapshot ID や入力資産の digest を作るため。 このファイル内での主な使用位置は L51。 \\
+14 & \path|import json| & manifest、checkpoint、UDP payload をやり取りするため。 このファイル内での主な使用位置は L58, L891, L1451, L1556, L1605, L1686, L1689。 \\
+15 & \path|import math| & Python標準のスカラー数値関数と定数を使うため。実際に参照する名前と行は使用位置欄で確認する。 このファイル内での主な使用位置は L314, L342, L678, L1179。 \\
+16 & \path|import sys| & sys モジュールを利用するため。 このファイル内での主な使用位置は L33, L34。 \\
+17 & \path|from datetime import datetime, timedelta, timezone| & UTC 時刻や相対時間を扱うため。 このファイル内での主な使用位置は L44, L46, L47, L253, L734, L742, L751, L752, ...。 \\
+18 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L32, L39, L40, L50, L211, L237, L253, L500, ...。 \\
+19 & \path|from zoneinfo import ZoneInfo| & zoneinfo から ZoneInfo を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L691。 \\
+21 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L113, L115, L116, L117, L120, L121, L127, L128, ...。 \\
+22 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L212, L238, L254, L255, L257, L259, L265, L267, ...。 \\
+23 & \path|import torch| & torch モジュールを利用するため。 このファイル内での主な使用位置は L66, L68, L75, L80, L81, L82, L135, L136, ...。 \\
+24 & \path|import yaml| & profile、stop、schedule、summary YAML を読み書きするため。 このファイル内での主な使用位置は L565, L578, L686。 \\
+27 & \path|from torch.utils.tensorboard import SummaryWriter| & torch.utils.tensorboard から SummaryWriter を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L29, L904。 \\
+36 & \path|from mpc_solarcar.route_utils import average_profile_segments| & route\_utils.py から average\_profile\_segments を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/route\_utils.py。 このファイル内での主な使用位置は L626, L629。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{class、独自クラス、インスタンス、self、継承}
+クラスは、保持するデータと、そのデータを扱う関数を一つの型としてまとめる設計単位である。「独自クラス」とはPythonやROS 2が最初から用意した型ではなく、このプロジェクトが目的に合わせて定義した新しい型を指す。
+
+
+`class MPCNode(Node)`は、rclpyのNodeを基底クラスとして継承し、Nodeが持つpublisher、subscription、timer、parameterなどの機能にMPC固有機能を追加する。丸括弧内は関数引数ではなく基底クラス指定である。
+
+
+`MPCNode()`はクラスオブジェクトを呼び出して新しいインスタンスを作る。Pythonは新しい実体を用意し、その実体を第1引数selfとして`\_\_init\_\_`へ渡す。`self`は予約語ではなく慣習的な名前だが、この慣習を守ることでコードの意味が共有される。
+
+
+\begin{lstlisting}[language=python]
+class Counter:
+    def __init__(self):
+        self.value = 0
+
+    def increment(self):
+        self.value += 1
+
+counter = Counter()
+counter.increment()
+\end{lstlisting}
+
+
+`super().\_\_init\_\_(...)`は継承元の初期化処理を呼ぶ。MPCNodeではこれを省くとROSノードとして必要な内部実体が作られず、`create\_publisher`などを正しく使えない。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{先頭アンダースコア、\_\_init\_\_、名前付けの作法}
+`self.\_step\_solar`の先頭1個のアンダースコアは「クラス内部で使う実装詳細」という慣習であり、アクセスを強制禁止する機構ではない。外部コードから呼べるが、公開APIとして依存しない意思表示である。
+
+
+`\_\_init\_\_`の前後2個のアンダースコアはPythonが定めた特殊メソッド名である。クラス生成時に自動で呼ばれる。任意の名前に前後2個を付けて独自仕様を作ることは避ける。
+
+
+`\_`で始まるローカル変数は、未使用または外部へ見せない意図を示す場合がある。例えば`\_base\_csv`は戻り値として受け取る必要はあるが、その後の処理では使わないことを読者へ示す。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{list、dict、deque、NumPy配列、pandas DataFrame}
+listは順序付き可変列、tupleは順序付きで通常変更しない列、dictはキーから値を引く対応表、dequeは両端追加・削除が効率的なキューである。どの構造を選ぶかはアクセス方法と更新方法で決まる。
+
+
+NumPy配列は同種数値を連続的に扱い、要素ごとの演算、clip、補間、線形代数を簡潔に書く。shapeは各次元の要素数であり、速度系列なら通常`(N,)`、候補集団なら`(population, N)`となる。
+
+
+pandas DataFrameは列名を持つ表である。CSV読込後は列型、欠損、単位、timezone、並び順、重複を明示的に処理しなければ、数値計算が動いても意味が誤る。
+
+
+
+\subsection{CLI、PowerShell、Bash、環境変数、終了コード}
+CLIは端末からプログラム名と引数を渡す操作界面である。`argparse`は文字列として届く引数を名前、型、既定値、必須性に従って解析する。
+
+
+PowerShellとBashは別のshellであり、変数記法、改行継続、引用、パス表記が異なる。このプロジェクトではWindows側のSolarSim.ps1がWSL側のsolar\_control.shへ処理を渡す。
+
+
+環境変数は親プロセスから子プロセスへ受け渡される名前付き文字列である。ROS\_DOMAIN\_ID、RMW\_IMPLEMENTATION、Pythonの数値スレッド数などはコード外から動作を変えるため、実行記録へ残す必要がある。
+
+
+終了コード0は一般に成功、0以外は失敗を示す。shellルータは子プロセスの終了コードを握り潰さず上位へ返すことで、自動運用が失敗を検知できる。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\end{itemize}
+
+\subsection{目的関数、制約、L-BFGS-B、SHGO、有限grid証明}
+数値最適化器は、利用者が与えた目的関数を複数の候補点で評価し、より小さい値を持つ候補を探す。solverが物理を理解するのではなく、物理と運用価値はcost関数へ書かれる。
+
+
+L-BFGS-Bは変数ごとの上下限を扱える局所最適化法である。初期値の近くの谷へ収束し得るため、非凸問題では複数seedや大域探索と組み合わせる。successがFalseでも有限な候補が返る場合があるため、採用条件をコード側で決める。
+
+
+SHGOは定めたsamplingと局所最適化を組み合わせる大域最適化法である。有限Cartesian gridの全列挙は、そのgrid上の最良を証明できるが、連続領域全体の最良を自動的に証明しない。資料ではこの証明範囲を区別する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.shgo.html}{SciPy公式: scipy.optimize.shgo}
+\end{itemize}
+
+\subsection{Cross-Entropy Methodを式と実装で理解する}
+CEMは候補を生成する確率分布を持ち、良かったelite候補から分布を更新する反復的な確率最適化である。このリポジトリのupper\_solver.pyは各制御点速度を独立正規分布で生成し、上下限へclipする。
+
+
+\[
+u_i^{(j)} \sim \mathcal{N}(\mu_i^{(g)},(\sigma_i^{(g)})^2),\qquad u_i^{(j)}\leftarrow\operatorname{clip}(u_i^{(j)},l_i,h_i)
+\]
+
+\[
+\mu_i^{(g+1)}=\frac{1}{K}\sum_{j\in\mathcal{E}_g}u_i^{(j)},\qquad \sigma_i^{(g+1)}=\max\left(\operatorname{Std}_{j\in\mathcal{E}_g}u_i^{(j)},0.05(h_i-l_i)\right)
+\]
+
+ここでE\_gはcostが小さい上位K候補である。平均は良い領域へ移り、標準偏差は探索幅を表す。標準偏差の下限は探索が完全に潰れることを避ける。
+
+
+現行hybrid\_bounded\_minimizeは、deterministic seedを評価し、上位候補をL-BFGS-Bで局所refineし、設定とseed間不一致に応じてCEMを実行し、最後に再度局所refineする。したがってCEM単独ではなくhybrid solverである。
+
+
+CEMで落とした候補を永久保存しないこと自体は通常の最適化として自然だが、off-nominal状態からの再利用には別のpolicy library設計が必要である。状態を無制限に全組合せ保存する代わりに、SoC、進捗、時刻、予報誤差、停止状態などのscenarioを設計し、近傍policyを検索してMPCで再最適化する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://link.springer.com/book/10.1007/978-1-4757-4321-0}{Rubinstein and Kroese: The Cross-Entropy Method}
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+\subsection{天候、route、補間、時刻、単位}
+予報は時刻だけの系列か、時刻とroute距離の2次元gridになり得る。現在時刻tと距離sがgrid点の間なら、周囲の値から補間して日射、温度、風を求める。
+
+
+UTC、現地timezone、naive datetimeを混ぜると数時間のずれが発生する。入力でtimezoneを確定し、内部比較はUTC、表示は現地時刻という役割分担が安全である。
+
+
+route距離のkm、速度のkm/hとm/s、時間の秒、energyのWhとJを跨ぐため、変換係数3.6、3600、1000の意味を各式で確認する。
+
+
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+\subsection{warm startは何を保存し、どう効くか}
+warm startは前回またはoffline探索で得た入力系列を、次の最適化の初期候補として渡すことである。答えを固定するのではなく、探索開始点と候補libraryの一員を与える。
+
+
+\[
+u^{0,\mathrm{new}}_i=\operatorname{interp}\left(s_i^{\mathrm{new}};\,s_j^{\mathrm{old}},u_j^{\ast,\mathrm{old}}\right)
+\]
+
+距離基準計画では、現在より後ろの旧制御点を捨て、新しい絶対距離制御点へ補間してshiftする。初期状態や天候が変わればcost評価は新条件で行われるので、warm startが不適切でも他seed、CEM、安全fallbackが補う設計が必要である。
+
+
+warm startの効き方は、局所法なら収束先と反復数、CEMなら初期meanまたは候補pool、receding horizonなら前回解の時間・距離shiftとして現れる。どの位置に渡しているかを呼出引数まで追う。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\item \href{https://link.springer.com/book/10.1007/978-1-4757-4321-0}{Rubinstein and Kroese: The Cross-Entropy Method}
+\end{itemize}
+
+\subsection{単体試験、SILS、replay、観測可能性}
+単体試験は関数やモデル項の局所契約、SILSは複数Nodeと時間進行を含む閉ループ、historical replayは実測入力への再現性、本番preflightは実機通信と停止動作を確認する。目的が異なるため一つで代用しない。
+
+
+再現可能な診断には、入力、出力、内部状態、solver成否、候補数、計算時間、fallback、source revision、profile hashを同じrun IDで記録する。
+
+
+非同期不具合は最終値だけでは追えない。topic周期、message age、callback所要時間、queue遅延、Node生存、publisher数を同時に観測する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/ros2_packages/humble/api/rqt_graph/index.html}{ROS 2 Humble公式: rqt\_graph}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html}{ROS 2 Humble公式: Recording and playing back data}
+\item \href{https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Executors.html}{ROS 2公式: Executors}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L39 関数 resolve}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L39--L41
+              \item 所属: module直下
+              \item 定義: \path|resolve(profile: Path, value: str) -> Path|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, is\_absolute, resolve, str
+              \item 戻り値の要点: path if path.is\_absolute() else (profile.parent / path).resolve()
+              \item 主なローカル代入名: path
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item path に Path(str(value)) の結果を代入する。
+\item path if path.is\_absolute() else (profile.parent / path).resolve() を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def resolve(profile: Path, value: str) -> Path:
+    path = Path(str(value))
+    return path if path.is_absolute() else (profile.parent / path).resolve()
+\end{lstlisting}
+
+\subsection{L44 関数 iso\_utc}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L44--L47
+              \item 所属: module直下
+              \item 定義: \path|iso_utc(value: str) -> datetime|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: astimezone, fromisoformat, replace, str
+              \item 戻り値の要点: parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc)
+              \item 主なローカル代入名: parsed, text
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item text に str(value).replace('Z', '+00:00') の結果を代入する。
+\item parsed に datetime.fromisoformat(text) の結果を代入する。
+\item parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def iso_utc(value: str) -> datetime:
+    text = str(value).replace("Z", "+00:00")
+    parsed = datetime.fromisoformat(text)
+    return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc)
+\end{lstlisting}
+
+\subsection{L50 関数 source\_signature}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L50--L59
+              \item 所属: module直下
+              \item 定義: \path|source_signature(paths: list[Path], *, settings: dict) -> str|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: dumps, encode, hexdigest, iter, open, read, resolve, sha256, str, update
+              \item 戻り値の要点: digest.hexdigest()
+              \item 主なローカル代入名: chunk, digest, handle, path, resolved
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 2、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item lambdaは名前を付けずに短い関数オブジェクトを作る構文である。
+\item with文はcontext managerに開始・終了処理を任せ、ファイルなどの資源を確実に解放する。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item digest に hashlib.sha256() の結果を代入する。
+\item paths を順に走査し、各要素を path に入れて処理する。
+\item   resolved に path.resolve() の結果を代入する。
+\item   digest.update(...) を実行する。
+\item   with 文で resolved.open('rb') を管理しながら処理する。
+\item     iter(lambda: handle.read(1024 * 1024), b'') を順に走査し、各要素を chunk に入れて処理する。
+\item       digest.update(...) を実行する。
+\item digest.update(...) を実行する。
+\item digest.hexdigest() を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def source_signature(paths: list[Path], *, settings: dict) -> str:
+    digest = hashlib.sha256()
+    for path in paths:
+        resolved = path.resolve()
+        digest.update(str(resolved).encode("utf-8"))
+        with resolved.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+    digest.update(json.dumps(settings, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+    return digest.hexdigest()
+\end{lstlisting}
+
+\subsection{L62 関数 sample\_cem\_noise}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L62--L82
+              \item 所属: module直下
+              \item 定義: \path|sample_cem_noise(population: int, dimensions: int, *, device: torch.device, antithetic: bool) -> torch.Tensor|
+              \item docstring: Sample CEM perturbations, reserving the first row for the current mean.
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, cat, int, randn, zero\_, zeros
+              \item 戻り値の要点: torch.cat((torch.zeros((1, dimensions), device=device), paired), dim=0) / noise
+              \item 主なローカル代入名: dimensions, noise, pair\_count, paired, population, positive
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: ValueError('population and dimensions must be positive')
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item population に int(population) の結果を代入する。
+\item dimensions に int(dimensions) の結果を代入する。
+\item 条件 population <= 0 or dimensions <= 0 を判定し、真なら内部処理を行う。
+\item   ValueError('population and dimensions must be positive') を送出する。
+\item 条件 not antithetic or population == 1 を判定し、真なら内部処理を行う。
+\item   noise に torch.randn((population, dimensions), device=device) の結果を代入する。
+\item   noise[0].zero\_(...) を実行する。
+\item   noise を返す。
+\item pair\_count に (population - 1 + 1) // 2 の結果を代入する。
+\item positive に torch.randn((pair\_count, dimensions), device=device) の結果を代入する。
+\item paired に torch.cat((positive, -positive), dim=0)[:population - 1] の結果を代入する。
+\item torch.cat((torch.zeros((1, dimensions), device=device), paired), dim=0) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def sample_cem_noise(
+    population: int,
+    dimensions: int,
+    *,
+    device: torch.device,
+    antithetic: bool,
+) -> torch.Tensor:
+    """Sample CEM perturbations, reserving the first row for the current mean."""
+    population = int(population)
+    dimensions = int(dimensions)
+    if population <= 0 or dimensions <= 0:
+        raise ValueError("population and dimensions must be positive")
+    if not antithetic or population == 1:
+        noise = torch.randn((population, dimensions), device=device)
+        noise[0].zero_()
+        return noise
+
+    pair_count = (population - 1 + 1) // 2
+    positive = torch.randn((pair_count, dimensions), device=device)
+    paired = torch.cat((positive, -positive), dim=0)[: population - 1]
+    return torch.cat((torch.zeros((1, dimensions), device=device), paired), dim=0)
+\end{lstlisting}
+
+\subsection{L85 関数 cem\_should\_stop}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L85--L99
+              \item 所属: module直下
+              \item 定義: \path|cem_should_stop(*, generation_completed: int, stagnant_generations: int, mean_std_kmh: float, patience: int, min_generations: int, max_std_kmh: float) -> bool|
+              \item docstring: Return true only after both objective and sampling spread have converged.
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, int, max
+              \item 戻り値の要点: float(max\_std\_kmh) <= 0.0 or float(mean\_std\_kmh) <= float(max\_std\_kmh) / False / False
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 int(patience) <= 0 or int(generation\_completed) + 1 < max(0, int(min\_generations)) を判定し、真なら内部処理を行う。
+\item   False を返す。
+\item 条件 int(stagnant\_generations) < int(patience) を判定し、真なら内部処理を行う。
+\item   False を返す。
+\item float(max\_std\_kmh) <= 0.0 or float(mean\_std\_kmh) <= float(max\_std\_kmh) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def cem_should_stop(
+    *,
+    generation_completed: int,
+    stagnant_generations: int,
+    mean_std_kmh: float,
+    patience: int,
+    min_generations: int,
+    max_std_kmh: float,
+) -> bool:
+    """Return true only after both objective and sampling spread have converged."""
+    if int(patience) <= 0 or int(generation_completed) + 1 < max(0, int(min_generations)):
+        return False
+    if int(stagnant_generations) < int(patience):
+        return False
+    return float(max_std_kmh) <= 0.0 or float(mean_std_kmh) <= float(max_std_kmh)
+\end{lstlisting}
+
+\subsection{L102 関数 resolve\_cuda\_graph\_enabled}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L102--L106
+              \item 所属: module直下
+              \item 定義: \path!resolve_cuda_graph_enabled(requested: bool | None, integration_ds_km: float) -> bool!
+              \item docstring: Auto-enable graphs only for the coarse rollout shape covered by the benchmark.
+              \item このブロックが直接呼ぶ主な関数・メソッド: bool, float
+              \item 戻り値の要点: float(integration\_ds\_km) >= 5.0 / bool(requested)
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 requested is not None を判定し、真なら内部処理を行う。
+\item   bool(requested) を返す。
+\item float(integration\_ds\_km) >= 5.0 を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def resolve_cuda_graph_enabled(requested: bool | None, integration_ds_km: float) -> bool:
+    """Auto-enable graphs only for the coarse rollout shape covered by the benchmark."""
+    if requested is not None:
+        return bool(requested)
+    return float(integration_ds_km) >= 5.0
+\end{lstlisting}
+
+\subsection{L109 関数 build\_distance\_segments}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L109--L130
+              \item 所属: module直下
+              \item 定義: \path|build_distance_segments(race_km: float, integration_ds_km: float, stop_distances_km: list[float]) -> tuple[np.ndarray, np.ndarray, np.ndarray]|
+              \item docstring: Build integration segments with every physical stop as an exact boundary.
+              \item このブロックが直接呼ぶ主な関数・メソッド: arange, asarray, astype, concatenate, diff, unique
+              \item 戻り値の要点: (boundaries[:-1].astype(np.float32), np.diff(boundaries).astype(np.float32), boundaries)
+              \item 主なローカル代入名: base\_boundaries, boundaries
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item base\_boundaries に np.arange(0.0, race\_km, integration\_ds\_km, dtype=np.float64) の結果を代入する。
+\item boundaries に np.unique(np.concatenate((base\_boundaries, np.asarray(stop\_distances\_km, dtype=np.float64), np.asarray([race\_km], dtype=np.float64)))) の結果を代入する。
+\item boundaries に boundaries[(boundaries >= 0.0) \& (boundaries <= race\_km)] の結果を代入する。
+\item (boundaries[:-1].astype(np.float32), np.diff(boundaries).astype(np.float32), boundaries) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def build_distance_segments(
+    race_km: float,
+    integration_ds_km: float,
+    stop_distances_km: list[float],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Build integration segments with every physical stop as an exact boundary."""
+    base_boundaries = np.arange(0.0, race_km, integration_ds_km, dtype=np.float64)
+    boundaries = np.unique(
+        np.concatenate(
+            (
+                base_boundaries,
+                np.asarray(stop_distances_km, dtype=np.float64),
+                np.asarray([race_km], dtype=np.float64),
+            )
+        )
+    )
+    boundaries = boundaries[(boundaries >= 0.0) & (boundaries <= race_km)]
+    return (
+        boundaries[:-1].astype(np.float32),
+        np.diff(boundaries).astype(np.float32),
+        boundaries,
+    )
+\end{lstlisting}
+
+\subsection{L133 関数 kinetic\_power\_w}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L133--L143
+              \item 所属: module直下
+              \item 定義: \path|kinetic_power_w(mass_kg: float, speed_ms: torch.Tensor, previous_speed_ms: torch.Tensor, dt_sec: torch.Tensor) -> torch.Tensor|
+              \item docstring: Signed wheel power whose interval integral equals the kinetic-energy change.
+              \item このブロックが直接呼ぶ主な関数・メソッド: clamp, float
+              \item 戻り値の要点: delta\_energy\_j / torch.clamp(dt\_sec, min=1e-06)
+              \item 主なローカル代入名: delta\_energy\_j
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item delta\_energy\_j に 0.5 * float(mass\_kg) * (speed\_ms * speed\_ms - previous\_speed\_ms * previous\_speed\_ms) の結果を代入する。
+\item delta\_energy\_j / torch.clamp(dt\_sec, min=1e-06) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def kinetic_power_w(
+    mass_kg: float,
+    speed_ms: torch.Tensor,
+    previous_speed_ms: torch.Tensor,
+    dt_sec: torch.Tensor,
+) -> torch.Tensor:
+    """Signed wheel power whose interval integral equals the kinetic-energy change."""
+    delta_energy_j = 0.5 * float(mass_kg) * (
+        speed_ms * speed_ms - previous_speed_ms * previous_speed_ms
+    )
+    return delta_energy_j / torch.clamp(dt_sec, min=1.0e-6)
+\end{lstlisting}
+
+\subsection{L146 関数 slew\_limited\_segment\_kinematics}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L146--L190
+              \item 所属: module直下
+              \item 定義: \path|slew_limited_segment_kinematics(previous_speed_ms: torch.Tensor, target_speed_ms: torch.Tensor, distance_km: float, *, accel_limit_kmhps: float, decel_limit_kmhps: float) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]|
+              \item docstring: Return distance-average speed, end speed, and time for a slew-limited segment.
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, clamp, float, full\_like, max, sqrt, where, zeros\_like
+              \item 戻り値の要点: (average\_speed\_ms, end\_speed\_ms, duration\_sec)
+              \item 主なローカル代入名: accel\_ms2, accelerating, average\_speed\_ms, cruise\_distance\_m, cruise\_time\_sec, decel\_ms2, distance\_m, distance\_to\_target\_m, duration\_sec, end\_speed\_ms, limited\_end\_speed\_ms, limited\_end\_sq, ramp\_distance\_m, ramp\_time\_sec, rate\_ms2, reaches\_target, signed\_rate\_ms2
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item distance\_m に max(0.0, float(distance\_km) * 1000.0) の結果を代入する。
+\item accel\_ms2 に max(1e-06, float(accel\_limit\_kmhps) / 3.6) の結果を代入する。
+\item decel\_ms2 に max(1e-06, float(decel\_limit\_kmhps) / 3.6) の結果を代入する。
+\item accelerating に target\_speed\_ms >= previous\_speed\_ms の結果を代入する。
+\item rate\_ms2 に torch.where(accelerating, torch.full\_like(target\_speed\_ms, accel\_ms2), torch.full\_like(target\_speed\_ms, decel\_ms2)) の結果を代入する。
+\item signed\_rate\_ms2 に torch.where(accelerating, rate\_ms2, -rate\_ms2) の結果を代入する。
+\item distance\_to\_target\_m に torch.abs(target\_speed\_ms * target\_speed\_ms - previous\_speed\_ms * previous\_speed\_ms) / (2.0 * rate\_ms2) の結果を代入する。
+\item reaches\_target に distance\_to\_target\_m <= distance\_m + 1e-07 の結果を代入する。
+\item limited\_end\_sq に torch.clamp(previous\_speed\_ms * previous\_speed\_ms + 2.0 * signed\_rate\_ms2 * distance\_m, min=0.0) の結果を代入する。
+\item limited\_end\_speed\_ms に torch.sqrt(limited\_end\_sq) の結果を代入する。
+\item end\_speed\_ms に torch.where(reaches\_target, target\_speed\_ms, limited\_end\_speed\_ms) の結果を代入する。
+\item ramp\_distance\_m に torch.where(reaches\_target, distance\_to\_target\_m, torch.full\_like(distance\_to\_target\_m, distance\_m)) の結果を代入する。
+\item ramp\_time\_sec に torch.abs(end\_speed\_ms - previous\_speed\_ms) / rate\_ms2 の結果を代入する。
+\item cruise\_distance\_m に torch.clamp(distance\_m - ramp\_distance\_m, min=0.0) の結果を代入する。
+\item cruise\_time\_sec に torch.where(reaches\_target, cruise\_distance\_m / torch.clamp(target\_speed\_ms, min=0.001), torch.zeros\_like(cruise\_distance\_m)) の結果を代入する。
+\item duration\_sec に torch.clamp(ramp\_time\_sec + cruise\_time\_sec, min=1e-06) の結果を代入する。
+\item average\_speed\_ms に torch.full\_like(duration\_sec, distance\_m) / duration\_sec の結果を代入する。
+\item (average\_speed\_ms, end\_speed\_ms, duration\_sec) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def slew_limited_segment_kinematics(
+    previous_speed_ms: torch.Tensor,
+    target_speed_ms: torch.Tensor,
+    distance_km: float,
+    *,
+    accel_limit_kmhps: float,
+    decel_limit_kmhps: float,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Return distance-average speed, end speed, and time for a slew-limited segment."""
+    distance_m = max(0.0, float(distance_km) * 1000.0)
+    accel_ms2 = max(1.0e-6, float(accel_limit_kmhps) / 3.6)
+    decel_ms2 = max(1.0e-6, float(decel_limit_kmhps) / 3.6)
+    accelerating = target_speed_ms >= previous_speed_ms
+    rate_ms2 = torch.where(
+        accelerating,
+        torch.full_like(target_speed_ms, accel_ms2),
+        torch.full_like(target_speed_ms, decel_ms2),
+    )
+    signed_rate_ms2 = torch.where(accelerating, rate_ms2, -rate_ms2)
+    distance_to_target_m = torch.abs(
+        target_speed_ms * target_speed_ms
+        - previous_speed_ms * previous_speed_ms
+    ) / (2.0 * rate_ms2)
+    reaches_target = distance_to_target_m <= distance_m + 1.0e-7
+    limited_end_sq = torch.clamp(
+        previous_speed_ms * previous_speed_ms + 2.0 * signed_rate_ms2 * distance_m,
+        min=0.0,
+    )
+    limited_end_speed_ms = torch.sqrt(limited_end_sq)
+    end_speed_ms = torch.where(reaches_target, target_speed_ms, limited_end_speed_ms)
+    ramp_distance_m = torch.where(
+        reaches_target,
+        distance_to_target_m,
+        torch.full_like(distance_to_target_m, distance_m),
+    )
+...
+\end{lstlisting}
+
+\subsection{L193 関数 stationary\_auxiliary\_power\_w}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L193--L205
+              \item 所属: module直下
+              \item 定義: \path|stationary_auxiliary_power_w(irradiance_wm2: torch.Tensor, *, day_power_w: float, night_power_w: float, night_threshold_wm2: float) -> torch.Tensor|
+              \item docstring: Match the production model's stopped day/night auxiliary-power rule.
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, full\_like, max, where
+              \item 戻り値の要点: torch.where(irradiance\_wm2 > max(0.0, float(night\_threshold\_wm2)), torch.full\_like(irradiance\_wm2, max(0.0, float(day\_power\_w))), torch.full\_like(irradiance\_wm2, max(0.0, float(night\_power\_w))))
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item torch.where(irradiance\_wm2 > max(0.0, float(night\_threshold\_wm2)), torch.full\_like(irradiance\_wm2, max(0.0, float(day\_power\_w))), torch.full\_like(irradiance\_wm2, max(0.0, float(night\_power\_w)))) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def stationary_auxiliary_power_w(
+    irradiance_wm2: torch.Tensor,
+    *,
+    day_power_w: float,
+    night_power_w: float,
+    night_threshold_wm2: float,
+) -> torch.Tensor:
+    """Match the production model's stopped day/night auxiliary-power rule."""
+    return torch.where(
+        irradiance_wm2 > max(0.0, float(night_threshold_wm2)),
+        torch.full_like(irradiance_wm2, max(0.0, float(day_power_w))),
+        torch.full_like(irradiance_wm2, max(0.0, float(night_power_w))),
+    )
+\end{lstlisting}
+
+\subsection{L208 クラス TensorMap2D}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L208--L233
+              \item 所属: module直下
+              \item 定義: \path|TensorMap2D(bases=none)|
+              \item docstring: Bilinear CSV-map interpolation that stays on the selected torch device.
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item docstring または説明文字列を置く。
+\item 関数 \_\_init\_\_ を定義する。
+\item 関数 sample を定義する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class TensorMap2D:
+    """Bilinear CSV-map interpolation that stays on the selected torch device."""
+
+    def __init__(self, csv_path: Path, device: torch.device):
+        frame = pd.read_csv(csv_path, index_col=0)
+        self.x = torch.as_tensor(frame.index.to_numpy(dtype=np.float32), device=device)
+        self.y = torch.as_tensor(frame.columns.to_numpy(dtype=np.float32), device=device)
+        self.z = torch.as_tensor(frame.to_numpy(dtype=np.float32), device=device)
+        if len(self.x) < 2 or len(self.y) < 2 or self.z.shape != (len(self.x), len(self.y)):
+            raise ValueError(f"invalid 2-D map: {csv_path}")
+
+    def sample(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        x_value = torch.minimum(torch.maximum(x, self.x[0]), self.x[-1]).contiguous()
+        y_value = torch.minimum(torch.maximum(y, self.y[0]), self.y[-1]).contiguous()
+        i1 = torch.clamp(torch.searchsorted(self.x, x_value), 1, len(self.x) - 1)
+        j1 = torch.clamp(torch.searchsorted(self.y, y_value), 1, len(self.y) - 1)
+        i0 = i1 - 1
+        j0 = j1 - 1
+        wx = (x_value - self.x[i0]) / torch.clamp(self.x[i1] - self.x[i0], min=1.0e-9)
+        wy = (y_value - self.y[j0]) / torch.clamp(self.y[j1] - self.y[j0], min=1.0e-9)
+        return (
+            (1.0 - wx) * (1.0 - wy) * self.z[i0, j0]
+            + wx * (1.0 - wy) * self.z[i1, j0]
+            + (1.0 - wx) * wy * self.z[i0, j1]
+            + wx * wy * self.z[i1, j1]
+        )
+\end{lstlisting}
+
+\subsection{L211 関数 TensorMap2D.\_\_init\_\_}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L211--L217
+              \item 所属: \path|TensorMap2D|
+              \item 定義: \path|__init__(self, csv_path: Path, device: torch.device)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, as\_tensor, len, read\_csv, to\_numpy
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: frame
+              \item 読み取る主なインスタンス属性: self.x, self.y, self.z
+              \item 更新する主なインスタンス属性: self.x, self.y, self.z
+              \item 明示的に送出する例外: ValueError(f'invalid 2-D map: \{csv\_path\}')
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item frame に pd.read\_csv(csv\_path, index\_col=0) の結果を代入する。
+\item self.x に torch.as\_tensor(frame.index.to\_numpy(dtype=np.float32), device=device) の結果を代入する。
+\item self.y に torch.as\_tensor(frame.columns.to\_numpy(dtype=np.float32), device=device) の結果を代入する。
+\item self.z に torch.as\_tensor(frame.to\_numpy(dtype=np.float32), device=device) の結果を代入する。
+\item 条件 len(self.x) < 2 or len(self.y) < 2 or self.z.shape != (len(self.x), len(self.y)) を判定し、真なら内部処理を行う。
+\item   ValueError(f'invalid 2-D map: \{csv\_path\}') を送出する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def __init__(self, csv_path: Path, device: torch.device):
+        frame = pd.read_csv(csv_path, index_col=0)
+        self.x = torch.as_tensor(frame.index.to_numpy(dtype=np.float32), device=device)
+        self.y = torch.as_tensor(frame.columns.to_numpy(dtype=np.float32), device=device)
+        self.z = torch.as_tensor(frame.to_numpy(dtype=np.float32), device=device)
+        if len(self.x) < 2 or len(self.y) < 2 or self.z.shape != (len(self.x), len(self.y)):
+            raise ValueError(f"invalid 2-D map: {csv_path}")
+\end{lstlisting}
+
+\subsection{L219 関数 TensorMap2D.sample}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L219--L233
+              \item 所属: \path|TensorMap2D|
+              \item 定義: \path|sample(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: clamp, contiguous, len, maximum, minimum, searchsorted
+              \item 戻り値の要点: (1.0 - wx) * (1.0 - wy) * self.z[i0, j0] + wx * (1.0 - wy) * self.z[i1, j0] + (1.0 - wx) * wy * self.z[i0, j1] + wx * wy * self.z[i1, j1]
+              \item 主なローカル代入名: i0, i1, j0, j1, wx, wy, x\_value, y\_value
+              \item 読み取る主なインスタンス属性: self.x, self.y, self.z
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item x\_value に torch.minimum(torch.maximum(x, self.x[0]), self.x[-1]).contiguous() の結果を代入する。
+\item y\_value に torch.minimum(torch.maximum(y, self.y[0]), self.y[-1]).contiguous() の結果を代入する。
+\item i1 に torch.clamp(torch.searchsorted(self.x, x\_value), 1, len(self.x) - 1) の結果を代入する。
+\item j1 に torch.clamp(torch.searchsorted(self.y, y\_value), 1, len(self.y) - 1) の結果を代入する。
+\item i0 に i1 - 1 の結果を代入する。
+\item j0 に j1 - 1 の結果を代入する。
+\item wx に (x\_value - self.x[i0]) / torch.clamp(self.x[i1] - self.x[i0], min=1e-09) の結果を代入する。
+\item wy に (y\_value - self.y[j0]) / torch.clamp(self.y[j1] - self.y[j0], min=1e-09) の結果を代入する。
+\item (1.0 - wx) * (1.0 - wy) * self.z[i0, j0] + wx * (1.0 - wy) * self.z[i1, j0] + (1.0 - wx) * wy * self.z[i0, j1] + wx * wy * self.z[i1, j1] を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def sample(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        x_value = torch.minimum(torch.maximum(x, self.x[0]), self.x[-1]).contiguous()
+        y_value = torch.minimum(torch.maximum(y, self.y[0]), self.y[-1]).contiguous()
+        i1 = torch.clamp(torch.searchsorted(self.x, x_value), 1, len(self.x) - 1)
+        j1 = torch.clamp(torch.searchsorted(self.y, y_value), 1, len(self.y) - 1)
+        i0 = i1 - 1
+        j0 = j1 - 1
+        wx = (x_value - self.x[i0]) / torch.clamp(self.x[i1] - self.x[i0], min=1.0e-9)
+        wy = (y_value - self.y[j0]) / torch.clamp(self.y[j1] - self.y[j0], min=1.0e-9)
+        return (
+            (1.0 - wx) * (1.0 - wy) * self.z[i0, j0]
+            + wx * (1.0 - wy) * self.z[i1, j0]
+            + (1.0 - wx) * wy * self.z[i0, j1]
+            + wx * wy * self.z[i1, j1]
+        )
+\end{lstlisting}
+
+\subsection{L236 クラス TensorMap1D}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L236--L249
+              \item 所属: module直下
+              \item 定義: \path|TensorMap1D(bases=none)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 sample を定義する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class TensorMap1D:
+    def __init__(self, csv_path: Path, device: torch.device):
+        frame = pd.read_csv(csv_path)
+        if frame.shape[1] < 2 or len(frame) < 2:
+            raise ValueError(f"invalid 1-D map: {csv_path}")
+        self.x = torch.as_tensor(frame.iloc[:, 0].to_numpy(dtype=np.float32), device=device)
+        self.y = torch.as_tensor(frame.iloc[:, 1].to_numpy(dtype=np.float32), device=device)
+
+    def sample(self, x: torch.Tensor) -> torch.Tensor:
+        value = torch.minimum(torch.maximum(x, self.x[0]), self.x[-1]).contiguous()
+        i1 = torch.clamp(torch.searchsorted(self.x, value), 1, len(self.x) - 1)
+        i0 = i1 - 1
+        weight = (value - self.x[i0]) / torch.clamp(self.x[i1] - self.x[i0], min=1.0e-9)
+        return self.y[i0] * (1.0 - weight) + self.y[i1] * weight
+\end{lstlisting}
+
+\subsection{L237 関数 TensorMap1D.\_\_init\_\_}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L237--L242
+              \item 所属: \path|TensorMap1D|
+              \item 定義: \path|__init__(self, csv_path: Path, device: torch.device)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, as\_tensor, len, read\_csv, to\_numpy
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: frame
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: self.x, self.y
+              \item 明示的に送出する例外: ValueError(f'invalid 1-D map: \{csv\_path\}')
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item frame に pd.read\_csv(csv\_path) の結果を代入する。
+\item 条件 frame.shape[1] < 2 or len(frame) < 2 を判定し、真なら内部処理を行う。
+\item   ValueError(f'invalid 1-D map: \{csv\_path\}') を送出する。
+\item self.x に torch.as\_tensor(frame.iloc[:, 0].to\_numpy(dtype=np.float32), device=device) の結果を代入する。
+\item self.y に torch.as\_tensor(frame.iloc[:, 1].to\_numpy(dtype=np.float32), device=device) の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def __init__(self, csv_path: Path, device: torch.device):
+        frame = pd.read_csv(csv_path)
+        if frame.shape[1] < 2 or len(frame) < 2:
+            raise ValueError(f"invalid 1-D map: {csv_path}")
+        self.x = torch.as_tensor(frame.iloc[:, 0].to_numpy(dtype=np.float32), device=device)
+        self.y = torch.as_tensor(frame.iloc[:, 1].to_numpy(dtype=np.float32), device=device)
+\end{lstlisting}
+
+\subsection{L244 関数 TensorMap1D.sample}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L244--L249
+              \item 所属: \path|TensorMap1D|
+              \item 定義: \path|sample(self, x: torch.Tensor) -> torch.Tensor|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: clamp, contiguous, len, maximum, minimum, searchsorted
+              \item 戻り値の要点: self.y[i0] * (1.0 - weight) + self.y[i1] * weight
+              \item 主なローカル代入名: i0, i1, value, weight
+              \item 読み取る主なインスタンス属性: self.x, self.y
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item value に torch.minimum(torch.maximum(x, self.x[0]), self.x[-1]).contiguous() の結果を代入する。
+\item i1 に torch.clamp(torch.searchsorted(self.x, value), 1, len(self.x) - 1) の結果を代入する。
+\item i0 に i1 - 1 の結果を代入する。
+\item weight に (value - self.x[i0]) / torch.clamp(self.x[i1] - self.x[i0], min=1e-09) の結果を代入する。
+\item self.y[i0] * (1.0 - weight) + self.y[i1] * weight を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def sample(self, x: torch.Tensor) -> torch.Tensor:
+        value = torch.minimum(torch.maximum(x, self.x[0]), self.x[-1]).contiguous()
+        i1 = torch.clamp(torch.searchsorted(self.x, value), 1, len(self.x) - 1)
+        i0 = i1 - 1
+        weight = (value - self.x[i0]) / torch.clamp(self.x[i1] - self.x[i0], min=1.0e-9)
+        return self.y[i0] * (1.0 - weight) + self.y[i1] * weight
+\end{lstlisting}
+
+\subsection{L252 クラス WeatherGrid}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L252--L495
+              \item 所属: module直下
+              \item 定義: \path|WeatherGrid(bases=none)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 refine\_time\_grid を定義する。
+\item 関数 \_sample\_matrix を定義する。
+\item 関数 sample を定義する。
+\item 関数 register\_time\_integral を定義する。
+\item 関数 sample\_integral を定義する。
+\item 関数 register\_soc\_time\_integral を定義する。
+\item 関数 sample\_soc\_integral を定義する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class WeatherGrid:
+    def __init__(self, csv_path: Path, start_utc: datetime, device: torch.device):
+        frame = pd.read_csv(csv_path)
+        source_text = frame.get("weather_source", pd.Series(dtype=str)).astype(str).str.lower()
+        applied_gain = (
+            pd.to_numeric(frame["headwind_gain_applied"], errors="coerce")
+            if "headwind_gain_applied" in frame.columns
+            else pd.Series(np.nan, index=frame.index)
+        )
+        self.headwind_already_scaled = bool(
+            applied_gain.notna().any()
+            or source_text.str.contains("headwind_scaled|corrected.*headwind", regex=True).any()
+        )
+        frame["time"] = pd.to_datetime(frame["time"], utc=True, errors="coerce")
+        frame = frame.dropna(subset=["time", "s_km"])
+        times = pd.Index(frame["time"].drop_duplicates().sort_values())
+        distances = np.array(sorted(pd.to_numeric(frame["s_km"], errors="coerce").dropna().unique()), dtype=np.float32)
+        self.time_sec = torch.as_tensor(
+            ((times - pd.Timestamp(start_utc)).total_seconds()).to_numpy(dtype=np.float32), device=device
+        )
+        self.distance_km = torch.as_tensor(distances, device=device)
+        self.distance_np = distances
+        self.values = {}
+        self.integrals = {}
+        self.integral_rates = {}
+        self.soc_integrals = {}
+        self.soc_integral_rates = {}
+        self.soc_integral_grids = {}
+        weather_fields = (
+            ("GHI", 0.0, True),
+            ("Tamb_C", 30.0, True),
+            ("Tcell_C", 35.0, True),
+            ("headwind_ms", 0.0, True),
+            ("POA_drive", 0.0, False),
+            ("POA_stop_ideal", 0.0, False),
+...
+\end{lstlisting}
+
+\subsection{L253 関数 WeatherGrid.\_\_init\_\_}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L253--L304
+              \item 所属: \path|WeatherGrid|
+              \item 定義: \path|__init__(self, csv_path: Path, start_utc: datetime, device: torch.device)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Index, Series, Timestamp, any, array, as\_tensor, astype, bfill, bool, contains, drop\_duplicates, dropna
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: applied\_gain, default, distances, frame, matrix, name, required, source\_text, times, weather\_fields
+              \item 読み取る主なインスタンス属性: self.values
+              \item 更新する主なインスタンス属性: self.distance\_km, self.distance\_np, self.headwind\_already\_scaled, self.integral\_rates, self.integrals, self.soc\_integral\_grids, self.soc\_integral\_rates, self.soc\_integrals, self.time\_sec, self.values
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item frame に pd.read\_csv(csv\_path) の結果を代入する。
+\item source\_text に frame.get('weather\_source', pd.Series(dtype=str)).astype(str).str.lower() の結果を代入する。
+\item applied\_gain に pd.to\_numeric(frame['headwind\_gain\_applied'], errors='coerce') if 'headwind\_gain\_applied' in frame.columns else pd.Series(np.nan, index=frame.index) の結果を代入する。
+\item self.headwind\_already\_scaled に bool(applied\_gain.notna().any() or source\_text.str.contains('headwind\_scaled|corrected.*headwind', regex=True).any()) の結果を代入する。
+\item frame['time'] に pd.to\_datetime(frame['time'], utc=True, errors='coerce') の結果を代入する。
+\item frame に frame.dropna(subset=['time', 's\_km']) の結果を代入する。
+\item times に pd.Index(frame['time'].drop\_duplicates().sort\_values()) の結果を代入する。
+\item distances に np.array(sorted(pd.to\_numeric(frame['s\_km'], errors='coerce').dropna().unique()), dtype=np.float32) の結果を代入する。
+\item self.time\_sec に torch.as\_tensor((times - pd.Timestamp(start\_utc)).total\_seconds().to\_numpy(dtype=np.float32), device=device) の結果を代入する。
+\item self.distance\_km に torch.as\_tensor(distances, device=device) の結果を代入する。
+\item self.distance\_np に distances の結果を代入する。
+\item self.values に \{\} の結果を代入する。
+\item self.integrals に \{\} の結果を代入する。
+\item self.integral\_rates に \{\} の結果を代入する。
+\item self.soc\_integrals に \{\} の結果を代入する。
+\item self.soc\_integral\_rates に \{\} の結果を代入する。
+\item self.soc\_integral\_grids に \{\} の結果を代入する。
+\item weather\_fields に (('GHI', 0.0, True), ('Tamb\_C', 30.0, True), ('Tcell\_C', 35.0, True), ('headwind\_ms', 0.0, True), ('POA\_drive', 0.0, False), ('POA\_stop\_ideal', 0.0, False), ('Tcell\_drive\_C', 35.0, False), ('Tcell\_stop\_ideal\_C', 35.0, False)) の結果を代入する。
+\item weather\_fields を順に走査し、各要素を (name, default, required) に入れて処理する。
+\item   条件 name not in frame.columns を判定し、真なら内部処理を行う。
+\item     条件 not required を判定し、真なら内部処理を行う。
+\item       Continue 文を実行する。
+\item     matrix に np.full((len(times), len(distances)), default, dtype=np.float32) の結果を代入する。
+\item     上の条件が偽の場合:
+\item     matrix に frame.pivot\_table(index='time', columns='s\_km', values=name, aggfunc='last').reindex(index=times, columns=distances).interpolate(axis=0, limit\_direction='both').interpolate(axis=1, limit\_direction='both').ffill().bfill().ffill(axis=1).bfill(axis=1).to\_numpy(dtype=np.float32, copy=True) の結果を代入する。
+\item   self.values[name] に torch.as\_tensor(np.array(matrix, copy=True), device=device) の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def __init__(self, csv_path: Path, start_utc: datetime, device: torch.device):
+        frame = pd.read_csv(csv_path)
+        source_text = frame.get("weather_source", pd.Series(dtype=str)).astype(str).str.lower()
+        applied_gain = (
+            pd.to_numeric(frame["headwind_gain_applied"], errors="coerce")
+            if "headwind_gain_applied" in frame.columns
+            else pd.Series(np.nan, index=frame.index)
+        )
+        self.headwind_already_scaled = bool(
+            applied_gain.notna().any()
+            or source_text.str.contains("headwind_scaled|corrected.*headwind", regex=True).any()
+        )
+        frame["time"] = pd.to_datetime(frame["time"], utc=True, errors="coerce")
+        frame = frame.dropna(subset=["time", "s_km"])
+        times = pd.Index(frame["time"].drop_duplicates().sort_values())
+        distances = np.array(sorted(pd.to_numeric(frame["s_km"], errors="coerce").dropna().unique()), dtype=np.float32)
+        self.time_sec = torch.as_tensor(
+            ((times - pd.Timestamp(start_utc)).total_seconds()).to_numpy(dtype=np.float32), device=device
+        )
+        self.distance_km = torch.as_tensor(distances, device=device)
+        self.distance_np = distances
+        self.values = {}
+        self.integrals = {}
+        self.integral_rates = {}
+        self.soc_integrals = {}
+        self.soc_integral_rates = {}
+        self.soc_integral_grids = {}
+        weather_fields = (
+            ("GHI", 0.0, True),
+            ("Tamb_C", 30.0, True),
+            ("Tcell_C", 35.0, True),
+            ("headwind_ms", 0.0, True),
+            ("POA_drive", 0.0, False),
+            ("POA_stop_ideal", 0.0, False),
+            ("Tcell_drive_C", 35.0, False),
+...
+\end{lstlisting}
+
+\subsection{L306 関数 WeatherGrid.refine\_time\_grid}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L306--L373
+              \item 所属: \path|WeatherGrid|
+              \item 定義: \path!refine_time_grid(self, max_step_sec: float) -> dict[str, float | int]!
+              \item docstring: Linearly densify weather before applying nonlinear component models.
+
+Interpolating hourly PV power or an hourly day/night switch is not
+equivalent to interpolating irradiance first.  The production model
+does the latter, so the GPU proposer must use the same operation order.
+              \item このブロックが直接呼ぶ主な関数・メソッド: RuntimeError, ValueError, any, append, arange, as\_tensor, asarray, astype, ceil, clamp, cpu, detach
+              \item 戻り値の要点: \{'source\_points': int(len(source\_np)), 'refined\_points': int(len(refined\_np)), 'source\_max\_step\_sec': source\_max\_step, 'refined\_max\_step\_sec': refined\_max\_step\} / \{'source\_points': int(len(source\_np)), 'refined\_points': int(len(source\_np)), 'source\_max\_step\_sec': 0.0, 'refined\_max\_step\_sec': 0.0\} / \{'source\_points': int(len(source\_np)), 'refined\_points': int(len(source\_np)), 'source\_max\_step\_sec': source\_max\_step, 'refined\_max\_step\_sec': source\_max\_step\}
+              \item 主なローカル代入名: left, lower, matrix, name, refined\_max\_step, refined\_np, refined\_parts, refined\_times, requested\_step, right, source\_max\_step, source\_np, source\_steps, source\_times, subdivisions, upper, weight
+              \item 読み取る主なインスタンス属性: self.integrals, self.soc\_integrals, self.time\_sec, self.values
+              \item 更新する主なインスタンス属性: self.time\_sec, self.values
+              \item 明示的に送出する例外: RuntimeError('weather must be refined before registering integrals'), ValueError('weather refinement step must be positive'), ValueError('weather timestamps must be strictly increasing')
+              \item 制御構造の規模: 条件分岐 5、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item requested\_step に float(max\_step\_sec) の結果を代入する。
+\item 条件 not math.isfinite(requested\_step) or requested\_step <= 0.0 を判定し、真なら内部処理を行う。
+\item   ValueError('weather refinement step must be positive') を送出する。
+\item 条件 self.integrals or self.soc\_integrals を判定し、真なら内部処理を行う。
+\item   RuntimeError('weather must be refined before registering integrals') を送出する。
+\item source\_times に self.time\_sec の結果を代入する。
+\item source\_np に source\_times.detach().cpu().numpy().astype(float) の結果を代入する。
+\item 条件 len(source\_np) < 2 を判定し、真なら内部処理を行う。
+\item   \{'source\_points': int(len(source\_np)), 'refined\_points': int(len(source\_np)), 'source\_max\_step\_sec': 0.0, 'refined\_max\_step\_sec': 0.0\} を返す。
+\item source\_steps に np.diff(source\_np) の結果を代入する。
+\item 条件 np.any(source\_steps <= 0.0) を判定し、真なら内部処理を行う。
+\item   ValueError('weather timestamps must be strictly increasing') を送出する。
+\item source\_max\_step に float(np.max(source\_steps)) の結果を代入する。
+\item 条件 source\_max\_step <= requested\_step + 1e-06 を判定し、真なら内部処理を行う。
+\item   \{'source\_points': int(len(source\_np)), 'refined\_points': int(len(source\_np)), 'source\_max\_step\_sec': source\_max\_step, 'refined\_max\_step\_sec': source\_max\_step\} を返す。
+\item refined\_parts に [] の結果を代入する。
+\item zip(source\_np[:-1], source\_np[1:]) を順に走査し、各要素を (left, right) に入れて処理する。
+\item   subdivisions に max(1, int(math.ceil((right - left) / requested\_step))) の結果を代入する。
+\item   refined\_parts.extend(...) を実行する。
+\item refined\_np に np.append(np.asarray(refined\_parts, dtype=np.float32), np.float32(source\_np[-1])) の結果を代入する。
+\item refined\_times に torch.as\_tensor(refined\_np, dtype=source\_times.dtype, device=source\_times.device) の結果を代入する。
+\item upper に torch.clamp(torch.searchsorted(source\_times, refined\_times), 1, len(source\_times) - 1) の結果を代入する。
+\item lower に upper - 1 の結果を代入する。
+\item weight に ((refined\_times - source\_times[lower]) / torch.clamp(source\_times[upper] - source\_times[lower], min=1.0))[:, None] の結果を代入する。
+\item self.values に \{name: matrix[lower] * (1.0 - weight) + matrix[upper] * weight for name, matrix in self.values.items()\} の結果を代入する。
+\item self.time\_sec に refined\_times の結果を代入する。
+\item refined\_max\_step に float(np.max(np.diff(refined\_np.astype(float)))) の結果を代入する。
+\item \{'source\_points': int(len(source\_np)), 'refined\_points': int(len(refined\_np)), 'source\_max\_step\_sec': source\_max\_step, 'refined\_max\_step\_sec': refined\_max\_step\} を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def refine_time_grid(self, max_step_sec: float) -> dict[str, float | int]:
+        """Linearly densify weather before applying nonlinear component models.
+
+        Interpolating hourly PV power or an hourly day/night switch is not
+        equivalent to interpolating irradiance first.  The production model
+        does the latter, so the GPU proposer must use the same operation order.
+        """
+        requested_step = float(max_step_sec)
+        if not math.isfinite(requested_step) or requested_step <= 0.0:
+            raise ValueError("weather refinement step must be positive")
+        if self.integrals or self.soc_integrals:
+            raise RuntimeError("weather must be refined before registering integrals")
+
+        source_times = self.time_sec
+        source_np = source_times.detach().cpu().numpy().astype(float)
+        if len(source_np) < 2:
+            return {
+                "source_points": int(len(source_np)),
+                "refined_points": int(len(source_np)),
+                "source_max_step_sec": 0.0,
+                "refined_max_step_sec": 0.0,
+            }
+        source_steps = np.diff(source_np)
+        if np.any(source_steps <= 0.0):
+            raise ValueError("weather timestamps must be strictly increasing")
+        source_max_step = float(np.max(source_steps))
+        if source_max_step <= requested_step + 1.0e-6:
+            return {
+                "source_points": int(len(source_np)),
+                "refined_points": int(len(source_np)),
+                "source_max_step_sec": source_max_step,
+                "refined_max_step_sec": source_max_step,
+            }
+
+        refined_parts = []
+...
+\end{lstlisting}
+
+\subsection{L375 関数 WeatherGrid.\_sample\_matrix}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L375--L390
+              \item 所属: \path|WeatherGrid|
+              \item 定義: \path|_sample_matrix(self, matrix: torch.Tensor, t_sec: torch.Tensor, s_km: float) -> torch.Tensor|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: clamp, clip, float, int, len, max, maximum, minimum, searchsorted
+              \item 戻り値の要点: low * (1.0 - wt) + high * wt
+              \item 主なローカル代入名: high, i0, i1, j0\_int, j1\_int, low, s, t, tg, ws, wt
+              \item 読み取る主なインスタンス属性: self.distance\_np, self.time\_sec
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item tg に self.time\_sec の結果を代入する。
+\item t に torch.minimum(torch.maximum(t\_sec, tg[0]), tg[-1]) の結果を代入する。
+\item s に float(np.clip(s\_km, float(self.distance\_np[0]), float(self.distance\_np[-1]))) の結果を代入する。
+\item i1 に torch.clamp(torch.searchsorted(tg, t), 1, len(tg) - 1) の結果を代入する。
+\item i0 に i1 - 1 の結果を代入する。
+\item j1\_int に int(np.clip(np.searchsorted(self.distance\_np, s), 1, len(self.distance\_np) - 1)) の結果を代入する。
+\item j0\_int に j1\_int - 1 の結果を代入する。
+\item wt に (t - tg[i0]) / torch.clamp(tg[i1] - tg[i0], min=1.0) の結果を代入する。
+\item ws に (s - float(self.distance\_np[j0\_int])) / max(float(self.distance\_np[j1\_int] - self.distance\_np[j0\_int]), 1e-06) の結果を代入する。
+\item low に matrix[i0, j0\_int] * (1.0 - ws) + matrix[i0, j1\_int] * ws の結果を代入する。
+\item high に matrix[i1, j0\_int] * (1.0 - ws) + matrix[i1, j1\_int] * ws の結果を代入する。
+\item low * (1.0 - wt) + high * wt を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _sample_matrix(self, matrix: torch.Tensor, t_sec: torch.Tensor, s_km: float) -> torch.Tensor:
+        tg = self.time_sec
+        t = torch.minimum(torch.maximum(t_sec, tg[0]), tg[-1])
+        s = float(np.clip(s_km, float(self.distance_np[0]), float(self.distance_np[-1])))
+        i1 = torch.clamp(torch.searchsorted(tg, t), 1, len(tg) - 1)
+        i0 = i1 - 1
+        j1_int = int(np.clip(np.searchsorted(self.distance_np, s), 1, len(self.distance_np) - 1))
+        j0_int = j1_int - 1
+        wt = (t - tg[i0]) / torch.clamp(tg[i1] - tg[i0], min=1.0)
+        ws = (s - float(self.distance_np[j0_int])) / max(
+            float(self.distance_np[j1_int] - self.distance_np[j0_int]),
+            1.0e-6,
+        )
+        low = matrix[i0, j0_int] * (1.0 - ws) + matrix[i0, j1_int] * ws
+        high = matrix[i1, j0_int] * (1.0 - ws) + matrix[i1, j1_int] * ws
+        return low * (1.0 - wt) + high * wt
+\end{lstlisting}
+
+\subsection{L392 関数 WeatherGrid.sample}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L392--L393
+              \item 所属: \path|WeatherGrid|
+              \item 定義: \path|sample(self, name: str, t_sec: torch.Tensor, s_km: float) -> torch.Tensor|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_sample\_matrix
+              \item 戻り値の要点: self.\_sample\_matrix(self.values[name], t\_sec, s\_km)
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.\_sample\_matrix, self.values
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.\_sample\_matrix(self.values[name], t\_sec, s\_km) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def sample(self, name: str, t_sec: torch.Tensor, s_km: float) -> torch.Tensor:
+        return self._sample_matrix(self.values[name], t_sec, s_km)
+\end{lstlisting}
+
+\subsection{L395 関数 WeatherGrid.register\_time\_integral}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L395--L403
+              \item 所属: \path|WeatherGrid|
+              \item 定義: \path|register_time_integral(self, name: str, rate: torch.Tensor) -> None|
+              \item docstring: Register the trapezoidal time integral of a W-valued weather-grid field.
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, cat, cumsum, iter, next, values, zeros
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: dt, increments, zero
+              \item 読み取る主なインスタンス属性: self.integral\_rates, self.integrals, self.time\_sec, self.values
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: ValueError('integrated weather field must match the weather grid shape')
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 rate.shape != next(iter(self.values.values())).shape を判定し、真なら内部処理を行う。
+\item   ValueError('integrated weather field must match the weather grid shape') を送出する。
+\item dt に self.time\_sec[1:] - self.time\_sec[:-1] の結果を代入する。
+\item increments に 0.5 * (rate[1:] + rate[:-1]) * dt[:, None] の結果を代入する。
+\item zero に torch.zeros((1, rate.shape[1]), dtype=rate.dtype, device=rate.device) の結果を代入する。
+\item self.integrals[name] に torch.cat((zero, torch.cumsum(increments, dim=0)), dim=0) の結果を代入する。
+\item self.integral\_rates[name] に rate の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def register_time_integral(self, name: str, rate: torch.Tensor) -> None:
+        """Register the trapezoidal time integral of a W-valued weather-grid field."""
+        if rate.shape != next(iter(self.values.values())).shape:
+            raise ValueError("integrated weather field must match the weather grid shape")
+        dt = self.time_sec[1:] - self.time_sec[:-1]
+        increments = 0.5 * (rate[1:] + rate[:-1]) * dt[:, None]
+        zero = torch.zeros((1, rate.shape[1]), dtype=rate.dtype, device=rate.device)
+        self.integrals[name] = torch.cat((zero, torch.cumsum(increments, dim=0)), dim=0)
+        self.integral_rates[name] = rate
+\end{lstlisting}
+
+\subsection{L405 関数 WeatherGrid.sample\_integral}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L405--L426
+              \item 所属: \path|WeatherGrid|
+              \item 定義: \path|sample_integral(self, name: str, t_sec: torch.Tensor, s_km: float) -> torch.Tensor|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: clamp, clip, float, int, len, max, maximum, minimum, searchsorted
+              \item 戻り値の要点: cumulative\_0 + partial
+              \item 主なローカル代入名: cumulative, cumulative\_0, i0, i1, interval, j0\_int, j1\_int, partial, rate, rate\_0, rate\_1, s, t, tg, ws, wt
+              \item 読み取る主なインスタンス属性: self.distance\_np, self.integral\_rates, self.integrals, self.time\_sec
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item tg に self.time\_sec の結果を代入する。
+\item t に torch.minimum(torch.maximum(t\_sec, tg[0]), tg[-1]) の結果を代入する。
+\item s に float(np.clip(s\_km, float(self.distance\_np[0]), float(self.distance\_np[-1]))) の結果を代入する。
+\item i1 に torch.clamp(torch.searchsorted(tg, t), 1, len(tg) - 1) の結果を代入する。
+\item i0 に i1 - 1 の結果を代入する。
+\item j1\_int に int(np.clip(np.searchsorted(self.distance\_np, s), 1, len(self.distance\_np) - 1)) の結果を代入する。
+\item j0\_int に j1\_int - 1 の結果を代入する。
+\item interval に torch.clamp(tg[i1] - tg[i0], min=1.0) の結果を代入する。
+\item wt に (t - tg[i0]) / interval の結果を代入する。
+\item ws に (s - float(self.distance\_np[j0\_int])) / max(float(self.distance\_np[j1\_int] - self.distance\_np[j0\_int]), 1e-06) の結果を代入する。
+\item cumulative に self.integrals[name] の結果を代入する。
+\item rate に self.integral\_rates[name] の結果を代入する。
+\item cumulative\_0 に cumulative[i0, j0\_int] * (1.0 - ws) + cumulative[i0, j1\_int] * ws の結果を代入する。
+\item rate\_0 に rate[i0, j0\_int] * (1.0 - ws) + rate[i0, j1\_int] * ws の結果を代入する。
+\item rate\_1 に rate[i1, j0\_int] * (1.0 - ws) + rate[i1, j1\_int] * ws の結果を代入する。
+\item partial に (t - tg[i0]) * (rate\_0 + 0.5 * (rate\_1 - rate\_0) * wt) の結果を代入する。
+\item cumulative\_0 + partial を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def sample_integral(self, name: str, t_sec: torch.Tensor, s_km: float) -> torch.Tensor:
+        tg = self.time_sec
+        t = torch.minimum(torch.maximum(t_sec, tg[0]), tg[-1])
+        s = float(np.clip(s_km, float(self.distance_np[0]), float(self.distance_np[-1])))
+        i1 = torch.clamp(torch.searchsorted(tg, t), 1, len(tg) - 1)
+        i0 = i1 - 1
+        j1_int = int(np.clip(np.searchsorted(self.distance_np, s), 1, len(self.distance_np) - 1))
+        j0_int = j1_int - 1
+        interval = torch.clamp(tg[i1] - tg[i0], min=1.0)
+        wt = (t - tg[i0]) / interval
+        ws = (s - float(self.distance_np[j0_int])) / max(
+            float(self.distance_np[j1_int] - self.distance_np[j0_int]),
+            1.0e-6,
+        )
+
+        cumulative = self.integrals[name]
+        rate = self.integral_rates[name]
+        cumulative_0 = cumulative[i0, j0_int] * (1.0 - ws) + cumulative[i0, j1_int] * ws
+        rate_0 = rate[i0, j0_int] * (1.0 - ws) + rate[i0, j1_int] * ws
+        rate_1 = rate[i1, j0_int] * (1.0 - ws) + rate[i1, j1_int] * ws
+        partial = (t - tg[i0]) * (rate_0 + 0.5 * (rate_1 - rate_0) * wt)
+        return cumulative_0 + partial
+\end{lstlisting}
+
+\subsection{L428 関数 WeatherGrid.register\_soc\_time\_integral}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L428--L452
+              \item 所属: \path|WeatherGrid|
+              \item 定義: \path|register_soc_time_integral(self, name: str, soc_grid: torch.Tensor, rate: torch.Tensor) -> None|
+              \item docstring: Register a time integral whose rate also varies over battery SoC.
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, cat, cumsum, iter, len, next, tuple, values, zeros
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: dt, expected, increments, zero
+              \item 読み取る主なインスタンス属性: self.soc\_integral\_grids, self.soc\_integral\_rates, self.soc\_integrals, self.time\_sec, self.values
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: ValueError('SoC grid length does not match the integrated field'), ValueError('SoC-integrated field must have shape [soc, time, distance]')
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item expected に next(iter(self.values.values())).shape の結果を代入する。
+\item 条件 rate.ndim != 3 or tuple(rate.shape[1:]) != tuple(expected) を判定し、真なら内部処理を行う。
+\item   ValueError('SoC-integrated field must have shape [soc, time, distance]') を送出する。
+\item 条件 rate.shape[0] != len(soc\_grid) を判定し、真なら内部処理を行う。
+\item   ValueError('SoC grid length does not match the integrated field') を送出する。
+\item dt に self.time\_sec[1:] - self.time\_sec[:-1] の結果を代入する。
+\item increments に 0.5 * (rate[:, 1:] + rate[:, :-1]) * dt[None, :, None] の結果を代入する。
+\item zero に torch.zeros((rate.shape[0], 1, rate.shape[2]), dtype=rate.dtype, device=rate.device) の結果を代入する。
+\item self.soc\_integrals[name] に torch.cat((zero, torch.cumsum(increments, dim=1)), dim=1) の結果を代入する。
+\item self.soc\_integral\_rates[name] に rate の結果を代入する。
+\item self.soc\_integral\_grids[name] に soc\_grid の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def register_soc_time_integral(
+        self,
+        name: str,
+        soc_grid: torch.Tensor,
+        rate: torch.Tensor,
+    ) -> None:
+        """Register a time integral whose rate also varies over battery SoC."""
+        expected = next(iter(self.values.values())).shape
+        if rate.ndim != 3 or tuple(rate.shape[1:]) != tuple(expected):
+            raise ValueError("SoC-integrated field must have shape [soc, time, distance]")
+        if rate.shape[0] != len(soc_grid):
+            raise ValueError("SoC grid length does not match the integrated field")
+        dt = self.time_sec[1:] - self.time_sec[:-1]
+        increments = 0.5 * (rate[:, 1:] + rate[:, :-1]) * dt[None, :, None]
+        zero = torch.zeros(
+            (rate.shape[0], 1, rate.shape[2]),
+            dtype=rate.dtype,
+            device=rate.device,
+        )
+        self.soc_integrals[name] = torch.cat(
+            (zero, torch.cumsum(increments, dim=1)),
+            dim=1,
+        )
+        self.soc_integral_rates[name] = rate
+        self.soc_integral_grids[name] = soc_grid
+\end{lstlisting}
+
+\subsection{L454 関数 WeatherGrid.sample\_soc\_integral}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L454--L495
+              \item 所属: \path|WeatherGrid|
+              \item 定義: \path|sample_soc_integral(self, name: str, t_sec: torch.Tensor, s_km: float, soc: torch.Tensor) -> torch.Tensor|
+              \item docstring: Trilinearly sample a cumulative [SoC,time,distance] integral.
+              \item このブロックが直接呼ぶ主な関数・メソッド: clamp, clip, contiguous, float, int, interpolate, len, max, maximum, minimum, searchsorted
+              \item 戻り値の要点: cumulative\_0 + partial / low\_soc * (1.0 - wz) + high\_soc * wz
+              \item 主なローカル代入名: cumulative, cumulative\_0, high\_soc, high\_soc\_high\_s, high\_soc\_low\_s, i0, i1, j0, j1, k0, k1, low\_soc, low\_soc\_high\_s, low\_soc\_low\_s, partial, rate, rate\_0, rate\_1, s, t
+              \item 読み取る主なインスタンス属性: self.distance\_np, self.soc\_integral\_grids, self.soc\_integral\_rates, self.soc\_integrals, self.time\_sec
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item tg に self.time\_sec の結果を代入する。
+\item zg に self.soc\_integral\_grids[name] の結果を代入する。
+\item t に torch.minimum(torch.maximum(t\_sec, tg[0]), tg[-1]).contiguous() の結果を代入する。
+\item z に torch.minimum(torch.maximum(soc, zg[0]), zg[-1]).contiguous() の結果を代入する。
+\item s に float(np.clip(s\_km, float(self.distance\_np[0]), float(self.distance\_np[-1]))) の結果を代入する。
+\item i1 に torch.clamp(torch.searchsorted(tg, t), 1, len(tg) - 1) の結果を代入する。
+\item i0 に i1 - 1 の結果を代入する。
+\item k1 に torch.clamp(torch.searchsorted(zg, z), 1, len(zg) - 1) の結果を代入する。
+\item k0 に k1 - 1 の結果を代入する。
+\item j1 に int(np.clip(np.searchsorted(self.distance\_np, s), 1, len(self.distance\_np) - 1)) の結果を代入する。
+\item j0 に j1 - 1 の結果を代入する。
+\item wt に (t - tg[i0]) / torch.clamp(tg[i1] - tg[i0], min=1.0) の結果を代入する。
+\item wz に (z - zg[k0]) / torch.clamp(zg[k1] - zg[k0], min=1e-09) の結果を代入する。
+\item ws に (s - float(self.distance\_np[j0])) / max(float(self.distance\_np[j1] - self.distance\_np[j0]), 1e-06) の結果を代入する。
+\item 関数 interpolate を定義する。
+\item cumulative に self.soc\_integrals[name] の結果を代入する。
+\item rate に self.soc\_integral\_rates[name] の結果を代入する。
+\item cumulative\_0 に interpolate(cumulative, i0) の結果を代入する。
+\item rate\_0 に interpolate(rate, i0) の結果を代入する。
+\item rate\_1 に interpolate(rate, i1) の結果を代入する。
+\item partial に (t - tg[i0]) * (rate\_0 + 0.5 * (rate\_1 - rate\_0) * wt) の結果を代入する。
+\item cumulative\_0 + partial を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def sample_soc_integral(
+        self,
+        name: str,
+        t_sec: torch.Tensor,
+        s_km: float,
+        soc: torch.Tensor,
+    ) -> torch.Tensor:
+        """Trilinearly sample a cumulative [SoC,time,distance] integral."""
+        tg = self.time_sec
+        zg = self.soc_integral_grids[name]
+        t = torch.minimum(torch.maximum(t_sec, tg[0]), tg[-1]).contiguous()
+        z = torch.minimum(torch.maximum(soc, zg[0]), zg[-1]).contiguous()
+        s = float(np.clip(s_km, float(self.distance_np[0]), float(self.distance_np[-1])))
+        i1 = torch.clamp(torch.searchsorted(tg, t), 1, len(tg) - 1)
+        i0 = i1 - 1
+        k1 = torch.clamp(torch.searchsorted(zg, z), 1, len(zg) - 1)
+        k0 = k1 - 1
+        j1 = int(np.clip(np.searchsorted(self.distance_np, s), 1, len(self.distance_np) - 1))
+        j0 = j1 - 1
+        wt = (t - tg[i0]) / torch.clamp(tg[i1] - tg[i0], min=1.0)
+        wz = (z - zg[k0]) / torch.clamp(zg[k1] - zg[k0], min=1.0e-9)
+        ws = (s - float(self.distance_np[j0])) / max(
+            float(self.distance_np[j1] - self.distance_np[j0]),
+            1.0e-6,
+        )
+
+        def interpolate(values: torch.Tensor, time_index: torch.Tensor) -> torch.Tensor:
+            low_soc_low_s = values[k0, time_index, j0]
+            low_soc_high_s = values[k0, time_index, j1]
+            high_soc_low_s = values[k1, time_index, j0]
+            high_soc_high_s = values[k1, time_index, j1]
+            low_soc = low_soc_low_s * (1.0 - ws) + low_soc_high_s * ws
+            high_soc = high_soc_low_s * (1.0 - ws) + high_soc_high_s * ws
+            return low_soc * (1.0 - wz) + high_soc * wz
+
+...
+\end{lstlisting}
+
+\subsection{L480 関数 WeatherGrid.sample\_soc\_integral.interpolate}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L480--L487
+              \item 所属: \path|WeatherGrid.sample_soc_integral|
+              \item 定義: \path|interpolate(values: torch.Tensor, time_index: torch.Tensor) -> torch.Tensor|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: low\_soc * (1.0 - wz) + high\_soc * wz
+              \item 主なローカル代入名: high\_soc, high\_soc\_high\_s, high\_soc\_low\_s, low\_soc, low\_soc\_high\_s, low\_soc\_low\_s
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item low\_soc\_low\_s に values[k0, time\_index, j0] の結果を代入する。
+\item low\_soc\_high\_s に values[k0, time\_index, j1] の結果を代入する。
+\item high\_soc\_low\_s に values[k1, time\_index, j0] の結果を代入する。
+\item high\_soc\_high\_s に values[k1, time\_index, j1] の結果を代入する。
+\item low\_soc に low\_soc\_low\_s * (1.0 - ws) + low\_soc\_high\_s * ws の結果を代入する。
+\item high\_soc に high\_soc\_low\_s * (1.0 - ws) + high\_soc\_high\_s * ws の結果を代入する。
+\item low\_soc * (1.0 - wz) + high\_soc * wz を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+        def interpolate(values: torch.Tensor, time_index: torch.Tensor) -> torch.Tensor:
+            low_soc_low_s = values[k0, time_index, j0]
+            low_soc_high_s = values[k0, time_index, j1]
+            high_soc_low_s = values[k1, time_index, j0]
+            high_soc_high_s = values[k1, time_index, j1]
+            low_soc = low_soc_low_s * (1.0 - ws) + low_soc_high_s * ws
+            high_soc = high_soc_low_s * (1.0 - ws) + high_soc_high_s * ws
+            return low_soc * (1.0 - wz) + high_soc * wz
+\end{lstlisting}
+
+\subsection{L498 関数 parse\_args}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L498--L551
+              \item 所属: module直下
+              \item 定義: \path|parse_args() -> argparse.Namespace|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ArgumentParser, add\_argument, parse\_args
+              \item 戻り値の要点: parser.parse\_args()
+              \item 主なローカル代入名: parser
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item parser に argparse.ArgumentParser(description=\_\_doc\_\_) の結果を代入する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.parse\_args() を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--profile", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--integration-ds-km", type=float, default=1.0)
+    parser.add_argument("--control-ds-km", type=float, default=25.0)
+    parser.add_argument("--population", type=int, default=4096)
+    parser.add_argument("--elite", type=int, default=128)
+    parser.add_argument("--generations", type=int, default=80)
+    parser.add_argument("--seed", type=int, default=20260715)
+    parser.add_argument("--checkpoint-every", type=int, default=10)
+    parser.add_argument("--resume", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--tensorboard-dir", type=Path)
+    parser.add_argument("--initial-policy", type=Path)
+    parser.add_argument("--initial-std-kmh", type=float, default=4.0)
+    parser.add_argument(
+        "--antithetic-sampling",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Use paired positive/negative perturbations to reduce sampling variance.",
+    )
+    parser.add_argument(
+        "--cuda-graph",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help=(
+            "Capture the fixed-shape surrogate rollout as one replayable CUDA graph. "
+            "The default enables it only for integration grids of 5 km or coarser."
+        ),
+    )
+    parser.add_argument(
+        "--early-stop-patience",
+        type=int,
+        default=0,
+        help="Stop after this many generations without a significant improvement; zero disables.",
+...
+\end{lstlisting}
+
+\subsection{L554 関数 main}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L554--L1690
+              \item 所属: module直下
+              \item 定義: \path|main() -> int|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: CUDAGraph, DataFrame, Path, RuntimeError, Stream, SummaryWriter, TensorMap1D, TensorMap2D, ValueError, WeatherGrid, ZoneInfo, abs
+              \item 戻り値の要点: 0 / torch.clamp(pv, max=pv\_power\_limit\_w) if pv\_power\_limit\_w > 0.0 else pv / (t\_sec + duration, soc, tb\_c) / (cost, soc, min\_soc\_seen, t\_sec, max\_current\_seen, max\_charge\_current\_seen, max\_timing\_violation\_sec, deadline\_violation\_sec, trace\_rows)
+              \item 主なローカル代入名: \_, accel\_limit\_kmhps, active, after, air\_density\_mode, air\_density\_reference\_pressure\_pa, alpha, altitude\_m, ambient\_c, ambient\_grid, ambient\_temp, args, aux\_grid, aux\_night\_ghi\_threshold\_wm2, average\_pack\_power, batch, battery\_temp, before, best\_cost, best\_metrics
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: RuntimeError('CUDA is required; run this script inside a GPU Slurm allocation'), RuntimeError('checkpoint control dimension does not match the requested profile'), RuntimeError('checkpoint input signature does not match the profile, route, weather, stop data, search settings, or proposer implementation; use a new output directory or --no-resume'), RuntimeError('checkpoint population does not match the requested population'), RuntimeError('search completed without a finite best policy'), RuntimeError(f'control stop boundary mismatch: stop=\{stop\_km\}, segment\_end=\{stop\_end\_km\}'), ValueError('GPU proposer currently requires exactly one repeated daily drive window'), ValueError('initial policy must contain s\_km and v\_kmh'), ValueError('initial policy needs at least two finite rows'), ValueError('race, integration, and control distances must be positive'), ValueError('surrogate trace capture requires exactly one policy'), ValueError(f'control stop \{stop\_km\} km is outside the integration horizon'), ValueError(f'multiple control stops share segment \{stop\_index\}')
+              \item 制御構造の規模: 条件分岐 49、ループ 6、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item lambdaは名前を付けずに短い関数オブジェクトを作る構文である。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+\item with文はcontext managerに開始・終了処理を任せ、ファイルなどの資源を確実に解放する。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item args に parse\_args() の結果を代入する。
+\item args.cuda\_graph に resolve\_cuda\_graph\_enabled(args.cuda\_graph, args.integration\_ds\_km) の結果を代入する。
+\item 条件 not torch.cuda.is\_available() を判定し、真なら内部処理を行う。
+\item   RuntimeError('CUDA is required; run this script inside a GPU Slurm allocation') を送出する。
+\item device に torch.device('cuda') の結果を代入する。
+\item torch.manual\_seed(...) を実行する。
+\item profile に args.profile.resolve() の結果を代入する。
+\item cfg に yaml.safe\_load(profile.read\_text(encoding='utf-8')) or \{\} の結果を代入する。
+\item model に cfg['model'] の結果を代入する。
+\item mpc に cfg['mpc'] の結果を代入する。
+\item paths に cfg['paths'] の結果を代入する。
+\item simulation に cfg['simulation'] の結果を代入する。
+\item start\_utc に iso\_utc(simulation['start\_utc']) の結果を代入する。
+\item race\_km に float(mpc['race\_km']) の結果を代入する。
+\item ds\_km に float(args.integration\_ds\_km) の結果を代入する。
+\item ctrl\_ds\_km に float(args.control\_ds\_km) の結果を代入する。
+\item 条件 race\_km <= 0.0 or ds\_km <= 0.0 or ctrl\_ds\_km <= 0.0 を判定し、真なら内部処理を行う。
+\item   ValueError('race, integration, and control distances must be positive') を送出する。
+\item stop\_path に resolve(profile, paths['stop\_yaml']) の結果を代入する。
+\item stops\_cfg に yaml.safe\_load(stop\_path.read\_text(encoding='utf-8')) or \{\} の結果を代入する。
+\item stops に [] の結果を代入する。
+\item stops\_cfg.get('stops', []) を順に走査し、各要素を row に入れて処理する。
+\item   stop\_km に float(row['s\_km']) の結果を代入する。
+\item   条件 not 0.0 < stop\_km < race\_km を判定し、真なら内部処理を行う。
+\item     Continue 文を実行する。
+\item   open\_utc に str(row.get('window\_open\_utc', '') or '') の結果を代入する。
+\item   close\_utc に str(row.get('window\_close\_utc', '') or '') の結果を代入する。
+\item   stops.append(...) を実行する。
+\item stops.sort(...) を実行する。
+\item finish\_cfg に stops\_cfg.get('finish', \{\}) or \{\} の結果を代入する。
+\item deadline\_utc に str(simulation.get('race\_deadline\_utc', finish\_cfg.get('window\_close\_utc', '')) or '') の結果を代入する。
+\item deadline\_sec に float((iso\_utc(deadline\_utc) - start\_utc).total\_seconds()) if deadline\_utc else float('inf') の結果を代入する。
+\item (s\_segments, ds\_segments, boundaries) に build\_distance\_segments(race\_km, ds\_km, [row['s\_km'] for row in stops]) の結果を代入する。
+\item ctrl\_s に np.arange(0.0, race\_km, ctrl\_ds\_km, dtype=np.float32) の結果を代入する。
+\item ctrl\_s に np.append(ctrl\_s, np.float32(race\_km)) の結果を代入する。
+\item n\_ctrl に len(ctrl\_s) の結果を代入する。
+\item route に pd.read\_csv(resolve(profile, paths['route\_profile\_csv'])) の結果を代入する。
+\item slope に average\_profile\_segments(route, s\_segments, ds\_segments, 'slope\_pct', 0.0).astype(np.float32) の結果を代入する。
+\item elevation に average\_profile\_segments(route, s\_segments, ds\_segments, 'elev\_m', 0.0).astype(np.float32) の結果を代入する。
+\item speed\_profile\_path に resolve(profile, paths['speed\_profile\_csv']) の結果を代入する。
+\item speed\_profile に pd.read\_csv(speed\_profile\_path) の結果を代入する。
+\item speed\_s に pd.to\_numeric(speed\_profile.get('dist\_km', speed\_profile.get('s\_km')), errors='coerce').to\_numpy(dtype=float) の結果を代入する。
+\item speed\_limit\_values に pd.to\_numeric(speed\_profile['v\_max\_kmh'], errors='coerce').to\_numpy(dtype=float) の結果を代入する。
+\item speed\_limits に np.interp(s\_segments, speed\_s, speed\_limit\_values).astype(np.float32) の結果を代入する。
+\item weather に WeatherGrid(resolve(profile, paths['forecast\_csv']), iso\_utc(simulation['start\_utc']), device) の結果を代入する。
+\item stationary\_weather\_step\_sec に max(1.0, float(mpc.get('stationary\_prediction\_step\_sec', 60.0))) の結果を代入する。
+\item weather\_refinement に weather.refine\_time\_grid(stationary\_weather\_step\_sec) の結果を代入する。
+\item route\_path に resolve(profile, paths['route\_profile\_csv']) の結果を代入する。
+\item weather\_path に resolve(profile, paths['forecast\_csv']) の結果を代入する。
+\item schedule\_path に resolve(profile, paths['drive\_schedule\_yaml']) の結果を代入する。
+\item drive\_path に resolve(profile, paths['drive\_eff\_map']) の結果を代入する。
+\item regen\_path に resolve(profile, paths['regen\_eff\_map']) の結果を代入する。
+\item drive\_eco\_path に resolve(profile, paths.get('drive\_map\_eco', paths['drive\_eff\_map'])) の結果を代入する。
+\item drive\_power\_path に resolve(profile, paths.get('drive\_map\_power', paths['drive\_eff\_map'])) の結果を代入する。
+\item regen\_eco\_path に resolve(profile, paths.get('regen\_map\_eco', paths['regen\_eff\_map'])) の結果を代入する。
+\item regen\_power\_path に resolve(profile, paths.get('regen\_map\_power', paths['regen\_eff\_map'])) の結果を代入する。
+\item panel\_path に resolve(profile, paths['panel\_eff\_map']) の結果を代入する。
+\item mppt\_path に resolve(profile, paths['mppt\_eff\_map']) の結果を代入する。
+\item rint\_path に resolve(profile, paths['rint\_map']) の結果を代入する。
+\item ocv\_path に resolve(profile, paths['ocv\_soc\_map']) の結果を代入する。
+\item drive\_default\_map に TensorMap2D(drive\_path, device) の結果を代入する。
+\item regen\_default\_map に TensorMap2D(regen\_path, device) の結果を代入する。
+\item drive\_eco\_map に TensorMap2D(drive\_eco\_path, device) の結果を代入する。
+\item drive\_power\_map に TensorMap2D(drive\_power\_path, device) の結果を代入する。
+\item regen\_eco\_map に TensorMap2D(regen\_eco\_path, device) の結果を代入する。
+\item regen\_power\_map に TensorMap2D(regen\_power\_path, device) の結果を代入する。
+\item panel\_map に TensorMap2D(panel\_path, device) の結果を代入する。
+\item mppt\_map に TensorMap2D(mppt\_path, device) の結果を代入する。
+\item rint\_map に TensorMap2D(rint\_path, device) の結果を代入する。
+\item ocv\_map に TensorMap1D(ocv\_path, device) の結果を代入する。
+\item stop\_by\_segment に \{\} の結果を代入する。
+\item stops を順に走査し、各要素を stop に入れて処理する。
+\item   stop\_km に float(stop['s\_km']) の結果を代入する。
+\item   stop\_index に int(np.searchsorted(boundaries, stop\_km, side='left') - 1) の結果を代入する。
+\item   条件 stop\_index < 0 or stop\_index >= len(s\_segments) を判定し、真なら内部処理を行う。
+\item     ValueError(f'control stop \{stop\_km\} km is outside the integration horizon') を送出する。
+\item   stop\_end\_km に float(s\_segments[stop\_index] + ds\_segments[stop\_index]) の結果を代入する。
+\item   条件 not math.isclose(stop\_end\_km, stop\_km, rel\_tol=0.0, abs\_tol=0.0002) を判定し、真なら内部処理を行う。
+\item     RuntimeError(f'control stop boundary mismatch: stop=\{stop\_km\}, segment\_end=\{stop\_end\_km\}') を送出する。
+\item   条件 stop\_index in stop\_by\_segment を判定し、真なら内部処理を行う。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def main() -> int:
+    args = parse_args()
+    # Existing queued campaigns cannot receive new Slurm environment flags.
+    # Keep large fine-grid graphs eager while auto-accelerating the measured
+    # coarse-grid case after its deployment benchmark passes.
+    args.cuda_graph = resolve_cuda_graph_enabled(args.cuda_graph, args.integration_ds_km)
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is required; run this script inside a GPU Slurm allocation")
+    device = torch.device("cuda")
+    torch.manual_seed(args.seed)
+    profile = args.profile.resolve()
+    cfg = yaml.safe_load(profile.read_text(encoding="utf-8")) or {}
+    model = cfg["model"]
+    mpc = cfg["mpc"]
+    paths = cfg["paths"]
+    simulation = cfg["simulation"]
+    start_utc = iso_utc(simulation["start_utc"])
+    race_km = float(mpc["race_km"])
+    ds_km = float(args.integration_ds_km)
+    ctrl_ds_km = float(args.control_ds_km)
+    if race_km <= 0.0 or ds_km <= 0.0 or ctrl_ds_km <= 0.0:
+        raise ValueError("race, integration, and control distances must be positive")
+
+    stop_path = resolve(profile, paths["stop_yaml"])
+    stops_cfg = yaml.safe_load(stop_path.read_text(encoding="utf-8")) or {}
+    stops = []
+    for row in stops_cfg.get("stops", []):
+        stop_km = float(row["s_km"])
+        if not 0.0 < stop_km < race_km:
+            continue
+        open_utc = str(row.get("window_open_utc", "") or "")
+        close_utc = str(row.get("window_close_utc", "") or "")
+        stops.append(
+            {
+                "s_km": stop_km,
+...
+\end{lstlisting}
+
+\subsection{L912 関数 main.pv\_power}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L912--L931
+              \item 所属: \path|main|
+              \item 定義: \path|pv_power(t_sec: torch.Tensor, s_km: float, *, stopped: bool = False) -> torch.Tensor|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: clamp, sample
+              \item 戻り値の要点: torch.clamp(pv, max=pv\_power\_limit\_w) if pv\_power\_limit\_w > 0.0 else pv
+              \item 主なローカル代入名: eta\_mppt, eta\_panel, ghi, irradiance, poa\_drive, poa\_ideal, pv, tcell, tcell\_drive, tcell\_ideal
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item ghi に weather.sample('GHI', t\_sec, s\_km) の結果を代入する。
+\item poa\_drive に weather.sample('POA\_drive', t\_sec, s\_km) if 'POA\_drive' in weather.values else ghi の結果を代入する。
+\item tcell\_drive に weather.sample('Tcell\_drive\_C', t\_sec, s\_km) if 'Tcell\_drive\_C' in weather.values else weather.sample('Tcell\_C', t\_sec, s\_km) の結果を代入する。
+\item irradiance に poa\_drive の結果を代入する。
+\item tcell に tcell\_drive の結果を代入する。
+\item 条件 stopped and 'POA\_stop\_ideal' in weather.values を判定し、真なら内部処理を行う。
+\item   poa\_ideal に weather.sample('POA\_stop\_ideal', t\_sec, s\_km) の結果を代入する。
+\item   irradiance に poa\_drive + stop\_tilt\_fraction * (poa\_ideal - poa\_drive) の結果を代入する。
+\item   条件 'Tcell\_stop\_ideal\_C' in weather.values を判定し、真なら内部処理を行う。
+\item     tcell\_ideal に weather.sample('Tcell\_stop\_ideal\_C', t\_sec, s\_km) の結果を代入する。
+\item     tcell に tcell\_drive + stop\_tilt\_fraction * (tcell\_ideal - tcell\_drive) の結果を代入する。
+\item eta\_panel に torch.clamp(panel\_map.sample(irradiance, tcell) * panel\_gain, min=0.0, max=0.35) の結果を代入する。
+\item eta\_mppt に torch.clamp(mppt\_map.sample(irradiance, tcell), min=0.0, max=1.0) の結果を代入する。
+\item pv に irradiance * eta\_panel * pv\_area * eta\_mppt の結果を代入する。
+\item torch.clamp(pv, max=pv\_power\_limit\_w) if pv\_power\_limit\_w > 0.0 else pv を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def pv_power(t_sec: torch.Tensor, s_km: float, *, stopped: bool = False) -> torch.Tensor:
+        ghi = weather.sample("GHI", t_sec, s_km)
+        poa_drive = weather.sample("POA_drive", t_sec, s_km) if "POA_drive" in weather.values else ghi
+        tcell_drive = (
+            weather.sample("Tcell_drive_C", t_sec, s_km)
+            if "Tcell_drive_C" in weather.values
+            else weather.sample("Tcell_C", t_sec, s_km)
+        )
+        irradiance = poa_drive
+        tcell = tcell_drive
+        if stopped and "POA_stop_ideal" in weather.values:
+            poa_ideal = weather.sample("POA_stop_ideal", t_sec, s_km)
+            irradiance = poa_drive + stop_tilt_fraction * (poa_ideal - poa_drive)
+            if "Tcell_stop_ideal_C" in weather.values:
+                tcell_ideal = weather.sample("Tcell_stop_ideal_C", t_sec, s_km)
+                tcell = tcell_drive + stop_tilt_fraction * (tcell_ideal - tcell_drive)
+        eta_panel = torch.clamp(panel_map.sample(irradiance, tcell) * panel_gain, min=0.0, max=0.35)
+        eta_mppt = torch.clamp(mppt_map.sample(irradiance, tcell), min=0.0, max=1.0)
+        pv = irradiance * eta_panel * pv_area * eta_mppt
+        return torch.clamp(pv, max=pv_power_limit_w) if pv_power_limit_w > 0.0 else pv
+\end{lstlisting}
+
+\subsection{L944 関数 main.register\_stationary\_mode}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L944--L1005
+              \item 所属: \path|main|
+              \item 定義: \path|register_stationary_mode(prefix: str, tilt_fraction: float) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, clamp, float, full\_like, register\_soc\_time\_integral, register\_time\_integral, sample, sqrt, stack, stationary\_auxiliary\_power\_w, where
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: aux\_grid, current\_matrix, discriminant\_matrix, effective\_current\_layers, eta\_grid, mppt\_grid, ocv\_matrix, pack\_grid, poa\_grid, pv\_grid, r\_internal\_matrix, resistance\_matrix, soc\_layer, soc\_matrix, tcell\_grid
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 4、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item poa\_grid に poa\_drive\_grid の結果を代入する。
+\item tcell\_grid に tcell\_drive\_grid の結果を代入する。
+\item 条件 'POA\_stop\_ideal' in weather.values を判定し、真なら内部処理を行う。
+\item   poa\_grid に poa\_drive\_grid + float(tilt\_fraction) * (weather.values['POA\_stop\_ideal'] - poa\_drive\_grid) の結果を代入する。
+\item 条件 'Tcell\_stop\_ideal\_C' in weather.values を判定し、真なら内部処理を行う。
+\item   tcell\_grid に tcell\_drive\_grid + float(tilt\_fraction) * (weather.values['Tcell\_stop\_ideal\_C'] - tcell\_drive\_grid) の結果を代入する。
+\item eta\_grid に torch.clamp(panel\_map.sample(poa\_grid, tcell\_grid) * panel\_gain, min=0.0, max=0.35) の結果を代入する。
+\item mppt\_grid に torch.clamp(mppt\_map.sample(poa\_grid, tcell\_grid), min=0.0, max=1.0) の結果を代入する。
+\item pv\_grid に poa\_grid * eta\_grid * pv\_area * mppt\_grid の結果を代入する。
+\item 条件 pv\_power\_limit\_w > 0.0 を判定し、真なら内部処理を行う。
+\item   pv\_grid に torch.clamp(pv\_grid, max=pv\_power\_limit\_w) の結果を代入する。
+\item aux\_grid に stationary\_auxiliary\_power\_w(poa\_grid, day\_power\_w=p\_aux\_stopped, night\_power\_w=p\_aux\_night, night\_threshold\_wm2=aux\_night\_ghi\_threshold\_wm2) の結果を代入する。
+\item pack\_grid に aux\_grid - pv\_grid の結果を代入する。
+\item weather.register\_time\_integral(...) を実行する。
+\item 条件 q\_nom\_ah <= 0.0 を判定し、真なら内部処理を行う。
+\item    を返す。
+\item effective\_current\_layers に [] の結果を代入する。
+\item stationary\_soc\_grid を順に走査し、各要素を soc\_layer に入れて処理する。
+\item   soc\_matrix に torch.full\_like(pack\_grid, float(soc\_layer)) の結果を代入する。
+\item   ocv\_matrix に ocv\_map.sample(soc\_matrix) の結果を代入する。
+\item   r\_internal\_matrix に rint\_scale * rint\_map.sample(ambient\_grid, soc\_matrix) の結果を代入する。
+\item   resistance\_matrix に torch.clamp(r\_internal\_matrix + r\_line\_ohm + r\_polarization\_ohm, min=1e-05) の結果を代入する。
+\item   discriminant\_matrix に torch.clamp(ocv\_matrix * ocv\_matrix - 4.0 * resistance\_matrix * pack\_grid, min=0.0) の結果を代入する。
+\item   current\_matrix に (ocv\_matrix - torch.sqrt(discriminant\_matrix)) / (2.0 * resistance\_matrix) の結果を代入する。
+\item   effective\_current\_layers.append(...) を実行する。
+\item weather.register\_soc\_time\_integral(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def register_stationary_mode(prefix: str, tilt_fraction: float) -> None:
+        poa_grid = poa_drive_grid
+        tcell_grid = tcell_drive_grid
+        if "POA_stop_ideal" in weather.values:
+            poa_grid = poa_drive_grid + float(tilt_fraction) * (
+                weather.values["POA_stop_ideal"] - poa_drive_grid
+            )
+        if "Tcell_stop_ideal_C" in weather.values:
+            tcell_grid = tcell_drive_grid + float(tilt_fraction) * (
+                weather.values["Tcell_stop_ideal_C"] - tcell_drive_grid
+            )
+        eta_grid = torch.clamp(
+            panel_map.sample(poa_grid, tcell_grid) * panel_gain,
+            min=0.0,
+            max=0.35,
+        )
+        mppt_grid = torch.clamp(
+            mppt_map.sample(poa_grid, tcell_grid),
+            min=0.0,
+            max=1.0,
+        )
+        pv_grid = poa_grid * eta_grid * pv_area * mppt_grid
+        if pv_power_limit_w > 0.0:
+            pv_grid = torch.clamp(pv_grid, max=pv_power_limit_w)
+        aux_grid = stationary_auxiliary_power_w(
+            poa_grid,
+            day_power_w=p_aux_stopped,
+            night_power_w=p_aux_night,
+            night_threshold_wm2=aux_night_ghi_threshold_wm2,
+        )
+        pack_grid = aux_grid - pv_grid
+        weather.register_time_integral(f"{prefix}_pack_energy_j", pack_grid)
+        if q_nom_ah <= 0.0:
+            return
+        effective_current_layers = []
+...
+\end{lstlisting}
+
+\subsection{L1010 関数 main.apply\_wait}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L1010--L1089
+              \item 所属: \path|main|
+              \item 定義: \path|apply_wait(t_sec: torch.Tensor, soc: torch.Tensor, tb_c: torch.Tensor, duration: torch.Tensor, s_km: float, *, control_stop: bool = False)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: clamp, exp, float, get, sample, sample\_integral, sample\_soc\_integral, sqrt, where, zeros\_like
+              \item 戻り値の要点: (t\_sec + duration, soc, tb\_c)
+              \item 主なローカル代入名: active, ambient\_c, average\_pack\_power, charge\_end, charge\_mid, charge\_mid\_updated, charge\_start, current, current\_key, discriminant, duration, energy\_end\_j, energy\_key, energy\_start\_j, half\_duration, internal\_loss\_w, midpoint\_t, ocv, pack\_energy\_j, prefix
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item duration に torch.clamp(duration, min=0.0) の結果を代入する。
+\item prefix に 'control\_stop' if control\_stop else 'camp' の結果を代入する。
+\item energy\_key に f'\{prefix\}\_pack\_energy\_j' の結果を代入する。
+\item current\_key に f'\{prefix\}\_effective\_current\_as' の結果を代入する。
+\item energy\_start\_j に weather.sample\_integral(energy\_key, t\_sec, s\_km) の結果を代入する。
+\item energy\_end\_j に weather.sample\_integral(energy\_key, t\_sec + duration, s\_km) の結果を代入する。
+\item pack\_energy\_j に energy\_end\_j - energy\_start\_j の結果を代入する。
+\item active に duration > 1e-06 の結果を代入する。
+\item average\_pack\_power に torch.where(active, pack\_energy\_j / torch.clamp(duration, min=1e-06), torch.zeros\_like(duration)) の結果を代入する。
+\item midpoint\_t に t\_sec + 0.5 * duration の結果を代入する。
+\item ambient\_c に weather.sample('Tamb\_C', midpoint\_t, s\_km) の結果を代入する。
+\item ocv に ocv\_map.sample(soc) の結果を代入する。
+\item r\_internal に rint\_scale * rint\_map.sample(tb\_c, torch.clamp(soc, 0.1, 0.95)) の結果を代入する。
+\item resistance に torch.clamp(r\_internal + r\_line\_ohm + r\_polarization\_ohm, min=1e-05) の結果を代入する。
+\item discriminant に torch.clamp(ocv * ocv - 4.0 * resistance * average\_pack\_power, min=0.0) の結果を代入する。
+\item current に (ocv - torch.sqrt(discriminant)) / (2.0 * resistance) の結果を代入する。
+\item 条件 q\_nom\_ah > 0.0 を判定し、真なら内部処理を行う。
+\item   half\_duration に 0.5 * duration の結果を代入する。
+\item   charge\_start に weather.sample\_soc\_integral(current\_key, t\_sec, s\_km, soc) の結果を代入する。
+\item   charge\_mid に weather.sample\_soc\_integral(current\_key, t\_sec + half\_duration, s\_km, soc) の結果を代入する。
+\item   soc\_mid に torch.clamp(soc - (charge\_mid - charge\_start) / (3600.0 * q\_nom\_ah), min=float(model.get('soc\_min', 0.1)), max=soc\_max) の結果を代入する。
+\item   charge\_mid\_updated に weather.sample\_soc\_integral(current\_key, t\_sec + half\_duration, s\_km, soc\_mid) の結果を代入する。
+\item   charge\_end に weather.sample\_soc\_integral(current\_key, t\_sec + duration, s\_km, soc\_mid) の結果を代入する。
+\item   soc\_next に soc\_mid - (charge\_end - charge\_mid\_updated) / (3600.0 * q\_nom\_ah) の結果を代入する。
+\item   上の条件が偽の場合:
+\item   soc\_next に soc - pack\_energy\_j / (3600.0 * e\_nom\_wh) の結果を代入する。
+\item soc に torch.where(active, torch.clamp(soc\_next, min=float(model.get('soc\_min', 0.1)), max=soc\_max), soc) の結果を代入する。
+\item thermal\_alpha に 1.0 - torch.exp(-duration / 1800.0) の結果を代入する。
+\item internal\_loss\_w に current * current * torch.clamp(r\_internal, min=0.0) の結果を代入する。
+\item tb\_next に tb\_c + thermal\_alpha * (ambient\_c - tb\_c) + internal\_loss\_w * (1800.0 / 50000.0) * thermal\_alpha の結果を代入する。
+\item tb\_c に torch.where(active, torch.clamp(tb\_next, min=temp\_min, max=temp\_max), tb\_c) の結果を代入する。
+\item (t\_sec + duration, soc, tb\_c) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def apply_wait(
+        t_sec: torch.Tensor,
+        soc: torch.Tensor,
+        tb_c: torch.Tensor,
+        duration: torch.Tensor,
+        s_km: float,
+        *,
+        control_stop: bool = False,
+    ):
+        duration = torch.clamp(duration, min=0.0)
+        prefix = "control_stop" if control_stop else "camp"
+        energy_key = f"{prefix}_pack_energy_j"
+        current_key = f"{prefix}_effective_current_as"
+        energy_start_j = weather.sample_integral(energy_key, t_sec, s_km)
+        energy_end_j = weather.sample_integral(energy_key, t_sec + duration, s_km)
+        pack_energy_j = energy_end_j - energy_start_j
+        active = duration > 1.0e-6
+        average_pack_power = torch.where(
+            active,
+            pack_energy_j / torch.clamp(duration, min=1.0e-6),
+            torch.zeros_like(duration),
+        )
+        midpoint_t = t_sec + 0.5 * duration
+        ambient_c = weather.sample("Tamb_C", midpoint_t, s_km)
+        ocv = ocv_map.sample(soc)
+        r_internal = rint_scale * rint_map.sample(tb_c, torch.clamp(soc, 0.1, 0.95))
+        resistance = torch.clamp(r_internal + r_line_ohm + r_polarization_ohm, min=1.0e-5)
+        discriminant = torch.clamp(
+            ocv * ocv - 4.0 * resistance * average_pack_power,
+            min=0.0,
+        )
+        current = (ocv - torch.sqrt(discriminant)) / (2.0 * resistance)
+        if q_nom_ah > 0.0:
+            half_duration = 0.5 * duration
+            charge_start = weather.sample_soc_integral(
+...
+\end{lstlisting}
+
+\subsection{L1091 関数 main.evaluate}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L1091--L1425
+              \item 所属: \path|main|
+              \item 定義: \path|evaluate(policy: torch.Tensor, *, capture_trace: bool = False)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, append, append\_wait\_trace, apply\_wait, atan, clamp, clone, cos, float, floor, full, full\_like
+              \item 戻り値の要点: (cost, soc, min\_soc\_seen, t\_sec, max\_current\_seen, max\_charge\_current\_seen, max\_timing\_violation\_sec, deadline\_violation\_sec, trace\_rows)
+              \item 主なローカル代入名: after, alpha, altitude\_m, ambient\_temp, batch, battery\_temp, before, charge\_current\_violation, charge\_factor, cost, ctrl\_idx, ctrl\_pos, current, current\_violation, day\_end, day\_index, day\_start, deadline\_violation\_sec, discriminant, drive\_eff
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: ValueError('surrogate trace capture requires exactly one policy')
+              \item 制御構造の規模: 条件分岐 13、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item batch に policy.shape[0] の結果を代入する。
+\item 条件 capture\_trace and batch != 1 を判定し、真なら内部処理を行う。
+\item   ValueError('surrogate trace capture requires exactly one policy') を送出する。
+\item trace\_rows に [] を代入する。
+\item 関数 append\_wait\_trace を定義する。
+\item t\_sec に torch.zeros(batch, device=device) の結果を代入する。
+\item soc に torch.full((batch,), soc0, device=device) の結果を代入する。
+\item tb\_c に torch.full((batch,), tb0, device=device) の結果を代入する。
+\item initial\_speed\_ms に float(simulation.get('v0\_kmh', simulation.get('gps\_init\_speed\_kmh', 0.0))) / 3.6 の結果を代入する。
+\item previous\_speed\_ms に torch.full((batch,), initial\_speed\_ms, device=device) の結果を代入する。
+\item min\_soc\_seen に soc.clone() の結果を代入する。
+\item max\_current\_seen に torch.zeros(batch, device=device) の結果を代入する。
+\item max\_charge\_current\_seen に torch.zeros(batch, device=device) の結果を代入する。
+\item max\_timing\_violation\_sec に torch.zeros(batch, device=device) の結果を代入する。
+\item range(len(s\_segments)) を順に走査し、各要素を seg\_idx に入れて処理する。
+\item   day\_index に torch.floor((t\_sec - window\_origin\_sec) / 86400.0) の結果を代入する。
+\item   day\_start に window\_origin\_sec + day\_index * 86400.0 の結果を代入する。
+\item   day\_end に day\_start + window\_duration\_sec の結果を代入する。
+\item   before に t\_sec < day\_start の結果を代入する。
+\item   after に t\_sec >= day\_end の結果を代入する。
+\item   next\_start に torch.where(before, day\_start, day\_start + 86400.0) の結果を代入する。
+\item   wait\_duration に torch.where(before | after, torch.clamp(next\_start - t\_sec, min=0.0), 0.0) の結果を代入する。
+\item   wait\_t\_before に t\_sec.clone() if capture\_trace else None の結果を代入する。
+\item   wait\_soc\_before に soc.clone() if capture\_trace else None の結果を代入する。
+\item   wait\_tb\_before に tb\_c.clone() if capture\_trace else None の結果を代入する。
+\item   (t\_sec, soc, tb\_c) に apply\_wait(t\_sec, soc, tb\_c, wait\_duration, float(s\_segments[seg\_idx])) の結果を代入する。
+\item   条件 capture\_trace を判定し、真なら内部処理を行う。
+\item     append\_wait\_trace(...) を実行する。
+\item   previous\_speed\_ms に torch.where(wait\_duration > 1e-06, torch.zeros\_like(previous\_speed\_ms), previous\_speed\_ms) の結果を代入する。
+\item   min\_soc\_seen に torch.minimum(min\_soc\_seen, soc) の結果を代入する。
+\item   ctrl\_pos に float(s\_segments[seg\_idx] / ctrl\_ds\_km) の結果を代入する。
+\item   ctrl\_idx に min(n\_ctrl - 2, max(0, int(math.floor(ctrl\_pos)))) の結果を代入する。
+\item   alpha に ctrl\_pos - ctrl\_idx の結果を代入する。
+\item   speed\_target\_kmh に torch.clamp(policy[:, ctrl\_idx] * (1.0 - alpha) + policy[:, ctrl\_idx + 1] * alpha, v\_min, v\_max) の結果を代入する。
+\item   speed\_target\_kmh に torch.minimum(speed\_target\_kmh, speed\_limit\_tensor[seg\_idx]) の結果を代入する。
+\item   target\_speed\_ms に speed\_target\_kmh / 3.6 の結果を代入する。
+\item   (v\_ms, segment\_end\_speed\_ms, dt) に slew\_limited\_segment\_kinematics(previous\_speed\_ms, target\_speed\_ms, float(ds\_segments[seg\_idx]), accel\_limit\_kmhps=accel\_limit\_kmhps, decel\_limit\_kmhps=decel\_limit\_kmhps) の結果を代入する。
+\item   drive\_t\_before に t\_sec.clone() if capture\_trace else None の結果を代入する。
+\item   drive\_soc\_before に soc.clone() if capture\_trace else None の結果を代入する。
+\item   drive\_tb\_before に tb\_c.clone() if capture\_trace else None の結果を代入する。
+\item   drive\_previous\_speed\_ms に previous\_speed\_ms.clone() if capture\_trace else None の結果を代入する。
+\item   headwind に weather.sample('headwind\_ms', t\_sec, float(s\_segments[seg\_idx])) * headwind\_scale の結果を代入する。
+\item   ambient\_temp に weather.sample('Tamb\_C', t\_sec, float(s\_segments[seg\_idx])) の結果を代入する。
+\item   条件 air\_density\_mode == 'ideal\_gas\_altitude' を判定し、真なら内部処理を行う。
+\item     altitude\_m に torch.clamp(elevation\_tensor[seg\_idx], min=-500.0, max=11000.0) の結果を代入する。
+\item     pressure\_ratio に torch.clamp(1.0 - 0.0065 * altitude\_m / 288.15, min=0.05) ** 5.255877 の結果を代入する。
+\item     segment\_rho に air\_density\_reference\_pressure\_pa * pressure\_ratio / (287.05 * torch.clamp(ambient\_temp + 273.15, min=180.0)) の結果を代入する。
+\item     上の条件が偽の場合:
+\item     segment\_rho に rho の結果を代入する。
+\item   theta に torch.atan(slope\_tensor[seg\_idx] * grade\_scale / 100.0) の結果を代入する。
+\item   force に 0.5 * segment\_rho * cda * torch.clamp(v\_ms + headwind, min=0.0) ** 2 の結果を代入する。
+\item   force に force + crr * mass * gravity * torch.cos(theta) + mass * gravity * torch.sin(theta) の結果を代入する。
+\item   road\_power に force * v\_ms の結果を代入する。
+\item   inertia\_power に kinetic\_power\_w(mass, segment\_end\_speed\_ms, previous\_speed\_ms, dt) の結果を代入する。
+\item   wheel\_power に road\_power + inertia\_power の結果を代入する。
+\item   wheel\_power\_pos に torch.clamp(wheel\_power, min=0.0) の結果を代入する。
+\item   wheel\_power\_neg に torch.clamp(-wheel\_power, min=0.0) の結果を代入する。
+\item   omega\_wheel に v\_ms / max(wheel\_radius, 1e-06) の結果を代入する。
+\item   torque\_drive に wheel\_power\_pos / torch.clamp(omega\_wheel, min=0.001) / max(gear\_ratio, 1e-06) の結果を代入する。
+\item   torque\_regen に wheel\_power\_neg / torch.clamp(omega\_wheel, min=0.001) / max(gear\_ratio, 1e-06) の結果を代入する。
+\item   条件 drive\_mode == 'eco' を判定し、真なら内部処理を行う。
+\item     drive\_eff\_map\_value に drive\_eco\_map.sample(v\_ms, torque\_drive) の結果を代入する。
+\item     regen\_eff\_map\_value に regen\_eco\_map.sample(v\_ms, torque\_regen) の結果を代入する。
+\item     上の条件が偽の場合:
+\item     条件 drive\_mode == 'power' を判定し、真なら内部処理を行う。
+\item       drive\_eff\_map\_value に drive\_power\_map.sample(v\_ms, torque\_drive) の結果を代入する。
+\item       regen\_eff\_map\_value に regen\_power\_map.sample(v\_ms, torque\_regen) の結果を代入する。
+\item       上の条件が偽の場合:
+\item       条件 drive\_mode == 'auto' を判定し、真なら内部処理を行う。
+\item   drive\_eff に torch.clamp(drive\_eff\_map\_value * drive\_eff\_scale, min=0.55, max=0.99) の結果を代入する。
+\item   regen\_eff に torch.clamp(regen\_eff\_map\_value * regen\_eff\_scale, min=0.4, max=0.95) の結果を代入する。
+\item   drive\_power に wheel\_power\_pos / torch.clamp(drive\_eff * gear\_eta * inverter\_eta, min=1e-06) の結果を代入する。
+\item   regen\_power に wheel\_power\_neg * regen\_utilization * regen\_eff * gear\_eta * inverter\_eta の結果を代入する。
+\item   pack\_power に drive\_power - regen\_power + p\_aux - pv\_power(t\_sec, float(s\_segments[seg\_idx])) の結果を代入する。
+\item   battery\_temp に tb\_c の結果を代入する。
+\item   ocv に ocv\_map.sample(soc) の結果を代入する。
+\item   r\_internal に rint\_scale * rint\_map.sample(battery\_temp, torch.clamp(soc, 0.1, 0.95)) の結果を代入する。
+\item   resistance に r\_internal + r\_line\_ohm + r\_polarization\_ohm の結果を代入する。
+\item   resistance に torch.clamp(resistance, min=1e-05) の結果を代入する。
+\item   discriminant に torch.clamp(ocv * ocv - 4.0 * resistance * pack\_power, min=0.0) の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def evaluate(policy: torch.Tensor, *, capture_trace: bool = False):
+        batch = policy.shape[0]
+        if capture_trace and batch != 1:
+            raise ValueError("surrogate trace capture requires exactly one policy")
+        trace_rows: list[dict[str, float | int | str]] = []
+
+        def append_wait_trace(
+            label,
+            segment_index,
+            s_km,
+            t_before,
+            t_after,
+            soc_before,
+            soc_after,
+            tb_before,
+            tb_after,
+        ):
+            if not capture_trace:
+                return
+            duration = float((t_after[0] - t_before[0]).item())
+            if duration <= 1.0e-6:
+                return
+            trace_rows.append(
+                {
+                    "phase": str(label),
+                    "segment_index": int(segment_index),
+                    "s_km": float(s_km),
+                    "s_end_km": float(s_km),
+                    "time_sec": float(t_before[0].item()),
+                    "time_end_sec": float(t_after[0].item()),
+                    "dt_sec": duration,
+                    "soc": float(soc_before[0].item()),
+                    "soc_end": float(soc_after[0].item()),
+                    "Tb_C": float(tb_before[0].item()),
+                    "Tb_end_C": float(tb_after[0].item()),
+...
+\end{lstlisting}
+
+\subsection{L1097 関数 main.evaluate.append\_wait\_trace}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L1097--L1128
+              \item 所属: \path|main.evaluate|
+              \item 定義: \path|append_wait_trace(label, segment_index, s_km, t_before, t_after, soc_before, soc_after, tb_before, tb_after)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, float, int, item, str
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: duration
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not capture\_trace を判定し、真なら内部処理を行う。
+\item    を返す。
+\item duration に float((t\_after[0] - t\_before[0]).item()) の結果を代入する。
+\item 条件 duration <= 1e-06 を判定し、真なら内部処理を行う。
+\item    を返す。
+\item trace\_rows.append(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+        def append_wait_trace(
+            label,
+            segment_index,
+            s_km,
+            t_before,
+            t_after,
+            soc_before,
+            soc_after,
+            tb_before,
+            tb_after,
+        ):
+            if not capture_trace:
+                return
+            duration = float((t_after[0] - t_before[0]).item())
+            if duration <= 1.0e-6:
+                return
+            trace_rows.append(
+                {
+                    "phase": str(label),
+                    "segment_index": int(segment_index),
+                    "s_km": float(s_km),
+                    "s_end_km": float(s_km),
+                    "time_sec": float(t_before[0].item()),
+                    "time_end_sec": float(t_after[0].item()),
+                    "dt_sec": duration,
+                    "soc": float(soc_before[0].item()),
+                    "soc_end": float(soc_after[0].item()),
+                    "Tb_C": float(tb_before[0].item()),
+                    "Tb_end_C": float(tb_after[0].item()),
+                    "v_kmh": 0.0,
+                }
+            )
+\end{lstlisting}
+
+
+
+
+
+
+
+        \subsection{CLI 引数}
+            \begin{longtable}{p{0.07\linewidth} p{0.78\linewidth}}
+            \toprule
+            行 & 引数 \\
+            \midrule
+            500 & \path|--profile| \\
+501 & \path|--output-dir| \\
+502 & \path|--integration-ds-km| \\
+503 & \path|--control-ds-km| \\
+504 & \path|--population| \\
+505 & \path|--elite| \\
+506 & \path|--generations| \\
+507 & \path|--seed| \\
+508 & \path|--checkpoint-every| \\
+509 & \path|--resume| \\
+510 & \path|--tensorboard-dir| \\
+511 & \path|--initial-policy| \\
+512 & \path|--initial-std-kmh| \\
+513 & \path|--antithetic-sampling| \\
+519 & \path|--cuda-graph| \\
+528 & \path|--early-stop-patience| \\
+534 & \path|--early-stop-min-generations| \\
+535 & \path|--early-stop-min-delta| \\
+536 & \path|--early-stop-max-std-kmh| \\
+542 & \path|--capture-final-surrogate-trace| \\
+            \bottomrule
+            \end{longtable}
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item CLI 引数を解釈し、main() から処理を起動する。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|scripts/gpu_upper_policy_search.py| を
+        \textbf{planning research}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

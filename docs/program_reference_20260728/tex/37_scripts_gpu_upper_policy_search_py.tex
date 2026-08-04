@@ -1,0 +1,482 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={GPU 上位速度列探索},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{37. GPU 上位速度列探索}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|scripts/gpu_upper_policy_search.py| \\
+        種別 & Python \\
+        区分 & planning research \\
+        役割 & 全レース distance-indexed speed policy を GPU 上で多段 coarse-to-fine に探索する。 \\
+        起動文脈 & 本番前の warm start policy 生成側。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        全レース distance-indexed speed policy を GPU 上で多段 coarse-to-fine に探索する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item runtime MPC を置き換えるのではなく warm start policy 候補を作る。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|GPU sbatch / shell campaign|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/validate_gpu_upper_policy_candidates.py|
+\item \path|scripts/run_upper_mesh_convergence.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/route_utils.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        GPU CEM proposer for a fine distance-domain upper speed policy.
+
+This is deliberately a multi-fidelity proposer. Its vectorized energy model
+searches thousands of distance-indexed policies concurrently on CUDA. The selected
+policy must then be re-optimized and validated by ``scripts/solar\_sim.py``;
+the GPU surrogate is never treated as the production acceptance model.
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+)
+
+
+class TensorMap2D:
+    """Bilinear CSV-map interpolation that stays on the selected torch device."""
+
+    def __init__(self, csv_path: Path, device: torch.device):
+        frame = pd.read_csv(csv_path, index_col=0)
+        self.x = torch.as_tensor(frame.index.to_numpy(dtype=np.float32), device=device)
+        self.y = torch.as_tensor(frame.columns.to_numpy(dtype=np.float32), device=device)
+        self.z = torch.as_tensor(frame.to_numpy(dtype=np.float32), device=device)
+        if len(self.x) < 2 or len(self.y) < 2 or self.z.shape != (len(self.x), len(self.y)):
+            raise ValueError(f"invalid 2-D map: {csv_path}")
+
+    def sample(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        x_value = torch.minimum(torch.maximum(x, self.x[0]), self.x[-1]).contiguous()
+        y_value = torch.minimum(torch.maximum(y, self.y[0]), self.y[-1]).contiguous()
+        i1 = torch.clamp(torch.searchsorted(self.x, x_value), 1, len(self.x) - 1)
+        j1 = torch.clamp(torch.searchsorted(self.y, y_value), 1, len(self.y) - 1)
+        i0 = i1 - 1
+        j0 = j1 - 1
+        wx = (x_value - self.x[i0]) / torch.clamp(self.x[i1] - self.x[i0], min=1.0e-9)
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは TensorMap2D, TensorMap1D, WeatherGrid。 主要関数は resolve, iso\_utc, source\_signature, sample\_cem\_noise, cem\_should\_stop, resolve\_cuda\_graph\_enabled, build\_distance\_segments, kinetic\_power\_w。 CLI 引数宣言は 20 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            208 & class & \path|TensorMap2D| &  \\
+236 & class & \path|TensorMap1D| &  \\
+252 & class & \path|WeatherGrid| &  \\
+39 & function & \path|resolve| & args: profile, value \\
+44 & function & \path|iso_utc| & args: value \\
+50 & function & \path|source_signature| & args: paths \\
+62 & function & \path|sample_cem_noise| & args: population, dimensions \\
+85 & function & \path|cem_should_stop| &  \\
+102 & function & \path|resolve_cuda_graph_enabled| & args: requested, integration\_ds\_km \\
+109 & function & \path|build_distance_segments| & args: race\_km, integration\_ds\_km, stop\_distances\_km \\
+133 & function & \path|kinetic_power_w| & args: mass\_kg, speed\_ms, previous\_speed\_ms, dt\_sec \\
+146 & function & \path|slew_limited_segment_kinematics| & args: previous\_speed\_ms, target\_speed\_ms, distance\_km \\
+193 & function & \path|stationary_auxiliary_power_w| & args: irradiance\_wm2 \\
+211 & function & \path|__init__| & args: self, csv\_path, device \\
+219 & function & \path|sample| & args: self, x, y \\
+237 & function & \path|__init__| & args: self, csv\_path, device \\
+244 & function & \path|sample| & args: self, x \\
+253 & function & \path|__init__| & args: self, csv\_path, start\_utc, device \\
+306 & function & \path|refine_time_grid| & args: self, max\_step\_sec \\
+375 & function & \path|_sample_matrix| & args: self, matrix, t\_sec, s\_km \\
+392 & function & \path|sample| & args: self, name, t\_sec, s\_km \\
+395 & function & \path|register_time_integral| & args: self, name, rate \\
+405 & function & \path|sample_integral| & args: self, name, t\_sec, s\_km \\
+428 & function & \path|register_soc_time_integral| & args: self, name, soc\_grid, rate \\
+454 & function & \path|sample_soc_integral| & args: self, name, t\_sec, s\_km, soc \\
+480 & function & \path|interpolate| & args: values, time\_index \\
+498 & function & \path|parse_args| &  \\
+554 & function & \path|main| &  \\
+912 & function & \path|pv_power| & args: t\_sec, s\_km \\
+944 & function & \path|register_stationary_mode| & args: prefix, tilt\_fraction \\
+1010 & function & \path|apply_wait| & args: t\_sec, soc, tb\_c, duration, s\_km \\
+1091 & function & \path|evaluate| & args: policy \\
+1097 & function & \path|append_wait_trace| & args: label, segment\_index, s\_km, t\_before, t\_after, soc\_before, soc\_after, tb\_before, tb\_after \\
+1443 & function & \path|evaluate_population| & args: policy \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            26 & 例外処理を伴う try ブロックを実行する。 \\
+32 & ROOT に Path(\_\_file\_\_).resolve().parents[1] の結果を代入する。 \\
+33 & 条件 str(ROOT) not in sys.path を判定し、真なら内部処理を行う。 \\
+39 & 関数 resolve を定義する。 \\
+44 & 関数 iso\_utc を定義する。 \\
+50 & 関数 source\_signature を定義する。 \\
+62 & 関数 sample\_cem\_noise を定義する。 \\
+85 & 関数 cem\_should\_stop を定義する。 \\
+102 & 関数 resolve\_cuda\_graph\_enabled を定義する。 \\
+109 & 関数 build\_distance\_segments を定義する。 \\
+133 & 関数 kinetic\_power\_w を定義する。 \\
+146 & 関数 slew\_limited\_segment\_kinematics を定義する。 \\
+193 & 関数 stationary\_auxiliary\_power\_w を定義する。 \\
+208 & クラス TensorMap2D を定義する。 \\
+236 & クラス TensorMap1D を定義する。 \\
+252 & クラス WeatherGrid を定義する。 \\
+498 & 関数 parse\_args を定義する。 \\
+554 & 関数 main を定義する。 \\
+1693 & 条件 \_\_name\_\_ == '\_\_main\_\_' を判定し、真なら内部処理を行う。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            10 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+12 & \path|import argparse| & CLI 引数を宣言し、実行時パラメータを外から受け取るため。 このファイル内での主な使用位置は L498, L499, L509, L515, L521, L544。 \\
+13 & \path|import hashlib| & snapshot ID や入力資産の digest を作るため。 このファイル内での主な使用位置は L51。 \\
+14 & \path|import json| & manifest、checkpoint、UDP payload をやり取りするため。 このファイル内での主な使用位置は L58, L891, L1451, L1556, L1605, L1686, L1689。 \\
+15 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L314, L342, L678, L1179。 \\
+16 & \path|import sys| & sys モジュールを利用するため。 このファイル内での主な使用位置は L33, L34。 \\
+17 & \path|from datetime import datetime, timedelta, timezone| & UTC 時刻や相対時間を扱うため。 このファイル内での主な使用位置は L44, L46, L47, L253, L734, L742, L751, L752, ...。 \\
+18 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L32, L39, L40, L50, L211, L237, L253, L500, ...。 \\
+19 & \path|from zoneinfo import ZoneInfo| & zoneinfo から ZoneInfo を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L691。 \\
+21 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L113, L115, L116, L117, L120, L121, L127, L128, ...。 \\
+22 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L212, L238, L254, L255, L257, L259, L265, L267, ...。 \\
+23 & \path|import torch| & torch モジュールを利用するため。 このファイル内での主な使用位置は L66, L68, L75, L80, L81, L82, L135, L136, ...。 \\
+24 & \path|import yaml| & profile、stop、schedule、summary YAML を読み書きするため。 このファイル内での主な使用位置は L565, L578, L686。 \\
+27 & \path|from torch.utils.tensorboard import SummaryWriter| & torch.utils.tensorboard から SummaryWriter を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L29, L904。 \\
+36 & \path|from mpc_solarcar.route_utils import average_profile_segments| & route\_utils.py から average\_profile\_segments を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/route\_utils.py。 このファイル内での主な使用位置は L626, L629。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L39 関数 \path|resolve|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|resolve(profile, value)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, is\_absolute, resolve, str
+              \item 戻り値の要点: path if path.is\_absolute() else (profile.parent / path).resolve()
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item path に Path(str(value)) の結果を代入する。
+\item path if path.is\_absolute() else (profile.parent / path).resolve() を返す。
+            \end{enumerate}
+
+\subsection*{L44 関数 \path|iso_utc|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|iso_utc(value)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: astimezone, fromisoformat, replace, str
+              \item 戻り値の要点: parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item text に str(value).replace('Z', '+00:00') の結果を代入する。
+\item parsed に datetime.fromisoformat(text) の結果を代入する。
+\item parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc) を返す。
+            \end{enumerate}
+
+\subsection*{L50 関数 \path|source_signature|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|source_signature(paths, settings)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: dumps, encode, hexdigest, iter, open, read, resolve, sha256, str, update
+              \item 戻り値の要点: digest.hexdigest()
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item digest に hashlib.sha256() の結果を代入する。
+\item paths を順に走査し、各要素を path に入れて処理する。
+\item digest.update(...) を実行する。
+\item digest.hexdigest() を返す。
+            \end{enumerate}
+
+\subsection*{L62 関数 \path|sample_cem_noise|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|sample_cem_noise(population, dimensions, device, antithetic)|
+              \item docstring: Sample CEM perturbations, reserving the first row for the current mean.
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, cat, int, randn, zero\_, zeros
+              \item 戻り値の要点: torch.cat((torch.zeros((1, dimensions), device=device), paired), dim=0) / noise
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item population に int(population) の結果を代入する。
+\item dimensions に int(dimensions) の結果を代入する。
+\item 条件 population <= 0 or dimensions <= 0 を判定し、真なら内部処理を行う。
+\item 条件 not antithetic or population == 1 を判定し、真なら内部処理を行う。
+\item pair\_count に (population - 1 + 1) // 2 の結果を代入する。
+\item positive に torch.randn((pair\_count, dimensions), device=device) の結果を代入する。
+\item paired に torch.cat((positive, -positive), dim=0)[:population - 1] の結果を代入する。
+\item torch.cat((torch.zeros((1, dimensions), device=device), paired), dim=0) を返す。
+            \end{enumerate}
+
+\subsection*{L85 関数 \path|cem_should_stop|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|cem_should_stop(generation_completed, stagnant_generations, mean_std_kmh, patience, min_generations, max_std_kmh)|
+              \item docstring: Return true only after both objective and sampling spread have converged.
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, int, max
+              \item 戻り値の要点: float(max\_std\_kmh) <= 0.0 or float(mean\_std\_kmh) <= float(max\_std\_kmh) / False / False
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 int(patience) <= 0 or int(generation\_completed) + 1 < max(0, int(min\_generations)) を判定し、真なら内部処理を行う。
+\item 条件 int(stagnant\_generations) < int(patience) を判定し、真なら内部処理を行う。
+\item float(max\_std\_kmh) <= 0.0 or float(mean\_std\_kmh) <= float(max\_std\_kmh) を返す。
+            \end{enumerate}
+
+\subsection*{L102 関数 \path|resolve_cuda_graph_enabled|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|resolve_cuda_graph_enabled(requested, integration_ds_km)|
+              \item docstring: Auto-enable graphs only for the coarse rollout shape covered by the benchmark.
+              \item このブロックが直接呼ぶ主な関数・メソッド: bool, float
+              \item 戻り値の要点: float(integration\_ds\_km) >= 5.0 / bool(requested)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 requested is not None を判定し、真なら内部処理を行う。
+\item float(integration\_ds\_km) >= 5.0 を返す。
+            \end{enumerate}
+
+\subsection*{L109 関数 \path|build_distance_segments|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|build_distance_segments(race_km, integration_ds_km, stop_distances_km)|
+              \item docstring: Build integration segments with every physical stop as an exact boundary.
+              \item このブロックが直接呼ぶ主な関数・メソッド: arange, asarray, astype, concatenate, diff, unique
+              \item 戻り値の要点: (boundaries[:-1].astype(np.float32), np.diff(boundaries).astype(np.float32), boundaries)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item base\_boundaries に np.arange(0.0, race\_km, integration\_ds\_km, dtype=np.float64) の結果を代入する。
+\item boundaries に np.unique(np.concatenate((base\_boundaries, np.asarray(stop\_distances\_km, dtype=np.float64), np.asarray([race\_km], dtype=np.float64)))) の結果を代入する。
+\item boundaries に boundaries[(boundaries >= 0.0) \& (boundaries <= race\_km)] の結果を代入する。
+\item (boundaries[:-1].astype(np.float32), np.diff(boundaries).astype(np.float32), boundaries) を返す。
+            \end{enumerate}
+
+\subsection*{L133 関数 \path|kinetic_power_w|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|kinetic_power_w(mass_kg, speed_ms, previous_speed_ms, dt_sec)|
+              \item docstring: Signed wheel power whose interval integral equals the kinetic-energy change.
+              \item このブロックが直接呼ぶ主な関数・メソッド: clamp, float
+              \item 戻り値の要点: delta\_energy\_j / torch.clamp(dt\_sec, min=1e-06)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item delta\_energy\_j に 0.5 * float(mass\_kg) * (speed\_ms * speed\_ms - previous\_speed\_ms * previous\_speed\_ms) の結果を代入する。
+\item delta\_energy\_j / torch.clamp(dt\_sec, min=1e-06) を返す。
+            \end{enumerate}
+
+\subsection*{L146 関数 \path|slew_limited_segment_kinematics|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|slew_limited_segment_kinematics(previous_speed_ms, target_speed_ms, distance_km, accel_limit_kmhps, decel_limit_kmhps)|
+              \item docstring: Return distance-average speed, end speed, and time for a slew-limited segment.
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, clamp, float, full\_like, max, sqrt, where, zeros\_like
+              \item 戻り値の要点: (average\_speed\_ms, end\_speed\_ms, duration\_sec)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item distance\_m に max(0.0, float(distance\_km) * 1000.0) の結果を代入する。
+\item accel\_ms2 に max(1e-06, float(accel\_limit\_kmhps) / 3.6) の結果を代入する。
+\item decel\_ms2 に max(1e-06, float(decel\_limit\_kmhps) / 3.6) の結果を代入する。
+\item accelerating に target\_speed\_ms >= previous\_speed\_ms の結果を代入する。
+\item rate\_ms2 に torch.where(accelerating, torch.full\_like(target\_speed\_ms, accel\_ms2), torch.full\_like(target\_speed\_ms, decel\_ms2)) の結果を代入する。
+\item signed\_rate\_ms2 に torch.where(accelerating, rate\_ms2, -rate\_ms2) の結果を代入する。
+\item distance\_to\_target\_m に torch.abs(target\_speed\_ms * target\_speed\_ms - previous\_speed\_ms * previous\_speed\_ms) / (2.0 * rate\_ms2) の結果を代入する。
+\item reaches\_target に distance\_to\_target\_m <= distance\_m + 1e-07 の結果を代入する。
+\item limited\_end\_sq に torch.clamp(previous\_speed\_ms * previous\_speed\_ms + 2.0 * signed\_rate\_ms2 * distance\_m, min=0.0) の結果を代入する。
+\item limited\_end\_speed\_ms に torch.sqrt(limited\_end\_sq) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L193 関数 \path|stationary_auxiliary_power_w|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|stationary_auxiliary_power_w(irradiance_wm2, day_power_w, night_power_w, night_threshold_wm2)|
+  \item docstring: Match the production model's stopped day/night auxiliary-power rule.
+  \item このブロックが直接呼ぶ主な関数・メソッド: float, full\_like, max, where
+  \item 戻り値の要点: torch.where(irradiance\_wm2 > max(0.0, float(night\_threshold\_wm2)), torch.full\_like(irradiance\_wm2, max(0.0, float(day\_power\_w))), torch.full\_like(irradiance\_wm2, max(0.0, float(night\_power\_w))))
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item torch.where(irradiance\_wm2 > max(0.0, float(night\_threshold\_wm2)), torch.full\_like(irradiance\_wm2, max(0.0, float(day\_power\_w))), torch.full\_like(irradiance\_wm2, max(0.0, float(night\_power\_w)))) を返す。
+\end{enumerate}
+
+\subsection*{L208 クラス \path|TensorMap2D|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|TensorMap2D(bases=なし)|
+              \item docstring: Bilinear CSV-map interpolation that stays on the selected torch device.
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, as\_tensor, clamp, contiguous, len, maximum, minimum, read\_csv, searchsorted, to\_numpy
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item docstring または説明文字列を置く。
+\item 関数 \_\_init\_\_ を定義する。
+\item 関数 sample を定義する。
+            \end{enumerate}
+
+\subsection*{L236 クラス \path|TensorMap1D|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|TensorMap1D(bases=なし)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, as\_tensor, clamp, contiguous, len, maximum, minimum, read\_csv, searchsorted, to\_numpy
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 sample を定義する。
+            \end{enumerate}
+
+\subsection*{L252 クラス \path|WeatherGrid|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|WeatherGrid(bases=なし)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Index, RuntimeError, Series, Timestamp, ValueError, \_sample\_matrix, any, append, arange, array, as\_tensor, asarray
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 refine\_time\_grid を定義する。
+\item 関数 \_sample\_matrix を定義する。
+\item 関数 sample を定義する。
+\item 関数 register\_time\_integral を定義する。
+\item 関数 sample\_integral を定義する。
+\item 関数 register\_soc\_time\_integral を定義する。
+\item 関数 sample\_soc\_integral を定義する。
+            \end{enumerate}
+
+\subsection*{L498 関数 \path|parse_args|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|parse_args()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ArgumentParser, add\_argument, parse\_args
+              \item 戻り値の要点: parser.parse\_args()
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item parser に argparse.ArgumentParser(description=\_\_doc\_\_) の結果を代入する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+            \end{enumerate}
+
+\subsection*{L554 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: CUDAGraph, DataFrame, Path, RuntimeError, Stream, SummaryWriter, TensorMap1D, TensorMap2D, ValueError, WeatherGrid, ZoneInfo, abs
+              \item 戻り値の要点: 0 / torch.clamp(pv, max=pv\_power\_limit\_w) if pv\_power\_limit\_w > 0.0 else pv / (t\_sec + duration, soc, tb\_c) / (cost, soc, min\_soc\_seen, t\_sec, max\_current\_seen, max\_charge\_current\_seen, max\_timing\_violation\_sec, deadline\_violation\_sec, trace\_rows)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item args に parse\_args() の結果を代入する。
+\item args.cuda\_graph に resolve\_cuda\_graph\_enabled(args.cuda\_graph, args.integration\_ds\_km) の結果を代入する。
+\item 条件 not torch.cuda.is\_available() を判定し、真なら内部処理を行う。
+\item device に torch.device('cuda') の結果を代入する。
+\item torch.manual\_seed(...) を実行する。
+\item profile に args.profile.resolve() の結果を代入する。
+\item cfg に yaml.safe\_load(profile.read\_text(encoding='utf-8')) or \{\} の結果を代入する。
+\item model に cfg['model'] の結果を代入する。
+\item mpc に cfg['mpc'] の結果を代入する。
+\item paths に cfg['paths'] の結果を代入する。
+            \end{enumerate}
+
+
+
+
+
+
+
+        \subsection*{CLI 引数}
+            \begin{longtable}{p{0.07\linewidth} p{0.78\linewidth}}
+            \toprule
+            行 & 引数 \\
+            \midrule
+            500 & \path|--profile| \\
+501 & \path|--output-dir| \\
+502 & \path|--integration-ds-km| \\
+503 & \path|--control-ds-km| \\
+504 & \path|--population| \\
+505 & \path|--elite| \\
+506 & \path|--generations| \\
+507 & \path|--seed| \\
+508 & \path|--checkpoint-every| \\
+509 & \path|--resume| \\
+510 & \path|--tensorboard-dir| \\
+511 & \path|--initial-policy| \\
+512 & \path|--initial-std-kmh| \\
+513 & \path|--antithetic-sampling| \\
+519 & \path|--cuda-graph| \\
+528 & \path|--early-stop-patience| \\
+534 & \path|--early-stop-min-generations| \\
+535 & \path|--early-stop-min-delta| \\
+536 & \path|--early-stop-max-std-kmh| \\
+542 & \path|--capture-final-surrogate-trace| \\
+            \bottomrule
+            \end{longtable}
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item CLI 引数を解釈し、main() から処理を起動する。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|scripts/gpu_upper_policy_search.py| を
+        \textbf{planning research}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

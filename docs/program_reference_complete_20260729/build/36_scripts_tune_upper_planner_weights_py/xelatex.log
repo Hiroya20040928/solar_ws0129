@@ -1,0 +1,1611 @@
+===== xelatex pass 1 =====
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/36_scripts_tune_upper_planner_weights_py.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\36_scripts_tune_upper_planner_weights_py\36_scripts
+_tune_upper_planner_weights_py.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\36_scripts_tune_upper_planner_weights_py\36_scripts
+_tune_upper_planner_weights_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\36_scripts_tune_upper_planner_weights_py\36_scripts
+_tune_upper_planner_weights_py.out)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\36_scripts_tune_upper_planner_weights_py\36_scripts
+_tune_upper_planner_weights_py.toc [1]) [2]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[3]
+Underfull \hbox (badness 10000) in paragraph at lines 132--132
+[]|$[][][] [] [][][][][] [] [][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 134--134
+[]|$[][][][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 1406) in paragraph at lines 134--135
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: scenario_name, scenario_weight, up-
+
+Underfull \hbox (badness 10000) in paragraph at lines 138--138
+[]|$[][][][][][][][][] [] [][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 144--144
+[]|$[][][][][] [] [][][][][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 146--147
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: profile_yaml, output_dir, can-
+
+Underfull \hbox (badness 10000) in paragraph at lines 146--147
+\TU/TimesNewRoman(0)/m/n/10.95 didate_name, scenario, upper_cost,
+
+Underfull \hbox (badness 1742) in paragraph at lines 147--148
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: profile_yaml, summary, sim_df, de-
+
+Underfull \hbox (badness 2326) in paragraph at lines 148--149
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: candidate, scenario_results, weights,
+
+Underfull \hbox (badness 10000) in paragraph at lines 149--150
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: profile_yaml, output_dir, candi-
+
+Underfull \hbox (badness 10000) in paragraph at lines 149--150
+\TU/TimesNewRoman(0)/m/n/10.95 date_name, upper_cost, cfg_overrides,
+
+Underfull \hbox (badness 10000) in paragraph at lines 155--155
+[]|$[][][][][] [] [][][][][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 156--157
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: output_dir, source_profile_yaml,
+
+Underfull \hbox (badness 10000) in paragraph at lines 156--157
+\TU/TimesNewRoman(0)/m/n/10.95 eval_profile_yaml, fit_summary, base-
+
+Underfull \hbox (badness 10000) in paragraph at lines 156--157
+\TU/TimesNewRoman(0)/m/n/10.95 line_result, tuned_result, trials_df,
+
+Underfull \hbox (badness 10000) in paragraph at lines 156--157
+\TU/TimesNewRoman(0)/m/n/10.95 best_weights, manifest_paths, re-
+
+Underfull \hbox (badness 7869) in paragraph at lines 156--157
+\TU/TimesNewRoman(0)/m/n/10.95 moved_reference, specs, search_cfg, ten-
+ignored error: Infinite glue shrinkage found in box being split [4]
+Underfull \hbox (badness 1158) in paragraph at lines 172--173
+[]|\TU/TimesNewRoman(0)/m/n/10.95 LITERATURE \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 [{’label’: ’de Boer et al. (2005)’, ’title’: ’A Tutori
+al on the Cross-
+
+Underfull \hbox (badness 6204) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 Entropy Method’, ’url’: ’https://doi.org/10.1007
+/s10479-005-5724-z’, ’note’: ’CEM is
+
+Underfull \hbox (badness 2088) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 a generic derivative-free method for hard optimi
+zation problems.’}, {’label’: ’Gros and
+
+Underfull \hbox (badness 2617) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 Zanon (2019/2020)’, ’title’: ’Data-driven Econom
+ic NMPC using Reinforcement Learn-
+
+Underfull \hbox (badness 2012) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 ing’, ’url’: ’https://arxiv.org/pdf/1904.04152’,
+ ’note’: ’RL can tune stage cost, terminal
+
+Underfull \hbox (badness 1221) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 cost, and constraints of MPC/Economic MPC.’}, {’
+label’: ’Zarrouki et al. (2024)’, ’ti-
+
+Underfull \hbox (badness 1077) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 ’url’: ’https://arxiv.org/pdf/2402.02624’, ’note
+’: ’Safe RL can adapt MPC weights within
+
+Underfull \hbox (badness 4168) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 ’note’: ’Solar-race strategy is governed by a ti
+ght energy-speed trade-off.’}, {’label’:
+
+Underfull \hbox (badness 3849) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 ’Pudney and Howlett (2002)’, ’title’: ’Critical 
+Speed Control of a Solar Car’, ’url’:
+
+Underfull \hbox (badness 10000) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 ’https://link.springer.com/article/10.1023/A%3A1
+020907101234’, ’note’: ’Large unnec-
+
+Underfull \hbox (badness 1946) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 essary speed deviations are undesirable in solar
+-race operation.’}, {’label’: ’Byrd et al.
+ignored error: Infinite glue shrinkage found in box being split [5]
+Underfull \hbox (badness 10000) in paragraph at lines 213--213
+[]|$[][][][] [] [][][][][][][] []
+
+Overfull \hbox (13.47824pt too wide) in paragraph at lines 222--222
+[]|$[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 225--225
+[]|$[][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 227--227
+[]|$[][][][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 231--231
+[]|$[][][][][][][][][] [] [][][][][] []
+
+Overfull \hbox (13.47824pt too wide) in paragraph at lines 231--231
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 232--232
+[]|$[][][][][][][] [] [][][][][][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 233--233
+[]|$[][][][][][][] [] [][][][][][][][] [] [][][][] []
+
+Overfull \hbox (13.97824pt too wide) in paragraph at lines 233--233
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 233--234
+[]|\TU/TimesNewRoman(0)/m/n/10.95 risk_utils.py \TU/YuGothic(0)/m/n/10.95 か ら \
+TU/TimesNewRoman(0)/m/n/10.95 ScenarioRiskConfig, aggre-
+
+Underfull \hbox (badness 10000) in paragraph at lines 234--234
+[]|$[][][][][][][] [] [][][][][][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 234--234
+[][][][][][][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 234--234
+[][][][][][] [] [][][][][] [] [][][][] [] [][][][][] [][]
+
+Underfull \hbox (badness 2818) in paragraph at lines 234--235
+[]|\TU/YuGothic(0)/m/n/10.95 上 位 \TU/TimesNewRoman(0)/m/n/10.95 MPC \TU/YuGothi
+c(0)/m/n/10.95 目 的 関 数 か ら \TU/TimesNewRoman(0)/m/n/10.95 UpperCostConfig, ac-
+[6]
+ignored error: Infinite glue shrinkage found in box being split [7]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 256.
+
+[8] [9] [10] [11] [12] [13] [14] [15] [16]
+Overfull \hbox (9.5512pt too wide) in paragraph at lines 683--684
+[]\TU/TimesNewRoman(0)/m/n/10.95 scalar_keys \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 [’score’, ’score_mean’, ’score_worst’, ’score_variance
+’, ’loss_cvar’, ’scenario_failure_probability’,
+
+Overfull \hbox (16.65082pt too wide) in paragraph at lines 683--684
+\TU/TimesNewRoman(0)/m/n/10.95 nal_soc’, ’oscillation_mean_abs_dv_kmh’, ’oscill
+ation_p95_abs_dv_kmh’, ’current_rms_a’, ’pack_slew_rms_kw’,
+[17] [18]
+Underfull \hbox (badness 10000) in paragraph at lines 774--775
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][] [
+] [][][][][][][][] [] [][][][][][][][][][][][][][][] [] [][][][] [] [][][] [][]
+ [][][][][][][][] [] [][][][][][] [] [][][][][] [][] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 774--775
+[][][][] [] [][][][][][][][] [][] [][][][][] [] [][][] [][] [][][][][] [] [][][
+] [][] [][][] [] [][][][][][][][][] [] [][][][][][][][] [][] [][][][][][] [] []
+[][][][] [] [][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 774--775
+[][][][][][][][] [][] [][][][][][] [] [][][][][][][][][] [] [][][][] [] [][][][
+] [][] [][][] [] [][][] [] [][][][] [][] [][][][][][] [] [][][] [] [][][][] [][
+] [][][][] [] [][][] [] [][][][] [][]
+
+Underfull \hbox (badness 2213) in paragraph at lines 777--778
+\TU/TimesNewRoman(0)/m/n/10.95 False, ’scenario_feasible’: False, ’scenario_fea
+sibility_checks’: {’simulation_completed’: False}, ’sce-
+
+Overfull \hbox (13.19756pt too wide) in paragraph at lines 777--778
+\TU/TimesNewRoman(0)/m/n/10.95 nario_infeasibility_reasons’: [error], ’oscillat
+ion_mean_abs_dv_kmh’: 1000000.0, ’oscillation_p95_abs_dv_kmh’:
+
+Underfull \hbox (badness 4391) in paragraph at lines 777--778
+\TU/TimesNewRoman(0)/m/n/10.95 ’scenario’: scenario_name, ’scenario_weight’: fl
+oat(scenario_weight), ’cfg_overrides’: cfg_overrides,
+
+Underfull \hbox (badness 1616) in paragraph at lines 777--778
+\TU/TimesNewRoman(0)/m/n/10.95 ’cli_overrides’: cli_overrides, ’summary_json’: 
+os.fspath(summary_json), ’out_csv’: os.fspath(out_csv),
+[19]
+Overfull \hbox (37.86674pt too wide) in paragraph at lines 791--792
+\TU/TimesNewRoman(0)/m/n/10.95 nario_feasible’: False, ’scenario_feasibility_ch
+ecks’: {’simulation_completed’: False}, ’scenario_infeasibility_reasons’:
+
+Underfull \hbox (badness 3417) in paragraph at lines 791--792
+\TU/TimesNewRoman(0)/m/n/10.95 [error], ’oscillation_mean_abs_dv_kmh’: 1000000.
+0, ’oscillation_p95_abs_dv_kmh’: 1000000.0, ’cur-
+
+Underfull \hbox (badness 5726) in paragraph at lines 791--792
+\TU/TimesNewRoman(0)/m/n/10.95 cli_overrides, ’summary_json’: os.fspath(summary
+_json), ’out_csv’: os.fspath(out_csv), ’detail_csv’:
+[20]
+Underfull \hbox (badness 1117) in paragraph at lines 844--845
+[]\TU/YuGothic(0)/m/n/10.95 明 示 的 に 送 出 す る 例 外\TU/TimesNewRoman(0)/m/n/10.95 :
+ FileNotFoundError(pdf_path), subprocess.CalledProcessError(res.returncode,
+
+Underfull \hbox (badness 10000) in paragraph at lines 855--856
+[]\TU/TimesNewRoman(0)/m/n/10.95 res \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 subprocess.run([’xelatex’, ’-interaction=nonstopmode’, tex_pat
+h.name], cwd=tex_path.parent,
+[21] [22] [23] [24] [25]
+Overfull \hbox (47.55821pt too wide) in paragraph at lines 1056--1057
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : pd.Seri
+es(np.zeros(len(df), dtype=float)) / df[’v_exec_kmh’].astype(float) / df[’v_cmd
+_kmh’].astype(float) 
+
+Underfull \hbox (badness 10000) in paragraph at lines 1089--1090
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][] [] 
+[][][][] [] [][][][][][][][][] [] [][][][][][][][][][][][][][][] [][] [] [][] [
+][][][][][][] [] [][][][][][][][] [] [][][][][] [] [][][][] [] [][][][][] [][]
+
+Overfull \hbox (12.25046pt too wide) in paragraph at lines 1089--1090
+[][][][][][][] [] [][][][][][][][][][][] [] [][][][] [] [][][][] [] [][][][] []
+[] [][][][][][][] [] [][][][][][][][] [] [][][][] [] [][][][] [] [][][][] [] []
+[] [][] [][][][][][][][][][][][][][]$ 
+[26]
+Underfull \hbox (badness 10000) in paragraph at lines 1105--1106
+[]\TU/TimesNewRoman(0)/m/n/10.95 specs \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNew
+Roman(0)/m/n/10.95 [TermSpec(’w_speed_smooth’, -2.0, 3.0, math.log10(max(cfg.w_
+speed_smooth, 1e-06))),
+
+Overfull \hbox (84.29922pt too wide) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 -5.0, 1.0, math.log10(max(cfg.w_current_sq, 1e-0
+6))), TermSpec(’w_pack_energy’, -5.0, 2.0, math.log10(max(cfg.w_pack_energy,
+
+Overfull \hbox (32.88301pt too wide) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 1e-06))), TermSpec(’w_joule_loss’, -5.0, 2.0, ma
+th.log10(max(cfg.w_joule_loss, 1e-06))), TermSpec(’w_aero_energy’,
+
+Overfull \hbox (97.36649pt too wide) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 -5.0, 2.0, math.log10(max(cfg.w_aero_energy, 1e-
+06))), TermSpec(’w_mech_energy’, -5.0, 2.0, math.log10(max(cfg.w_mech_energy,
+
+Overfull \hbox (70.17607pt too wide) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 1e-06))), TermSpec(’w_kinetic_pos’, -5.0, 2.0, m
+ath.log10(max(cfg.w_kinetic_pos, 1e-06))), TermSpec(’w_pack_power_slew’,
+
+Underfull \hbox (badness 5787) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 -4.0, 4.0, math.log10(max(cfg.w_pack_power_slew,
+ 1e-06))), TermSpec(’w_speed_quartic’, -6.0, 2.0,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 math.log10(max(cfg.w_speed_quartic, 1e-06))), Te
+rmSpec(’w_solar_headroom’, -2.0, 7.0, max(2.0,
+
+Overfull \hbox (112.9791pt too wide) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 math.log10(max(cfg.w_solar_headroom, 1e-06)))), 
+TermSpec(’w_soc_floor_barrier’, -6.0, 4.0, math.log10(max(cfg.w_soc_floor_barri
+er,
+
+Underfull \hbox (badness 1552) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 1e-06))), TermSpec(’w_terminal_soc_min’, -1.0, 4
+.0, math.log10(max(cfg.w_terminal_soc_min, 1e-06))),
+[27]
+Overfull \hbox (15.80505pt too wide) in paragraph at lines 1158--1159
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][] [
+] [][] [] [][][][][][][][][][][][][] [] [][][][][][][][][][][][][] [] [][][][][
+] [] [][] [] [][][][][][][] [][] [][][][] [] [][][] [] [][][][][][][][][][][][]
+[][][] []
+[28] [29]
+Underfull \hbox (badness 10000) in paragraph at lines 1246--1247
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][] [] 
+[][][][][][][][][] [] [][][][] [] [][][][][][][][][][][][][][][] [] [][][][] []
+ [][][][] [][] [][][][][][] [] [][][] [] [][][][] [][] [] [][] [][][][][][][] [
+]
+[30] [31]
+Overfull \hbox (5.76434pt too wide) in paragraph at lines 1334--1335
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][][]
+ [] [][][][][][][][][][][][][][][][][] [] [][][][] [] [][][][] [][] [] [][] [][
+][][] [] [][][] [] [][][][][][][][][] [][] [][][] [][] [][][][][][][][][][][][]
+[][][][][][]$ 
+
+Underfull \hbox (badness 3118) in paragraph at lines 1337--1338
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : [Scenar
+ioSpec(’nominal’, cfg_overrides={}, cli_overrides={}, weight=0.3), Scenar-
+
+Overfull \hbox (50.08588pt too wide) in paragraph at lines 1337--1338
+\TU/TimesNewRoman(0)/m/n/10.95 max(base_cda * 1.1, base_cda + 0.005), ’model.Cr
+r’: max(base_crr * 1.05, base_crr + 0.0002)}, cli_overrides={’solar_gain’:
+
+Overfull \hbox (56.95161pt too wide) in paragraph at lines 1337--1338
+\TU/TimesNewRoman(0)/m/n/10.95 0.9, ’poa_gain_drive’: 0.94, ’poa_gain_stop’: 0.
+92}, weight=0.2), ScenarioSpec(’drag_bias’, cfg_overrides={’model.P_aux’:
+
+Underfull \hbox (badness 2293) in paragraph at lines 1337--1338
+\TU/TimesNewRoman(0)/m/n/10.95 min(temp_max_c - 2.0, base_tb_c + 12.0)}, weight
+=0.1), ScenarioSpec(’driver_lag’, cfg_overrides={},
+
+Underfull \hbox (badness 6575) in paragraph at lines 1337--1338
+\TU/TimesNewRoman(0)/m/n/10.95 cli_overrides={’exec_tau_sec’: 4.0, ’exec_reacti
+on_delay_sec’: 3.0, ’exec_accel_limit_kmhps’: 0.7,
+
+Overfull \hbox (12.40161pt too wide) in paragraph at lines 1337--1338
+\TU/TimesNewRoman(0)/m/n/10.95 ’exec_decel_limit_kmhps’: 2.0}, weight=0.1), Sce
+narioSpec(’favorable_weather’, cfg_overrides={’model.P_aux’:
+[32] [33]
+Underfull \hbox (badness 10000) in paragraph at lines 1408--1409
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][] [] [][]
+[][][][] [] [][][][][][][][][][][][][][][][] [] [][][][] [] [][][][] [][] [][][
+][][][] [] [][][] [] [][][][] [][] [][][][][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 1408--1409
+[][][] [][] [][][][][][][][] [] [][][][][][][][][][][][] [][] [][][][][] [] [][
+][][] [] [][][][][][][][] [][] [][][][][] [] [][][][][] [] [][][][][][][][][] [
+] [][][][][][][][] [][]
+[34]
+Underfull \hbox (badness 3049) in paragraph at lines 1436--1437
+[]\TU/TimesNewRoman(0)/m/n/10.95 cmd \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 [os.fspath(Path(sys.executable)), os.fspath(ROOT / ’scripts’ /
+ ’solar_sim.py’), ’–profile_yaml’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1436--1437
+\TU/TimesNewRoman(0)/m/n/10.95 os.fspath(profile_yaml), ’–out_csv’, os.fspath(o
+ut_csv), ’–out_detail_csv’, os.fspath(detail_csv), ’–
+
+Overfull \hbox (38.14697pt too wide) in paragraph at lines 1436--1437
+\TU/TimesNewRoman(0)/m/n/10.95 out_plan_csv’, os.fspath(plan_csv), ’–report_htm
+l’, os.fspath(report_html), ’–summary_json’, os.fspath(summary_json),
+
+Overfull \hbox (1.88255pt too wide) in paragraph at lines 1458--1459
+\TU/TimesNewRoman(0)/m/n/10.95 code {proc.returncode}’, cfg_overrides=merged_cf
+g, cli_overrides=merged_cli, summary_json=summary_json,
+
+Overfull \hbox (30.79813pt too wide) in paragraph at lines 1458--1459
+\TU/TimesNewRoman(0)/m/n/10.95 out_csv=out_csv, detail_csv=detail_csv, plan_csv
+=plan_csv, report_html=report_html, resolved_yaml=resolved_yaml,
+[35]
+Underfull \hbox (badness 10000) in paragraph at lines 1466--1467
+\TU/TimesNewRoman(0)/m/n/10.95 cfg_overrides=merged_cfg, cli_overrides=merged_c
+li, summary_json=summary_json, out_csv=out_csv,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1466--1467
+\TU/TimesNewRoman(0)/m/n/10.95 detail_csv=detail_csv, plan_csv=plan_csv, report
+_html=report_html, resolved_yaml=resolved_yaml,
+[36]
+Underfull \hbox (badness 10000) in paragraph at lines 1515--1516
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][][]
+[] [] [][][][][][][][][][][][][][][][][][] [] [][][][] [] [][][][] [][] [][][][
+][][][] [] [][][][][][][][] [][] [][][][][][] [] [][][][][] [] [][] [] [][] []
+
+Underfull \hbox (badness 5288) in paragraph at lines 1518--1519
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : {’score
+’: float(score), ’final_distance_km’: float(summary[’final_distance_km’]),
+
+Underfull \hbox (badness 5832) in paragraph at lines 1518--1519
+\TU/TimesNewRoman(0)/m/n/10.95 ’avg_speed_kmh’: float(summary.get(’avg_speed_km
+h’, 0.0)), ’min_soc’: min_soc, ’final_soc’: fi-
+
+Underfull \hbox (badness 10000) in paragraph at lines 1518--1519
+\TU/TimesNewRoman(0)/m/n/10.95 finish_reached, ’scenario_feasible’: not infeasi
+bility_reasons, ’scenario_feasibility_checks’: feasibil-
+
+Underfull \hbox (badness 10000) in paragraph at lines 1518--1519
+\TU/TimesNewRoman(0)/m/n/10.95 ity_checks, ’scenario_infeasibility_reasons’: in
+feasibility_reasons, ’oscillation_mean_abs_dv_kmh’:
+
+Underfull \hbox (badness 5637) in paragraph at lines 1518--1519
+\TU/TimesNewRoman(0)/m/n/10.95 osc, ’oscillation_p95_abs_dv_kmh’: osc_p95, ’cur
+rent_rms_a’: current_rms_a, ’pack_slew_rms_kw’:
+
+Underfull \hbox (badness 10000) in paragraph at lines 1536--1537
+[]\TU/TimesNewRoman(0)/m/n/10.95 dt_hours \TU/YuGothic(0)/m/n/10.95 に \TU/Times
+NewRoman(0)/m/n/10.95 t_series.diff().dt.total_seconds().fillna(t_series.diff()
+.dt.total_seconds().median()).fillna(0.0) /
+[37]
+Overfull \hbox (24.92609pt too wide) in paragraph at lines 1542--1543
+[]\TU/TimesNewRoman(0)/m/n/10.95 schedule_rel \TU/YuGothic(0)/m/n/10.95 に \TU/T
+imesNewRoman(0)/m/n/10.95 ((profile_cfg.get(’paths’, {}) if isinstance(profile_
+cfg, dict) else {}) or {}).get(’drive_schedule_yaml’)
+
+Underfull \hbox (badness 10000) in paragraph at lines 1555--1556
+[]\TU/TimesNewRoman(0)/m/n/10.95 active_pair \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 drive_mask.to_numpy(dtype=bool)[1:] & drive_mask.to_nu
+mpy(dtype=bool)[:-1] &
+[38]
+Overfull \hbox (115.17903pt too wide) in paragraph at lines 1590--1591
+[]\TU/TimesNewRoman(0)/m/n/10.95 feasibility_checks \TU/YuGothic(0)/m/n/10.95 に
+ \TU/TimesNewRoman(0)/m/n/10.95 {’finish_reached’: finish_reached, ’model_valid
+ation_gate_pass’: bool(summary.get(’model_validation_gate_pass’,
+
+Overfull \hbox (25.93188pt too wide) in paragraph at lines 1590--1591
+\TU/TimesNewRoman(0)/m/n/10.95 False)), ’terminal_soc_target_met’: bool(summary
+.get(’terminal_soc_target_met’, True)), ’minimum_soc_respected’:
+
+Overfull \hbox (10.73167pt too wide) in paragraph at lines 1590--1591
+\TU/TimesNewRoman(0)/m/n/10.95 bool(math.isfinite(min_soc) and min_soc >= termi
+nal_soc_min - 1e-06), ’finite_score’: bool(math.isfinite(score))}
+[39]
+Underfull \hbox (badness 10000) in paragraph at lines 1594--1595
+[]\TU/TimesNewRoman(0)/m/n/10.95 {’score’: float(score), ’final_distance_km’: f
+loat(summary[’final_distance_km’]), ’avg_speed_kmh’:
+
+Underfull \hbox (badness 4048) in paragraph at lines 1594--1595
+\TU/TimesNewRoman(0)/m/n/10.95 elapsed_hours, ’cpu_sec’: float(summary.get(’cpu
+_sec’, 0.0)), ’finish_reached’: finish_reached, ’sce-
+
+Overfull \hbox (56.3823pt too wide) in paragraph at lines 1594--1595
+\TU/TimesNewRoman(0)/m/n/10.95 nario_feasible’: not infeasibility_reasons, ’sce
+nario_feasibility_checks’: feasibility_checks, ’scenario_infeasibility_reasons’
+:
+
+Underfull \hbox (badness 1297) in paragraph at lines 1594--1595
+\TU/TimesNewRoman(0)/m/n/10.95 rent_rms_a’: current_rms_a, ’pack_slew_rms_kw’: 
+pack_slew_rms_kw, ’high_speed_h’: high_speed_h,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1594--1595
+\TU/TimesNewRoman(0)/m/n/10.95 ’daylight_stop_h’: daylight_stop_h, ’daylight_fu
+ll_soc_h’: daylight_full_soc_h, ’unused_finish_soc’:
+
+Underfull \hbox (badness 1648) in paragraph at lines 1594--1595
+\TU/TimesNewRoman(0)/m/n/10.95 unused_finish_soc, ’finish_soc_target’: finish_s
+oc_target, ’terminal_soc_error’: terminal_soc_error, ’ac-
+[40]
+Underfull \hbox (badness 10000) in paragraph at lines 1640--1641
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][][]
+[][] [] [][][][][][][][][][][][][][][][][][][] [] [][][] [][] [][][][][][][][] 
+[] [][][][][][][] [] [][][][][][][][][][][][][] [][] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 1640--1641
+[] [][] [][][][][][][] [] [][][][][][][][] [][] [][][][][] [] [][][][][][] [] [
+][][][][][] [] [][][][][][][][][][][][][][][][][][] [] [][][][] [] [][][][] [] 
+[][] [][] [][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 1663--1664
+[]\TU/TimesNewRoman(0)/m/n/10.95 scenario_feasible \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 np.array([bool(row.get(’scenario_feasible’, Fals
+e)) for row in scenario_results],
+[41]
+Overfull \hbox (105.27129pt too wide) in paragraph at lines 1667--1668
+[]\TU/TimesNewRoman(0)/m/n/10.95 result \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 {’candidate’: candidate, **risk, ’final_distance_km’: float
+(np.dot(scenario_weights, np.array([float(row[’final_distance_km’])
+
+Overfull \hbox (3.91354pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 in scenario_results))), ’avg_speed_kmh’: float(n
+p.dot(scenario_weights, np.array([float(row[’avg_speed_kmh’])
+
+Overfull \hbox (22.88112pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 ish_reached’: bool(all((bool(row[’finish_reached
+’]) for row in scenario_results))), ’model_validation_gate_pass_all’:
+
+Underfull \hbox (badness 10000) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 bool(all((bool(row.get(’model_validation_gate_pa
+ss’, False)) for row in scenario_results))), ’oscilla-
+
+Overfull \hbox (5.28333pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 tion_mean_abs_dv_kmh’: float(np.dot(scenario_wei
+ghts, np.array([float(row[’oscillation_mean_abs_dv_kmh’])
+
+Overfull \hbox (156.60225pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’oscillation_p9
+5_abs_dv_kmh’: float(np.dot(scenario_weights, np.array([float(row[’oscillation_
+p95_abs_dv_kmh’])
+
+Overfull \hbox (25.17018pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’current_rms_a’
+: float(np.dot(scenario_weights, np.array([float(row[’current_rms_a’])
+
+Overfull \hbox (72.63802pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’pack_slew_rms_
+kw’: float(np.dot(scenario_weights, np.array([float(row[’pack_slew_rms_kw’])
+
+Overfull \hbox (20.33678pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’high_speed_h’:
+ float(np.dot(scenario_weights, np.array([float(row[’high_speed_h’])
+
+Overfull \hbox (39.82008pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’daylight_stop_
+h’: float(np.dot(scenario_weights, np.array([float(row[’daylight_stop_h’])
+
+Overfull \hbox (73.86772pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’daylight_full_
+soc_h’: float(np.dot(scenario_weights, np.array([float(row[’daylight_full_soc_h
+’])
+
+Overfull \hbox (61.70938pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’unused_finish_
+soc’: float(np.dot(scenario_weights, np.array([float(row[’unused_finish_soc’])
+
+Overfull \hbox (49.12329pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’finish_soc_tar
+get’: float(np.dot(scenario_weights, np.array([float(row[’finish_soc_target’])
+
+Overfull \hbox (65.71939pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’terminal_soc_e
+rror’: float(np.dot(scenario_weights, np.array([float(row[’terminal_soc_error’]
+)
+
+Overfull \hbox (23.97255pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’elapsed_hours’
+: float(np.dot(scenario_weights, np.array([float(row[’elapsed_hours’])
+
+Underfull \hbox (badness 10000) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 ’active_term_count’: int(round(np.dot(scenario_w
+eights, np.array([float(row[’active_term_count’]) for
+[42]
+Underfull \hbox (badness 10000) in paragraph at lines 1714--1715
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][] [] [][]
+[][][][][][][][][][][][][][][] [] [][][][] [] [][][][] [][] [][][][][][] [] [][
+][] [] [][][][] [][] [][][][][][][][][] [] [][][][] [] [][][] [][] [][][][][] [
+]
+
+Underfull \hbox (badness 10000) in paragraph at lines 1714--1715
+[][][][] [] [][][][][][][][] [][] [][][][][] [] [][][][][] [] [][][][][][][][][
+] [] [][][][][][][][] [][] [][][][][][] [] [][][][][] [] [][][][][][][][][] [] 
+[][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 1714--1715
+[][][][][][] [] [][][][][][][][][][][] [] [][][][][][][][][][][][][][][][][] []
+ [][][][][][] [] [][][][][][] [] [][][][][][][][][][][][][][][][][][] [] [][][]
+[] [] [][][][] []
+
+Overfull \hbox (12.52676pt too wide) in paragraph at lines 1732--1733
+[]\TU/TimesNewRoman(0)/m/n/10.95 scenario_results \TU/YuGothic(0)/m/n/10.95 に \
+TU/TimesNewRoman(0)/m/n/10.95 [run_single_scenario(profile_yaml, output_dir, ca
+ndidate_name, scenario, runtime_upper_cost,
+[43]
+Underfull \hbox (badness 10000) in paragraph at lines 1783--1784
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][] [] []
+[][][][] [] [][][][][][][][][][][][][][][][][] [] [][][] [] [][][][] [][] [][][
+][][][] [] [][][][][][][][][][][][][] [][] [][][][][][] [] [] [][] [][][][] []
+[44] [45] [46] [47] [48] [49] [50]
+Underfull \hbox (badness 10000) in paragraph at lines 2089--2090
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][] [
+] [][][][][][][][][][][][][] [] [][][] [] [][][][] [][] [][][][][][] [] [][][][
+][][][] [] [][][][] [] [][][][] [][] [][][][] [] [][][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 2089--2090
+[][][][] [][] [][][] [] [][][][][][][] [] [][][][] [][] [][][][][][][][] [] [][
+][][][][] [] [][][][][][][][] [][] [][][][][][] [] [][][][][][][] [] [][][][][]
+[] [] [][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 2089--2090
+[][][][][][] [] [][][][][][][][] [] [][] [] [][] [] [][][][][][][][][] [][] [][
+][][] [] [][][][][][][] [] [][][][][][][][] [][] [][][][][] [] [][][][][][][][]
+[][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 2089--2090
+[][][][][][][][] [][] [][][][] [] [][][][][][][][][] [] [][][][][][][][][] [] [
+][][] [][] [][][][][] [] [][][][][][][][][][][][][] [] [][][][][][][][] [] [][]
+[] [] [][][][][][][][] [][]
+[51]
+Underfull \hbox (badness 1122) in paragraph at lines 2093--2094
+[]\TU/YuGothic(0)/m/n/10.95 主 な ロ ー カ ル 代 入 名\TU/TimesNewRoman(0)/m/n/10.95 : _
+, active_terms, actual_retire_km, base_row, base_scenarios, baseline_series,
+
+Underfull \hbox (badness 10000) in paragraph at lines 2093--2094
+\TU/TimesNewRoman(0)/m/n/10.95 best_weights_csv, best_weights_csv_label, best_w
+eights_df, estimated_10000_gen_candidates, esti-
+
+Underfull \hbox (badness 10000) in paragraph at lines 2119--2120
+[]\TU/TimesNewRoman(0)/m/n/10.95 power_rmse_fit \TU/YuGothic(0)/m/n/10.95 に \TU
+/TimesNewRoman(0)/m/n/10.95 float(fit_summary.get(’validation_metrics’, {}).get
+(’power_rmse_fit_window_w’,
+
+Underfull \hbox (badness 2689) in paragraph at lines 2119--2120
+\TU/TimesNewRoman(0)/m/n/10.95 fit_summary.get(’validation_metrics’, {}).get(’p
+ower_rmse_clean_w’, float(’nan’)))) \TU/YuGothic(0)/m/n/10.95 の 結 果 を 代 入 す
+
+Underfull \hbox (badness 10000) in paragraph at lines 2120--2121
+[]\TU/TimesNewRoman(0)/m/n/10.95 voltage_rmse_fit \TU/YuGothic(0)/m/n/10.95 に \
+TU/TimesNewRoman(0)/m/n/10.95 float(fit_summary.get(’validation_metrics’, {}).g
+et(’voltage_rmse_fit_window_v’,
+
+Overfull \hbox (59.55107pt too wide) in paragraph at lines 2121--2122
+[]\TU/TimesNewRoman(0)/m/n/10.95 median_cpu_sec \TU/YuGothic(0)/m/n/10.95 に \TU
+/TimesNewRoman(0)/m/n/10.95 float(pd.to_numeric(trials_df.get(’cpu_sec’, pd.Ser
+ies(dtype=float)), errors=’coerce’).dropna().median())
+[52]
+Underfull \hbox (badness 10000) in paragraph at lines 2124--2125
+[]\TU/TimesNewRoman(0)/m/n/10.95 estimated_10000_gen_cpu_days \TU/YuGothic(0)/m
+/n/10.95 に \TU/TimesNewRoman(0)/m/n/10.95 median_cpu_sec * estimated_10000_gen_
+candidates / 86400.0 if
+[53] [54] [55]
+Overfull \hbox (16.88509pt too wide) in paragraph at lines 2262--2263
+\TU/TimesNewRoman(0)/m/n/10.95 oRiskConfig, SummaryWriter, UpperCostConfig, add
+_argument, append, array, bool, build_current_asset_manifests 
+[56]
+Overfull \hbox (34.39157pt too wide) in paragraph at lines 2303--2304
+[]\TU/TimesNewRoman(0)/m/n/10.95 risk_config \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 ScenarioRiskConfig(cvar_alpha=float(args.risk_cvar_alp
+ha), cvar_weight=float(args.risk_cvar_weight),
+
+Overfull \hbox (50.78712pt too wide) in paragraph at lines 2303--2304
+\TU/TimesNewRoman(0)/m/n/10.95 variance_weight=float(args.risk_variance_weight)
+, max_failure_probability=float(args.max_scenario_failure_probability),
+
+Underfull \hbox (badness 10000) in paragraph at lines 2314--2315
+[]\TU/TimesNewRoman(0)/m/n/10.95 specs \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNew
+Roman(0)/m/n/10.95 upper_cost_specs(base_cost_cfg, include_progress_terms=args.
+include_progress_terms, in-
+
+Underfull \hbox (badness 10000) in paragraph at lines 2314--2315
+\TU/TimesNewRoman(0)/m/n/10.95 clude_uncertainty_term=include_uncertainty_term,
+ include_terminal_term=include_terminal_term) \TU/YuGothic(0)/m/n/10.95 の 結
+[57]
+Underfull \hbox (badness 8170) in paragraph at lines 2323--2324
+[]\TU/TimesNewRoman(0)/m/n/10.95 (eval_profile_yaml, removed_reference) \TU/YuG
+othic(0)/m/n/10.95 に \TU/TimesNewRoman(0)/m/n/10.95 build_reference_free_profil
+e(profile_yaml, output_dir, dis-
+
+Overfull \hbox (29.18018pt too wide) in paragraph at lines 2327--2328
+[]\TU/TimesNewRoman(0)/m/n/10.95 coarse_cfg_overrides \TU/YuGothic(0)/m/n/10.95
+ に \TU/TimesNewRoman(0)/m/n/10.95 {’mpc.dt’: 5400.0, ’mpc.upper_horizon_mode’: 
+’adaptive_full_race’, ’mpc.upper_max_iter’:
+
+Overfull \hbox (56.66101pt too wide) in paragraph at lines 2327--2328
+\TU/TimesNewRoman(0)/m/n/10.95 int(args.coarse_upper_max_iter), ’mpc.upper_max_
+steps’: 6, ’mpc.race_km’: planning_race_km, ’mpc.upper_horizon_km’:
+
+Overfull \hbox (23.88339pt too wide) in paragraph at lines 2327--2328
+\TU/TimesNewRoman(0)/m/n/10.95 ’mpc.upper_adaptive_min_ds_km’: 20.0, ’mpc.upper
+_adaptive_max_ds_km’: 400.0, ’mpc.upper_adaptive_growth’:
+
+Overfull \hbox (21.79393pt too wide) in paragraph at lines 2327--2328
+\TU/TimesNewRoman(0)/m/n/10.95 nario_mode == ’nominal’ else float(base_cost_cfg
+.w_uncertainty_reserve), ’mpc.upper_cost.reserve_soc_per_hour’:
+
+Overfull \hbox (63.04178pt too wide) in paragraph at lines 2327--2328
+\TU/TimesNewRoman(0)/m/n/10.95 0.0 if scenario_mode == ’nominal’ else float(bas
+e_cost_cfg.reserve_soc_per_hour), ’mpc.upper_cost.reserve_soc_max_extra’:
+
+Overfull \hbox (45.00633pt too wide) in paragraph at lines 2329--2330
+[]\TU/TimesNewRoman(0)/m/n/10.95 validation_cfg_overrides \TU/YuGothic(0)/m/n/1
+0.95 に \TU/TimesNewRoman(0)/m/n/10.95 {’mpc.dt’: 2400.0, ’mpc.upper_horizon_mod
+e’: ’adaptive_full_race’, ’mpc.upper_max_iter’:
+
+Underfull \hbox (badness 7133) in paragraph at lines 2329--2330
+\TU/TimesNewRoman(0)/m/n/10.95 int(args.validation_upper_max_iter), ’mpc.upper_
+max_steps’: 10, ’mpc.race_km’: planning_race_km,
+
+Overfull \hbox (100.31668pt too wide) in paragraph at lines 2329--2330
+\TU/TimesNewRoman(0)/m/n/10.95 350.0, ’mpc.upper_adaptive_growth’: 1.28, ’mpc.r
+eference_speed_tracking.enabled’: False, ’mpc.upper_cost.w_uncertainty_reserve’
+:
+
+Overfull \hbox (59.80171pt too wide) in paragraph at lines 2329--2330
+\TU/TimesNewRoman(0)/m/n/10.95 0.0 if scenario_mode == ’nominal’ else float(bas
+e_cost_cfg.w_uncertainty_reserve), ’mpc.upper_cost.reserve_soc_per_hour’:
+
+Overfull \hbox (63.04178pt too wide) in paragraph at lines 2329--2330
+\TU/TimesNewRoman(0)/m/n/10.95 0.0 if scenario_mode == ’nominal’ else float(bas
+e_cost_cfg.reserve_soc_per_hour), ’mpc.upper_cost.reserve_soc_max_extra’:
+
+Overfull \hbox (37.10394pt too wide) in paragraph at lines 2331--2332
+[]\TU/TimesNewRoman(0)/m/n/10.95 medium_cfg_overrides \TU/YuGothic(0)/m/n/10.95
+ に \TU/TimesNewRoman(0)/m/n/10.95 {’mpc.dt’: 3600.0, ’mpc.upper_horizon_mode’: 
+’adaptive_full_race’, ’mpc.upper_max_iter’:
+
+Underfull \hbox (badness 2486) in paragraph at lines 2331--2332
+\TU/TimesNewRoman(0)/m/n/10.95 int(args.elite_medium_upper_max_iter), ’mpc.uppe
+r_max_steps’: 8, ’mpc.race_km’: planning_race_km,
+
+Overfull \hbox (100.31668pt too wide) in paragraph at lines 2331--2332
+\TU/TimesNewRoman(0)/m/n/10.95 380.0, ’mpc.upper_adaptive_growth’: 1.29, ’mpc.r
+eference_speed_tracking.enabled’: False, ’mpc.upper_cost.w_uncertainty_reserve’
+:
+
+Overfull \hbox (59.80171pt too wide) in paragraph at lines 2331--2332
+\TU/TimesNewRoman(0)/m/n/10.95 0.0 if scenario_mode == ’nominal’ else float(bas
+e_cost_cfg.w_uncertainty_reserve), ’mpc.upper_cost.reserve_soc_per_hour’:
+
+Overfull \hbox (63.04178pt too wide) in paragraph at lines 2331--2332
+\TU/TimesNewRoman(0)/m/n/10.95 0.0 if scenario_mode == ’nominal’ else float(bas
+e_cost_cfg.reserve_soc_per_hour), ’mpc.upper_cost.reserve_soc_max_extra’:
+[58]
+Overfull \hbox (91.50539pt too wide) in paragraph at lines 2334--2335
+[]\TU/TimesNewRoman(0)/m/n/10.95 correlated_grid \TU/YuGothic(0)/m/n/10.95 に \T
+U/TimesNewRoman(0)/m/n/10.95 {’mpc.dt’: 2400.0, ’mpc.upper_max_steps’: 10, ’mpc
+.upper_ctrl_km’: 500.0, ’mpc.upper_adaptive_min_ds_km’:
+[59] [60] [61]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\36_scripts_tune_upper_planner_weights_py\36_scripts
+_tune_upper_planner_weights_py.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\36_scripts_tune_upper_planner_weig
+hts_py\36_scripts_tune_upper_planner_weights_py.pdf (61 pages).
+Transcript written on "C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-ma
+in\docs\program_reference_complete_20260729\build\36_scripts_tune_upper_planner
+_weights_py\36_scripts_tune_upper_planner_weights_py.log".
+
+miktex-dvipdfmx: major issue: So far, you have not checked for MiKTeX updates.
+xelatex: major issue: So far, you have not checked for MiKTeX updates.
+
+
+===== xelatex pass 2 =====
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/36_scripts_tune_upper_planner_weights_py.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\36_scripts_tune_upper_planner_weights_py\36_scripts
+_tune_upper_planner_weights_py.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\36_scripts_tune_upper_planner_weights_py\36_scripts
+_tune_upper_planner_weights_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\36_scripts_tune_upper_planner_weights_py\36_scripts
+_tune_upper_planner_weights_py.out)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\36_scripts_tune_upper_planner_weights_py\36_scripts
+_tune_upper_planner_weights_py.toc [1]) [2]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[3]
+Underfull \hbox (badness 10000) in paragraph at lines 132--132
+[]|$[][][] [] [][][][][] [] [][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 134--134
+[]|$[][][][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 1406) in paragraph at lines 134--135
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: scenario_name, scenario_weight, up-
+
+Underfull \hbox (badness 10000) in paragraph at lines 138--138
+[]|$[][][][][][][][][] [] [][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 144--144
+[]|$[][][][][] [] [][][][][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 146--147
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: profile_yaml, output_dir, can-
+
+Underfull \hbox (badness 10000) in paragraph at lines 146--147
+\TU/TimesNewRoman(0)/m/n/10.95 didate_name, scenario, upper_cost,
+
+Underfull \hbox (badness 1742) in paragraph at lines 147--148
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: profile_yaml, summary, sim_df, de-
+
+Underfull \hbox (badness 2326) in paragraph at lines 148--149
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: candidate, scenario_results, weights,
+
+Underfull \hbox (badness 10000) in paragraph at lines 149--150
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: profile_yaml, output_dir, candi-
+
+Underfull \hbox (badness 10000) in paragraph at lines 149--150
+\TU/TimesNewRoman(0)/m/n/10.95 date_name, upper_cost, cfg_overrides,
+
+Underfull \hbox (badness 10000) in paragraph at lines 155--155
+[]|$[][][][][] [] [][][][][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 156--157
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: output_dir, source_profile_yaml,
+
+Underfull \hbox (badness 10000) in paragraph at lines 156--157
+\TU/TimesNewRoman(0)/m/n/10.95 eval_profile_yaml, fit_summary, base-
+
+Underfull \hbox (badness 10000) in paragraph at lines 156--157
+\TU/TimesNewRoman(0)/m/n/10.95 line_result, tuned_result, trials_df,
+
+Underfull \hbox (badness 10000) in paragraph at lines 156--157
+\TU/TimesNewRoman(0)/m/n/10.95 best_weights, manifest_paths, re-
+
+Underfull \hbox (badness 7869) in paragraph at lines 156--157
+\TU/TimesNewRoman(0)/m/n/10.95 moved_reference, specs, search_cfg, ten-
+ignored error: Infinite glue shrinkage found in box being split [4]
+Underfull \hbox (badness 1158) in paragraph at lines 172--173
+[]|\TU/TimesNewRoman(0)/m/n/10.95 LITERATURE \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 [{’label’: ’de Boer et al. (2005)’, ’title’: ’A Tutori
+al on the Cross-
+
+Underfull \hbox (badness 6204) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 Entropy Method’, ’url’: ’https://doi.org/10.1007
+/s10479-005-5724-z’, ’note’: ’CEM is
+
+Underfull \hbox (badness 2088) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 a generic derivative-free method for hard optimi
+zation problems.’}, {’label’: ’Gros and
+
+Underfull \hbox (badness 2617) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 Zanon (2019/2020)’, ’title’: ’Data-driven Econom
+ic NMPC using Reinforcement Learn-
+
+Underfull \hbox (badness 2012) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 ing’, ’url’: ’https://arxiv.org/pdf/1904.04152’,
+ ’note’: ’RL can tune stage cost, terminal
+
+Underfull \hbox (badness 1221) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 cost, and constraints of MPC/Economic MPC.’}, {’
+label’: ’Zarrouki et al. (2024)’, ’ti-
+
+Underfull \hbox (badness 1077) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 ’url’: ’https://arxiv.org/pdf/2402.02624’, ’note
+’: ’Safe RL can adapt MPC weights within
+
+Underfull \hbox (badness 4168) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 ’note’: ’Solar-race strategy is governed by a ti
+ght energy-speed trade-off.’}, {’label’:
+
+Underfull \hbox (badness 3849) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 ’Pudney and Howlett (2002)’, ’title’: ’Critical 
+Speed Control of a Solar Car’, ’url’:
+
+Underfull \hbox (badness 10000) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 ’https://link.springer.com/article/10.1023/A%3A1
+020907101234’, ’note’: ’Large unnec-
+
+Underfull \hbox (badness 1946) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 essary speed deviations are undesirable in solar
+-race operation.’}, {’label’: ’Byrd et al.
+ignored error: Infinite glue shrinkage found in box being split [5]
+Underfull \hbox (badness 10000) in paragraph at lines 213--213
+[]|$[][][][] [] [][][][][][][] []
+
+Overfull \hbox (13.47824pt too wide) in paragraph at lines 222--222
+[]|$[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 225--225
+[]|$[][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 227--227
+[]|$[][][][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 231--231
+[]|$[][][][][][][][][] [] [][][][][] []
+
+Overfull \hbox (13.47824pt too wide) in paragraph at lines 231--231
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]$| 
+
+Underfull \hbox (badness 10000) in paragraph at lines 232--232
+[]|$[][][][][][][] [] [][][][][][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 233--233
+[]|$[][][][][][][] [] [][][][][][][][] [] [][][][] []
+
+Overfull \hbox (13.97824pt too wide) in paragraph at lines 233--233
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 233--234
+[]|\TU/TimesNewRoman(0)/m/n/10.95 risk_utils.py \TU/YuGothic(0)/m/n/10.95 か ら \
+TU/TimesNewRoman(0)/m/n/10.95 ScenarioRiskConfig, aggre-
+
+Underfull \hbox (badness 10000) in paragraph at lines 234--234
+[]|$[][][][][][][] [] [][][][][][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 234--234
+[][][][][][][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 234--234
+[][][][][][] [] [][][][][] [] [][][][] [] [][][][][] [][]
+
+Underfull \hbox (badness 2818) in paragraph at lines 234--235
+[]|\TU/YuGothic(0)/m/n/10.95 上 位 \TU/TimesNewRoman(0)/m/n/10.95 MPC \TU/YuGothi
+c(0)/m/n/10.95 目 的 関 数 か ら \TU/TimesNewRoman(0)/m/n/10.95 UpperCostConfig, ac-
+[6]
+ignored error: Infinite glue shrinkage found in box being split [7]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 256.
+
+[8] [9] [10] [11] [12] [13] [14] [15] [16]
+Overfull \hbox (9.5512pt too wide) in paragraph at lines 683--684
+[]\TU/TimesNewRoman(0)/m/n/10.95 scalar_keys \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 [’score’, ’score_mean’, ’score_worst’, ’score_variance
+’, ’loss_cvar’, ’scenario_failure_probability’,
+
+Overfull \hbox (16.65082pt too wide) in paragraph at lines 683--684
+\TU/TimesNewRoman(0)/m/n/10.95 nal_soc’, ’oscillation_mean_abs_dv_kmh’, ’oscill
+ation_p95_abs_dv_kmh’, ’current_rms_a’, ’pack_slew_rms_kw’,
+[17] [18]
+Underfull \hbox (badness 10000) in paragraph at lines 774--775
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][] [
+] [][][][][][][][] [] [][][][][][][][][][][][][][][] [] [][][][] [] [][][] [][]
+ [][][][][][][][] [] [][][][][][] [] [][][][][] [][] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 774--775
+[][][][] [] [][][][][][][][] [][] [][][][][] [] [][][] [][] [][][][][] [] [][][
+] [][] [][][] [] [][][][][][][][][] [] [][][][][][][][] [][] [][][][][][] [] []
+[][][][] [] [][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 774--775
+[][][][][][][][] [][] [][][][][][] [] [][][][][][][][][] [] [][][][] [] [][][][
+] [][] [][][] [] [][][] [] [][][][] [][] [][][][][][] [] [][][] [] [][][][] [][
+] [][][][] [] [][][] [] [][][][] [][]
+
+Underfull \hbox (badness 2213) in paragraph at lines 777--778
+\TU/TimesNewRoman(0)/m/n/10.95 False, ’scenario_feasible’: False, ’scenario_fea
+sibility_checks’: {’simulation_completed’: False}, ’sce-
+
+Overfull \hbox (13.19756pt too wide) in paragraph at lines 777--778
+\TU/TimesNewRoman(0)/m/n/10.95 nario_infeasibility_reasons’: [error], ’oscillat
+ion_mean_abs_dv_kmh’: 1000000.0, ’oscillation_p95_abs_dv_kmh’:
+
+Underfull \hbox (badness 4391) in paragraph at lines 777--778
+\TU/TimesNewRoman(0)/m/n/10.95 ’scenario’: scenario_name, ’scenario_weight’: fl
+oat(scenario_weight), ’cfg_overrides’: cfg_overrides,
+
+Underfull \hbox (badness 1616) in paragraph at lines 777--778
+\TU/TimesNewRoman(0)/m/n/10.95 ’cli_overrides’: cli_overrides, ’summary_json’: 
+os.fspath(summary_json), ’out_csv’: os.fspath(out_csv),
+[19]
+Overfull \hbox (37.86674pt too wide) in paragraph at lines 791--792
+\TU/TimesNewRoman(0)/m/n/10.95 nario_feasible’: False, ’scenario_feasibility_ch
+ecks’: {’simulation_completed’: False}, ’scenario_infeasibility_reasons’:
+
+Underfull \hbox (badness 3417) in paragraph at lines 791--792
+\TU/TimesNewRoman(0)/m/n/10.95 [error], ’oscillation_mean_abs_dv_kmh’: 1000000.
+0, ’oscillation_p95_abs_dv_kmh’: 1000000.0, ’cur-
+
+Underfull \hbox (badness 5726) in paragraph at lines 791--792
+\TU/TimesNewRoman(0)/m/n/10.95 cli_overrides, ’summary_json’: os.fspath(summary
+_json), ’out_csv’: os.fspath(out_csv), ’detail_csv’:
+[20]
+Underfull \hbox (badness 1117) in paragraph at lines 844--845
+[]\TU/YuGothic(0)/m/n/10.95 明 示 的 に 送 出 す る 例 外\TU/TimesNewRoman(0)/m/n/10.95 :
+ FileNotFoundError(pdf_path), subprocess.CalledProcessError(res.returncode,
+
+Underfull \hbox (badness 10000) in paragraph at lines 855--856
+[]\TU/TimesNewRoman(0)/m/n/10.95 res \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 subprocess.run([’xelatex’, ’-interaction=nonstopmode’, tex_pat
+h.name], cwd=tex_path.parent,
+[21] [22] [23] [24] [25]
+Overfull \hbox (47.55821pt too wide) in paragraph at lines 1056--1057
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : pd.Seri
+es(np.zeros(len(df), dtype=float)) / df[’v_exec_kmh’].astype(float) / df[’v_cmd
+_kmh’].astype(float) 
+
+Underfull \hbox (badness 10000) in paragraph at lines 1089--1090
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][] [] 
+[][][][] [] [][][][][][][][][] [] [][][][][][][][][][][][][][][] [][] [] [][] [
+][][][][][][] [] [][][][][][][][] [] [][][][][] [] [][][][] [] [][][][][] [][]
+
+Overfull \hbox (12.25046pt too wide) in paragraph at lines 1089--1090
+[][][][][][][] [] [][][][][][][][][][][] [] [][][][] [] [][][][] [] [][][][] []
+[] [][][][][][][] [] [][][][][][][][] [] [][][][] [] [][][][] [] [][][][] [] []
+[] [][] [][][][][][][][][][][][][][]$ 
+[26]
+Underfull \hbox (badness 10000) in paragraph at lines 1105--1106
+[]\TU/TimesNewRoman(0)/m/n/10.95 specs \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNew
+Roman(0)/m/n/10.95 [TermSpec(’w_speed_smooth’, -2.0, 3.0, math.log10(max(cfg.w_
+speed_smooth, 1e-06))),
+
+Overfull \hbox (84.29922pt too wide) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 -5.0, 1.0, math.log10(max(cfg.w_current_sq, 1e-0
+6))), TermSpec(’w_pack_energy’, -5.0, 2.0, math.log10(max(cfg.w_pack_energy,
+
+Overfull \hbox (32.88301pt too wide) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 1e-06))), TermSpec(’w_joule_loss’, -5.0, 2.0, ma
+th.log10(max(cfg.w_joule_loss, 1e-06))), TermSpec(’w_aero_energy’,
+
+Overfull \hbox (97.36649pt too wide) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 -5.0, 2.0, math.log10(max(cfg.w_aero_energy, 1e-
+06))), TermSpec(’w_mech_energy’, -5.0, 2.0, math.log10(max(cfg.w_mech_energy,
+
+Overfull \hbox (70.17607pt too wide) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 1e-06))), TermSpec(’w_kinetic_pos’, -5.0, 2.0, m
+ath.log10(max(cfg.w_kinetic_pos, 1e-06))), TermSpec(’w_pack_power_slew’,
+
+Underfull \hbox (badness 5787) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 -4.0, 4.0, math.log10(max(cfg.w_pack_power_slew,
+ 1e-06))), TermSpec(’w_speed_quartic’, -6.0, 2.0,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 math.log10(max(cfg.w_speed_quartic, 1e-06))), Te
+rmSpec(’w_solar_headroom’, -2.0, 7.0, max(2.0,
+
+Overfull \hbox (112.9791pt too wide) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 math.log10(max(cfg.w_solar_headroom, 1e-06)))), 
+TermSpec(’w_soc_floor_barrier’, -6.0, 4.0, math.log10(max(cfg.w_soc_floor_barri
+er,
+
+Underfull \hbox (badness 1552) in paragraph at lines 1105--1106
+\TU/TimesNewRoman(0)/m/n/10.95 1e-06))), TermSpec(’w_terminal_soc_min’, -1.0, 4
+.0, math.log10(max(cfg.w_terminal_soc_min, 1e-06))),
+[27]
+Overfull \hbox (15.80505pt too wide) in paragraph at lines 1158--1159
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][] [
+] [][] [] [][][][][][][][][][][][][] [] [][][][][][][][][][][][][] [] [][][][][
+] [] [][] [] [][][][][][][] [][] [][][][] [] [][][] [] [][][][][][][][][][][][]
+[][][] []
+[28] [29]
+Underfull \hbox (badness 10000) in paragraph at lines 1246--1247
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][] [] 
+[][][][][][][][][] [] [][][][] [] [][][][][][][][][][][][][][][] [] [][][][] []
+ [][][][] [][] [][][][][][] [] [][][] [] [][][][] [][] [] [][] [][][][][][][] [
+]
+[30] [31]
+Overfull \hbox (5.76434pt too wide) in paragraph at lines 1334--1335
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][][]
+ [] [][][][][][][][][][][][][][][][][] [] [][][][] [] [][][][] [][] [] [][] [][
+][][] [] [][][] [] [][][][][][][][][] [][] [][][] [][] [][][][][][][][][][][][]
+[][][][][][]$ 
+
+Underfull \hbox (badness 3118) in paragraph at lines 1337--1338
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : [Scenar
+ioSpec(’nominal’, cfg_overrides={}, cli_overrides={}, weight=0.3), Scenar-
+
+Overfull \hbox (50.08588pt too wide) in paragraph at lines 1337--1338
+\TU/TimesNewRoman(0)/m/n/10.95 max(base_cda * 1.1, base_cda + 0.005), ’model.Cr
+r’: max(base_crr * 1.05, base_crr + 0.0002)}, cli_overrides={’solar_gain’:
+
+Overfull \hbox (56.95161pt too wide) in paragraph at lines 1337--1338
+\TU/TimesNewRoman(0)/m/n/10.95 0.9, ’poa_gain_drive’: 0.94, ’poa_gain_stop’: 0.
+92}, weight=0.2), ScenarioSpec(’drag_bias’, cfg_overrides={’model.P_aux’:
+
+Underfull \hbox (badness 2293) in paragraph at lines 1337--1338
+\TU/TimesNewRoman(0)/m/n/10.95 min(temp_max_c - 2.0, base_tb_c + 12.0)}, weight
+=0.1), ScenarioSpec(’driver_lag’, cfg_overrides={},
+
+Underfull \hbox (badness 6575) in paragraph at lines 1337--1338
+\TU/TimesNewRoman(0)/m/n/10.95 cli_overrides={’exec_tau_sec’: 4.0, ’exec_reacti
+on_delay_sec’: 3.0, ’exec_accel_limit_kmhps’: 0.7,
+
+Overfull \hbox (12.40161pt too wide) in paragraph at lines 1337--1338
+\TU/TimesNewRoman(0)/m/n/10.95 ’exec_decel_limit_kmhps’: 2.0}, weight=0.1), Sce
+narioSpec(’favorable_weather’, cfg_overrides={’model.P_aux’:
+[32] [33]
+Underfull \hbox (badness 10000) in paragraph at lines 1408--1409
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][] [] [][]
+[][][][] [] [][][][][][][][][][][][][][][][] [] [][][][] [] [][][][] [][] [][][
+][][][] [] [][][] [] [][][][] [][] [][][][][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 1408--1409
+[][][] [][] [][][][][][][][] [] [][][][][][][][][][][][] [][] [][][][][] [] [][
+][][] [] [][][][][][][][] [][] [][][][][] [] [][][][][] [] [][][][][][][][][] [
+] [][][][][][][][] [][]
+[34]
+Underfull \hbox (badness 3049) in paragraph at lines 1436--1437
+[]\TU/TimesNewRoman(0)/m/n/10.95 cmd \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 [os.fspath(Path(sys.executable)), os.fspath(ROOT / ’scripts’ /
+ ’solar_sim.py’), ’–profile_yaml’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1436--1437
+\TU/TimesNewRoman(0)/m/n/10.95 os.fspath(profile_yaml), ’–out_csv’, os.fspath(o
+ut_csv), ’–out_detail_csv’, os.fspath(detail_csv), ’–
+
+Overfull \hbox (38.14697pt too wide) in paragraph at lines 1436--1437
+\TU/TimesNewRoman(0)/m/n/10.95 out_plan_csv’, os.fspath(plan_csv), ’–report_htm
+l’, os.fspath(report_html), ’–summary_json’, os.fspath(summary_json),
+
+Overfull \hbox (1.88255pt too wide) in paragraph at lines 1458--1459
+\TU/TimesNewRoman(0)/m/n/10.95 code {proc.returncode}’, cfg_overrides=merged_cf
+g, cli_overrides=merged_cli, summary_json=summary_json,
+
+Overfull \hbox (30.79813pt too wide) in paragraph at lines 1458--1459
+\TU/TimesNewRoman(0)/m/n/10.95 out_csv=out_csv, detail_csv=detail_csv, plan_csv
+=plan_csv, report_html=report_html, resolved_yaml=resolved_yaml,
+[35]
+Underfull \hbox (badness 10000) in paragraph at lines 1466--1467
+\TU/TimesNewRoman(0)/m/n/10.95 cfg_overrides=merged_cfg, cli_overrides=merged_c
+li, summary_json=summary_json, out_csv=out_csv,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1466--1467
+\TU/TimesNewRoman(0)/m/n/10.95 detail_csv=detail_csv, plan_csv=plan_csv, report
+_html=report_html, resolved_yaml=resolved_yaml,
+[36]
+Underfull \hbox (badness 10000) in paragraph at lines 1515--1516
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][][]
+[] [] [][][][][][][][][][][][][][][][][][] [] [][][][] [] [][][][] [][] [][][][
+][][][] [] [][][][][][][][] [][] [][][][][][] [] [][][][][] [] [][] [] [][] []
+
+Underfull \hbox (badness 5288) in paragraph at lines 1518--1519
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : {’score
+’: float(score), ’final_distance_km’: float(summary[’final_distance_km’]),
+
+Underfull \hbox (badness 5832) in paragraph at lines 1518--1519
+\TU/TimesNewRoman(0)/m/n/10.95 ’avg_speed_kmh’: float(summary.get(’avg_speed_km
+h’, 0.0)), ’min_soc’: min_soc, ’final_soc’: fi-
+
+Underfull \hbox (badness 10000) in paragraph at lines 1518--1519
+\TU/TimesNewRoman(0)/m/n/10.95 finish_reached, ’scenario_feasible’: not infeasi
+bility_reasons, ’scenario_feasibility_checks’: feasibil-
+
+Underfull \hbox (badness 10000) in paragraph at lines 1518--1519
+\TU/TimesNewRoman(0)/m/n/10.95 ity_checks, ’scenario_infeasibility_reasons’: in
+feasibility_reasons, ’oscillation_mean_abs_dv_kmh’:
+
+Underfull \hbox (badness 5637) in paragraph at lines 1518--1519
+\TU/TimesNewRoman(0)/m/n/10.95 osc, ’oscillation_p95_abs_dv_kmh’: osc_p95, ’cur
+rent_rms_a’: current_rms_a, ’pack_slew_rms_kw’:
+
+Underfull \hbox (badness 10000) in paragraph at lines 1536--1537
+[]\TU/TimesNewRoman(0)/m/n/10.95 dt_hours \TU/YuGothic(0)/m/n/10.95 に \TU/Times
+NewRoman(0)/m/n/10.95 t_series.diff().dt.total_seconds().fillna(t_series.diff()
+.dt.total_seconds().median()).fillna(0.0) /
+[37]
+Overfull \hbox (24.92609pt too wide) in paragraph at lines 1542--1543
+[]\TU/TimesNewRoman(0)/m/n/10.95 schedule_rel \TU/YuGothic(0)/m/n/10.95 に \TU/T
+imesNewRoman(0)/m/n/10.95 ((profile_cfg.get(’paths’, {}) if isinstance(profile_
+cfg, dict) else {}) or {}).get(’drive_schedule_yaml’)
+
+Underfull \hbox (badness 10000) in paragraph at lines 1555--1556
+[]\TU/TimesNewRoman(0)/m/n/10.95 active_pair \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 drive_mask.to_numpy(dtype=bool)[1:] & drive_mask.to_nu
+mpy(dtype=bool)[:-1] &
+[38]
+Overfull \hbox (115.17903pt too wide) in paragraph at lines 1590--1591
+[]\TU/TimesNewRoman(0)/m/n/10.95 feasibility_checks \TU/YuGothic(0)/m/n/10.95 に
+ \TU/TimesNewRoman(0)/m/n/10.95 {’finish_reached’: finish_reached, ’model_valid
+ation_gate_pass’: bool(summary.get(’model_validation_gate_pass’,
+
+Overfull \hbox (25.93188pt too wide) in paragraph at lines 1590--1591
+\TU/TimesNewRoman(0)/m/n/10.95 False)), ’terminal_soc_target_met’: bool(summary
+.get(’terminal_soc_target_met’, True)), ’minimum_soc_respected’:
+
+Overfull \hbox (10.73167pt too wide) in paragraph at lines 1590--1591
+\TU/TimesNewRoman(0)/m/n/10.95 bool(math.isfinite(min_soc) and min_soc >= termi
+nal_soc_min - 1e-06), ’finite_score’: bool(math.isfinite(score))}
+[39]
+Underfull \hbox (badness 10000) in paragraph at lines 1594--1595
+[]\TU/TimesNewRoman(0)/m/n/10.95 {’score’: float(score), ’final_distance_km’: f
+loat(summary[’final_distance_km’]), ’avg_speed_kmh’:
+
+Underfull \hbox (badness 4048) in paragraph at lines 1594--1595
+\TU/TimesNewRoman(0)/m/n/10.95 elapsed_hours, ’cpu_sec’: float(summary.get(’cpu
+_sec’, 0.0)), ’finish_reached’: finish_reached, ’sce-
+
+Overfull \hbox (56.3823pt too wide) in paragraph at lines 1594--1595
+\TU/TimesNewRoman(0)/m/n/10.95 nario_feasible’: not infeasibility_reasons, ’sce
+nario_feasibility_checks’: feasibility_checks, ’scenario_infeasibility_reasons’
+:
+
+Underfull \hbox (badness 1297) in paragraph at lines 1594--1595
+\TU/TimesNewRoman(0)/m/n/10.95 rent_rms_a’: current_rms_a, ’pack_slew_rms_kw’: 
+pack_slew_rms_kw, ’high_speed_h’: high_speed_h,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1594--1595
+\TU/TimesNewRoman(0)/m/n/10.95 ’daylight_stop_h’: daylight_stop_h, ’daylight_fu
+ll_soc_h’: daylight_full_soc_h, ’unused_finish_soc’:
+
+Underfull \hbox (badness 1648) in paragraph at lines 1594--1595
+\TU/TimesNewRoman(0)/m/n/10.95 unused_finish_soc, ’finish_soc_target’: finish_s
+oc_target, ’terminal_soc_error’: terminal_soc_error, ’ac-
+[40]
+Underfull \hbox (badness 10000) in paragraph at lines 1640--1641
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][][]
+[][] [] [][][][][][][][][][][][][][][][][][][] [] [][][] [][] [][][][][][][][] 
+[] [][][][][][][] [] [][][][][][][][][][][][][] [][] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 1640--1641
+[] [][] [][][][][][][] [] [][][][][][][][] [][] [][][][][] [] [][][][][][] [] [
+][][][][][] [] [][][][][][][][][][][][][][][][][][] [] [][][][] [] [][][][] [] 
+[][] [][] [][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 1663--1664
+[]\TU/TimesNewRoman(0)/m/n/10.95 scenario_feasible \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 np.array([bool(row.get(’scenario_feasible’, Fals
+e)) for row in scenario_results],
+[41]
+Overfull \hbox (105.27129pt too wide) in paragraph at lines 1667--1668
+[]\TU/TimesNewRoman(0)/m/n/10.95 result \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 {’candidate’: candidate, **risk, ’final_distance_km’: float
+(np.dot(scenario_weights, np.array([float(row[’final_distance_km’])
+
+Overfull \hbox (3.91354pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 in scenario_results))), ’avg_speed_kmh’: float(n
+p.dot(scenario_weights, np.array([float(row[’avg_speed_kmh’])
+
+Overfull \hbox (22.88112pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 ish_reached’: bool(all((bool(row[’finish_reached
+’]) for row in scenario_results))), ’model_validation_gate_pass_all’:
+
+Underfull \hbox (badness 10000) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 bool(all((bool(row.get(’model_validation_gate_pa
+ss’, False)) for row in scenario_results))), ’oscilla-
+
+Overfull \hbox (5.28333pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 tion_mean_abs_dv_kmh’: float(np.dot(scenario_wei
+ghts, np.array([float(row[’oscillation_mean_abs_dv_kmh’])
+
+Overfull \hbox (156.60225pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’oscillation_p9
+5_abs_dv_kmh’: float(np.dot(scenario_weights, np.array([float(row[’oscillation_
+p95_abs_dv_kmh’])
+
+Overfull \hbox (25.17018pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’current_rms_a’
+: float(np.dot(scenario_weights, np.array([float(row[’current_rms_a’])
+
+Overfull \hbox (72.63802pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’pack_slew_rms_
+kw’: float(np.dot(scenario_weights, np.array([float(row[’pack_slew_rms_kw’])
+
+Overfull \hbox (20.33678pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’high_speed_h’:
+ float(np.dot(scenario_weights, np.array([float(row[’high_speed_h’])
+
+Overfull \hbox (39.82008pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’daylight_stop_
+h’: float(np.dot(scenario_weights, np.array([float(row[’daylight_stop_h’])
+
+Overfull \hbox (73.86772pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’daylight_full_
+soc_h’: float(np.dot(scenario_weights, np.array([float(row[’daylight_full_soc_h
+’])
+
+Overfull \hbox (61.70938pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’unused_finish_
+soc’: float(np.dot(scenario_weights, np.array([float(row[’unused_finish_soc’])
+
+Overfull \hbox (49.12329pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’finish_soc_tar
+get’: float(np.dot(scenario_weights, np.array([float(row[’finish_soc_target’])
+
+Overfull \hbox (65.71939pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’terminal_soc_e
+rror’: float(np.dot(scenario_weights, np.array([float(row[’terminal_soc_error’]
+)
+
+Overfull \hbox (23.97255pt too wide) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 for row in scenario_results]))), ’elapsed_hours’
+: float(np.dot(scenario_weights, np.array([float(row[’elapsed_hours’])
+
+Underfull \hbox (badness 10000) in paragraph at lines 1667--1668
+\TU/TimesNewRoman(0)/m/n/10.95 ’active_term_count’: int(round(np.dot(scenario_w
+eights, np.array([float(row[’active_term_count’]) for
+[42]
+Underfull \hbox (badness 10000) in paragraph at lines 1714--1715
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][] [] [][]
+[][][][][][][][][][][][][][][] [] [][][][] [] [][][][] [][] [][][][][][] [] [][
+][] [] [][][][] [][] [][][][][][][][][] [] [][][][] [] [][][] [][] [][][][][] [
+]
+
+Underfull \hbox (badness 10000) in paragraph at lines 1714--1715
+[][][][] [] [][][][][][][][] [][] [][][][][] [] [][][][][] [] [][][][][][][][][
+] [] [][][][][][][][] [][] [][][][][][] [] [][][][][] [] [][][][][][][][][] [] 
+[][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 1714--1715
+[][][][][][] [] [][][][][][][][][][][] [] [][][][][][][][][][][][][][][][][] []
+ [][][][][][] [] [][][][][][] [] [][][][][][][][][][][][][][][][][][] [] [][][]
+[] [] [][][][] []
+
+Overfull \hbox (12.52676pt too wide) in paragraph at lines 1732--1733
+[]\TU/TimesNewRoman(0)/m/n/10.95 scenario_results \TU/YuGothic(0)/m/n/10.95 に \
+TU/TimesNewRoman(0)/m/n/10.95 [run_single_scenario(profile_yaml, output_dir, ca
+ndidate_name, scenario, runtime_upper_cost,
+[43]
+Underfull \hbox (badness 10000) in paragraph at lines 1783--1784
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][] [] []
+[][][][] [] [][][][][][][][][][][][][][][][][] [] [][][] [] [][][][] [][] [][][
+][][][] [] [][][][][][][][][][][][][] [][] [][][][][][] [] [] [][] [][][][] []
+[44] [45] [46] [47] [48] [49] [50]
+Underfull \hbox (badness 10000) in paragraph at lines 2089--2090
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][] [
+] [][][][][][][][][][][][][] [] [][][] [] [][][][] [][] [][][][][][] [] [][][][
+][][][] [] [][][][] [] [][][][] [][] [][][][] [] [][][][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 2089--2090
+[][][][] [][] [][][] [] [][][][][][][] [] [][][][] [][] [][][][][][][][] [] [][
+][][][][] [] [][][][][][][][] [][] [][][][][][] [] [][][][][][][] [] [][][][][]
+[] [] [][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 2089--2090
+[][][][][][] [] [][][][][][][][] [] [][] [] [][] [] [][][][][][][][][] [][] [][
+][][] [] [][][][][][][] [] [][][][][][][][] [][] [][][][][] [] [][][][][][][][]
+[][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 2089--2090
+[][][][][][][][] [][] [][][][] [] [][][][][][][][][] [] [][][][][][][][][] [] [
+][][] [][] [][][][][] [] [][][][][][][][][][][][][] [] [][][][][][][][] [] [][]
+[] [] [][][][][][][][] [][]
+[51]
+Underfull \hbox (badness 1122) in paragraph at lines 2093--2094
+[]\TU/YuGothic(0)/m/n/10.95 主 な ロ ー カ ル 代 入 名\TU/TimesNewRoman(0)/m/n/10.95 : _
+, active_terms, actual_retire_km, base_row, base_scenarios, baseline_series,
+
+Underfull \hbox (badness 10000) in paragraph at lines 2093--2094
+\TU/TimesNewRoman(0)/m/n/10.95 best_weights_csv, best_weights_csv_label, best_w
+eights_df, estimated_10000_gen_candidates, esti-
+
+Underfull \hbox (badness 10000) in paragraph at lines 2119--2120
+[]\TU/TimesNewRoman(0)/m/n/10.95 power_rmse_fit \TU/YuGothic(0)/m/n/10.95 に \TU
+/TimesNewRoman(0)/m/n/10.95 float(fit_summary.get(’validation_metrics’, {}).get
+(’power_rmse_fit_window_w’,
+
+Underfull \hbox (badness 2689) in paragraph at lines 2119--2120
+\TU/TimesNewRoman(0)/m/n/10.95 fit_summary.get(’validation_metrics’, {}).get(’p
+ower_rmse_clean_w’, float(’nan’)))) \TU/YuGothic(0)/m/n/10.95 の 結 果 を 代 入 す
+
+Underfull \hbox (badness 10000) in paragraph at lines 2120--2121
+[]\TU/TimesNewRoman(0)/m/n/10.95 voltage_rmse_fit \TU/YuGothic(0)/m/n/10.95 に \
+TU/TimesNewRoman(0)/m/n/10.95 float(fit_summary.get(’validation_metrics’, {}).g
+et(’voltage_rmse_fit_window_v’,
+
+Overfull \hbox (59.55107pt too wide) in paragraph at lines 2121--2122
+[]\TU/TimesNewRoman(0)/m/n/10.95 median_cpu_sec \TU/YuGothic(0)/m/n/10.95 に \TU
+/TimesNewRoman(0)/m/n/10.95 float(pd.to_numeric(trials_df.get(’cpu_sec’, pd.Ser
+ies(dtype=float)), errors=’coerce’).dropna().median())
+[52]
+Underfull \hbox (badness 10000) in paragraph at lines 2124--2125
+[]\TU/TimesNewRoman(0)/m/n/10.95 estimated_10000_gen_cpu_days \TU/YuGothic(0)/m
+/n/10.95 に \TU/TimesNewRoman(0)/m/n/10.95 median_cpu_sec * estimated_10000_gen_
+candidates / 86400.0 if
+[53] [54] [55]
+Overfull \hbox (16.88509pt too wide) in paragraph at lines 2262--2263
+\TU/TimesNewRoman(0)/m/n/10.95 oRiskConfig, SummaryWriter, UpperCostConfig, add
+_argument, append, array, bool, build_current_asset_manifests 
+[56]
+Overfull \hbox (34.39157pt too wide) in paragraph at lines 2303--2304
+[]\TU/TimesNewRoman(0)/m/n/10.95 risk_config \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 ScenarioRiskConfig(cvar_alpha=float(args.risk_cvar_alp
+ha), cvar_weight=float(args.risk_cvar_weight),
+
+Overfull \hbox (50.78712pt too wide) in paragraph at lines 2303--2304
+\TU/TimesNewRoman(0)/m/n/10.95 variance_weight=float(args.risk_variance_weight)
+, max_failure_probability=float(args.max_scenario_failure_probability),
+
+Underfull \hbox (badness 10000) in paragraph at lines 2314--2315
+[]\TU/TimesNewRoman(0)/m/n/10.95 specs \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNew
+Roman(0)/m/n/10.95 upper_cost_specs(base_cost_cfg, include_progress_terms=args.
+include_progress_terms, in-
+
+Underfull \hbox (badness 10000) in paragraph at lines 2314--2315
+\TU/TimesNewRoman(0)/m/n/10.95 clude_uncertainty_term=include_uncertainty_term,
+ include_terminal_term=include_terminal_term) \TU/YuGothic(0)/m/n/10.95 の 結
+[57]
+Underfull \hbox (badness 8170) in paragraph at lines 2323--2324
+[]\TU/TimesNewRoman(0)/m/n/10.95 (eval_profile_yaml, removed_reference) \TU/YuG
+othic(0)/m/n/10.95 に \TU/TimesNewRoman(0)/m/n/10.95 build_reference_free_profil
+e(profile_yaml, output_dir, dis-
+
+Overfull \hbox (29.18018pt too wide) in paragraph at lines 2327--2328
+[]\TU/TimesNewRoman(0)/m/n/10.95 coarse_cfg_overrides \TU/YuGothic(0)/m/n/10.95
+ に \TU/TimesNewRoman(0)/m/n/10.95 {’mpc.dt’: 5400.0, ’mpc.upper_horizon_mode’: 
+’adaptive_full_race’, ’mpc.upper_max_iter’:
+
+Overfull \hbox (56.66101pt too wide) in paragraph at lines 2327--2328
+\TU/TimesNewRoman(0)/m/n/10.95 int(args.coarse_upper_max_iter), ’mpc.upper_max_
+steps’: 6, ’mpc.race_km’: planning_race_km, ’mpc.upper_horizon_km’:
+
+Overfull \hbox (23.88339pt too wide) in paragraph at lines 2327--2328
+\TU/TimesNewRoman(0)/m/n/10.95 ’mpc.upper_adaptive_min_ds_km’: 20.0, ’mpc.upper
+_adaptive_max_ds_km’: 400.0, ’mpc.upper_adaptive_growth’:
+
+Overfull \hbox (21.79393pt too wide) in paragraph at lines 2327--2328
+\TU/TimesNewRoman(0)/m/n/10.95 nario_mode == ’nominal’ else float(base_cost_cfg
+.w_uncertainty_reserve), ’mpc.upper_cost.reserve_soc_per_hour’:
+
+Overfull \hbox (63.04178pt too wide) in paragraph at lines 2327--2328
+\TU/TimesNewRoman(0)/m/n/10.95 0.0 if scenario_mode == ’nominal’ else float(bas
+e_cost_cfg.reserve_soc_per_hour), ’mpc.upper_cost.reserve_soc_max_extra’:
+
+Overfull \hbox (45.00633pt too wide) in paragraph at lines 2329--2330
+[]\TU/TimesNewRoman(0)/m/n/10.95 validation_cfg_overrides \TU/YuGothic(0)/m/n/1
+0.95 に \TU/TimesNewRoman(0)/m/n/10.95 {’mpc.dt’: 2400.0, ’mpc.upper_horizon_mod
+e’: ’adaptive_full_race’, ’mpc.upper_max_iter’:
+
+Underfull \hbox (badness 7133) in paragraph at lines 2329--2330
+\TU/TimesNewRoman(0)/m/n/10.95 int(args.validation_upper_max_iter), ’mpc.upper_
+max_steps’: 10, ’mpc.race_km’: planning_race_km,
+
+Overfull \hbox (100.31668pt too wide) in paragraph at lines 2329--2330
+\TU/TimesNewRoman(0)/m/n/10.95 350.0, ’mpc.upper_adaptive_growth’: 1.28, ’mpc.r
+eference_speed_tracking.enabled’: False, ’mpc.upper_cost.w_uncertainty_reserve’
+:
+
+Overfull \hbox (59.80171pt too wide) in paragraph at lines 2329--2330
+\TU/TimesNewRoman(0)/m/n/10.95 0.0 if scenario_mode == ’nominal’ else float(bas
+e_cost_cfg.w_uncertainty_reserve), ’mpc.upper_cost.reserve_soc_per_hour’:
+
+Overfull \hbox (63.04178pt too wide) in paragraph at lines 2329--2330
+\TU/TimesNewRoman(0)/m/n/10.95 0.0 if scenario_mode == ’nominal’ else float(bas
+e_cost_cfg.reserve_soc_per_hour), ’mpc.upper_cost.reserve_soc_max_extra’:
+
+Overfull \hbox (37.10394pt too wide) in paragraph at lines 2331--2332
+[]\TU/TimesNewRoman(0)/m/n/10.95 medium_cfg_overrides \TU/YuGothic(0)/m/n/10.95
+ に \TU/TimesNewRoman(0)/m/n/10.95 {’mpc.dt’: 3600.0, ’mpc.upper_horizon_mode’: 
+’adaptive_full_race’, ’mpc.upper_max_iter’:
+
+Underfull \hbox (badness 2486) in paragraph at lines 2331--2332
+\TU/TimesNewRoman(0)/m/n/10.95 int(args.elite_medium_upper_max_iter), ’mpc.uppe
+r_max_steps’: 8, ’mpc.race_km’: planning_race_km,
+
+Overfull \hbox (100.31668pt too wide) in paragraph at lines 2331--2332
+\TU/TimesNewRoman(0)/m/n/10.95 380.0, ’mpc.upper_adaptive_growth’: 1.29, ’mpc.r
+eference_speed_tracking.enabled’: False, ’mpc.upper_cost.w_uncertainty_reserve’
+:
+
+Overfull \hbox (59.80171pt too wide) in paragraph at lines 2331--2332
+\TU/TimesNewRoman(0)/m/n/10.95 0.0 if scenario_mode == ’nominal’ else float(bas
+e_cost_cfg.w_uncertainty_reserve), ’mpc.upper_cost.reserve_soc_per_hour’:
+
+Overfull \hbox (63.04178pt too wide) in paragraph at lines 2331--2332
+\TU/TimesNewRoman(0)/m/n/10.95 0.0 if scenario_mode == ’nominal’ else float(bas
+e_cost_cfg.reserve_soc_per_hour), ’mpc.upper_cost.reserve_soc_max_extra’:
+[58]
+Overfull \hbox (91.50539pt too wide) in paragraph at lines 2334--2335
+[]\TU/TimesNewRoman(0)/m/n/10.95 correlated_grid \TU/YuGothic(0)/m/n/10.95 に \T
+U/TimesNewRoman(0)/m/n/10.95 {’mpc.dt’: 2400.0, ’mpc.upper_max_steps’: 10, ’mpc
+.upper_ctrl_km’: 500.0, ’mpc.upper_adaptive_min_ds_km’:
+[59] [60] [61]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\36_scripts_tune_upper_planner_weights_py\36_scripts
+_tune_upper_planner_weights_py.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\36_scripts_tune_upper_planner_weig
+hts_py\36_scripts_tune_upper_planner_weights_py.pdf (61 pages).
+Transcript written on "C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-ma
+in\docs\program_reference_complete_20260729\build\36_scripts_tune_upper_planner
+_weights_py\36_scripts_tune_upper_planner_weights_py.log".
+
+miktex-dvipdfmx: major issue: So far, you have not checked for MiKTeX updates.
+xelatex: major issue: So far, you have not checked for MiKTeX updates.
+

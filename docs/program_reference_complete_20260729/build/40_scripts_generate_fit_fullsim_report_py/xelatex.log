@@ -1,0 +1,1127 @@
+===== xelatex pass 1 =====
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/40_scripts_generate_fit_fullsim_report_py.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\40_scripts_generate_fit_fullsim_report_py\40_script
+s_generate_fit_fullsim_report_py.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\40_scripts_generate_fit_fullsim_report_py\40_script
+s_generate_fit_fullsim_report_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\40_scripts_generate_fit_fullsim_report_py\40_script
+s_generate_fit_fullsim_report_py.out)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\40_scripts_generate_fit_fullsim_report_py\40_script
+s_generate_fit_fullsim_report_py.toc [1]) [2]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[3]
+Overfull \hbox (47.7143pt too wide) in paragraph at lines 120--121
+\TU/YuGothic(0)/m/n/10.95 主 要 関 数 は \TU/TimesNewRoman(0)/m/n/10.95 resolve_path
+, latex_escape, rel_display, locate_package_dir, locate_fit_summary, rms, day_b
+lock_bootstrap_rmse,
+
+Underfull \hbox (badness 10000) in paragraph at lines 133--133
+[]|$[][][] [] [][][][][] [] [][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 134--134
+[]|$[][][][] [] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 135--135
+[]|$[][][][][][] [] [][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 136--136
+[]|$[][][][][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 137--138
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: package_dir, profile_yaml, mani-
+
+Underfull \hbox (badness 10000) in paragraph at lines 139--139
+[]|$[][][][][][][][][][][] [] [][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 140--140
+[]|$[][][][][][] [] [][][][][] [] [][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 141--141
+[]|$[][][][][] [] [][][][][] [] [][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 141--142
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: replay_df, fullsim_df, re-
+
+Underfull \hbox (badness 10000) in paragraph at lines 142--142
+[]|$[][][][][] [] [][][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 143--143
+[]|$[][][][][] [] [][][][][] [] [][][] []
+ignored error: Infinite glue shrinkage found in box being split [4]
+Underfull \hbox (badness 2368) in paragraph at lines 171--172
+[]|\TU/TimesNewRoman(0)/m/n/10.95 DETAIL_REQUIRED_COLUMNS \TU/YuGothic(0)/m/n/1
+0.95 に \TU/TimesNewRoman(0)/m/n/10.95 {’lower_command_index’, ’time_utc’, ’step
+_dt_sec’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 171--172
+\TU/TimesNewRoman(0)/m/n/10.95 ’detail_target_dt_sec’, ’outer_step_requested_dt
+_sec’, ’outer_step_actual_dt_sec’,
+
+Underfull \hbox (badness 4492) in paragraph at lines 171--172
+\TU/TimesNewRoman(0)/m/n/10.95 ’outer_step_boundary_reason’, ’s_km’, ’upper_spe
+ed_cmd_kmh’, ’lower_speed_cmd_kmh’,
+
+Underfull \hbox (badness 2671) in paragraph at lines 171--172
+\TU/TimesNewRoman(0)/m/n/10.95 ’P_inertia’, ’param_m’, ’param_CdA’, ’param_Crr’
+, ’param_P_aux’, ’param_E_nom_Wh’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 171--172
+\TU/TimesNewRoman(0)/m/n/10.95 ’map_drive_eff_map’, ’map_regen_eff_map’, ’map_r
+int_map’, ’map_panel_eff_map’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 192--192
+[]|$[][][][] [] [][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 200--200
+[]|$[][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 205--205
+[]|$[][][][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[]|$[][][][][][][][][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[][][][][][][][] [] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[][][][][][][][][][][][][][][][][][][][] [] [] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[][][] [] [][][] [] [][] [][] [][][][][][][] [] [] [] [][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[][][] [] [][] [][] [][][][][][][] [] [][][] [] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[][][] [][] [][][][][][][] [] [][][] [] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[][][] [][] [][][][][][][] [] [][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[][][] [][] [][][][][][][] [] [][][][] [] [][][][][] [] [][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+[]|\TU/TimesNewRoman(0)/m/n/10.95 build_bwsc2025_fitted_package.py \TU/YuGothic
+(0)/m/n/10.95 か
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+\TU/YuGothic(0)/m/n/10.95 ら \TU/TimesNewRoman(0)/m/n/10.95 BATTERY_E_NOM_MAX_WH
+,
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+\TU/TimesNewRoman(0)/m/n/10.95 BATTERY_E_NOM_MIN_WH, BAT-
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+\TU/TimesNewRoman(0)/m/n/10.95 TERY_ETA_CHARGE_MAX, BAT-
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+\TU/TimesNewRoman(0)/m/n/10.95 TERY_ETA_CHARGE_MIN, BAT-
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+\TU/TimesNewRoman(0)/m/n/10.95 TERY_RINT_SCALE_MAX, BAT-
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+\TU/TimesNewRoman(0)/m/n/10.95 TERY_RINT_SCALE_MIN, compile_tex, en-
+
+Underfull \hbox (badness 3417) in paragraph at lines 206--207
+\TU/TimesNewRoman(0)/m/n/10.95 sure_dir \TU/YuGothic(0)/m/n/10.95 を 読 み 込 み、|  
+こ の フ ァ イ ル の 内 部
+
+Underfull \hbox (badness 3343) in paragraph at lines 206--207
+\TU/YuGothic(0)/m/n/10.95 処 理 を 分 担 さ せ る た め。|  実 体 フ ァ イ ル は
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+\TU/TimesNewRoman(0)/m/n/10.95 scripts/build_bwsc2025_fitted_package.py\TU/YuGo
+thic(0)/m/n/10.95 。|  こ の フ
+
+Underfull \hbox (badness 10000) in paragraph at lines 207--207
+[]|$[][][][][][][][][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 207--207
+[][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 207--207
+[][][][][][][][][][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 207--208
+[]|\TU/TimesNewRoman(0)/m/n/10.95 audit_identification_residuals.py \TU/YuGothi
+c(0)/m/n/10.95 か ら
+
+Underfull \hbox (badness 2608) in paragraph at lines 207--208
+\TU/TimesNewRoman(0)/m/n/10.95 weather_and_cruise_metrics \TU/YuGothic(0)/m/n/1
+0.95 を 読 み 込 み、|  こ の フ
+ignored error: Infinite glue shrinkage found in box being split [5]
+ignored error: Infinite glue shrinkage found in box being split [6]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 229.
+
+[7] [8] [9] [10] [11] [12] [13] [14]
+Overfull \hbox (46.65714pt too wide) in paragraph at lines 628--629
+[]\TU/TimesNewRoman(0)/m/n/10.95 tagged \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 package_dir / ’outputs’ / ’identification’ / ’runs’ / outpu
+t_tag / f’{package_dir.name}_generic_fit_summary.yaml’
+
+Underfull \hbox (badness 10000) in paragraph at lines 635--636
+[]\TU/TimesNewRoman(0)/m/n/10.95 candidates \TU/YuGothic(0)/m/n/10.95 に \TU/Tim
+esNewRoman(0)/m/n/10.95 sorted((package_dir / ’outputs’ / ’identification’).glo
+b(’*_generic_fit_summary.yaml’),
+[15] [16]
+Underfull \hbox (badness 10000) in paragraph at lines 713--714
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][] [] [][]
+[][][] [] [][][][][][][][][] [] [][][][][][][] [] [][] [] [][][][][][][][][] []
+[] [][][][][][][][] [] [][][][][][] [] [][][] [][] [] [][] [][][][][] []
+
+Underfull \hbox (badness 2922) in paragraph at lines 716--717
+\TU/TimesNewRoman(0)/m/n/10.95 0.025)), ’ci95_max’: float(np.quantile(sampled_r
+mse, 0.975)), ’day_blocks’: int(len(blocks)), ’draws’:
+
+Overfull \hbox (10.03656pt too wide) in paragraph at lines 732--733
+[]\TU/TimesNewRoman(0)/m/n/10.95 work \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewR
+oman(0)/m/n/10.95 pd.DataFrame({’local_date’: df[’local_date’].astype(str), ’re
+sidual’: pd.to_numeric(df[residual_column],
+[17]
+Underfull \hbox (badness 3514) in paragraph at lines 741--742
+[]\TU/TimesNewRoman(0)/m/n/10.95 {’rmse’: float(np.sqrt(sse.sum() / count.sum()
+)), ’ci95_min’: float(np.quantile(sampled_rmse, 0.025)),
+[18]
+Underfull \hbox (badness 10000) in paragraph at lines 787--788
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][] [] []
+[][][][][] [] [][][][][][][][][][][][][][][][][][][] [] [][][] [] [][][][] [][]
+ [][][][][][] [] [][][] [] [][][][] [] [][][][] [] [][][][] [] [][] [][]
+
+Underfull \hbox (badness 2894) in paragraph at lines 790--791
+\TU/TimesNewRoman(0)/m/n/10.95 worst_power, ’worst_voltage’: worst_voltage} / {
+’replay_csv’: replay_csv, ’frame’: pd.DataFrame(),
+
+Overfull \hbox (145.28226pt too wide) in paragraph at lines 808--809
+[]\TU/TimesNewRoman(0)/m/n/10.95 fallback_ts \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 pd.to_datetime(df[’time_utc’], format=’mixed’, utc=Tru
+e, errors=’coerce’).dt.tz_convert(’Australia/Darwin’).dt.tz_localize(None)
+[19]
+Overfull \hbox (85.7402pt too wide) in paragraph at lines 817--818
+[]\TU/TimesNewRoman(0)/m/n/10.95 df[’power_resid_w’] \TU/YuGothic(0)/m/n/10.95 
+に \TU/TimesNewRoman(0)/m/n/10.95 pd.to_numeric(df[’battery_power_w_obs’], error
+s=’coerce’) - pd.to_numeric(df[’battery_power_w_pred’],
+
+Overfull \hbox (93.03842pt too wide) in paragraph at lines 818--819
+[]\TU/TimesNewRoman(0)/m/n/10.95 df[’voltage_resid_v’] \TU/YuGothic(0)/m/n/10.9
+5 に \TU/TimesNewRoman(0)/m/n/10.95 pd.to_numeric(df[’battery_voltage_v_obs’], e
+rrors=’coerce’) - pd.to_numeric(df[’battery_voltage_v_pred’],
+
+Underfull \hbox (badness 3769) in paragraph at lines 828--829
+[]\TU/TimesNewRoman(0)/m/n/10.95 daily \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNew
+Roman(0)/m/n/10.95 clean.groupby(’local_date’, dropna=False).agg(rows=(’local_d
+ate’, ’size’), max_s_km=(’s_km’,
+
+Overfull \hbox (98.74731pt too wide) in paragraph at lines 828--829
+\TU/TimesNewRoman(0)/m/n/10.95 ’max’), power_rmse_w=(’power_resid_w’, rms), pow
+er_mae_w=(’power_resid_w’, lambda s: float(np.mean(np.abs(pd.to_numeric(s,
+[20] [21]
+Underfull \hbox (badness 1454) in paragraph at lines 902--903
+\TU/TimesNewRoman(0)/m/n/10.95 age_dir / ’outputs’ / ’prerace_final_selflearned
+’ / ’latest_simulation_run.json’, package_dir / ’outputs’ /
+[22]
+Underfull \hbox (badness 10000) in paragraph at lines 983--984
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][] [] []
+[][][][][][] [] [][][][][][][][][][][][][][][] [] [][][] [] [][][][] [][] [][][
+][][][][] [] [][][][] [] [][][][] [][] [][][][][][][][] [] [][][][] []
+[23]
+Overfull \hbox (123.39832pt too wide) in paragraph at lines 1009--1010
+[]\TU/TimesNewRoman(0)/m/n/10.95 utc_ts \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 pd.to_datetime(df[’time_utc’], format=’mixed’, utc=True, er
+rors=’coerce’).dt.tz_convert(’Australia/Darwin’).dt.tz_localize(None)
+[24]
+Overfull \hbox (37.13608pt too wide) in paragraph at lines 1019--1020
+[]\TU/TimesNewRoman(0)/m/n/10.95 energy_columns \TU/YuGothic(0)/m/n/10.95 に \TU
+/TimesNewRoman(0)/m/n/10.95 {’pv_energy_wh’: ’P_pv’, ’vehicle_load_energy_wh’: 
+’P_vehicle_load_w’, ’drive_dc_energy_wh’:
+
+Underfull \hbox (badness 1337) in paragraph at lines 1026--1027
+[]\TU/TimesNewRoman(0)/m/n/10.95 daily_agg \TU/YuGothic(0)/m/n/10.95 に \TU/Time
+sNewRoman(0)/m/n/10.95 {’rows’: (’local_date’, ’size’), ’end_s_km’: (’s_km’, ’m
+ax’), ’min_soc’: (’soc’, ’min’),
+
+Underfull \hbox (badness 3872) in paragraph at lines 1027--1028
+[]\TU/TimesNewRoman(0)/m/n/10.95 optional_aggregates \TU/YuGothic(0)/m/n/10.95 
+に \TU/TimesNewRoman(0)/m/n/10.95 {’mean_poa_wm2’: (’G_poa’, ’mean’), ’max_poa_w
+m2’: (’G_poa’, ’max’),
+[25]
+Underfull \hbox (badness 10000) in paragraph at lines 1081--1082
+\TU/TimesNewRoman(0)/m/n/10.95 boundary_partial_rows, ’nonfinite_step_rows’: no
+nfinite_step_rows, ’nonpositive_step_rows’: non-
+
+Underfull \hbox (badness 10000) in paragraph at lines 1081--1082
+\TU/TimesNewRoman(0)/m/n/10.95 positive_rows, ’over_one_second_rows’: over_one_
+second_rows, ’target_not_one_second_rows’: tar-
+[26] [27]
+Underfull \hbox (badness 10000) in paragraph at lines 1129--1130
+\TU/TimesNewRoman(0)/m/n/10.95 quired_column_count’: len(DETAIL_REQUIRED_COLUMN
+S), ’missing_required_columns’: miss-
+
+Underfull \hbox (badness 2173) in paragraph at lines 1129--1130
+\TU/TimesNewRoman(0)/m/n/10.95 ing, ’min_step_dt_sec’: min_dt if np.isfinite(mi
+n_dt) else float(’nan’), ’max_step_dt_sec’: max_dt if
+
+Underfull \hbox (badness 10000) in paragraph at lines 1129--1130
+\TU/TimesNewRoman(0)/m/n/10.95 boundary_partial_rows, ’nonfinite_step_rows’: no
+nfinite_step_rows, ’nonpositive_step_rows’: non-
+
+Underfull \hbox (badness 7012) in paragraph at lines 1129--1130
+\TU/TimesNewRoman(0)/m/n/10.95 positive_rows, ’over_one_second_rows’: over_one_
+second_rows, ’target_not_one_second_rows’: tar-
+[28]
+Overfull \hbox (9.41885pt too wide) in paragraph at lines 1193--1194
+[]\TU/TimesNewRoman(0)/m/n/10.95 work \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewR
+oman(0)/m/n/10.95 pd.DataFrame({’s_km’: pd.to_numeric(df[’s_km’], errors=’coerc
+e’), ’value’: pd.to_numeric(df[column],
+[29]
+Underfull \hbox (badness 4229) in paragraph at lines 1228--1229
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][] [
+] [][][][][] [] [][] [] [][][][][][][][][][][] [] [][] [] [][][][][][][][][] []
+[] [][][][][][] [] [][][] [][] [][][][][] [] [][] [] [][][][][] [][] [][][] [] 
+[][] []
+[30]
+Underfull \hbox (badness 10000) in paragraph at lines 1273--1274
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][] [] 
+[][][][][] [] [][][] [] [][][][][][][][] [] [][][][][][][][][][][][][][][][][] 
+[] [][] [] [][] [] [][][][][][][][][] [][] [][][][][][][] [] [][] []
+[31]
+Underfull \hbox (badness 10000) in paragraph at lines 1351--1352
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][] [] 
+[][][][][] [] [][][][][][][][] [] [][][][][][][][][][][][][][][][][] [] [][] []
+ [][] [] [][][][][][][][][] [][] [][][][][][][] [] [][] [] [][] []
+[32]
+Underfull \hbox (badness 1314) in paragraph at lines 1369--1370
+[]\TU/TimesNewRoman(0)/m/n/10.95 human \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNew
+Roman(0)/m/n/10.95 replay_df.groupby(’local_date’, as_index=False)[’s_km’].max(
+).rename(columns={’s_km’: ’hu-
+
+Underfull \hbox (badness 10000) in paragraph at lines 1370--1371
+[]\TU/TimesNewRoman(0)/m/n/10.95 mpc \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 fullsim_df.groupby(’local_date’, as_index=False)[’s_km’].max()
+.rename(columns={’s_km’:
+[33]
+Overfull \hbox (3.76434pt too wide) in paragraph at lines 1402--1403
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][] [] 
+[][][][][] [] [][][] [] [][][][][][][][] [] [][][][][][][][][][][] [] [][] [] [
+][] [] [][][][][][][][][] [][] [][][][][][][] [] [][] [] [][] [] [][][][][][][]
+[][] [][]
+[34] [35] [36] [37]
+Overfull \hbox (11.20157pt too wide) in paragraph at lines 1608--1609
+[]\TU/TimesNewRoman(0)/m/n/10.95 rows \TU/YuGothic(0)/m/n/10.95 に\TU/TimesNewRo
+man(0)/m/n/10.95 ’\n’.join((’ & ’.join((latex_escape(v) for v in row)) + ’ \\\\
+’ for row in data.astype(str).itertuples(index=False,
+[38] [39]
+Underfull \hbox (badness 10000) in paragraph at lines 1662--1663
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][] [] 
+[][][][][][][][][][][][][][] [] [][][] [] [][][][] [][] [][][][][][][] [] [][][
+][] [] [][][][] [][] [] [][] [][][] [] [][][][][][][] [] [][][][] [] [][][][] [
+]
+
+Overfull \hbox (1.20975pt too wide) in paragraph at lines 1662--1663
+[][][][] [] [][][][] [][] [][][][][][] [] [][][] [] [][][][] [] [][][][] [] [][
+][][] [][] [][][][][][][] [] [][][][][][][][] [] [][][][] [] [][][][] [] [][][]
+[] [] [][] [][] [][][][][][][][][][] [][]
+
+Underfull \hbox (badness 1867) in paragraph at lines 1664--1665
+\TU/TimesNewRoman(0)/m/n/10.95 dit_fullsim_detail, bool, build_daily_progress_c
+omparison, build_human_mpc_distance_comparison, com-
+
+Underfull \hbox (badness 10000) in paragraph at lines 1666--1667
+\TU/TimesNewRoman(0)/m/n/10.95 counterfactual, counterfactual_analysis, counter
+factual_path, counterfactual_scenario, cruise_70kmh,
+
+Overfull \hbox (28.32759pt too wide) in paragraph at lines 1689--1690
+[]\TU/TimesNewRoman(0)/m/n/10.95 end_to_end_replay \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 pd.read_csv(end_to_end_replay_path, low_memory=F
+alse) if end_to_end_replay_path.is_file()
+[40]
+Underfull \hbox (badness 7796) in paragraph at lines 1718--1719
+[]\TU/TimesNewRoman(0)/m/n/10.95 observed_power \TU/YuGothic(0)/m/n/10.95 に \TU
+/TimesNewRoman(0)/m/n/10.95 pd.to_numeric(clean_replay.get(’battery_power_w_obs
+’, pd.Series(dtype=float)), er-
+[41]
+Underfull \hbox (badness 1655) in paragraph at lines 1719--1720
+[]\TU/TimesNewRoman(0)/m/n/10.95 observed_power_rms \TU/YuGothic(0)/m/n/10.95 に
+ \TU/TimesNewRoman(0)/m/n/10.95 float(np.sqrt(np.mean(observed_power.to_numpy(d
+type=float) ** 2))) if not ob-
+
+Overfull \hbox (35.96902pt too wide) in paragraph at lines 1720--1721
+[]\TU/TimesNewRoman(0)/m/n/10.95 conditional_power_nrmse \TU/YuGothic(0)/m/n/10
+.95 に \TU/TimesNewRoman(0)/m/n/10.95 float(power_bootstrap[’rmse’]) / observed_
+power_rms if np.isfinite(observed_power_rms)
+
+Underfull \hbox (badness 5771) in paragraph at lines 1725--1726
+[]\TU/TimesNewRoman(0)/m/n/10.95 physical_parameter_gate_pass \TU/YuGothic(0)/m
+/n/10.95 に \TU/TimesNewRoman(0)/m/n/10.95 bool(np.isfinite(fitted_e_nom_wh) and
+ BATTERY_E_NOM_MIN_WH
+
+Underfull \hbox (badness 6188) in paragraph at lines 1725--1726
+\TU/TimesNewRoman(0)/m/n/10.95 <= fitted_e_nom_wh <= BATTERY_E_NOM_MAX_WH and n
+p.isfinite(fitted_rint_scale) and (BAT-
+
+Overfull \hbox (43.49533pt too wide) in paragraph at lines 1725--1726
+\TU/TimesNewRoman(0)/m/n/10.95 TERY_RINT_SCALE_MIN <= fitted_rint_scale <= BATT
+ERY_RINT_SCALE_MAX) and np.isfinite(fitted_eta_charge)
+
+Underfull \hbox (badness 2197) in paragraph at lines 1725--1726
+\TU/TimesNewRoman(0)/m/n/10.95 and (BATTERY_ETA_CHARGE_MIN <= fitted_eta_charge
+ <= BATTERY_ETA_CHARGE_MAX) and
+
+Underfull \hbox (badness 10000) in paragraph at lines 1727--1728
+[]\TU/TimesNewRoman(0)/m/n/10.95 boundary_flags \TU/YuGothic(0)/m/n/10.95 に \TU
+/TimesNewRoman(0)/m/n/10.95 {’e_nom_at_min’: abs(fitted_e_nom_wh - BATTERY_E_NO
+M_MIN_WH) <=
+
+Underfull \hbox (badness 10000) in paragraph at lines 1727--1728
+\TU/TimesNewRoman(0)/m/n/10.95 boundary_tolerance, ’e_nom_at_max’: abs(fitted_e
+_nom_wh - BATTERY_E_NOM_MAX_WH) <=
+
+Underfull \hbox (badness 10000) in paragraph at lines 1727--1728
+\TU/TimesNewRoman(0)/m/n/10.95 boundary_tolerance, ’rint_scale_at_min’: abs(fit
+ted_rint_scale - BATTERY_RINT_SCALE_MIN) <=
+
+Underfull \hbox (badness 5203) in paragraph at lines 1727--1728
+\TU/TimesNewRoman(0)/m/n/10.95 boundary_tolerance, ’rint_scale_at_max’: abs(fit
+ted_rint_scale - BATTERY_RINT_SCALE_MAX) <=
+
+Underfull \hbox (badness 2073) in paragraph at lines 1727--1728
+\TU/TimesNewRoman(0)/m/n/10.95 boundary_tolerance, ’eta_charge_at_min’: abs(fit
+ted_eta_charge - BATTERY_ETA_CHARGE_MIN) <=
+
+Underfull \hbox (badness 1400) in paragraph at lines 1734--1735
+[]\TU/TimesNewRoman(0)/m/n/10.95 shape_rows \TU/YuGothic(0)/m/n/10.95 に \TU/Tim
+esNewRoman(0)/m/n/10.95 pd.DataFrame([{’map’: name, ’samples’: values.get(’samp
+le_count’, ”), ’reason’: val-
+
+Overfull \hbox (15.02145pt too wide) in paragraph at lines 1736--1737
+[]\TU/TimesNewRoman(0)/m/n/10.95 grounded_summary_path \TU/YuGothic(0)/m/n/10.9
+5 に \TU/TimesNewRoman(0)/m/n/10.95 resolve_path(package_dir, str(evidence_bundl
+e.get(’grounded_map_summary_yaml’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1737--1738
+[]\TU/TimesNewRoman(0)/m/n/10.95 grounded_summary \TU/YuGothic(0)/m/n/10.95 に \
+TU/TimesNewRoman(0)/m/n/10.95 yaml.safe_load(grounded_summary_path.read_text(en
+coding=’utf-8’)) or {} if
+[42]
+Overfull \hbox (37.60693pt too wide) in paragraph at lines 1746--1747
+[]\TU/TimesNewRoman(0)/m/n/10.95 grounded_detail_tex \TU/YuGothic(0)/m/n/10.95 
+に\TU/TimesNewRoman(0)/m/n/10.95 ’\n’.join((’\\subsubsection*{’ + latex_escape(r
+ow[’component’]) + ’}\n’ + tex_kv_table([(’source
+
+Overfull \hbox (2.71815pt too wide) in paragraph at lines 1746--1747
+\TU/TimesNewRoman(0)/m/n/10.95 files’, row[’source_files’]), (’physical/test ba
+sis’, row[’method’]), (’reference values’, row[’reference_values’])])
+
+Underfull \hbox (badness 10000) in paragraph at lines 1754--1755
+[]\TU/TimesNewRoman(0)/m/n/10.95 distance_comparison \TU/YuGothic(0)/m/n/10.95 
+に \TU/TimesNewRoman(0)/m/n/10.95 build_human_mpc_distance_comparison(replay.get
+(’frame’, pd.DataFrame()),
+
+Underfull \hbox (badness 4181) in paragraph at lines 1755--1756
+[]\TU/TimesNewRoman(0)/m/n/10.95 distance_comparison_display \TU/YuGothic(0)/m/
+n/10.95 に \TU/TimesNewRoman(0)/m/n/10.95 distance_comparison.rename(columns={’s
+egment_km’: ’segment’, ’hu-
+
+Overfull \hbox (32.11192pt too wide) in paragraph at lines 1755--1756
+\TU/TimesNewRoman(0)/m/n/10.95 man_moving_speed_kmh’: ’v_human_kmh’, ’mpc_movin
+g_speed_kmh’: ’v_mpc_kmh’, ’human_reconstructed_soc’:
+
+Underfull \hbox (badness 1253) in paragraph at lines 1758--1759
+[]\TU/TimesNewRoman(0)/m/n/10.95 daily_progress_comparison \TU/YuGothic(0)/m/n/
+10.95 に \TU/TimesNewRoman(0)/m/n/10.95 build_daily_progress_comparison(replay.g
+et(’frame’, pd.DataFrame()), full-
+
+Overfull \hbox (8.51706pt too wide) in paragraph at lines 1759--1760
+[]\TU/TimesNewRoman(0)/m/n/10.95 distance_plot_path \TU/YuGothic(0)/m/n/10.95 に
+ \TU/TimesNewRoman(0)/m/n/10.95 write_human_mpc_distance_plot(replay.get(’frame
+’, pd.DataFrame()), fullsim.get(’frame’,
+[43] [44]
+Underfull \hbox (badness 7012) in paragraph at lines 1832--1833
+[]\TU/TimesNewRoman(0)/m/n/10.95 (md_path, pdf_path) \TU/YuGothic(0)/m/n/10.95 
+に \TU/TimesNewRoman(0)/m/n/10.95 build_report(package_dir, profile_yaml, fit_su
+mmary_path=fit_summary_path,
+[45] [46]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\40_scripts_generate_fit_fullsim_report_py\40_script
+s_generate_fit_fullsim_report_py.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\40_scripts_generate_fit_fullsim_re
+port_py\40_scripts_generate_fit_fullsim_report_py.pdf (46 pages).
+Transcript written on "C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-ma
+in\docs\program_reference_complete_20260729\build\40_scripts_generate_fit_fulls
+im_report_py\40_scripts_generate_fit_fullsim_report_py.log".
+
+miktex-dvipdfmx: major issue: So far, you have not checked for MiKTeX updates.
+xelatex: major issue: So far, you have not checked for MiKTeX updates.
+
+
+===== xelatex pass 2 =====
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/40_scripts_generate_fit_fullsim_report_py.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\40_scripts_generate_fit_fullsim_report_py\40_script
+s_generate_fit_fullsim_report_py.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\40_scripts_generate_fit_fullsim_report_py\40_script
+s_generate_fit_fullsim_report_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\40_scripts_generate_fit_fullsim_report_py\40_script
+s_generate_fit_fullsim_report_py.out)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\40_scripts_generate_fit_fullsim_report_py\40_script
+s_generate_fit_fullsim_report_py.toc [1]) [2]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[3]
+Overfull \hbox (47.7143pt too wide) in paragraph at lines 120--121
+\TU/YuGothic(0)/m/n/10.95 主 要 関 数 は \TU/TimesNewRoman(0)/m/n/10.95 resolve_path
+, latex_escape, rel_display, locate_package_dir, locate_fit_summary, rms, day_b
+lock_bootstrap_rmse,
+
+Underfull \hbox (badness 10000) in paragraph at lines 133--133
+[]|$[][][] [] [][][][][] [] [][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 134--134
+[]|$[][][][] [] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 135--135
+[]|$[][][][][][] [] [][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 136--136
+[]|$[][][][][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 137--138
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: package_dir, profile_yaml, mani-
+
+Underfull \hbox (badness 10000) in paragraph at lines 139--139
+[]|$[][][][][][][][][][][] [] [][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 140--140
+[]|$[][][][][][] [] [][][][][] [] [][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 141--141
+[]|$[][][][][] [] [][][][][] [] [][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 141--142
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: replay_df, fullsim_df, re-
+
+Underfull \hbox (badness 10000) in paragraph at lines 142--142
+[]|$[][][][][] [] [][][][][] [] [][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 143--143
+[]|$[][][][][] [] [][][][][] [] [][][] []
+ignored error: Infinite glue shrinkage found in box being split [4]
+Underfull \hbox (badness 2368) in paragraph at lines 171--172
+[]|\TU/TimesNewRoman(0)/m/n/10.95 DETAIL_REQUIRED_COLUMNS \TU/YuGothic(0)/m/n/1
+0.95 に \TU/TimesNewRoman(0)/m/n/10.95 {’lower_command_index’, ’time_utc’, ’step
+_dt_sec’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 171--172
+\TU/TimesNewRoman(0)/m/n/10.95 ’detail_target_dt_sec’, ’outer_step_requested_dt
+_sec’, ’outer_step_actual_dt_sec’,
+
+Underfull \hbox (badness 4492) in paragraph at lines 171--172
+\TU/TimesNewRoman(0)/m/n/10.95 ’outer_step_boundary_reason’, ’s_km’, ’upper_spe
+ed_cmd_kmh’, ’lower_speed_cmd_kmh’,
+
+Underfull \hbox (badness 2671) in paragraph at lines 171--172
+\TU/TimesNewRoman(0)/m/n/10.95 ’P_inertia’, ’param_m’, ’param_CdA’, ’param_Crr’
+, ’param_P_aux’, ’param_E_nom_Wh’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 171--172
+\TU/TimesNewRoman(0)/m/n/10.95 ’map_drive_eff_map’, ’map_regen_eff_map’, ’map_r
+int_map’, ’map_panel_eff_map’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 192--192
+[]|$[][][][] [] [][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 200--200
+[]|$[][][][][][][][][][][][][][][][][][][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 205--205
+[]|$[][][][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[]|$[][][][][][][][][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[][][][][][][][] [] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[][][][][][][][][][][][][][][][][][][][] [] [] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[][][] [] [][][] [] [][] [][] [][][][][][][] [] [] [] [][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[][][] [] [][] [][] [][][][][][][] [] [][][] [] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[][][] [][] [][][][][][][] [] [][][] [] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[][][] [][] [][][][][][][] [] [][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[][][] [][] [][][][][][][] [] [][][][] [] [][][][][] [] [][][] [][]
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+[]|\TU/TimesNewRoman(0)/m/n/10.95 build_bwsc2025_fitted_package.py \TU/YuGothic
+(0)/m/n/10.95 か
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+\TU/YuGothic(0)/m/n/10.95 ら \TU/TimesNewRoman(0)/m/n/10.95 BATTERY_E_NOM_MAX_WH
+,
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+\TU/TimesNewRoman(0)/m/n/10.95 BATTERY_E_NOM_MIN_WH, BAT-
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+\TU/TimesNewRoman(0)/m/n/10.95 TERY_ETA_CHARGE_MAX, BAT-
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+\TU/TimesNewRoman(0)/m/n/10.95 TERY_ETA_CHARGE_MIN, BAT-
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+\TU/TimesNewRoman(0)/m/n/10.95 TERY_RINT_SCALE_MAX, BAT-
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+\TU/TimesNewRoman(0)/m/n/10.95 TERY_RINT_SCALE_MIN, compile_tex, en-
+
+Underfull \hbox (badness 3417) in paragraph at lines 206--207
+\TU/TimesNewRoman(0)/m/n/10.95 sure_dir \TU/YuGothic(0)/m/n/10.95 を 読 み 込 み、|  
+こ の フ ァ イ ル の 内 部
+
+Underfull \hbox (badness 3343) in paragraph at lines 206--207
+\TU/YuGothic(0)/m/n/10.95 処 理 を 分 担 さ せ る た め。|  実 体 フ ァ イ ル は
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--207
+\TU/TimesNewRoman(0)/m/n/10.95 scripts/build_bwsc2025_fitted_package.py\TU/YuGo
+thic(0)/m/n/10.95 。|  こ の フ
+
+Underfull \hbox (badness 10000) in paragraph at lines 207--207
+[]|$[][][][][][][][][][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 207--207
+[][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 207--207
+[][][][][][][][][][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 207--208
+[]|\TU/TimesNewRoman(0)/m/n/10.95 audit_identification_residuals.py \TU/YuGothi
+c(0)/m/n/10.95 か ら
+
+Underfull \hbox (badness 2608) in paragraph at lines 207--208
+\TU/TimesNewRoman(0)/m/n/10.95 weather_and_cruise_metrics \TU/YuGothic(0)/m/n/1
+0.95 を 読 み 込 み、|  こ の フ
+ignored error: Infinite glue shrinkage found in box being split [5]
+ignored error: Infinite glue shrinkage found in box being split [6]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 229.
+
+[7] [8] [9] [10] [11] [12] [13] [14]
+Overfull \hbox (46.65714pt too wide) in paragraph at lines 628--629
+[]\TU/TimesNewRoman(0)/m/n/10.95 tagged \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 package_dir / ’outputs’ / ’identification’ / ’runs’ / outpu
+t_tag / f’{package_dir.name}_generic_fit_summary.yaml’
+
+Underfull \hbox (badness 10000) in paragraph at lines 635--636
+[]\TU/TimesNewRoman(0)/m/n/10.95 candidates \TU/YuGothic(0)/m/n/10.95 に \TU/Tim
+esNewRoman(0)/m/n/10.95 sorted((package_dir / ’outputs’ / ’identification’).glo
+b(’*_generic_fit_summary.yaml’),
+[15] [16]
+Underfull \hbox (badness 10000) in paragraph at lines 713--714
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][] [] [][]
+[][][] [] [][][][][][][][][] [] [][][][][][][] [] [][] [] [][][][][][][][][] []
+[] [][][][][][][][] [] [][][][][][] [] [][][] [][] [] [][] [][][][][] []
+
+Underfull \hbox (badness 2922) in paragraph at lines 716--717
+\TU/TimesNewRoman(0)/m/n/10.95 0.025)), ’ci95_max’: float(np.quantile(sampled_r
+mse, 0.975)), ’day_blocks’: int(len(blocks)), ’draws’:
+
+Overfull \hbox (10.03656pt too wide) in paragraph at lines 732--733
+[]\TU/TimesNewRoman(0)/m/n/10.95 work \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewR
+oman(0)/m/n/10.95 pd.DataFrame({’local_date’: df[’local_date’].astype(str), ’re
+sidual’: pd.to_numeric(df[residual_column],
+[17]
+Underfull \hbox (badness 3514) in paragraph at lines 741--742
+[]\TU/TimesNewRoman(0)/m/n/10.95 {’rmse’: float(np.sqrt(sse.sum() / count.sum()
+)), ’ci95_min’: float(np.quantile(sampled_rmse, 0.025)),
+[18]
+Underfull \hbox (badness 10000) in paragraph at lines 787--788
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][] [] []
+[][][][][] [] [][][][][][][][][][][][][][][][][][][] [] [][][] [] [][][][] [][]
+ [][][][][][] [] [][][] [] [][][][] [] [][][][] [] [][][][] [] [][] [][]
+
+Underfull \hbox (badness 2894) in paragraph at lines 790--791
+\TU/TimesNewRoman(0)/m/n/10.95 worst_power, ’worst_voltage’: worst_voltage} / {
+’replay_csv’: replay_csv, ’frame’: pd.DataFrame(),
+
+Overfull \hbox (145.28226pt too wide) in paragraph at lines 808--809
+[]\TU/TimesNewRoman(0)/m/n/10.95 fallback_ts \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 pd.to_datetime(df[’time_utc’], format=’mixed’, utc=Tru
+e, errors=’coerce’).dt.tz_convert(’Australia/Darwin’).dt.tz_localize(None)
+[19]
+Overfull \hbox (85.7402pt too wide) in paragraph at lines 817--818
+[]\TU/TimesNewRoman(0)/m/n/10.95 df[’power_resid_w’] \TU/YuGothic(0)/m/n/10.95 
+に \TU/TimesNewRoman(0)/m/n/10.95 pd.to_numeric(df[’battery_power_w_obs’], error
+s=’coerce’) - pd.to_numeric(df[’battery_power_w_pred’],
+
+Overfull \hbox (93.03842pt too wide) in paragraph at lines 818--819
+[]\TU/TimesNewRoman(0)/m/n/10.95 df[’voltage_resid_v’] \TU/YuGothic(0)/m/n/10.9
+5 に \TU/TimesNewRoman(0)/m/n/10.95 pd.to_numeric(df[’battery_voltage_v_obs’], e
+rrors=’coerce’) - pd.to_numeric(df[’battery_voltage_v_pred’],
+
+Underfull \hbox (badness 3769) in paragraph at lines 828--829
+[]\TU/TimesNewRoman(0)/m/n/10.95 daily \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNew
+Roman(0)/m/n/10.95 clean.groupby(’local_date’, dropna=False).agg(rows=(’local_d
+ate’, ’size’), max_s_km=(’s_km’,
+
+Overfull \hbox (98.74731pt too wide) in paragraph at lines 828--829
+\TU/TimesNewRoman(0)/m/n/10.95 ’max’), power_rmse_w=(’power_resid_w’, rms), pow
+er_mae_w=(’power_resid_w’, lambda s: float(np.mean(np.abs(pd.to_numeric(s,
+[20] [21]
+Underfull \hbox (badness 1454) in paragraph at lines 902--903
+\TU/TimesNewRoman(0)/m/n/10.95 age_dir / ’outputs’ / ’prerace_final_selflearned
+’ / ’latest_simulation_run.json’, package_dir / ’outputs’ /
+[22]
+Underfull \hbox (badness 10000) in paragraph at lines 983--984
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][] [] []
+[][][][][][] [] [][][][][][][][][][][][][][][] [] [][][] [] [][][][] [][] [][][
+][][][][] [] [][][][] [] [][][][] [][] [][][][][][][][] [] [][][][] []
+[23]
+Overfull \hbox (123.39832pt too wide) in paragraph at lines 1009--1010
+[]\TU/TimesNewRoman(0)/m/n/10.95 utc_ts \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 pd.to_datetime(df[’time_utc’], format=’mixed’, utc=True, er
+rors=’coerce’).dt.tz_convert(’Australia/Darwin’).dt.tz_localize(None)
+[24]
+Overfull \hbox (37.13608pt too wide) in paragraph at lines 1019--1020
+[]\TU/TimesNewRoman(0)/m/n/10.95 energy_columns \TU/YuGothic(0)/m/n/10.95 に \TU
+/TimesNewRoman(0)/m/n/10.95 {’pv_energy_wh’: ’P_pv’, ’vehicle_load_energy_wh’: 
+’P_vehicle_load_w’, ’drive_dc_energy_wh’:
+
+Underfull \hbox (badness 1337) in paragraph at lines 1026--1027
+[]\TU/TimesNewRoman(0)/m/n/10.95 daily_agg \TU/YuGothic(0)/m/n/10.95 に \TU/Time
+sNewRoman(0)/m/n/10.95 {’rows’: (’local_date’, ’size’), ’end_s_km’: (’s_km’, ’m
+ax’), ’min_soc’: (’soc’, ’min’),
+
+Underfull \hbox (badness 3872) in paragraph at lines 1027--1028
+[]\TU/TimesNewRoman(0)/m/n/10.95 optional_aggregates \TU/YuGothic(0)/m/n/10.95 
+に \TU/TimesNewRoman(0)/m/n/10.95 {’mean_poa_wm2’: (’G_poa’, ’mean’), ’max_poa_w
+m2’: (’G_poa’, ’max’),
+[25]
+Underfull \hbox (badness 10000) in paragraph at lines 1081--1082
+\TU/TimesNewRoman(0)/m/n/10.95 boundary_partial_rows, ’nonfinite_step_rows’: no
+nfinite_step_rows, ’nonpositive_step_rows’: non-
+
+Underfull \hbox (badness 10000) in paragraph at lines 1081--1082
+\TU/TimesNewRoman(0)/m/n/10.95 positive_rows, ’over_one_second_rows’: over_one_
+second_rows, ’target_not_one_second_rows’: tar-
+[26] [27]
+Underfull \hbox (badness 10000) in paragraph at lines 1129--1130
+\TU/TimesNewRoman(0)/m/n/10.95 quired_column_count’: len(DETAIL_REQUIRED_COLUMN
+S), ’missing_required_columns’: miss-
+
+Underfull \hbox (badness 2173) in paragraph at lines 1129--1130
+\TU/TimesNewRoman(0)/m/n/10.95 ing, ’min_step_dt_sec’: min_dt if np.isfinite(mi
+n_dt) else float(’nan’), ’max_step_dt_sec’: max_dt if
+
+Underfull \hbox (badness 10000) in paragraph at lines 1129--1130
+\TU/TimesNewRoman(0)/m/n/10.95 boundary_partial_rows, ’nonfinite_step_rows’: no
+nfinite_step_rows, ’nonpositive_step_rows’: non-
+
+Underfull \hbox (badness 7012) in paragraph at lines 1129--1130
+\TU/TimesNewRoman(0)/m/n/10.95 positive_rows, ’over_one_second_rows’: over_one_
+second_rows, ’target_not_one_second_rows’: tar-
+[28]
+Overfull \hbox (9.41885pt too wide) in paragraph at lines 1193--1194
+[]\TU/TimesNewRoman(0)/m/n/10.95 work \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewR
+oman(0)/m/n/10.95 pd.DataFrame({’s_km’: pd.to_numeric(df[’s_km’], errors=’coerc
+e’), ’value’: pd.to_numeric(df[column],
+[29]
+Underfull \hbox (badness 4229) in paragraph at lines 1228--1229
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][] [
+] [][][][][] [] [][] [] [][][][][][][][][][][] [] [][] [] [][][][][][][][][] []
+[] [][][][][][] [] [][][] [][] [][][][][] [] [][] [] [][][][][] [][] [][][] [] 
+[][] []
+[30]
+Underfull \hbox (badness 10000) in paragraph at lines 1273--1274
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][] [] 
+[][][][][] [] [][][] [] [][][][][][][][] [] [][][][][][][][][][][][][][][][][] 
+[] [][] [] [][] [] [][][][][][][][][] [][] [][][][][][][] [] [][] []
+[31]
+Underfull \hbox (badness 10000) in paragraph at lines 1351--1352
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][] [] 
+[][][][][] [] [][][][][][][][] [] [][][][][][][][][][][][][][][][][] [] [][] []
+ [][] [] [][][][][][][][][] [][] [][][][][][][] [] [][] [] [][] []
+[32]
+Underfull \hbox (badness 1314) in paragraph at lines 1369--1370
+[]\TU/TimesNewRoman(0)/m/n/10.95 human \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNew
+Roman(0)/m/n/10.95 replay_df.groupby(’local_date’, as_index=False)[’s_km’].max(
+).rename(columns={’s_km’: ’hu-
+
+Underfull \hbox (badness 10000) in paragraph at lines 1370--1371
+[]\TU/TimesNewRoman(0)/m/n/10.95 mpc \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 fullsim_df.groupby(’local_date’, as_index=False)[’s_km’].max()
+.rename(columns={’s_km’:
+[33]
+Overfull \hbox (3.76434pt too wide) in paragraph at lines 1402--1403
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][] [] 
+[][][][][] [] [][][] [] [][][][][][][][] [] [][][][][][][][][][][] [] [][] [] [
+][] [] [][][][][][][][][] [][] [][][][][][][] [] [][] [] [][] [] [][][][][][][]
+[][] [][]
+[34] [35] [36] [37]
+Overfull \hbox (11.20157pt too wide) in paragraph at lines 1608--1609
+[]\TU/TimesNewRoman(0)/m/n/10.95 rows \TU/YuGothic(0)/m/n/10.95 に\TU/TimesNewRo
+man(0)/m/n/10.95 ’\n’.join((’ & ’.join((latex_escape(v) for v in row)) + ’ \\\\
+’ for row in data.astype(str).itertuples(index=False,
+[38] [39]
+Underfull \hbox (badness 10000) in paragraph at lines 1662--1663
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][] [] 
+[][][][][][][][][][][][][][] [] [][][] [] [][][][] [][] [][][][][][][] [] [][][
+][] [] [][][][] [][] [] [][] [][][] [] [][][][][][][] [] [][][][] [] [][][][] [
+]
+
+Overfull \hbox (1.20975pt too wide) in paragraph at lines 1662--1663
+[][][][] [] [][][][] [][] [][][][][][] [] [][][] [] [][][][] [] [][][][] [] [][
+][][] [][] [][][][][][][] [] [][][][][][][][] [] [][][][] [] [][][][] [] [][][]
+[] [] [][] [][] [][][][][][][][][][] [][]
+
+Underfull \hbox (badness 1867) in paragraph at lines 1664--1665
+\TU/TimesNewRoman(0)/m/n/10.95 dit_fullsim_detail, bool, build_daily_progress_c
+omparison, build_human_mpc_distance_comparison, com-
+
+Underfull \hbox (badness 10000) in paragraph at lines 1666--1667
+\TU/TimesNewRoman(0)/m/n/10.95 counterfactual, counterfactual_analysis, counter
+factual_path, counterfactual_scenario, cruise_70kmh,
+
+Overfull \hbox (28.32759pt too wide) in paragraph at lines 1689--1690
+[]\TU/TimesNewRoman(0)/m/n/10.95 end_to_end_replay \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 pd.read_csv(end_to_end_replay_path, low_memory=F
+alse) if end_to_end_replay_path.is_file()
+[40]
+Underfull \hbox (badness 7796) in paragraph at lines 1718--1719
+[]\TU/TimesNewRoman(0)/m/n/10.95 observed_power \TU/YuGothic(0)/m/n/10.95 に \TU
+/TimesNewRoman(0)/m/n/10.95 pd.to_numeric(clean_replay.get(’battery_power_w_obs
+’, pd.Series(dtype=float)), er-
+[41]
+Underfull \hbox (badness 1655) in paragraph at lines 1719--1720
+[]\TU/TimesNewRoman(0)/m/n/10.95 observed_power_rms \TU/YuGothic(0)/m/n/10.95 に
+ \TU/TimesNewRoman(0)/m/n/10.95 float(np.sqrt(np.mean(observed_power.to_numpy(d
+type=float) ** 2))) if not ob-
+
+Overfull \hbox (35.96902pt too wide) in paragraph at lines 1720--1721
+[]\TU/TimesNewRoman(0)/m/n/10.95 conditional_power_nrmse \TU/YuGothic(0)/m/n/10
+.95 に \TU/TimesNewRoman(0)/m/n/10.95 float(power_bootstrap[’rmse’]) / observed_
+power_rms if np.isfinite(observed_power_rms)
+
+Underfull \hbox (badness 5771) in paragraph at lines 1725--1726
+[]\TU/TimesNewRoman(0)/m/n/10.95 physical_parameter_gate_pass \TU/YuGothic(0)/m
+/n/10.95 に \TU/TimesNewRoman(0)/m/n/10.95 bool(np.isfinite(fitted_e_nom_wh) and
+ BATTERY_E_NOM_MIN_WH
+
+Underfull \hbox (badness 6188) in paragraph at lines 1725--1726
+\TU/TimesNewRoman(0)/m/n/10.95 <= fitted_e_nom_wh <= BATTERY_E_NOM_MAX_WH and n
+p.isfinite(fitted_rint_scale) and (BAT-
+
+Overfull \hbox (43.49533pt too wide) in paragraph at lines 1725--1726
+\TU/TimesNewRoman(0)/m/n/10.95 TERY_RINT_SCALE_MIN <= fitted_rint_scale <= BATT
+ERY_RINT_SCALE_MAX) and np.isfinite(fitted_eta_charge)
+
+Underfull \hbox (badness 2197) in paragraph at lines 1725--1726
+\TU/TimesNewRoman(0)/m/n/10.95 and (BATTERY_ETA_CHARGE_MIN <= fitted_eta_charge
+ <= BATTERY_ETA_CHARGE_MAX) and
+
+Underfull \hbox (badness 10000) in paragraph at lines 1727--1728
+[]\TU/TimesNewRoman(0)/m/n/10.95 boundary_flags \TU/YuGothic(0)/m/n/10.95 に \TU
+/TimesNewRoman(0)/m/n/10.95 {’e_nom_at_min’: abs(fitted_e_nom_wh - BATTERY_E_NO
+M_MIN_WH) <=
+
+Underfull \hbox (badness 10000) in paragraph at lines 1727--1728
+\TU/TimesNewRoman(0)/m/n/10.95 boundary_tolerance, ’e_nom_at_max’: abs(fitted_e
+_nom_wh - BATTERY_E_NOM_MAX_WH) <=
+
+Underfull \hbox (badness 10000) in paragraph at lines 1727--1728
+\TU/TimesNewRoman(0)/m/n/10.95 boundary_tolerance, ’rint_scale_at_min’: abs(fit
+ted_rint_scale - BATTERY_RINT_SCALE_MIN) <=
+
+Underfull \hbox (badness 5203) in paragraph at lines 1727--1728
+\TU/TimesNewRoman(0)/m/n/10.95 boundary_tolerance, ’rint_scale_at_max’: abs(fit
+ted_rint_scale - BATTERY_RINT_SCALE_MAX) <=
+
+Underfull \hbox (badness 2073) in paragraph at lines 1727--1728
+\TU/TimesNewRoman(0)/m/n/10.95 boundary_tolerance, ’eta_charge_at_min’: abs(fit
+ted_eta_charge - BATTERY_ETA_CHARGE_MIN) <=
+
+Underfull \hbox (badness 1400) in paragraph at lines 1734--1735
+[]\TU/TimesNewRoman(0)/m/n/10.95 shape_rows \TU/YuGothic(0)/m/n/10.95 に \TU/Tim
+esNewRoman(0)/m/n/10.95 pd.DataFrame([{’map’: name, ’samples’: values.get(’samp
+le_count’, ”), ’reason’: val-
+
+Overfull \hbox (15.02145pt too wide) in paragraph at lines 1736--1737
+[]\TU/TimesNewRoman(0)/m/n/10.95 grounded_summary_path \TU/YuGothic(0)/m/n/10.9
+5 に \TU/TimesNewRoman(0)/m/n/10.95 resolve_path(package_dir, str(evidence_bundl
+e.get(’grounded_map_summary_yaml’,
+
+Underfull \hbox (badness 10000) in paragraph at lines 1737--1738
+[]\TU/TimesNewRoman(0)/m/n/10.95 grounded_summary \TU/YuGothic(0)/m/n/10.95 に \
+TU/TimesNewRoman(0)/m/n/10.95 yaml.safe_load(grounded_summary_path.read_text(en
+coding=’utf-8’)) or {} if
+[42]
+Overfull \hbox (37.60693pt too wide) in paragraph at lines 1746--1747
+[]\TU/TimesNewRoman(0)/m/n/10.95 grounded_detail_tex \TU/YuGothic(0)/m/n/10.95 
+に\TU/TimesNewRoman(0)/m/n/10.95 ’\n’.join((’\\subsubsection*{’ + latex_escape(r
+ow[’component’]) + ’}\n’ + tex_kv_table([(’source
+
+Overfull \hbox (2.71815pt too wide) in paragraph at lines 1746--1747
+\TU/TimesNewRoman(0)/m/n/10.95 files’, row[’source_files’]), (’physical/test ba
+sis’, row[’method’]), (’reference values’, row[’reference_values’])])
+
+Underfull \hbox (badness 10000) in paragraph at lines 1754--1755
+[]\TU/TimesNewRoman(0)/m/n/10.95 distance_comparison \TU/YuGothic(0)/m/n/10.95 
+に \TU/TimesNewRoman(0)/m/n/10.95 build_human_mpc_distance_comparison(replay.get
+(’frame’, pd.DataFrame()),
+
+Underfull \hbox (badness 4181) in paragraph at lines 1755--1756
+[]\TU/TimesNewRoman(0)/m/n/10.95 distance_comparison_display \TU/YuGothic(0)/m/
+n/10.95 に \TU/TimesNewRoman(0)/m/n/10.95 distance_comparison.rename(columns={’s
+egment_km’: ’segment’, ’hu-
+
+Overfull \hbox (32.11192pt too wide) in paragraph at lines 1755--1756
+\TU/TimesNewRoman(0)/m/n/10.95 man_moving_speed_kmh’: ’v_human_kmh’, ’mpc_movin
+g_speed_kmh’: ’v_mpc_kmh’, ’human_reconstructed_soc’:
+
+Underfull \hbox (badness 1253) in paragraph at lines 1758--1759
+[]\TU/TimesNewRoman(0)/m/n/10.95 daily_progress_comparison \TU/YuGothic(0)/m/n/
+10.95 に \TU/TimesNewRoman(0)/m/n/10.95 build_daily_progress_comparison(replay.g
+et(’frame’, pd.DataFrame()), full-
+
+Overfull \hbox (8.51706pt too wide) in paragraph at lines 1759--1760
+[]\TU/TimesNewRoman(0)/m/n/10.95 distance_plot_path \TU/YuGothic(0)/m/n/10.95 に
+ \TU/TimesNewRoman(0)/m/n/10.95 write_human_mpc_distance_plot(replay.get(’frame
+’, pd.DataFrame()), fullsim.get(’frame’,
+[43] [44]
+Underfull \hbox (badness 7012) in paragraph at lines 1832--1833
+[]\TU/TimesNewRoman(0)/m/n/10.95 (md_path, pdf_path) \TU/YuGothic(0)/m/n/10.95 
+に \TU/TimesNewRoman(0)/m/n/10.95 build_report(package_dir, profile_yaml, fit_su
+mmary_path=fit_summary_path,
+[45] [46]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\40_scripts_generate_fit_fullsim_report_py\40_script
+s_generate_fit_fullsim_report_py.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\40_scripts_generate_fit_fullsim_re
+port_py\40_scripts_generate_fit_fullsim_report_py.pdf (46 pages).
+Transcript written on "C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-ma
+in\docs\program_reference_complete_20260729\build\40_scripts_generate_fit_fulls
+im_report_py\40_scripts_generate_fit_fullsim_report_py.log".
+
+miktex-dvipdfmx: major issue: So far, you have not checked for MiKTeX updates.
+xelatex: major issue: So far, you have not checked for MiKTeX updates.
+

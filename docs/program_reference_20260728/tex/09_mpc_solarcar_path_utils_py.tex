@@ -1,0 +1,192 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={ROS share / 相対パス解決},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{09. ROS share / 相対パス解決}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/path_utils.py| \\
+        種別 & Python \\
+        区分 & config \\
+        役割 & CWD、package share、repo root をまたいで path を実在ファイルへ解決する小さな基盤。 \\
+        起動文脈 & Node 実行時の path ぶれを吸収する補助モジュール。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        CWD、package share、repo root をまたいで path を実在ファイルへ解決する小さな基盤。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item ament の package share があればそちらを優先する。
+\item インストール後の launch/node 実行でも同じ relative path を使えるようにする。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_node.py|
+\item \path|gps_sim_node.py|
+\item \path|solar_state_node.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_profile.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def resolve_path(path: str, default_subdir: str = '') -> str:
+    """Resolve a path relative to CWD or package share.
+
+    - If absolute, return as-is.
+    - If exists relative to CWD, return it.
+    - Otherwise, resolve under <pkg_share>/<default_subdir> (or directly under share).
+    """
+    if path is None:
+        return path
+    path = os.path.expanduser(str(path))
+    if os.path.isabs(path):
+        return path
+    if os.path.exists(path):
+        return path
+    if get_package_share_directory is not None:
+        pkg_share = get_package_share_directory(PKG_NAME)
+    else:
+        pkg_share = os.fspath(REPO_ROOT)
+    if default_subdir:
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要関数は resolve\_path。
+
+        \subsection*{主要クラス・関数}
+\begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+\toprule
+行 & 種別 & 名前 & 補足 \\
+\midrule
+14 & function & \path|resolve_path| & args: path, default\_subdir \\
+\bottomrule
+\end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            4 & 例外処理を伴う try ブロックを実行する。 \\
+10 & PKG\_NAME に 'mpc\_solarcar' の結果を代入する。 \\
+11 & REPO\_ROOT に Path(\_\_file\_\_).resolve().parents[1] の結果を代入する。 \\
+14 & 関数 resolve\_path を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|import os| & パス、環境変数、プロセス外部状態を扱うため。 このファイル内での主な使用位置は L23, L24, L26, L31, L34, L35, L36, L37。 \\
+2 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L11。 \\
+5 & \path|from ament_index_python.packages import get_package_share_directory| & ament\_index\_python.packages から get\_package\_share\_directory を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L7, L28, L29。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L14 関数 \path|resolve_path|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|resolve_path(path, default_subdir)|
+              \item docstring: Resolve a path relative to CWD or package share.
+
+- If absolute, return as-is.
+- If exists relative to CWD, return it.
+- Otherwise, resolve under <pkg\_share>/<default\_subdir> (or directly under share).
+              \item このブロックが直接呼ぶ主な関数・メソッド: exists, expanduser, fspath, get\_package\_share\_directory, isabs, join, startswith, str, strip
+              \item 戻り値の要点: os.path.join(pkg\_share, path) / path / path / path
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 path is None を判定し、真なら内部処理を行う。
+\item path に os.path.expanduser(str(path)) の結果を代入する。
+\item 条件 os.path.isabs(path) を判定し、真なら内部処理を行う。
+\item 条件 os.path.exists(path) を判定し、真なら内部処理を行う。
+\item 条件 get\_package\_share\_directory is not None を判定し、真なら内部処理を行う。
+\item 条件 default\_subdir を判定し、真なら内部処理を行う。
+\item os.path.join(pkg\_share, path) を返す。
+            \end{enumerate}
+
+
+
+
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/path_utils.py| を
+        \textbf{config}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

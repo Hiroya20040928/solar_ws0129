@@ -1,0 +1,31 @@
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex 2026.5.1)  29 JUL 2026 04:33
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**./docs/pdf_check/_latex_jp_test.tex
+(docs/pdf_check/_latex_jp_test.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+
+! LaTeX Error: There's no line here to end.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.1 \\d
+       ocumentclass{bxjsarticle}
+Your command was ignored.
+Type  I <command> <return>  to replace it with another command,
+or  <return>  to continue without it.
+
+ 
+Here is how much of TeX's memory you used:
+ 17 strings out of 402986
+ 631 string characters out of 5448711
+ 426385 words of memory out of 5000000
+ 28810 multiletter control sequences out of 15000+600000
+ 627721 words of font info for 40 fonts, out of 8000000 for 9000
+ 1348 hyphenation exceptions out of 8191
+ 11i,0n,13p,95b,14s stack positions out of 10000i,1000n,20000p,200000b,200000s
+No pages of output.

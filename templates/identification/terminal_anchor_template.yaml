@@ -1,0 +1,9 @@
+terminal_anchor:
+  s_km: 0.0
+  time_utc: 2027-01-01T00:00:00Z
+  voltage_v:
+  current_a:
+  temp_c:
+  soc_target:
+  notes:
+    - Replace with a loaded-voltage or rested-OCV anchor derived from measured data.

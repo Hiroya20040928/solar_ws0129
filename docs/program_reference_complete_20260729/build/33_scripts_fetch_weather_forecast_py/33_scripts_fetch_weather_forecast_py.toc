@@ -1,0 +1,38 @@
+\contentsline {section}{\numberline {1}対象}{3}{section.1}%
+\contentsline {section}{\numberline {2}このファイルを読む理由}{3}{section.2}%
+\contentsline {section}{\numberline {3}呼び出し関係}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}どこから呼ばれるか}{3}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}次に読むと理解が進むファイル}{3}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}同一リポジトリ内の主要依存}{3}{subsection.3.3}%
+\contentsline {section}{\numberline {4}ソース冒頭の把握}{3}{section.4}%
+\contentsline {subsection}{\numberline {4.1}代表コード断片}{3}{subsection.4.1}%
+\contentsline {section}{\numberline {5}主要構造の読み取り}{4}{section.5}%
+\contentsline {subsection}{\numberline {5.1}主要クラス・関数}{4}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}ファイルを上から読んだときの定義順}{4}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}import 群の詳細}{4}{subsection.5.3}%
+\contentsline {section}{\numberline {6}このファイルを読む前に必要な基礎知識}{5}{section.6}%
+\contentsline {subsection}{\numberline {6.1}プログラム、プロセス、メモリ、オブジェクトを区別する}{5}{subsection.6.1}%
+\contentsline {paragraph}{根拠資料}{5}{section*.2}%
+\contentsline {subsection}{\numberline {6.2}名前、代入、型、参照}{5}{subsection.6.2}%
+\contentsline {paragraph}{根拠資料}{5}{section*.3}%
+\contentsline {subsection}{\numberline {6.3}関数、引数、戻り値、スコープ}{6}{subsection.6.3}%
+\contentsline {paragraph}{根拠資料}{6}{section*.4}%
+\contentsline {subsection}{\numberline {6.4}module、package、import、console\_scripts}{6}{subsection.6.4}%
+\contentsline {paragraph}{根拠資料}{6}{section*.5}%
+\contentsline {subsection}{\numberline {6.5}例外、try/finally、with、資源解放}{6}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}list、dict、deque、NumPy配列、pandas DataFrame}{6}{subsection.6.6}%
+\contentsline {subsection}{\numberline {6.7}CLI、PowerShell、Bash、環境変数、終了コード}{7}{subsection.6.7}%
+\contentsline {paragraph}{根拠資料}{7}{section*.6}%
+\contentsline {subsection}{\numberline {6.8}天候、route、補間、時刻、単位}{7}{subsection.6.8}%
+\contentsline {subsection}{\numberline {6.9}freshness、filter、guard、fallback、fail-safe}{7}{subsection.6.9}%
+\contentsline {subsection}{\numberline {6.10}CSV/YAMLのdata contractと検証}{7}{subsection.6.10}%
+\contentsline {subsection}{\numberline {6.11}単体試験、SILS、replay、観測可能性}{8}{subsection.6.11}%
+\contentsline {paragraph}{根拠資料}{8}{section*.7}%
+\contentsline {section}{\numberline {7}関数・クラスを上から順に解説}{8}{section.7}%
+\contentsline {subsection}{\numberline {7.1}L17 関数 main}{8}{subsection.7.1}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{8}{section*.8}%
+\contentsline {paragraph}{上から順の処理}{8}{section*.9}%
+\contentsline {paragraph}{代表コード断片}{10}{lstlisting.-6}%
+\contentsline {subsection}{\numberline {7.2}CLI 引数}{11}{subsection.7.2}%
+\contentsline {section}{\numberline {8}処理の流れ}{11}{section.8}%
+\contentsline {section}{\numberline {9}このファイルの位置づけ}{11}{section.9}%

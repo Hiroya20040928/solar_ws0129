@@ -1,0 +1,866 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={実測勾配推定ノード},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{32. 実測勾配推定ノード}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/grade_node.py| \\
+        ソースSHA-256 & \path|f67e3de2b8032378bb2cac9882ed85cd35629cc2dab61ee2f0ae17f7626d3131| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & distance と altitude/GPS から grade を推定し /vehicle/grade へ publish する。 \\
+        起動文脈 & measure/live の監視・記録用の grade source。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        distance と altitude/GPS から grade を推定し /vehicle/grade へ publish する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item 現在の solar mpc\_node は route profile 勾配を主に使い、/vehicle/grade を直接は使わない。
+\item ただし logger や補助用途では重要。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|launch/solar_measurement.launch.py|
+\item \path|mpc_solarcar/live_launch.py|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 特記事項なし。
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from sensor_msgs.msg import NavSatFix
+
+
+class GradeNode(Node):
+    def __init__(self):
+        super().__init__('grade_node')
+        self.declare_parameter('min_speed_kmh', 5.0)
+        self.declare_parameter('altitude_alpha', 0.2)
+        self.declare_parameter('min_delta_s_km', 0.01)
+        self.declare_parameter('gps_topic', '/sim/gps')
+        self.declare_parameter('altitude_topic', '/vehicle/altitude_m')
+
+        self.min_speed_kmh = float(self.get_parameter('min_speed_kmh').value)
+        self.alpha = float(self.get_parameter('altitude_alpha').value)
+        self.min_delta_s_km = float(self.get_parameter('min_delta_s_km').value)
+        self.gps_topic = self.get_parameter('gps_topic').value
+        self.altitude_topic = self.get_parameter('altitude_topic').value
+
+        self.altitude_m = math.nan
+        self.altitude_ema = math.nan
+        self.s_km = math.nan
+        self.speed_kmh = math.nan
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要クラスは GradeNode。 主要関数は main。 ROS パラメータ宣言は 5 件。 ROS I/O は publisher 1 件、subscription 4 件。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            10 & class & \path|GradeNode| & bases: Node \\
+11 & function & \path|__init__| & args: self \\
+43 & function & \path|_on_s_km| & args: self, msg \\
+46 & function & \path|_on_speed| & args: self, msg \\
+49 & function & \path|_on_altitude| & args: self, msg \\
+52 & function & \path|_on_gps| & args: self, msg \\
+56 & function & \path|_update_altitude| & args: self, altitude\_m \\
+63 & function & \path|_step| & args: self \\
+89 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            10 & クラス GradeNode を定義する。 \\
+89 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|import math| & Python標準のスカラー数値関数と定数を使うため。実際に参照する名前と行は使用位置欄で確認する。 このファイル内での主な使用位置は L25, L26, L27, L28, L31, L53, L58, L64, ...。 \\
+2 & \path|import time| & wall/monotonic time に基づく周期制御や freshness 判定を行うため。 このファイル内での主な使用位置は L32。 \\
+4 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L90, L92, L94。 \\
+5 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L10。 \\
+6 & \path|from std_msgs.msg import Float32| & Float32、Bool、Stringなどの標準ROS messageで値をpublishまたはsubscribeするため。 このファイル内での主な使用位置は L34, L35, L36, L39, L43, L46, L49, L65, ...。 \\
+7 & \path|from sensor_msgs.msg import NavSatFix| & GPS 緯度経度高度を ROS topic でやり取りするため。 このファイル内での主な使用位置は L37, L52。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{class、独自クラス、インスタンス、self、継承}
+クラスは、保持するデータと、そのデータを扱う関数を一つの型としてまとめる設計単位である。「独自クラス」とはPythonやROS 2が最初から用意した型ではなく、このプロジェクトが目的に合わせて定義した新しい型を指す。
+
+
+`class MPCNode(Node)`は、rclpyのNodeを基底クラスとして継承し、Nodeが持つpublisher、subscription、timer、parameterなどの機能にMPC固有機能を追加する。丸括弧内は関数引数ではなく基底クラス指定である。
+
+
+`MPCNode()`はクラスオブジェクトを呼び出して新しいインスタンスを作る。Pythonは新しい実体を用意し、その実体を第1引数selfとして`\_\_init\_\_`へ渡す。`self`は予約語ではなく慣習的な名前だが、この慣習を守ることでコードの意味が共有される。
+
+
+\begin{lstlisting}[language=python]
+class Counter:
+    def __init__(self):
+        self.value = 0
+
+    def increment(self):
+        self.value += 1
+
+counter = Counter()
+counter.increment()
+\end{lstlisting}
+
+
+`super().\_\_init\_\_(...)`は継承元の初期化処理を呼ぶ。MPCNodeではこれを省くとROSノードとして必要な内部実体が作られず、`create\_publisher`などを正しく使えない。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{先頭アンダースコア、\_\_init\_\_、名前付けの作法}
+`self.\_step\_solar`の先頭1個のアンダースコアは「クラス内部で使う実装詳細」という慣習であり、アクセスを強制禁止する機構ではない。外部コードから呼べるが、公開APIとして依存しない意思表示である。
+
+
+`\_\_init\_\_`の前後2個のアンダースコアはPythonが定めた特殊メソッド名である。クラス生成時に自動で呼ばれる。任意の名前に前後2個を付けて独自仕様を作ることは避ける。
+
+
+`\_`で始まるローカル変数は、未使用または外部へ見せない意図を示す場合がある。例えば`\_base\_csv`は戻り値として受け取る必要はあるが、その後の処理では使わないことを読者へ示す。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{rclpy、rcl、rmw、DDS/RTPSの層}
+rclpyはPython利用者向けROS 2 client libraryである。利用者のNode、publisher、subscriptionなどをPython APIとして提供し、その下で共通C層のrclを利用する。
+
+
+\begin{lstlisting}
+本プロジェクトのPythonコード -> rclpy -> rcl -> rmw -> DDS/RTPS実装 -> ネットワークまたは同一PC内通信
+\end{lstlisting}
+
+
+rclは言語に依存しない共通ROS機能を提供するC API、rmwはROS 2と具体的middleware実装の境界である。DDS/RTPS側が探索、serialize、publish/subscribe、request/replyなどを担う。executorの実行モデルはrclだけで完結せずclient library側にも実装される。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Concepts/About-Internal-Interfaces.html}{ROS 2 Humble公式: Internal ROS 2 interfaces}
+\end{itemize}
+
+\subsection{ROS graph、Node、topic、service、action、parameter}
+ROS graphは、実行中Nodeと、それらが持つpublisher、subscription、service、actionなどの接続関係である。Pythonクラス、プロセス、ROS graph上のNode名は関連するが同一物ではない。
+
+
+topicは継続データ向けの非同期一方向publish/subscribe、serviceは短いrequest/response、actionは時間のかかる目標へfeedback、cancel、resultを持たせる。parameterはNodeごとの設定値である。
+
+
+publisherが送った時点とsubscription callbackが実行される時点は同じとは限らない。通信遅延、QoS queue、executor待ちを挟むため、センサ値にはtimestampとfreshness判定が必要になる。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/Interfaces-Topics-Services-Actions.html}{ROS 2 Humble公式: Topics, Services, Actions}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/About-Parameters.html}{ROS 2 Humble公式: Parameters}
+\end{itemize}
+
+\subsection{callback、timer、Executor、spin、Callback Group}
+callbackは、メッセージ受信、timer満了、service requestなどのイベントが成立した後でExecutorから呼ばれる関数である。登録時に`self.\_on\_speed`と括弧なしで渡すのは、今実行せず後で呼ぶ関数オブジェクトを渡すためである。
+
+
+Executorは実行可能になったcallbackを見つけ、Callback Groupの条件を確認して実行する。`spin()`は終了要求まで待機・dispatchを続けるため、通常運転中はmainの次の行へ戻らない。
+
+
+MutuallyExclusiveCallbackGroupは同じgroup内のcallbackを同時実行させない。別group間はMultiThreadedExecutorで並行実行し得る。groupを分けただけでは共有属性への完全な排他にはならないため、複数groupが同じ状態を読む・書く場合は設計確認が必要である。
+
+
+\begin{lstlisting}
+DDS受信またはtimer満了 -> wait setでready -> Executorが選択 -> Callback Groupが許可 -> worker threadがcallback実行 -> 終了後Executorへ戻る
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Executors.html}{ROS 2公式: Executors}
+\item \href{https://docs.ros.org/en/humble/Concepts/About-Internal-Interfaces.html}{ROS 2 Humble公式: Internal ROS 2 interfaces}
+\end{itemize}
+
+\subsection{rqt\_graph、ros2 CLI、rosbag2をいつ使うか}
+rqt\_graphは接続関係を見る道具であり、数値の正しさや更新周期までは保証しない。起動直後、topic名変更後、publisherが複数存在する疑いがある時に使う。
+
+
+\begin{lstlisting}[language=bash]
+ros2 node list
+ros2 node info /mpc_node
+ros2 topic list -t
+ros2 topic info -v /planner/speed_cmd
+ros2 topic hz /planner/speed_cmd
+ros2 topic echo /planner/status
+rqt_graph
+\end{lstlisting}
+
+
+rosbag2はtopicメッセージを時系列のまま記録・再生する。通信不具合、freshness、再計画trigger、実車とSILSの差を再現可能にするため、本番前試験では制御入力だけでなく原因となる全telemetry、status、parameter情報を記録する。
+
+
+\begin{lstlisting}[language=bash]
+ros2 bag record -o outputs/bags/preflight \
+  /vehicle/s_km /vehicle/speed_kmh /vehicle/batt_soc \
+  /vehicle/batt_temp_c /vehicle/batt_current_a /vehicle/batt_voltage_v \
+  /planner/upper_speed_cmd /planner/speed_cmd /planner/status
+
+ros2 bag info outputs/bags/preflight
+ros2 bag play outputs/bags/preflight --clock
+\end{lstlisting}
+
+
+bag再生時はQoS互換性、simulation time、外部publisherとの二重入力に注意する。実車Nodeを同時に動かす場合はnamespaceまたはremappingで入力源を明確に分離する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/ros2_packages/humble/api/rqt_graph/index.html}{ROS 2 Humble公式: rqt\_graph}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html}{ROS 2 Humble公式: Recording and playing back data}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L10 クラス GradeNode}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L10--L86
+              \item 所属: module直下
+              \item 定義: \path|GradeNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_on\_s\_km を定義する。
+\item 関数 \_on\_speed を定義する。
+\item 関数 \_on\_altitude を定義する。
+\item 関数 \_on\_gps を定義する。
+\item 関数 \_update\_altitude を定義する。
+\item 関数 \_step を定義する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class GradeNode(Node):
+    def __init__(self):
+        super().__init__('grade_node')
+        self.declare_parameter('min_speed_kmh', 5.0)
+        self.declare_parameter('altitude_alpha', 0.2)
+        self.declare_parameter('min_delta_s_km', 0.01)
+        self.declare_parameter('gps_topic', '/sim/gps')
+        self.declare_parameter('altitude_topic', '/vehicle/altitude_m')
+
+        self.min_speed_kmh = float(self.get_parameter('min_speed_kmh').value)
+        self.alpha = float(self.get_parameter('altitude_alpha').value)
+        self.min_delta_s_km = float(self.get_parameter('min_delta_s_km').value)
+        self.gps_topic = self.get_parameter('gps_topic').value
+        self.altitude_topic = self.get_parameter('altitude_topic').value
+
+        self.altitude_m = math.nan
+        self.altitude_ema = math.nan
+        self.s_km = math.nan
+        self.speed_kmh = math.nan
+        self.last_s_km = None
+        self.last_alt_ema = None
+        self.grade = math.nan
+        self.last_update = time.monotonic()
+
+        self.create_subscription(Float32, '/vehicle/s_km', self._on_s_km, 10)
+        self.create_subscription(Float32, '/vehicle/speed_kmh', self._on_speed, 10)
+        self.create_subscription(Float32, self.altitude_topic, self._on_altitude, 10)
+        self.create_subscription(NavSatFix, self.gps_topic, self._on_gps, 10)
+
+        self.pub_grade = self.create_publisher(Float32, '/vehicle/grade', 10)
+        self.timer = self.create_timer(1.0, self._step)
+        self.get_logger().info('GradeNode started.')
+
+    def _on_s_km(self, msg: Float32):
+        self.s_km = float(msg.data)
+...
+\end{lstlisting}
+
+\subsection{L11 関数 GradeNode.\_\_init\_\_}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L11--L41
+              \item 所属: \path|GradeNode|
+              \item 定義: \path|__init__(self)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_\_init\_\_, create\_publisher, create\_subscription, create\_timer, declare\_parameter, float, get\_logger, get\_parameter, info, monotonic, super
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.\_on\_altitude, self.\_on\_gps, self.\_on\_s\_km, self.\_on\_speed, self.\_step, self.altitude\_topic, self.create\_publisher, self.create\_subscription, self.create\_timer, self.declare\_parameter, self.get\_logger, self.get\_parameter, self.gps\_topic
+              \item 更新する主なインスタンス属性: self.alpha, self.altitude\_ema, self.altitude\_m, self.altitude\_topic, self.gps\_topic, self.grade, self.last\_alt\_ema, self.last\_s\_km, self.last\_update, self.min\_delta\_s\_km, self.min\_speed\_kmh, self.pub\_grade, self.s\_km, self.speed\_kmh, self.timer
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item super().\_\_init\_\_(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.min\_speed\_kmh に float(self.get\_parameter('min\_speed\_kmh').value) の結果を代入する。
+\item self.alpha に float(self.get\_parameter('altitude\_alpha').value) の結果を代入する。
+\item self.min\_delta\_s\_km に float(self.get\_parameter('min\_delta\_s\_km').value) の結果を代入する。
+\item self.gps\_topic に self.get\_parameter('gps\_topic').value の結果を代入する。
+\item self.altitude\_topic に self.get\_parameter('altitude\_topic').value の結果を代入する。
+\item self.altitude\_m に math.nan の結果を代入する。
+\item self.altitude\_ema に math.nan の結果を代入する。
+\item self.s\_km に math.nan の結果を代入する。
+\item self.speed\_kmh に math.nan の結果を代入する。
+\item self.last\_s\_km に None の結果を代入する。
+\item self.last\_alt\_ema に None の結果を代入する。
+\item self.grade に math.nan の結果を代入する。
+\item self.last\_update に time.monotonic() の結果を代入する。
+\item self.create\_subscription(...) を実行する。
+\item self.create\_subscription(...) を実行する。
+\item self.create\_subscription(...) を実行する。
+\item self.create\_subscription(...) を実行する。
+\item self.pub\_grade に self.create\_publisher(Float32, '/vehicle/grade', 10) の結果を代入する。
+\item self.timer に self.create\_timer(1.0, self.\_step) の結果を代入する。
+\item self.get\_logger().info(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def __init__(self):
+        super().__init__('grade_node')
+        self.declare_parameter('min_speed_kmh', 5.0)
+        self.declare_parameter('altitude_alpha', 0.2)
+        self.declare_parameter('min_delta_s_km', 0.01)
+        self.declare_parameter('gps_topic', '/sim/gps')
+        self.declare_parameter('altitude_topic', '/vehicle/altitude_m')
+
+        self.min_speed_kmh = float(self.get_parameter('min_speed_kmh').value)
+        self.alpha = float(self.get_parameter('altitude_alpha').value)
+        self.min_delta_s_km = float(self.get_parameter('min_delta_s_km').value)
+        self.gps_topic = self.get_parameter('gps_topic').value
+        self.altitude_topic = self.get_parameter('altitude_topic').value
+
+        self.altitude_m = math.nan
+        self.altitude_ema = math.nan
+        self.s_km = math.nan
+        self.speed_kmh = math.nan
+        self.last_s_km = None
+        self.last_alt_ema = None
+        self.grade = math.nan
+        self.last_update = time.monotonic()
+
+        self.create_subscription(Float32, '/vehicle/s_km', self._on_s_km, 10)
+        self.create_subscription(Float32, '/vehicle/speed_kmh', self._on_speed, 10)
+        self.create_subscription(Float32, self.altitude_topic, self._on_altitude, 10)
+        self.create_subscription(NavSatFix, self.gps_topic, self._on_gps, 10)
+
+        self.pub_grade = self.create_publisher(Float32, '/vehicle/grade', 10)
+        self.timer = self.create_timer(1.0, self._step)
+        self.get_logger().info('GradeNode started.')
+\end{lstlisting}
+
+\subsection{L43 関数 GradeNode.\_on\_s\_km}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L43--L44
+              \item 所属: \path|GradeNode|
+              \item 定義: \path|_on_s_km(self, msg: Float32)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: self.s\_km
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.s\_km に float(msg.data) の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _on_s_km(self, msg: Float32):
+        self.s_km = float(msg.data)
+\end{lstlisting}
+
+\subsection{L46 関数 GradeNode.\_on\_speed}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L46--L47
+              \item 所属: \path|GradeNode|
+              \item 定義: \path|_on_speed(self, msg: Float32)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: self.speed\_kmh
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.speed\_kmh に float(msg.data) の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _on_speed(self, msg: Float32):
+        self.speed_kmh = float(msg.data)
+\end{lstlisting}
+
+\subsection{L49 関数 GradeNode.\_on\_altitude}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L49--L50
+              \item 所属: \path|GradeNode|
+              \item 定義: \path|_on_altitude(self, msg: Float32)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_update\_altitude, float
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.\_update\_altitude
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.\_update\_altitude(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _on_altitude(self, msg: Float32):
+        self._update_altitude(float(msg.data))
+\end{lstlisting}
+
+\subsection{L52 関数 GradeNode.\_on\_gps}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L52--L54
+              \item 所属: \path|GradeNode|
+              \item 定義: \path|_on_gps(self, msg: NavSatFix)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_update\_altitude, float, isfinite
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.\_update\_altitude
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 math.isfinite(msg.altitude) を判定し、真なら内部処理を行う。
+\item   self.\_update\_altitude(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _on_gps(self, msg: NavSatFix):
+        if math.isfinite(msg.altitude):
+            self._update_altitude(float(msg.altitude))
+\end{lstlisting}
+
+\subsection{L56 関数 GradeNode.\_update\_altitude}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L56--L61
+              \item 所属: \path|GradeNode|
+              \item 定義: \path|_update_altitude(self, altitude_m: float)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: isfinite
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.alpha, self.altitude\_ema
+              \item 更新する主なインスタンス属性: self.altitude\_ema, self.altitude\_m
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.altitude\_m に altitude\_m の結果を代入する。
+\item 条件 not math.isfinite(self.altitude\_ema) を判定し、真なら内部処理を行う。
+\item   self.altitude\_ema に altitude\_m の結果を代入する。
+\item   上の条件が偽の場合:
+\item   self.altitude\_ema に self.alpha * altitude\_m + (1.0 - self.alpha) * self.altitude\_ema の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _update_altitude(self, altitude_m: float):
+        self.altitude_m = altitude_m
+        if not math.isfinite(self.altitude_ema):
+            self.altitude_ema = altitude_m
+        else:
+            self.altitude_ema = self.alpha * altitude_m + (1.0 - self.alpha) * self.altitude_ema
+\end{lstlisting}
+
+\subsection{L63 関数 GradeNode.\_step}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L63--L86
+              \item 所属: \path|GradeNode|
+              \item 定義: \path|_step(self)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, float, isfinite, publish
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: delta\_alt, delta\_s\_km, grade
+              \item 読み取る主なインスタンス属性: self.altitude\_ema, self.grade, self.last\_alt\_ema, self.last\_s\_km, self.min\_delta\_s\_km, self.min\_speed\_kmh, self.pub\_grade, self.s\_km, self.speed\_kmh
+              \item 更新する主なインスタンス属性: self.grade, self.last\_alt\_ema, self.last\_s\_km
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 4、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not math.isfinite(self.s\_km) or not math.isfinite(self.altitude\_ema) を判定し、真なら内部処理を行う。
+\item   self.pub\_grade.publish(...) を実行する。
+\item    を返す。
+\item 条件 not math.isfinite(self.speed\_kmh) or self.speed\_kmh < self.min\_speed\_kmh を判定し、真なら内部処理を行う。
+\item   self.pub\_grade.publish(...) を実行する。
+\item    を返す。
+\item 条件 self.last\_s\_km is None or self.last\_alt\_ema is None を判定し、真なら内部処理を行う。
+\item   self.last\_s\_km に self.s\_km の結果を代入する。
+\item   self.last\_alt\_ema に self.altitude\_ema の結果を代入する。
+\item   self.pub\_grade.publish(...) を実行する。
+\item    を返す。
+\item delta\_s\_km に self.s\_km - self.last\_s\_km の結果を代入する。
+\item 条件 delta\_s\_km < self.min\_delta\_s\_km を判定し、真なら内部処理を行う。
+\item   self.pub\_grade.publish(...) を実行する。
+\item    を返す。
+\item delta\_alt に self.altitude\_ema - self.last\_alt\_ema の結果を代入する。
+\item grade に delta\_alt / (delta\_s\_km * 1000.0) の結果を代入する。
+\item self.grade に float(grade) の結果を代入する。
+\item self.last\_s\_km に self.s\_km の結果を代入する。
+\item self.last\_alt\_ema に self.altitude\_ema の結果を代入する。
+\item self.pub\_grade.publish(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _step(self):
+        if not math.isfinite(self.s_km) or not math.isfinite(self.altitude_ema):
+            self.pub_grade.publish(Float32(data=math.nan))
+            return
+        if not math.isfinite(self.speed_kmh) or self.speed_kmh < self.min_speed_kmh:
+            self.pub_grade.publish(Float32(data=self.grade if math.isfinite(self.grade) else math.nan))
+            return
+        if self.last_s_km is None or self.last_alt_ema is None:
+            self.last_s_km = self.s_km
+            self.last_alt_ema = self.altitude_ema
+            self.pub_grade.publish(Float32(data=math.nan))
+            return
+
+        delta_s_km = self.s_km - self.last_s_km
+        if delta_s_km < self.min_delta_s_km:
+            self.pub_grade.publish(Float32(data=self.grade if math.isfinite(self.grade) else math.nan))
+            return
+
+        delta_alt = self.altitude_ema - self.last_alt_ema
+        grade = delta_alt / (delta_s_km * 1000.0)
+        self.grade = float(grade)
+        self.last_s_km = self.s_km
+        self.last_alt_ema = self.altitude_ema
+        self.pub_grade.publish(Float32(data=self.grade))
+\end{lstlisting}
+
+\subsection{L89 関数 main}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L89--L94
+              \item 所属: module直下
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: GradeNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: node
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に GradeNode() の結果を代入する。
+\item rclpy.spin(...) を実行する。
+\item node.destroy\_node(...) を実行する。
+\item rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def main():
+    rclpy.init()
+    node = GradeNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+\end{lstlisting}
+
+        \subsection{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            13 & \path|min_speed_kmh| & 5.0 \\
+14 & \path|altitude_alpha| & 0.2 \\
+15 & \path|min_delta_s_km| & 0.01 \\
+16 & \path|gps_topic| & /sim/gps \\
+17 & \path|altitude_topic| & /vehicle/altitude\_m \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            39 & publisher & \path|/vehicle/grade| & publisher \\
+34 & subscription & \path|/vehicle/s_km| & self.\_on\_s\_km \\
+35 & subscription & \path|/vehicle/speed_kmh| & self.\_on\_speed \\
+36 & subscription & \path|self.altitude_topic| & self.\_on\_altitude \\
+37 & subscription & \path|self.gps_topic| & self.\_on\_gps \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/grade_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

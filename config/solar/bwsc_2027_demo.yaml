@@ -1,0 +1,250 @@
+meta:
+  name: bwsc_2027_demo
+  purpose: unified profile for measurement, pre-race simulation, and live race operation
+  notes:
+    - replace sample route/weather/control-stop files with official and measured data before race week
+    - pack energy below uses the 2027 Challenger legal ceiling of about 11 MJ; replace with your measured usable pack energy
+
+paths:
+  route_waypoints_csv: data/route/bwsc_route_waypoints_sample.csv
+  route_profile_csv: data/route/bwsc_route_profile_sample.csv
+  speed_profile_csv: data/route/bwsc_speed_profile_sample.csv
+  forecast_csv: data/weather/bwsc_forecast_sample_10min.csv
+  stop_yaml: data/race/bwsc_control_stops_sample.yaml
+  drive_schedule_yaml: data/race/bwsc_drive_schedule_2027.yaml
+  drive_eff_map: maps/drive_eff_map.csv
+  regen_eff_map: maps/regen_eff_map.csv
+  rint_map: maps/Rint_T_by_soc.csv
+  panel_eff_map: maps/panel_eff_map.csv
+  mppt_eff_map: maps/mppt_eff_map.csv
+  drive_map_eco: maps/drive_eff_map_eco.csv
+  drive_map_power: maps/drive_eff_map_power.csv
+  regen_map_eco: maps/regen_eff_map_eco.csv
+  regen_map_power: maps/regen_eff_map_power.csv
+  ocv_soc_map: ''
+
+runtime:
+  dashboard_host: 0.0.0.0
+  dashboard_port: 8080
+  forecast_time_mode: relative
+  forecast_time_tz: Australia/Darwin
+
+logging:
+  log_dir: outputs/logs
+  log_rate_hz: 2.0
+
+simulation:
+  gps_rate_hz: 1.0
+  gps_init_speed_kmh: 45.0
+  output_dir: outputs/prerace
+  output_prefix: bwsc_2027_demo
+  auto_version_outputs: true
+  latest_manifest_json: outputs/prerace/latest_simulation_run.json
+  start_utc: '2027-08-22T22:30:00Z'
+  start_s_km: 0.0
+  soc0: 0.95
+  Tb0: 30.0
+  v0_kmh: 45.0
+  energy_budget: false
+  logging:
+    file_prefix: solar_prerace
+
+measurement:
+  use_distance_node: true
+  distance:
+    publish_rate_hz: 2.0
+    max_dt_sec: 2.5
+  use_grade_node: true
+  grade:
+    gps_topic: /vehicle/gps
+    altitude_topic: /vehicle/altitude_m
+    min_speed_kmh: 5.0
+    altitude_alpha: 0.2
+    min_delta_s_km: 0.01
+  logging:
+    file_prefix: solar_measurement
+
+identification:
+  input_dir: data/identification/raw
+  output_dir: outputs/identification
+
+live:
+  use_distance_node: true
+  distance:
+    publish_rate_hz: 2.0
+    max_dt_sec: 2.5
+  use_grade_node: true
+  forecast_time_mode: absolute
+  forecast_time_tz: Australia/Darwin
+  grade:
+    gps_topic: /vehicle/gps
+    altitude_topic: /vehicle/altitude_m
+    min_speed_kmh: 5.0
+    altitude_alpha: 0.2
+    min_delta_s_km: 0.01
+  weather:
+    enabled: true
+    provider: openmeteo
+    gps_topic: /chase/gps
+    fetch_period_sec: 3600.0
+    forecast_days: 3
+    step_minutes: 10
+    timezone_name: Australia/Darwin
+    fallback_latitude: -12.4634
+    fallback_longitude: 130.8456
+    tcell_gain: 0.03
+    raw_forecast_csv: outputs/runtime/live_forecast_raw.csv
+  autocal:
+    enabled: true
+    publish_period_sec: 30.0
+    stationary_speed_kmh: 2.0
+    drive_speed_kmh: 25.0
+    night_ghi_threshold: 50.0
+    day_ghi_threshold: 150.0
+    alpha: 0.2
+    solar_gain_init: 1.0
+    drive_power_gain_init: 1.0
+    aux_power_w_init: 8.0
+    solar_gain_min: 0.5
+    solar_gain_max: 1.5
+    drive_power_gain_min: 0.7
+    drive_power_gain_max: 1.4
+    aux_power_w_min: 0.0
+    aux_power_w_max: 300.0
+  command_bridge:
+    enabled: true
+    output_speed_topic: /vehicle/speed_cmd_kmh
+    output_drive_mode_topic: /vehicle/drive_mode_cmd
+    udp_enabled: false
+    udp_host: 127.0.0.1
+    udp_port: 50050
+    publish_rate_hz: 5.0
+    input_timeout_sec: 3.0
+    safe_speed_kmh: 0.0
+    startup_hold_sec: 2.0
+    filter_tau_sec: 1.0
+    accel_limit_kmhps: 1.2
+    decel_limit_kmhps: 3.5
+    speed_deadband_kmh: 0.1
+    speed_quantize_step_kmh: 0.1
+    max_output_speed_kmh: 120.0
+    drive_mode_min_hold_sec: 5.0
+  wifi_bridge:
+    enabled: true
+    enable_inbound: true
+    enable_outbound: true
+    bind_host: 0.0.0.0
+    bind_port: 52001
+    publish_period_sec: 1.0
+    solar_remote_host: 192.168.50.21
+    solar_remote_port: 52002
+    chase_remote_host: 192.168.50.22
+    chase_remote_port: 52003
+    send_to_solar: true
+    send_to_chase: true
+    speed_filter_tau_sec: 0.6
+    speed_max_kmh: 130.0
+    speed_max_accel_kmhps: 12.0
+    speed_max_decel_kmhps: 20.0
+    distance_max_rate_kmps: 0.06
+    distance_max_backtrack_km: 0.02
+    battery_filter_tau_sec: 1.0
+    wind_filter_tau_sec: 1.0
+    headwind_filter_tau_sec: 0.8
+    max_abs_headwind_ms: 25.0
+  wind_model:
+    enabled: true
+    corrected_forecast_csv: outputs/runtime/live_forecast_corrected.csv
+    publish_period_sec: 30.0
+    measurement_sigma_ms: 1.0
+    correlation_distance_km: 300.0
+    fallback_correlation_time_h: 3.0
+    forecast_sigma0_ms: 1.5
+    forecast_variance_growth_per_hour: 0.05
+    planning_quantile: 0.5
+    confidence_z: 1.96
+    min_sigma_ms: 0.2
+    preferred_source: auto
+    use_exp_distance_decay: true
+  logging:
+    file_prefix: solar_live
+
+model:
+  m: 224.0
+  CdA: 0.093
+  Crr: 0.005
+  Crr_per_wheel: 0.0
+  P_aux: 8.0
+  gear_eta: 1.0
+  gear_ratio: 1.0
+  wheel_radius: 0.2786
+  wheel_count: 3
+  motor_count: 1
+  driven_wheel_count: 1
+  motor_type: inwheel
+  inverter_eta: 0.98
+  pv_area: 6.0
+  pv_eta_ref: 0.24
+  pv_mu_p: -0.0045
+  mppt_eta: 0.95
+  E_nom_Wh: 3055.0
+  V_min: 75.0
+  V_max: 108.75
+  I_max: 40.0
+  I_chg_min: -16.5
+  rho: 1.18
+  soc_min: 0.2
+  soc_max: 0.98
+  T_min: -20.0
+  T_max: 60.0
+  drive_mode: auto
+  drive_mode_tau_margin: 0.5
+
+mpc:
+  dt: 600.0
+  horizon_steps: 6
+  v_max_kmh: 110.0
+  terminal_soc_min: 0.2
+  use_measured_s: true
+  use_measured_speed: true
+  w_dv: 30.0
+  w_dv_limit: 2.0
+  dv_max_kmhps: 0.0
+  w_current: 0.01
+  soc_finish_target: 0.2
+  soc_finish_tol: 0.02
+  w_soc_progress: 100000.0
+  w_soc_terminal: 100000.0
+  race_km: 3035.5
+  upper_mode: time
+  upper_ds_km: 10.0
+  upper_horizon_km: 300.0
+  upper_max_steps: 40
+  upper_replan_sec: 3600.0
+  upper_day_end_soc_min: 0.2
+  soc_guard_margin: 0.01
+  soc_guard_mode: stop
+  hierarchical: true
+  lower_dt: 1.0
+  lower_horizon_steps: 8
+  lower_rate_hz: 1.0
+  w_track: 4.0
+  w_throttle: 0.1
+  w_throttle_rate: 0.4
+  throttle_rate_limit: 20.0
+  lower_ref_accel_limit_kmhps: 1.2
+  lower_ref_decel_limit_kmhps: 3.5
+  lower_ref_deadband_kmh: 0.1
+  speed_meas_timeout_sec: 3.0
+  distance_meas_timeout_sec: 5.0
+  battery_meas_timeout_sec: 15.0
+  speed_meas_filter_tau_sec: 0.6
+  speed_meas_max_accel_kmhps: 12.0
+  speed_meas_max_decel_kmhps: 20.0
+  distance_meas_max_rate_kmps: 0.06
+  distance_meas_max_backtrack_km: 0.02
+  battery_meas_filter_tau_sec: 1.0
+  drive_mode_min_hold_sec: 5.0
+  mhe_enabled: false
+  forecast_reload_sec: 60.0
+  replan_on_forecast_reload: false

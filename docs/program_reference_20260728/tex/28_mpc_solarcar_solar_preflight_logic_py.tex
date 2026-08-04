@@ -1,0 +1,228 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={preflight 判定ロジック},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{28. preflight 判定ロジック}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/solar_preflight_logic.py| \\
+        種別 & Python \\
+        区分 & runtime helper \\
+        役割 & 計測鮮度や command gate の純判定を Node 本体から切り出したロジック関数群。 \\
+        起動文脈 & preflight と speed bridge の共通判定層。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        計測鮮度や command gate の純判定を Node 本体から切り出したロジック関数群。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item evaluate\_freshness と evaluate\_command\_gate が中心。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_preflight_node.py|
+\item \path|mpc_solarcar/speed_command_bridge_node.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 特記事項なし。
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+@dataclass(frozen=True)
+class FreshnessResult:
+    state: str
+    health: float
+    diagnostic: str
+
+
+@dataclass(frozen=True)
+class CommandGateResult:
+    allowed: bool
+    reason: str
+
+
+def evaluate_freshness(
+    *,
+    elapsed_sec: float,
+    ages_sec: dict[str, float | None],
+    required: tuple[str, ...],
+    timeout_sec: float,
+    startup_grace_sec: float,
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは FreshnessResult, CommandGateResult。 主要関数は evaluate\_freshness, evaluate\_command\_gate。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            7 & class & \path|FreshnessResult| &  \\
+14 & class & \path|CommandGateResult| &  \\
+19 & function & \path|evaluate_freshness| &  \\
+43 & function & \path|evaluate_command_gate| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            7 & クラス FreshnessResult を定義する。 \\
+14 & クラス CommandGateResult を定義する。 \\
+19 & 関数 evaluate\_freshness を定義する。 \\
+43 & 関数 evaluate\_command\_gate を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|from dataclasses import dataclass| & dataclasses から dataclass を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L6, L13。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L7 クラス \path|FreshnessResult|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|FreshnessResult(bases=なし)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: dataclass
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item state に  を代入する。
+\item health に  を代入する。
+\item diagnostic に  を代入する。
+            \end{enumerate}
+
+\subsection*{L14 クラス \path|CommandGateResult|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|CommandGateResult(bases=なし)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: dataclass
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item allowed に  を代入する。
+\item reason に  を代入する。
+            \end{enumerate}
+
+\subsection*{L19 関数 \path|evaluate_freshness|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|evaluate_freshness(elapsed_sec, ages_sec, required, timeout_sec, startup_grace_sec)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: FreshnessResult, float, get, join
+              \item 戻り値の要点: FreshnessResult('RUNNING', 1.0, 'solar telemetry and planner inputs are fresh') / FreshnessResult('STARTING', 0.25, 'waiting for required solar telemetry') / FreshnessResult('DEGRADED', 0.2, 'missing: ' + ', '.join(missing)) / FreshnessResult('DEGRADED', 0.4, 'stale: ' + ', '.join(stale))
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 elapsed\_sec < startup\_grace\_sec を判定し、真なら内部処理を行う。
+\item missing に [name for name in required if ages\_sec.get(name) is None] の結果を代入する。
+\item stale に [name for name in required if ages\_sec.get(name) is not None and float(ages\_sec[name]) > timeout\_sec] の結果を代入する。
+\item 条件 missing を判定し、真なら内部処理を行う。
+\item 条件 stale を判定し、真なら内部処理を行う。
+\item FreshnessResult('RUNNING', 1.0, 'solar telemetry and planner inputs are fresh') を返す。
+            \end{enumerate}
+
+\subsection*{L43 関数 \path|evaluate_command_gate|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|evaluate_command_gate(elapsed_sec, speed_input_age_sec, system_state, system_state_age_sec, startup_hold_sec, input_timeout_sec, system_state_timeout_sec, require_system_running)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: CommandGateResult, max, str, strip, upper
+              \item 戻り値の要点: CommandGateResult(True, 'ok') / CommandGateResult(False, 'startup\_hold') / CommandGateResult(False, 'missing\_speed\_command') / CommandGateResult(False, 'stale\_speed\_command')
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 elapsed\_sec < max(0.0, startup\_hold\_sec) を判定し、真なら内部処理を行う。
+\item 条件 speed\_input\_age\_sec is None を判定し、真なら内部処理を行う。
+\item 条件 speed\_input\_age\_sec > max(0.0, input\_timeout\_sec) を判定し、真なら内部処理を行う。
+\item 条件 not require\_system\_running を判定し、真なら内部処理を行う。
+\item 条件 system\_state\_age\_sec is None を判定し、真なら内部処理を行う。
+\item 条件 system\_state\_age\_sec > max(0.0, system\_state\_timeout\_sec) を判定し、真なら内部処理を行う。
+\item 条件 str(system\_state).strip().upper() != 'RUNNING' を判定し、真なら内部処理を行う。
+\item CommandGateResult(True, 'ok') を返す。
+            \end{enumerate}
+
+
+
+
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/solar_preflight_logic.py| を
+        \textbf{runtime helper}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

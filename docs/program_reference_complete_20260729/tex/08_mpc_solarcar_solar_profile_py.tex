@@ -1,0 +1,686 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={profile YAML 読込と検証},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{08. profile YAML 読込と検証}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/solar_profile.py| \\
+        ソースSHA-256 & \path|342c5f001c7ae09a4ccfafe19e30706d124ac8b044852c365ca03ee664af00e7| \\
+        種別 & Python \\
+        区分 & config \\
+        役割 & profile.yaml をロードし、セクション取得、相対パス解決、CSV 最低品質検査を行う。 \\
+        起動文脈 & launch、offline simulation、identification の共通設定入口。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        profile.yaml をロードし、セクション取得、相対パス解決、CSV 最低品質検査を行う。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item load\_profile が YAML 全体を返す。
+\item get\_path が profile 基準で実ファイルパスへ変換する。
+\item require\_csv\_data\_rows が空テンプレと実データを区別する。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|live_launch.py|
+\item \path|solarcar_sim.launch.py|
+\item \path|solar_state_node.py|
+\item 多数の scripts
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/path_utils.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def require_csv_data_rows(
+    path: str | Path,
+    *,
+    label: str,
+    required_columns: tuple[str, ...] = (),
+) -> Path:
+    resolved = Path(path).expanduser().resolve()
+    if not resolved.is_file():
+        raise FileNotFoundError(f"{label} CSV was not found: {resolved}")
+    with resolved.open("r", encoding="utf-8-sig", newline="") as stream:
+        reader = csv.DictReader(stream)
+        header = tuple(reader.fieldnames or ())
+        missing = [column for column in required_columns if column not in header]
+        if missing:
+            raise ValueError(f"{label} CSV is missing columns {missing}: {resolved}")
+        if next(reader, None) is None:
+            raise ValueError(
+                f"{label} CSV has a header but no data rows: {resolved}. "
+                "Fill the template or select an identified vehicle profile before launch."
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要関数は require\_csv\_data\_rows, resolve\_relative\_path, load\_profile, merged\_dict, get\_section, get\_path。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            14 & function & \path|require_csv_data_rows| & args: path \\
+37 & function & \path|_resolve_profile_path| & args: path\_like \\
+51 & function & \path|resolve_relative_path| & args: base\_dir, path\_like \\
+68 & function & \path|load_profile| & args: path\_like \\
+77 & function & \path|merged_dict| &  \\
+78 & function & \path|_merge| & args: dst, src \\
+93 & function & \path|get_section| & args: cfg, key, default \\
+108 & function & \path|get_path| & args: cfg, profile\_path, key, default \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            11 & ROOT に Path(\_\_file\_\_).resolve().parents[1] の結果を代入する。 \\
+14 & 関数 require\_csv\_data\_rows を定義する。 \\
+37 & 関数 \_resolve\_profile\_path を定義する。 \\
+51 & 関数 resolve\_relative\_path を定義する。 \\
+68 & 関数 load\_profile を定義する。 \\
+77 & 関数 merged\_dict を定義する。 \\
+93 & 関数 get\_section を定義する。 \\
+108 & 関数 get\_path を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|import copy| & 設定辞書や payload を安全に複製するため。 このファイル内での主な使用位置は L81, L83, L99, L102, L104, L105。 \\
+4 & \path|import csv| & CSV の逐次読込・逐次書込を行うため。 このファイル内での主な使用位置は L24。 \\
+5 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L11, L15, L19, L20, L37, L38, L42, L51, ...。 \\
+6 & \path|from typing import Any| & typing から Any を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L86, L93, L94。 \\
+8 & \path|import yaml| & profile、stop、schedule、summary YAML を読み書きするため。 このファイル内での主な使用位置は L71。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L14 関数 require\_csv\_data\_rows}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L14--L34
+              \item 所属: module直下
+              \item 定義: \path!require_csv_data_rows(path: str | Path, *, label: str, required_columns: tuple[str, ...] = ()) -> Path!
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DictReader, FileNotFoundError, Path, ValueError, expanduser, is\_file, next, open, resolve, tuple
+              \item 戻り値の要点: resolved
+              \item 主なローカル代入名: column, header, missing, reader, resolved, stream
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: FileNotFoundError(f'\{label\} CSV was not found: \{resolved\}'), ValueError(f'\{label\} CSV has a header but no data rows: \{resolved\}. Fill the template or select an identified vehicle profile before launch.'), ValueError(f'\{label\} CSV is missing columns \{missing\}: \{resolved\}')
+              \item 制御構造の規模: 条件分岐 3、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+\item with文はcontext managerに開始・終了処理を任せ、ファイルなどの資源を確実に解放する。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item resolved に Path(path).expanduser().resolve() の結果を代入する。
+\item 条件 not resolved.is\_file() を判定し、真なら内部処理を行う。
+\item   FileNotFoundError(f'\{label\} CSV was not found: \{resolved\}') を送出する。
+\item with 文で resolved.open('r', encoding='utf-8-sig', newline='') を管理しながら処理する。
+\item   reader に csv.DictReader(stream) の結果を代入する。
+\item   header に tuple(reader.fieldnames or ()) の結果を代入する。
+\item   missing に [column for column in required\_columns if column not in header] の結果を代入する。
+\item   条件 missing を判定し、真なら内部処理を行う。
+\item     ValueError(f'\{label\} CSV is missing columns \{missing\}: \{resolved\}') を送出する。
+\item   条件 next(reader, None) is None を判定し、真なら内部処理を行う。
+\item     ValueError(f'\{label\} CSV has a header but no data rows: \{resolved\}. Fill the template or select an identified vehicle profile before launch.') を送出する。
+\item resolved を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def require_csv_data_rows(
+    path: str | Path,
+    *,
+    label: str,
+    required_columns: tuple[str, ...] = (),
+) -> Path:
+    resolved = Path(path).expanduser().resolve()
+    if not resolved.is_file():
+        raise FileNotFoundError(f"{label} CSV was not found: {resolved}")
+    with resolved.open("r", encoding="utf-8-sig", newline="") as stream:
+        reader = csv.DictReader(stream)
+        header = tuple(reader.fieldnames or ())
+        missing = [column for column in required_columns if column not in header]
+        if missing:
+            raise ValueError(f"{label} CSV is missing columns {missing}: {resolved}")
+        if next(reader, None) is None:
+            raise ValueError(
+                f"{label} CSV has a header but no data rows: {resolved}. "
+                "Fill the template or select an identified vehicle profile before launch."
+            )
+    return resolved
+\end{lstlisting}
+
+\subsection{L37 関数 \_resolve\_profile\_path}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L37--L48
+              \item 所属: module直下
+              \item 定義: \path!_resolve_profile_path(path_like: str | Path) -> Path!
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, cwd, exists, expanduser, is\_absolute, resolve, str, strip
+              \item 戻り値の要点: candidates[-1] / raw.resolve() / candidate
+              \item 主なローカル代入名: candidate, candidates, raw
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item raw に Path(str(path\_like or '').strip()).expanduser() の結果を代入する。
+\item 条件 raw.is\_absolute() を判定し、真なら内部処理を行う。
+\item   raw.resolve() を返す。
+\item candidates に [(Path.cwd() / raw).resolve(), (ROOT / raw).resolve()] の結果を代入する。
+\item candidates を順に走査し、各要素を candidate に入れて処理する。
+\item   条件 candidate.exists() を判定し、真なら内部処理を行う。
+\item     candidate を返す。
+\item candidates[-1] を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def _resolve_profile_path(path_like: str | Path) -> Path:
+    raw = Path(str(path_like or "").strip()).expanduser()
+    if raw.is_absolute():
+        return raw.resolve()
+    candidates = [
+        (Path.cwd() / raw).resolve(),
+        (ROOT / raw).resolve(),
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[-1]
+\end{lstlisting}
+
+\subsection{L51 関数 resolve\_relative\_path}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L51--L65
+              \item 所属: module直下
+              \item 定義: \path!resolve_relative_path(base_dir: str | Path, path_like: str | Path) -> str!
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, exists, expanduser, is\_absolute, resolve, str, strip
+              \item 戻り値の要点: str(candidate) / '' / str(path.resolve()) / str(candidate)
+              \item 主なローカル代入名: base, candidate, path, raw, repo\_candidate
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 4、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item raw に str(path\_like or '').strip() の結果を代入する。
+\item 条件 not raw を判定し、真なら内部処理を行う。
+\item   '' を返す。
+\item path に Path(raw).expanduser() の結果を代入する。
+\item 条件 path.is\_absolute() を判定し、真なら内部処理を行う。
+\item   str(path.resolve()) を返す。
+\item base に Path(base\_dir).resolve() の結果を代入する。
+\item candidate に (base / path).resolve() の結果を代入する。
+\item 条件 candidate.exists() を判定し、真なら内部処理を行う。
+\item   str(candidate) を返す。
+\item repo\_candidate に (ROOT / path).resolve() の結果を代入する。
+\item 条件 repo\_candidate.exists() を判定し、真なら内部処理を行う。
+\item   str(repo\_candidate) を返す。
+\item str(candidate) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def resolve_relative_path(base_dir: str | Path, path_like: str | Path) -> str:
+    raw = str(path_like or "").strip()
+    if not raw:
+        return ""
+    path = Path(raw).expanduser()
+    if path.is_absolute():
+        return str(path.resolve())
+    base = Path(base_dir).resolve()
+    candidate = (base / path).resolve()
+    if candidate.exists():
+        return str(candidate)
+    repo_candidate = (ROOT / path).resolve()
+    if repo_candidate.exists():
+        return str(repo_candidate)
+    return str(candidate)
+\end{lstlisting}
+
+\subsection{L68 関数 load\_profile}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L68--L74
+              \item 所属: module直下
+              \item 定義: \path!load_profile(path_like: str | Path) -> tuple[Path, dict]!
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, \_resolve\_profile\_path, isinstance, open, safe\_load
+              \item 戻り値の要点: (profile\_path, cfg)
+              \item 主なローカル代入名: cfg, f, profile\_path
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: ValueError(f'profile must be a mapping: \{profile\_path\}')
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item with文はcontext managerに開始・終了処理を任せ、ファイルなどの資源を確実に解放する。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item profile\_path に \_resolve\_profile\_path(path\_like) の結果を代入する。
+\item with 文で profile\_path.open('r', encoding='utf-8') を管理しながら処理する。
+\item   cfg に yaml.safe\_load(f) or \{\} の結果を代入する。
+\item 条件 not isinstance(cfg, dict) を判定し、真なら内部処理を行う。
+\item   ValueError(f'profile must be a mapping: \{profile\_path\}') を送出する。
+\item (profile\_path, cfg) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def load_profile(path_like: str | Path) -> tuple[Path, dict]:
+    profile_path = _resolve_profile_path(path_like)
+    with profile_path.open("r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
+    if not isinstance(cfg, dict):
+        raise ValueError(f"profile must be a mapping: {profile_path}")
+    return profile_path, cfg
+\end{lstlisting}
+
+\subsection{L77 関数 merged\_dict}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L77--L90
+              \item 所属: module直下
+              \item 定義: \path!merged_dict(*payloads: dict | None) -> dict!
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_merge, deepcopy, get, isinstance, items
+              \item 戻り値の要点: out / dst
+              \item 主なローカル代入名: key, out, payload, value
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 2、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_merge を定義する。
+\item out に \{\} を代入する。
+\item payloads を順に走査し、各要素を payload に入れて処理する。
+\item   条件 isinstance(payload, dict) を判定し、真なら内部処理を行う。
+\item     out に \_merge(out, payload) の結果を代入する。
+\item out を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def merged_dict(*payloads: dict | None) -> dict:
+    def _merge(dst: dict, src: dict) -> dict:
+        for key, value in (src or {}).items():
+            if isinstance(value, dict) and isinstance(dst.get(key), dict):
+                dst[key] = _merge(copy.deepcopy(dst[key]), value)
+            else:
+                dst[key] = copy.deepcopy(value)
+        return dst
+
+    out: dict[str, Any] = {}
+    for payload in payloads:
+        if isinstance(payload, dict):
+            out = _merge(out, payload)
+    return out
+\end{lstlisting}
+
+\subsection{L78 関数 merged\_dict.\_merge}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L78--L84
+              \item 所属: \path|merged_dict|
+              \item 定義: \path|_merge(dst: dict, src: dict) -> dict|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_merge, deepcopy, get, isinstance, items
+              \item 戻り値の要点: dst
+              \item 主なローカル代入名: key, value
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item (src or \{\}).items() を順に走査し、各要素を (key, value) に入れて処理する。
+\item   条件 isinstance(value, dict) and isinstance(dst.get(key), dict) を判定し、真なら内部処理を行う。
+\item     dst[key] に \_merge(copy.deepcopy(dst[key]), value) の結果を代入する。
+\item     上の条件が偽の場合:
+\item     dst[key] に copy.deepcopy(value) の結果を代入する。
+\item dst を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _merge(dst: dict, src: dict) -> dict:
+        for key, value in (src or {}).items():
+            if isinstance(value, dict) and isinstance(dst.get(key), dict):
+                dst[key] = _merge(copy.deepcopy(dst[key]), value)
+            else:
+                dst[key] = copy.deepcopy(value)
+        return dst
+\end{lstlisting}
+
+\subsection{L93 関数 get\_section}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L93--L105
+              \item 所属: module直下
+              \item 定義: \path|get_section(cfg: dict, key: str, default: Any = None) -> Any|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: deepcopy, get, isinstance, split, str
+              \item 戻り値の要点: copy.deepcopy(current) / copy.deepcopy(default) if default is not None else \{\} / copy.deepcopy(default) if default is not None else \{\} / copy.deepcopy(default) if default is not None else \{\}
+              \item 主なローカル代入名: current, part
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 4、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item current に cfg を代入する。
+\item str(key or '').split('.') を順に走査し、各要素を part に入れて処理する。
+\item   条件 not part を判定し、真なら内部処理を行う。
+\item     Continue 文を実行する。
+\item   条件 not isinstance(current, dict) を判定し、真なら内部処理を行う。
+\item     copy.deepcopy(default) if default is not None else \{\} を返す。
+\item   current に current.get(part) の結果を代入する。
+\item   条件 current is None を判定し、真なら内部処理を行う。
+\item     copy.deepcopy(default) if default is not None else \{\} を返す。
+\item 条件 current is None を判定し、真なら内部処理を行う。
+\item   copy.deepcopy(default) if default is not None else \{\} を返す。
+\item copy.deepcopy(current) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def get_section(cfg: dict, key: str, default: Any = None) -> Any:
+    current: Any = cfg
+    for part in str(key or "").split("."):
+        if not part:
+            continue
+        if not isinstance(current, dict):
+            return copy.deepcopy(default) if default is not None else {}
+        current = current.get(part)
+        if current is None:
+            return copy.deepcopy(default) if default is not None else {}
+    if current is None:
+        return copy.deepcopy(default) if default is not None else {}
+    return copy.deepcopy(current)
+\end{lstlisting}
+
+\subsection{L108 関数 get\_path}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L108--L118
+              \item 所属: module直下
+              \item 定義: \path!get_path(cfg: dict, profile_path: str | Path, key: str, default: str = '') -> str!
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, get, get\_section, isinstance, resolve, resolve\_relative\_path, str, strip
+              \item 戻り値の要点: resolve\_relative\_path(profile\_dir, raw)
+              \item 主なローカル代入名: paths\_cfg, profile\_dir, raw
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 3、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item profile\_dir に Path(profile\_path).resolve().parent の結果を代入する。
+\item raw に '' の結果を代入する。
+\item paths\_cfg に cfg.get('paths', \{\}) if isinstance(cfg, dict) else \{\} の結果を代入する。
+\item 条件 isinstance(paths\_cfg, dict) を判定し、真なら内部処理を行う。
+\item   raw に str(paths\_cfg.get(key, '') or '').strip() の結果を代入する。
+\item 条件 not raw を判定し、真なら内部処理を行う。
+\item   raw に str(get\_section(cfg, key, default) or '').strip() の結果を代入する。
+\item 条件 not raw を判定し、真なら内部処理を行う。
+\item   raw に str(default or '').strip() の結果を代入する。
+\item resolve\_relative\_path(profile\_dir, raw) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def get_path(cfg: dict, profile_path: str | Path, key: str, default: str = "") -> str:
+    profile_dir = Path(profile_path).resolve().parent
+    raw = ""
+    paths_cfg = cfg.get("paths", {}) if isinstance(cfg, dict) else {}
+    if isinstance(paths_cfg, dict):
+        raw = str(paths_cfg.get(key, "") or "").strip()
+    if not raw:
+        raw = str(get_section(cfg, key, default) or "").strip()
+    if not raw:
+        raw = str(default or "").strip()
+    return resolve_relative_path(profile_dir, raw)
+\end{lstlisting}
+
+
+
+
+
+
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/solar_profile.py| を
+        \textbf{config}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

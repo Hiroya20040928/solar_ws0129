@@ -1,0 +1,416 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[top=20mm,bottom=24mm,left=20mm,right=20mm]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setmainfont{Times New Roman}
+\setCJKmainfont{Yu Gothic}
+\setmonofont{Consolas}
+\setCJKmonofont{Yu Gothic}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{url}
+\usepackage[unicode]{hyperref}
+\usepackage{fancyvrb}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  pdftitle={Solar Workflow Manual},
+  pdfauthor={Codex}
+}
+
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{1em}
+\renewcommand{\arraystretch}{1.2}
+\Urlmuskip=0mu plus 2mu
+
+\title{Solar Workflow Manual}
+\author{solar\_ws0129-main}
+\date{2026-06-17}
+
+\begin{document}
+\maketitle
+
+\section{目的}
+
+この workspace は PASSO 系を主系統から外し、BWSC 系ソーラーカーのための 3 モードに整理している。
+
+\begin{enumerate}
+  \item 大会全体シミュレーション
+  \item 本番ライブ運用
+  \item CSV ベース同定
+\end{enumerate}
+
+通常の入口は \path{.\SolarSim.ps1} と \path{config/solar/bwsc_2027_demo.yaml} である。
+この profile を変えるだけで、気象入力、route 入力、同定入力、本番運用設定を切り替えられる。
+
+\section{現在の構成でできること}
+
+\begin{itemize}
+  \item 天候 API から forecast CSV を自動生成
+  \item 大会全区間の上位プラン CSV を出力
+  \item 実車ログの取得
+  \item route / OCV / Rint / PV / 車両パラメータの同定
+  \item 本番時の予報更新、自動校正、上位再計画、下位速度司令、車両側再送
+  \item WiFi/UDP 文字列連携付きの本番ライブ運用
+  \item \path{rqt_graph} の PNG / SVG / DOT 保存
+\end{itemize}
+
+\section{重要な前提}
+
+既定値は BWSC 向けに寄せてあるが、次は必ず公式値または実測値へ置き換える。
+
+\begin{itemize}
+  \item \path{data/route/*sample.csv}
+  \item \path{data/weather/bwsc_forecast_sample_10min.csv}
+  \item \path{data/race/bwsc_control_stops_sample.yaml}
+  \item \path{maps/*.csv}
+  \item \path{config/solar/bwsc_2027_demo.yaml} の \path{model.*}
+\end{itemize}
+
+\section{ディレクトリ}
+
+\begin{Verbatim}[fontsize=\small]
+config/solar/
+  bwsc_2027_demo.yaml
+
+data/route/
+  bwsc_route_waypoints_sample.csv
+  bwsc_route_profile_sample.csv
+  bwsc_speed_profile_sample.csv
+
+data/weather/
+  bwsc_forecast_sample_10min.csv
+
+data/race/
+  bwsc_drive_schedule_2027.yaml
+  bwsc_control_stops_sample.yaml
+
+data/identification/raw/
+  drive_timeseries.csv
+  battery_rest.csv
+  battery_pulse.csv
+  panel_sweep.csv
+  gps_track.csv
+
+templates/identification/
+  *_template.csv
+
+launch/
+  solarcar_sim.launch.py
+  solar_measurement.launch.py
+  solar_race_live.launch.py
+  solar_race_live_wifi.launch.py
+
+scripts/
+  solar_sim.py
+  fetch_weather_forecast.py
+  run_identification_pipeline.py
+\end{Verbatim}
+
+\section{PowerShell コマンド}
+
+\subsection{基本コマンド}
+
+\begin{Verbatim}[fontsize=\small]
+.\SolarSim.ps1 -Action simulate
+.\SolarSim.ps1 -Action forecast
+.\SolarSim.ps1 -Action identify
+.\SolarSim.ps1 -Mode measure -Action up
+.\SolarSim.ps1 -Mode live -Action up
+.\SolarSim.ps1 -Mode live_wifi -Action up
+.\SolarSim.ps1 -Mode sim -Action up
+.\SolarSim.ps1 -Mode live -Action graph
+.\SolarSim.ps1 -Mode live -Action stop
+\end{Verbatim}
+
+\subsection{Action 一覧}
+
+\begin{longtable}{p{0.18\linewidth}p{0.32\linewidth}p{0.38\linewidth}}
+\toprule
+Action & 用途 & 主な出力 \\
+\midrule
+\endhead
+build & ROS パッケージ再ビルド & \path{install/}, \path{build/}, \path{log/} \\
+simulate & 大会全体シミュレーション & \path{outputs/prerace/*.csv} \\
+forecast & 天候 API 取得 & \path{paths.forecast_csv} \\
+identify & 同定パイプライン実行 & \path{outputs/identification/*} \\
+up & build + stop + start & ダッシュボードと ROS ノード群 \\
+start & 起動のみ & 同上 \\
+stop & 停止 & 同上停止 \\
+status & 起動状態確認 & 端末表示 \\
+graph & \path{rqt_graph} 保存 & \path{rqt_graph_solar_<mode>.*} \\
+log & 実行ログ表示 & \path{.run/solar_<mode>.log} \\
+\bottomrule
+\end{longtable}
+
+\section{Mode 1: 大会全体シミュレーション}
+
+\subsection{目的}
+
+\begin{itemize}
+  \item ルート、予報、停止点、車両パラメータを差し替えて大会全体の計画を見る
+  \item 上位プランナの CSV を大会全区間について出力する
+\end{itemize}
+
+\subsection{実行}
+
+\begin{Verbatim}[fontsize=\small]
+.\SolarSim.ps1 -Action simulate
+\end{Verbatim}
+
+\subsection{主な入力}
+
+\begin{longtable}{p{0.28\linewidth}p{0.62\linewidth}}
+\toprule
+入力 & 内容 \\
+\midrule
+\endhead
+\path{paths.route_waypoints_csv} & \path{dist_km, lat, lon} を必須とする \\
+\path{paths.route_profile_csv} & \path{dist_km, slope_pct} を推奨する \\
+\path{paths.speed_profile_csv} & \path{dist_km, v_max_kmh} \\
+\path{paths.forecast_csv} & \path{time, GHI, Tamb_C, Tcell_C} を推奨する \\
+\path{paths.stop_yaml} & \path{stops[].s_km}, \path{stops[].dwell_s} \\
+\path{paths.drive_schedule_yaml} & 日毎の走行可能時間帯 \\
+\bottomrule
+\end{longtable}
+
+\subsection{主な出力}
+
+\begin{itemize}
+  \item \path{outputs/prerace/<prefix>.csv}
+  \item \path{outputs/prerace/<prefix>_detail.csv}
+  \item \path{outputs/prerace/<prefix>_upper_plan.csv}
+\end{itemize}
+
+\subsection{まず触るべき項目}
+
+\begin{itemize}
+  \item \path{paths.route_*}
+  \item \path{paths.forecast_csv}
+  \item \path{paths.stop_yaml}
+  \item \path{simulation.start_utc}
+  \item \path{simulation.soc0}
+  \item \path{model.CdA}, \path{model.Crr}, \path{model.P_aux}
+  \item \path{model.pv_area}, \path{model.E_nom_Wh}
+  \item \path{mpc.race_km}
+\end{itemize}
+
+\section{Mode 2: 本番ライブ運用}
+
+\subsection{目的}
+
+ライブ運用では次を自動化する。
+
+\begin{itemize}
+  \item 実車トピック受信
+  \item 伴走車 GNSS 受信
+  \item 予報 API 自動取得
+  \item ログ保存
+  \item 太陽入力量と駆動消費の自動校正
+  \item 上位プランナの 1 時間毎再計画
+  \item 下位プランナの 1 Hz 速度司令生成
+  \item 車両側コマンドトピックへの再送
+  \item 伴走車側ダッシュボード表示
+\end{itemize}
+
+\subsection{実行}
+
+\begin{Verbatim}[fontsize=\small]
+.\SolarSim.ps1 -Mode live -Action up
+.\SolarSim.ps1 -Mode live -Action stop
+.\SolarSim.ps1 -Mode live_wifi -Action up
+\end{Verbatim}
+
+\subsection{ライブで起動する主ノード}
+
+\begin{itemize}
+  \item \path{mpc_node}
+  \item \path{dashboard_node}
+  \item \path{logger_node}
+  \item \path{weather_fetch_node}
+  \item \path{solar_autocal_node}
+  \item \path{speed_command_bridge_node}
+  \item \path{distance_node}
+  \item \path{grade_node}
+  \item \path{telemetry_text_bridge_node} （\path{live_wifi}）
+  \item \path{wind_correction_node} （\path{live_wifi}）
+\end{itemize}
+
+\subsection{実車側から欲しいトピック}
+
+最低限:
+
+\begin{itemize}
+  \item \path{/vehicle/speed_kmh}
+  \item \path{/vehicle/batt_soc}
+  \item \path{/vehicle/batt_temp_c}
+  \item \path{/vehicle/batt_current_a}
+  \item \path{/vehicle/batt_voltage_v}
+\end{itemize}
+
+あるとよいもの:
+
+\begin{itemize}
+  \item \path{/vehicle/s_km}
+  \item \path{/vehicle/gps}
+  \item \path{/vehicle/altitude_m}
+  \item \path{/chase/gps}
+\end{itemize}
+
+\subsection{主要出力}
+
+\begin{itemize}
+  \item \path{/planner/speed_cmd}
+  \item \path{/planner/drive_mode}
+  \item \path{/vehicle/speed_cmd_kmh}
+  \item \path{/vehicle/drive_mode_cmd}
+  \item \path{/planner/calibration}
+  \item \path{/planner/calibration_state}
+  \item \path{/planner/summary}
+  \item \path{/system/forecast_status}
+  \item \path{/system/calibration_status}
+  \item \path{/system/command_status}
+\end{itemize}
+
+\subsection{ライブでよく触る profile 項目}
+
+\begin{itemize}
+  \item \path{live.weather.*}
+  \item \path{live.autocal.*}
+  \item \path{live.command_bridge.*}
+  \item \path{live.distance.*}
+  \item \path{live.grade.*}
+  \item \path{mpc.upper_replan_sec} （既定 3600 秒）
+  \item \path{mpc.lower_rate_hz} （既定 1.0 Hz）
+\end{itemize}
+
+WiFi/UDP 文字列運用の詳細は \path{docs/solar_live_wifi_manual.pdf} を参照する。
+
+\IfFileExists{../rqt_graph_solar_live.png}{
+\begin{figure}[tb]
+  \centering
+  \includegraphics[width=0.92\linewidth]{../rqt_graph_solar_live.png}
+  \caption{ライブ運用時の rqt\_graph}
+\end{figure}
+}{}
+
+\section{Mode 3: CSV ベース同定}
+
+\subsection{実行}
+
+\begin{Verbatim}[fontsize=\small]
+.\SolarSim.ps1 -Action identify
+\end{Verbatim}
+
+入力雛形は \path{templates/identification/} に置いてある。
+
+\subsection{推奨入力 CSV}
+
+\begin{longtable}{p{0.28\linewidth}p{0.58\linewidth}}
+\toprule
+ファイル & 主な列 \\
+\midrule
+\endhead
+\path{drive_timeseries.csv} & \path{time, speed_kmh, batt_voltage_v, batt_current_a, slope_pct, G_poa} \\
+\path{battery_rest.csv} & \path{soc, temperature_c, voltage_v, rest_time_s} \\
+\path{battery_pulse.csv} & \path{soc, temperature_c, current_a, voltage_v} \\
+\path{panel_sweep.csv} & \path{irradiance_w_m2, cell_temp_c, panel_power_w, panel_area_m2, mppt_power_w} \\
+\path{gps_track.csv} & \path{lat, lon, alt_m} \\
+\bottomrule
+\end{longtable}
+
+\subsection{主な出力}
+
+\begin{itemize}
+  \item \path{outputs/identification/route_waypoints_identified.csv}
+  \item \path{outputs/identification/route_profile_identified.csv}
+  \item \path{outputs/identification/ocv_soc_curve_identified.csv}
+  \item \path{outputs/identification/Rint_T_by_soc_identified.csv}
+  \item \path{outputs/identification/panel_eff_map_identified.csv}
+  \item \path{outputs/identification/mppt_eff_map_identified.csv}
+  \item \path{outputs/identification/vehicle_model_fit.yaml}
+\end{itemize}
+
+\section{YAML の見方}
+
+\path{config/solar/bwsc_2027_demo.yaml} は次のブロックへ整理している。
+
+\begin{itemize}
+  \item \path{paths}
+  \item \path{runtime}
+  \item \path{logging}
+  \item \path{simulation}
+  \item \path{measurement}
+  \item \path{identification}
+  \item \path{live}
+  \item \path{model}
+  \item \path{mpc}
+\end{itemize}
+
+不確かさを増やさないため、まずは \path{paths.*} と \path{model.*} を実測値へ寄せ、その後に \path{mpc.*} を調整する。
+重み係数を増やす前に map と weather と route の品質を上げる方が重要である。
+
+\section{推奨運用手順}
+
+\subsection{大会前}
+
+\begin{enumerate}
+  \item 実測 CSV を \path{templates/identification/} に沿って整理する
+  \item \path{.\SolarSim.ps1 -Action identify}
+  \item 出力 map を \path{maps/} と \path{data/route/} に反映する
+  \item \path{.\SolarSim.ps1 -Action forecast}
+  \item \path{.\SolarSim.ps1 -Action simulate}
+  \item \path{outputs/prerace/*_upper_plan.csv} を確認する
+\end{enumerate}
+
+\subsection{計測日}
+
+\begin{enumerate}
+  \item \path{.\SolarSim.ps1 -Mode measure -Action up}
+  \item 実車と伴走車のトピックを受信する
+  \item \path{outputs/logs/solar_measurement_*.csv} を保存する
+  \item 必要なら再度 \path{identify} を実行する
+\end{enumerate}
+
+\subsection{本番日}
+
+\begin{enumerate}
+  \item \path{.\SolarSim.ps1 -Action forecast}
+  \item \path{.\SolarSim.ps1 -Mode live -Action up}
+  \item WiFi 文字列運用時は \path{.\SolarSim.ps1 -Mode live_wifi -Action up}
+  \item ダッシュボード、\path{rqt_graph}、\path{outputs/logs/solar_live_*.csv} を監視する
+  \item 走行後に log を次回同定へ戻す
+\end{enumerate}
+
+\section{PDF 生成}
+
+Windows からの生成例:
+
+\begin{Verbatim}[fontsize=\small]
+xelatex -interaction=nonstopmode -output-directory=docs docs/solar_workflow.tex
+xelatex -interaction=nonstopmode -output-directory=docs docs/solar_workflow.tex
+\end{Verbatim}
+
+生成物は \path{docs/solar_workflow.pdf} である。
+
+\section{外部資料}
+
+整理時に参照した主な資料を記す。
+
+\begin{itemize}
+  \item BWSC 2027 regulations:
+  \url{https://assets.worldsolarchallenge.org/app/uploads/2026/05/06130905/2027-BWSC-Event-Regulations-V1.0-Published-07052026.pdf}
+  \item BWSC route map:
+  \url{https://worldsolarchallenge.org/about-us/route-map}
+  \item BWSC 2025 route notes:
+  \url{https://assets.worldsolarchallenge.org/app/uploads/2025/07/13131527/2025-BWSC-Route-Notes-V1-FINAL-PRINT-Published-13072025.pdf}
+  \item Online energy management paper:
+  \url{https://repositorio.uchile.cl/bitstream/handle/2250/140895/Online-energy-management.pdf?sequence=1}
+\end{itemize}
+
+\end{document}

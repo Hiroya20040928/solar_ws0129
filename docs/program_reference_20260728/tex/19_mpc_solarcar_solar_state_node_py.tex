@@ -1,0 +1,270 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={sim 用 車体状態 publisher},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{19. sim 用 車体状態 publisher}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/solar_state_node.py| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & sim モードで planner 指令速度から速度、距離、電池、PV、altitude を模擬 publish する。 \\
+        起動文脈 & simulation launch における擬似車両。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        sim モードで planner 指令速度から速度、距離、電池、PV、altitude を模擬 publish する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item SolarCarModel を直接生成する。
+\item /planner/speed\_cmd を受けて /vehicle/* を出す。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|launch/solarcar_sim.launch.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/model.py|
+\item \path|mpc_solarcar/mpc_node.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/model.py|
+\item \path|mpc_solarcar/path_utils.py|
+\item \path|mpc_solarcar/route_utils.py|
+\item \path|mpc_solarcar/schedule_utils.py|
+\item \path|mpc_solarcar/signal_utils.py|
+\item \path|mpc_solarcar/solar_profile.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from .solar_profile import get_path, get_section, load_profile, require_csv_data_rows
+
+
+class SolarStateNode(Node):
+    def __init__(self) -> None:
+        super().__init__("solar_state_node")
+        self.declare_parameter("profile_yaml", "")
+        self.declare_parameter("forecast_csv", "inputs/forecast_10min.csv")
+        self.declare_parameter("route_profile_csv", "")
+        self.declare_parameter("drive_schedule_yaml", "")
+        self.declare_parameter("drive_eff_map", "")
+        self.declare_parameter("regen_eff_map", "")
+        self.declare_parameter("rint_map", "")
+        self.declare_parameter("panel_eff_map", "")
+        self.declare_parameter("mppt_eff_map", "")
+        self.declare_parameter("drive_map_eco", "")
+        self.declare_parameter("drive_map_power", "")
+        self.declare_parameter("regen_map_eco", "")
+        self.declare_parameter("regen_map_power", "")
+        self.declare_parameter("ocv_soc_map", "")
+        self.declare_parameter("params_yaml", "")
+        self.declare_parameter("forecast_time_mode", "auto")
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは SolarStateNode。 主要関数は main。 ROS パラメータ宣言は 26 件。 ROS I/O は publisher 8 件、subscription 1 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            22 & class & \path|SolarStateNode| & bases: Node \\
+23 & function & \path|__init__| & args: self \\
+180 & function & \path|_on_speed_cmd| & args: self, msg \\
+183 & function & \path|_forecast_row| & args: self, now\_utc \\
+191 & function & \path|_route_value| & args: self, field, default \\
+199 & function & \path|_step| & args: self \\
+265 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            22 & クラス SolarStateNode を定義する。 \\
+265 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+4 & \path|import time| & wall/monotonic time に基づく周期制御や freshness 判定を行うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+5 & \path|from datetime import datetime, timedelta, timezone| & UTC 時刻や相対時間を扱うため。 このファイル内での主な使用位置は L118, L122, L183, L209。 \\
+7 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L185, L186, L188, L240。 \\
+8 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L99, L105, L107。 \\
+9 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L59, L60, L61, L62, L63, L64, L65, L66, ...。 \\
+10 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L22。 \\
+12 & \path|from std_msgs.msg import Float32| & Float32 や String など軽量メッセージで planner / vehicle 値を publish するため。 このファイル内での主な使用位置は L168, L169, L170, L171, L172, L173, L174, L175, ...。 \\
+14 & \path|from .model import Params, SolarCarModel| & 車体物理・電気モデル本体 から Params, SolarCarModel を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/model.py。 このファイル内での主な使用位置は L128, L132。 \\
+15 & \path|from .path_utils import resolve_path| & ROS share / 相対パス解決 から resolve\_path を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/path\_utils.py。 このファイル内での主な使用位置は L87, L95, L103, L129, L130, L131, L133, L134, ...。 \\
+16 & \path|from .route_utils import interpolate_profile| & route\_utils.py から interpolate\_profile を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/route\_utils.py。 このファイル内での主な使用位置は L195。 \\
+17 & \path|from .schedule_utils import DriveSchedule| & schedule\_utils.py から DriveSchedule を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/schedule\_utils.py。 このファイル内での主な使用位置は L103。 \\
+18 & \path|from .signal_utils import SmoothRateLimiter| & signal\_utils.py から SmoothRateLimiter を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/signal\_utils.py。 このファイル内での主な使用位置は L158。 \\
+19 & \path|from .solar_profile import get_path, get_section, load_profile, require_csv_data_rows| & profile YAML 読込と検証 から get\_path, get\_section, load\_profile, require\_csv\_data\_rows を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_profile.py。 このファイル内での主な使用位置は L54, L55, L56, L59, L60, L61, L62, L63, ...。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L22 クラス \path|SolarStateNode|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|SolarStateNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, Parameter, Params, SmoothRateLimiter, SolarCarModel, \_\_init\_\_, \_forecast\_row, \_route\_value, abs, any, astimezone, clip
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_on\_speed\_cmd を定義する。
+\item 関数 \_forecast\_row を定義する。
+\item 関数 \_route\_value を定義する。
+\item 関数 \_step を定義する。
+            \end{enumerate}
+
+\subsection*{L265 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: SolarStateNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に SolarStateNode() の結果を代入する。
+\item rclpy.spin(...) を実行する。
+\item node.destroy\_node(...) を実行する。
+\item rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+
+        \subsection*{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            25 & \path|profile_yaml| &  \\
+26 & \path|forecast_csv| & inputs/forecast\_10min.csv \\
+27 & \path|route_profile_csv| &  \\
+28 & \path|drive_schedule_yaml| &  \\
+29 & \path|drive_eff_map| &  \\
+30 & \path|regen_eff_map| &  \\
+31 & \path|rint_map| &  \\
+32 & \path|panel_eff_map| &  \\
+33 & \path|mppt_eff_map| &  \\
+34 & \path|drive_map_eco| &  \\
+35 & \path|drive_map_power| &  \\
+36 & \path|regen_map_eco| &  \\
+37 & \path|regen_map_power| &  \\
+38 & \path|ocv_soc_map| &  \\
+39 & \path|params_yaml| &  \\
+40 & \path|forecast_time_mode| & auto \\
+41 & \path|forecast_time_tz| & UTC \\
+42 & \path|forecast_start_time_utc| &  \\
+43 & \path|publish_rate_hz| & 2.0 \\
+44 & \path|init_speed_kmh| & 45.0 \\
+45 & \path|soc0| & 0.95 \\
+46 & \path|Tb0| & 30.0 \\
+47 & \path|s0_km| & 0.0 \\
+48 & \path|filter_tau_sec| & 1.0 \\
+49 & \path|accel_limit_kmhps| & 1.2 \\
+50 & \path|decel_limit_kmhps| & 3.5 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            168 & publisher & \path|/vehicle/speed_kmh| & publisher \\
+169 & publisher & \path|/vehicle/s_km| & publisher \\
+170 & publisher & \path|/vehicle/batt_soc| & publisher \\
+171 & publisher & \path|/vehicle/batt_temp_c| & publisher \\
+172 & publisher & \path|/vehicle/batt_current_a| & publisher \\
+173 & publisher & \path|/vehicle/batt_voltage_v| & publisher \\
+174 & publisher & \path|/vehicle/solar_power_w| & publisher \\
+175 & publisher & \path|/vehicle/altitude_m| & publisher \\
+176 & subscription & \path|/planner/speed_cmd| & self.\_on\_speed\_cmd \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/solar_state_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

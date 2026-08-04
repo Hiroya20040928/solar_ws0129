@@ -1,0 +1,25 @@
+{
+  "type": "planner_command",
+  "schema": "solar_v1",
+  "ts_unix": 1781700000.0,
+  "planner": {
+    "speed_cmd_kmh": 71.0,
+    "upper_speed_cmd_kmh": 73.5,
+    "drive_mode": "eco"
+  },
+  "summary": {
+    "race_progress_pct": 13.6,
+    "next_stop_dist_km": 58.2,
+    "next_stop_eta_min": 47.0,
+    "finish_dist_km": 2622.9,
+    "finish_eta_h": 41.5,
+    "avg_plan_speed_kmh": 72.1
+  },
+  "wind": {
+    "plan_headwind_ms": 4.8,
+    "mean_headwind_ms": 4.2,
+    "std_headwind_ms": 1.1,
+    "lo95_headwind_ms": 2.0,
+    "hi95_headwind_ms": 6.4
+  }
+}

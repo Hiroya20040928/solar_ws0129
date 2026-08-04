@@ -1,0 +1,72 @@
+\contentsline {section}{\numberline {1}対象}{3}{section.1}%
+\contentsline {section}{\numberline {2}このファイルを読む理由}{3}{section.2}%
+\contentsline {section}{\numberline {3}呼び出し関係}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}どこから呼ばれるか}{3}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}次に読むと理解が進むファイル}{3}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}同一リポジトリ内の主要依存}{3}{subsection.3.3}%
+\contentsline {section}{\numberline {4}ソース冒頭の把握}{3}{section.4}%
+\contentsline {subsection}{\numberline {4.1}代表コード断片}{3}{subsection.4.1}%
+\contentsline {section}{\numberline {5}主要構造の読み取り}{4}{section.5}%
+\contentsline {subsection}{\numberline {5.1}主要クラス・関数}{4}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}ファイルを上から読んだときの定義順}{4}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}import 群の詳細}{4}{subsection.5.3}%
+\contentsline {section}{\numberline {6}このファイルを読む前に必要な基礎知識}{5}{section.6}%
+\contentsline {subsection}{\numberline {6.1}プログラム、プロセス、メモリ、オブジェクトを区別する}{5}{subsection.6.1}%
+\contentsline {paragraph}{根拠資料}{5}{section*.2}%
+\contentsline {subsection}{\numberline {6.2}名前、代入、型、参照}{5}{subsection.6.2}%
+\contentsline {paragraph}{根拠資料}{5}{section*.3}%
+\contentsline {subsection}{\numberline {6.3}関数、引数、戻り値、スコープ}{6}{subsection.6.3}%
+\contentsline {paragraph}{根拠資料}{6}{section*.4}%
+\contentsline {subsection}{\numberline {6.4}module、package、import、console\_scripts}{6}{subsection.6.4}%
+\contentsline {paragraph}{根拠資料}{6}{section*.5}%
+\contentsline {subsection}{\numberline {6.5}例外、try/finally、with、資源解放}{6}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}class、独自クラス、インスタンス、self、継承}{6}{subsection.6.6}%
+\contentsline {paragraph}{根拠資料}{7}{section*.6}%
+\contentsline {subsection}{\numberline {6.7}先頭アンダースコア、\_\_init\_\_、名前付けの作法}{7}{subsection.6.7}%
+\contentsline {paragraph}{根拠資料}{7}{section*.7}%
+\contentsline {subsection}{\numberline {6.8}デコレータと@dataclass}{7}{subsection.6.8}%
+\contentsline {paragraph}{根拠資料}{8}{section*.8}%
+\contentsline {subsection}{\numberline {6.9}list、dict、deque、NumPy配列、pandas DataFrame}{8}{subsection.6.9}%
+\contentsline {subsection}{\numberline {6.10}目的関数、制約、L-BFGS-B、SHGO、有限grid証明}{8}{subsection.6.10}%
+\contentsline {paragraph}{根拠資料}{8}{section*.9}%
+\contentsline {subsection}{\numberline {6.11}車両力学、電力収支、効率map}{8}{subsection.6.11}%
+\contentsline {subsection}{\numberline {6.12}SoC、内部抵抗、端子電圧、温度、MHE}{9}{subsection.6.12}%
+\contentsline {paragraph}{根拠資料}{9}{section*.10}%
+\contentsline {subsection}{\numberline {6.13}制御、状態、入力、モデル予測制御MPC}{9}{subsection.6.13}%
+\contentsline {paragraph}{根拠資料}{9}{section*.11}%
+\contentsline {subsection}{\numberline {6.14}freshness、filter、guard、fallback、fail-safe}{9}{subsection.6.14}%
+\contentsline {section}{\numberline {7}関数・クラスを上から順に解説}{9}{section.7}%
+\contentsline {subsection}{\numberline {7.1}L11 クラス MheInput}{9}{subsection.7.1}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{10}{section*.12}%
+\contentsline {paragraph}{上から順の処理}{10}{section*.13}%
+\contentsline {paragraph}{代表コード断片}{10}{lstlisting.-8}%
+\contentsline {subsection}{\numberline {7.2}L24 クラス MheMeas}{11}{subsection.7.2}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{11}{section*.15}%
+\contentsline {paragraph}{上から順の処理}{11}{section*.16}%
+\contentsline {paragraph}{代表コード断片}{11}{lstlisting.-9}%
+\contentsline {subsection}{\numberline {7.3}L31 クラス BatteryMHE}{11}{subsection.7.3}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{12}{section*.18}%
+\contentsline {paragraph}{上から順の処理}{12}{section*.19}%
+\contentsline {paragraph}{代表コード断片}{12}{lstlisting.-10}%
+\contentsline {subsection}{\numberline {7.4}L32 関数 BatteryMHE.\_\_init\_\_}{13}{subsection.7.4}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{13}{section*.21}%
+\contentsline {paragraph}{上から順の処理}{13}{section*.22}%
+\contentsline {paragraph}{代表コード断片}{13}{lstlisting.-11}%
+\contentsline {subsection}{\numberline {7.5}L54 関数 BatteryMHE.push}{14}{subsection.7.5}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{14}{section*.24}%
+\contentsline {paragraph}{上から順の処理}{14}{section*.25}%
+\contentsline {paragraph}{代表コード断片}{14}{lstlisting.-12}%
+\contentsline {subsection}{\numberline {7.6}L57 関数 BatteryMHE.\_simulate}{14}{subsection.7.6}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{15}{section*.27}%
+\contentsline {paragraph}{上から順の処理}{15}{section*.28}%
+\contentsline {paragraph}{代表コード断片}{15}{lstlisting.-13}%
+\contentsline {subsection}{\numberline {7.7}L85 関数 BatteryMHE.estimate}{16}{subsection.7.7}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{16}{section*.30}%
+\contentsline {paragraph}{上から順の処理}{16}{section*.31}%
+\contentsline {paragraph}{代表コード断片}{17}{lstlisting.-14}%
+\contentsline {subsection}{\numberline {7.8}L89 関数 BatteryMHE.estimate.cost}{17}{subsection.7.8}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{18}{section*.33}%
+\contentsline {paragraph}{上から順の処理}{18}{section*.34}%
+\contentsline {paragraph}{代表コード断片}{18}{lstlisting.-15}%
+\contentsline {section}{\numberline {8}処理の流れ}{18}{section.8}%
+\contentsline {section}{\numberline {9}このファイルの位置づけ}{18}{section.9}%

@@ -1,0 +1,6 @@
+battery_thermal:
+  heat_capacity_j_per_k: 0.0
+  thermal_resistance_k_per_w: 0.0
+  convection_w_per_m2k: 0.0
+  surface_area_m2: 0.0
+  coolant_temp_c: 25.0

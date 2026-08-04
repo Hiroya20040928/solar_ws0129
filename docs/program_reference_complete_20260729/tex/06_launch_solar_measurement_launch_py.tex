@@ -1,0 +1,491 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={measure ROS2 launch 入口},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{06. measure ROS2 launch 入口}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|launch/solar_measurement.launch.py| \\
+        ソースSHA-256 & \path|070ba41b225288b85a317c3c102783d85d9df6fe189953a54ec69bf327569752| \\
+        種別 & ROS 2 launch Python \\
+        区分 & launch \\
+        役割 & 実測収集用に preflight、distance、grade、logger、dashboard を起動する launch。 \\
+        起動文脈 & measure モード起動時に ros2 launch される。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        実測収集用に preflight、distance、grade、logger、dashboard を起動する launch。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item planner を起動せず、計測系だけを立てる。
+\item distance/grade は profile の measurement 設定で可否が決まる。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/solar_control.sh|
+\item \path|SolarSim.ps1|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/distance_node.py|
+\item \path|mpc_solarcar/grade_node.py|
+\item \path|mpc_solarcar/solar_logger_node.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_profile.py|
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+grade_cfg = get_section(measurement_cfg, "grade")
+    meas_logging_cfg = get_section(measurement_cfg, "logging")
+
+    nodes = [
+        Node(
+            package="mpc_solarcar",
+            executable="solar_preflight_node",
+            name="solar_preflight_node",
+            parameters=[
+                {
+                    "require_speed": True,
+                    "require_distance": bool(measurement_cfg.get("use_distance_node", True)),
+                    "require_battery": False,
+                    "require_planner": False,
+                }
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要関数は generate\_launch\_description。 launch から起動する Node action は 5 件。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            11 & function & \path|_cfg_path| & args: profile\_path, raw \\
+15 & function & \path|_setup| & args: context \\
+97 & function & \path|generate_launch_description| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            11 & 関数 \_cfg\_path を定義する。 \\
+15 & 関数 \_setup を定義する。 \\
+97 & 関数 generate\_launch\_description を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|from launch import LaunchDescription| & launch が実行すべき action 群をまとめるため。 このファイル内での主な使用位置は L98。 \\
+4 & \path|from launch.actions import DeclareLaunchArgument, OpaqueFunction| & DeclareLaunchArgument や OpaqueFunction など launch action を使うため。 このファイル内での主な使用位置は L100, L101。 \\
+5 & \path|from launch.substitutions import LaunchConfiguration| & launch 引数の実行時値を参照するため。 このファイル内での主な使用位置は L16。 \\
+6 & \path|from launch_ros.actions import Node| & ROS 2 ノード起動 action を launch から記述するため。 このファイル内での主な使用位置は L26, L39, L50, L65, L79。 \\
+8 & \path|from mpc_solarcar.solar_profile import get_section, load_profile, resolve_relative_path| & profile YAML 読込と検証 から get\_section, load\_profile, resolve\_relative\_path を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_profile.py。 このファイル内での主な使用位置は L12, L17, L18, L19, L20, L21, L22, L23。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{launch Action、Node Action、実行可能名、remapping}
+`launch\_ros.actions.Node(...)`はrclpyのNode基底クラスではなく、指定したpackageのexecutableをプロセスとして起動するlaunch Actionである。
+
+
+`DeclareLaunchArgument`はlaunch実行時に受け取る入力欄を宣言し、`LaunchConfiguration`はその値を後で解決するsubstitutionを表す。`perform(context)`は実行時contextから確定文字列を取り出す。
+
+
+launchの`name`はNode名override、`parameters`は起動時parameter、`remappings`はNodeやtopicの既定名を別名へ対応付ける。launchはPythonファイルからmainという名前を推測せず、executableとしてインストールされたconsole scriptを起動する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\end{itemize}
+
+\subsection{ROS graph、Node、topic、service、action、parameter}
+ROS graphは、実行中Nodeと、それらが持つpublisher、subscription、service、actionなどの接続関係である。Pythonクラス、プロセス、ROS graph上のNode名は関連するが同一物ではない。
+
+
+topicは継続データ向けの非同期一方向publish/subscribe、serviceは短いrequest/response、actionは時間のかかる目標へfeedback、cancel、resultを持たせる。parameterはNodeごとの設定値である。
+
+
+publisherが送った時点とsubscription callbackが実行される時点は同じとは限らない。通信遅延、QoS queue、executor待ちを挟むため、センサ値にはtimestampとfreshness判定が必要になる。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/Interfaces-Topics-Services-Actions.html}{ROS 2 Humble公式: Topics, Services, Actions}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/About-Parameters.html}{ROS 2 Humble公式: Parameters}
+\end{itemize}
+
+\subsection{rqt\_graph、ros2 CLI、rosbag2をいつ使うか}
+rqt\_graphは接続関係を見る道具であり、数値の正しさや更新周期までは保証しない。起動直後、topic名変更後、publisherが複数存在する疑いがある時に使う。
+
+
+\begin{lstlisting}[language=bash]
+ros2 node list
+ros2 node info /mpc_node
+ros2 topic list -t
+ros2 topic info -v /planner/speed_cmd
+ros2 topic hz /planner/speed_cmd
+ros2 topic echo /planner/status
+rqt_graph
+\end{lstlisting}
+
+
+rosbag2はtopicメッセージを時系列のまま記録・再生する。通信不具合、freshness、再計画trigger、実車とSILSの差を再現可能にするため、本番前試験では制御入力だけでなく原因となる全telemetry、status、parameter情報を記録する。
+
+
+\begin{lstlisting}[language=bash]
+ros2 bag record -o outputs/bags/preflight \
+  /vehicle/s_km /vehicle/speed_kmh /vehicle/batt_soc \
+  /vehicle/batt_temp_c /vehicle/batt_current_a /vehicle/batt_voltage_v \
+  /planner/upper_speed_cmd /planner/speed_cmd /planner/status
+
+ros2 bag info outputs/bags/preflight
+ros2 bag play outputs/bags/preflight --clock
+\end{lstlisting}
+
+
+bag再生時はQoS互換性、simulation time、外部publisherとの二重入力に注意する。実車Nodeを同時に動かす場合はnamespaceまたはremappingで入力源を明確に分離する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/ros2_packages/humble/api/rqt_graph/index.html}{ROS 2 Humble公式: rqt\_graph}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html}{ROS 2 Humble公式: Recording and playing back data}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L11 関数 \_cfg\_path}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L11--L12
+              \item 所属: module直下
+              \item 定義: \path|_cfg_path(profile_path, raw: str) -> str|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: resolve\_relative\_path, str, strip
+              \item 戻り値の要点: resolve\_relative\_path(profile\_path.parent, raw) if str(raw or '').strip() else ''
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item resolve\_relative\_path(profile\_path.parent, raw) if str(raw or '').strip() else '' を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def _cfg_path(profile_path, raw: str) -> str:
+    return resolve_relative_path(profile_path.parent, raw) if str(raw or "").strip() else ""
+\end{lstlisting}
+
+\subsection{L15 関数 \_setup}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L15--L94
+              \item 所属: module直下
+              \item 定義: \path|_setup(context)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: LaunchConfiguration, Node, \_cfg\_path, append, bool, float, get, get\_section, int, load\_profile, perform, str
+              \item 戻り値の要点: nodes
+              \item 主なローカル代入名: cfg, distance\_cfg, grade\_cfg, logging\_cfg, meas\_logging\_cfg, measurement\_cfg, nodes, profile\_path, profile\_yaml, runtime\_cfg
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item profile\_yaml に LaunchConfiguration('profile\_yaml').perform(context) の結果を代入する。
+\item (profile\_path, cfg) に load\_profile(profile\_yaml) の結果を代入する。
+\item runtime\_cfg に get\_section(cfg, 'runtime') の結果を代入する。
+\item logging\_cfg に get\_section(cfg, 'logging') の結果を代入する。
+\item measurement\_cfg に get\_section(cfg, 'measurement') の結果を代入する。
+\item distance\_cfg に get\_section(measurement\_cfg, 'distance') の結果を代入する。
+\item grade\_cfg に get\_section(measurement\_cfg, 'grade') の結果を代入する。
+\item meas\_logging\_cfg に get\_section(measurement\_cfg, 'logging') の結果を代入する。
+\item nodes に [Node(package='mpc\_solarcar', executable='solar\_preflight\_node', name='solar\_preflight\_node', parameters=[\{'require\_speed': True, 'require\_distance': bool(measurement\_cfg.get('use\_distance\_node', True)), 'require\_battery': False, 'require\_planner': False\}]), Node(package='mpc\_solarcar', executable='dashboard\_node', name='dashboard\_node', parameters=[\{'host': str(runtime\_cfg.get('dashboard\_host', '0.0.0.0')), 'port': int(runtime\_cfg.get('dashboard\_port', 8080))\}]), Node(package='mpc\_solarcar', executable='solar\_logger\_node', name='solar\_logger\_node', parameters=[\{'log\_dir': \_cfg\_path(profile\_path, str(logging\_cfg.get('log\_dir', 'outputs/logs'))), 'file\_prefix': str(meas\_logging\_cfg.get('file\_prefix', 'solar\_measurement')), 'log\_rate\_hz': float(logging\_cfg.get('log\_rate\_hz', 2.0))\}])] の結果を代入する。
+\item 条件 bool(measurement\_cfg.get('use\_distance\_node', True)) を判定し、真なら内部処理を行う。
+\item   nodes.append(...) を実行する。
+\item 条件 bool(measurement\_cfg.get('use\_grade\_node', True)) を判定し、真なら内部処理を行う。
+\item   nodes.append(...) を実行する。
+\item nodes を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def _setup(context):
+    profile_yaml = LaunchConfiguration("profile_yaml").perform(context)
+    profile_path, cfg = load_profile(profile_yaml)
+    runtime_cfg = get_section(cfg, "runtime")
+    logging_cfg = get_section(cfg, "logging")
+    measurement_cfg = get_section(cfg, "measurement")
+    distance_cfg = get_section(measurement_cfg, "distance")
+    grade_cfg = get_section(measurement_cfg, "grade")
+    meas_logging_cfg = get_section(measurement_cfg, "logging")
+
+    nodes = [
+        Node(
+            package="mpc_solarcar",
+            executable="solar_preflight_node",
+            name="solar_preflight_node",
+            parameters=[
+                {
+                    "require_speed": True,
+                    "require_distance": bool(measurement_cfg.get("use_distance_node", True)),
+                    "require_battery": False,
+                    "require_planner": False,
+                }
+            ],
+        ),
+        Node(
+            package="mpc_solarcar",
+            executable="dashboard_node",
+            name="dashboard_node",
+            parameters=[
+                {
+                    "host": str(runtime_cfg.get("dashboard_host", "0.0.0.0")),
+                    "port": int(runtime_cfg.get("dashboard_port", 8080)),
+                }
+            ],
+        ),
+...
+\end{lstlisting}
+
+\subsection{L97 関数 generate\_launch\_description}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L97--L103
+              \item 所属: module直下
+              \item 定義: \path|generate_launch_description()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DeclareLaunchArgument, LaunchDescription, OpaqueFunction
+              \item 戻り値の要点: LaunchDescription([DeclareLaunchArgument('profile\_yaml', default\_value='config/solar/bwsc\_2027\_demo.yaml'), OpaqueFunction(function=\_setup)])
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item LaunchDescription([DeclareLaunchArgument('profile\_yaml', default\_value='config/solar/bwsc\_2027\_demo.yaml'), OpaqueFunction(function=\_setup)]) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def generate_launch_description():
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument("profile_yaml", default_value="config/solar/bwsc_2027_demo.yaml"),
+            OpaqueFunction(function=_setup),
+        ]
+    )
+\end{lstlisting}
+
+
+
+
+
+        \subsection{launch から起動するノード}
+            \begin{longtable}{p{0.07\linewidth} p{0.30\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & executable & package / name \\
+            \midrule
+            26 & \path|solar_preflight_node| & package=mpc\_solarcar, name=solar\_preflight\_node \\
+39 & \path|dashboard_node| & package=mpc\_solarcar, name=dashboard\_node \\
+50 & \path|solar_logger_node| & package=mpc\_solarcar, name=solar\_logger\_node \\
+65 & \path|distance_node| & package=mpc\_solarcar, name=distance\_node \\
+79 & \path|grade_node| & package=mpc\_solarcar, name=grade\_node \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item launch 引数を受け取り、profile を読み込む。
+\item Node action を動的に組み立てる。
+\item LaunchDescription として ROS 2 launch へ返す。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|launch/solar_measurement.launch.py| を
+        \textbf{launch}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

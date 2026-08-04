@@ -1,0 +1,45 @@
+\contentsline {section}{\numberline {1}到達目標}{3}{section.1}%
+\contentsline {section}{\numberline {2}起動前に読む profile}{3}{section.2}%
+\contentsline {section}{\numberline {3}PowerShell から node 起動まで}{3}{section.3}%
+\contentsline {section}{\numberline {4}受信周期の与条件}{4}{section.4}%
+\contentsline {subsection}{\numberline {4.1}timestamp と range gate}{4}{subsection.4.1}%
+\contentsline {section}{\numberline {5}測定 filter、距離、勾配}{4}{section.5}%
+\contentsline {subsection}{\numberline {5.1}速度一次遅れ filter}{4}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}距離積分}{4}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}勾配}{5}{subsection.5.3}%
+\contentsline {section}{\numberline {6}風補正}{5}{section.6}%
+\contentsline {section}{\numberline {7}車輪出力と効率 map}{5}{section.7}%
+\contentsline {subsection}{\numberline {7.1}抵抗}{5}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}二線形 map 補間}{5}{subsection.7.2}%
+\contentsline {section}{\numberline {8}PV、pack、battery IV、SoC}{6}{section.8}%
+\contentsline {subsection}{\numberline {8.1}PV}{6}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}battery IV}{6}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}SoC と温度}{6}{subsection.8.3}%
+\contentsline {section}{\numberline {9}上位距離領域 MPC}{6}{section.9}%
+\contentsline {subsection}{\numberline {9.1}CEM global candidates}{6}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}L-BFGS-B local refinement}{7}{subsection.9.2}%
+\contentsline {section}{\numberline {10}下位 1 Hz MPC と安全 bridge}{7}{section.10}%
+\contentsline {section}{\numberline {11}outbound、logger、dashboard}{7}{section.11}%
+\contentsline {section}{\numberline {12}1周期タイムライン}{8}{section.12}%
+\contentsline {section}{\numberline {13}MLE から実運用 profile まで}{8}{section.13}%
+\contentsline {section}{\numberline {14}総合問題}{8}{section.14}%
+\contentsline {section}{\numberline {15}完全手計算演習: 上位MPCを一回解く}{9}{section.15}%
+\contentsline {subsection}{\numberline {15.1}演習条件とcontrol展開}{9}{subsection.15.1}%
+\contentsline {subsection}{\numberline {15.2}一段目の抵抗を数値化する}{9}{subsection.15.2}%
+\contentsline {subsection}{\numberline {15.3}drive mapを四隅から補間する}{10}{subsection.15.3}%
+\contentsline {subsection}{\numberline {15.4}PV map、pack、IVを同じ段で閉じる}{10}{subsection.15.4}%
+\contentsline {subsection}{\numberline {15.5}6段の状態遷移表を完成させる}{11}{subsection.15.5}%
+\contentsline {subsection}{\numberline {15.6}最短時間・終端使い切り問題を書く}{11}{subsection.15.6}%
+\contentsline {subsection}{\numberline {15.7}有限差分とL-BFGS一反復}{11}{subsection.15.7}%
+\contentsline {subsection}{\numberline {15.8}有限格子の大域最良を自分で証明する}{12}{subsection.15.8}%
+\contentsline {subsection}{\numberline {15.9}detail CSVとの照合}{13}{subsection.15.9}%
+\contentsline {section}{\numberline {16}天候API、70 km/h消費、端数刻みを手計算する}{13}{section.16}%
+\contentsline {subsection}{\numberline {16.1}日射量の時刻定義}{13}{subsection.16.1}%
+\contentsline {subsection}{\numberline {16.2}時刻・距離格子から実車位置を補間する}{13}{subsection.16.2}%
+\contentsline {subsection}{\numberline {16.3}70 km/hで約800 Wを検算する}{13}{subsection.16.3}%
+\contentsline {subsection}{\numberline {16.4}冬季日射からPVと電池電力を求める}{14}{subsection.16.4}%
+\contentsline {subsection}{\numberline {16.5}上位区間と1秒detailの関係}{14}{subsection.16.5}%
+\contentsline {subsection}{\numberline {16.6}下り坂の回生を過大評価しない}{14}{subsection.16.6}%
+\contentsline {subsection}{\numberline {16.7}同期誤差とエネルギー誤差を分ける}{14}{subsection.16.7}%
+\contentsline {subsection}{\numberline {16.8}公式control stopとfinish締切を手計算する}{15}{subsection.16.8}%
+\contentsline {section}{\numberline {17}根拠文献}{15}{section.17}%

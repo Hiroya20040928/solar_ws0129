@@ -1,0 +1,295 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={profile YAML 読込と検証},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{08. profile YAML 読込と検証}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/solar_profile.py| \\
+        種別 & Python \\
+        区分 & config \\
+        役割 & profile.yaml をロードし、セクション取得、相対パス解決、CSV 最低品質検査を行う。 \\
+        起動文脈 & launch、offline simulation、identification の共通設定入口。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        profile.yaml をロードし、セクション取得、相対パス解決、CSV 最低品質検査を行う。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item load\_profile が YAML 全体を返す。
+\item get\_path が profile 基準で実ファイルパスへ変換する。
+\item require\_csv\_data\_rows が空テンプレと実データを区別する。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|live_launch.py|
+\item \path|solarcar_sim.launch.py|
+\item \path|solar_state_node.py|
+\item 多数の scripts
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/path_utils.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def require_csv_data_rows(
+    path: str | Path,
+    *,
+    label: str,
+    required_columns: tuple[str, ...] = (),
+) -> Path:
+    resolved = Path(path).expanduser().resolve()
+    if not resolved.is_file():
+        raise FileNotFoundError(f"{label} CSV was not found: {resolved}")
+    with resolved.open("r", encoding="utf-8-sig", newline="") as stream:
+        reader = csv.DictReader(stream)
+        header = tuple(reader.fieldnames or ())
+        missing = [column for column in required_columns if column not in header]
+        if missing:
+            raise ValueError(f"{label} CSV is missing columns {missing}: {resolved}")
+        if next(reader, None) is None:
+            raise ValueError(
+                f"{label} CSV has a header but no data rows: {resolved}. "
+                "Fill the template or select an identified vehicle profile before launch."
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要関数は require\_csv\_data\_rows, resolve\_relative\_path, load\_profile, merged\_dict, get\_section, get\_path。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            14 & function & \path|require_csv_data_rows| & args: path \\
+37 & function & \path|_resolve_profile_path| & args: path\_like \\
+51 & function & \path|resolve_relative_path| & args: base\_dir, path\_like \\
+68 & function & \path|load_profile| & args: path\_like \\
+77 & function & \path|merged_dict| &  \\
+78 & function & \path|_merge| & args: dst, src \\
+93 & function & \path|get_section| & args: cfg, key, default \\
+108 & function & \path|get_path| & args: cfg, profile\_path, key, default \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            11 & ROOT に Path(\_\_file\_\_).resolve().parents[1] の結果を代入する。 \\
+14 & 関数 require\_csv\_data\_rows を定義する。 \\
+37 & 関数 \_resolve\_profile\_path を定義する。 \\
+51 & 関数 resolve\_relative\_path を定義する。 \\
+68 & 関数 load\_profile を定義する。 \\
+77 & 関数 merged\_dict を定義する。 \\
+93 & 関数 get\_section を定義する。 \\
+108 & 関数 get\_path を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|import copy| & 設定辞書や payload を安全に複製するため。 このファイル内での主な使用位置は L81, L83, L99, L102, L104, L105。 \\
+4 & \path|import csv| & CSV の逐次読込・逐次書込を行うため。 このファイル内での主な使用位置は L24。 \\
+5 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L11, L15, L19, L20, L37, L38, L42, L51, ...。 \\
+6 & \path|from typing import Any| & typing から Any を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L86, L93, L94。 \\
+8 & \path|import yaml| & profile、stop、schedule、summary YAML を読み書きするため。 このファイル内での主な使用位置は L71。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L14 関数 \path|require_csv_data_rows|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|require_csv_data_rows(path, label, required_columns)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DictReader, FileNotFoundError, Path, ValueError, expanduser, is\_file, next, open, resolve, tuple
+              \item 戻り値の要点: resolved
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item resolved に Path(path).expanduser().resolve() の結果を代入する。
+\item 条件 not resolved.is\_file() を判定し、真なら内部処理を行う。
+\item with 文で resolved.open('r', encoding='utf-8-sig', newline='') を管理しながら処理する。
+\item resolved を返す。
+            \end{enumerate}
+
+\subsection*{L37 関数 \path|_resolve_profile_path|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_resolve_profile_path(path_like)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, cwd, exists, expanduser, is\_absolute, resolve, str, strip
+              \item 戻り値の要点: candidates[-1] / raw.resolve() / candidate
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item raw に Path(str(path\_like or '').strip()).expanduser() の結果を代入する。
+\item 条件 raw.is\_absolute() を判定し、真なら内部処理を行う。
+\item candidates に [(Path.cwd() / raw).resolve(), (ROOT / raw).resolve()] の結果を代入する。
+\item candidates を順に走査し、各要素を candidate に入れて処理する。
+\item candidates[-1] を返す。
+            \end{enumerate}
+
+\subsection*{L51 関数 \path|resolve_relative_path|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|resolve_relative_path(base_dir, path_like)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, exists, expanduser, is\_absolute, resolve, str, strip
+              \item 戻り値の要点: str(candidate) / '' / str(path.resolve()) / str(candidate)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item raw に str(path\_like or '').strip() の結果を代入する。
+\item 条件 not raw を判定し、真なら内部処理を行う。
+\item path に Path(raw).expanduser() の結果を代入する。
+\item 条件 path.is\_absolute() を判定し、真なら内部処理を行う。
+\item base に Path(base\_dir).resolve() の結果を代入する。
+\item candidate に (base / path).resolve() の結果を代入する。
+\item 条件 candidate.exists() を判定し、真なら内部処理を行う。
+\item repo\_candidate に (ROOT / path).resolve() の結果を代入する。
+\item 条件 repo\_candidate.exists() を判定し、真なら内部処理を行う。
+\item str(candidate) を返す。
+            \end{enumerate}
+
+\subsection*{L68 関数 \path|load_profile|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|load_profile(path_like)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, \_resolve\_profile\_path, isinstance, open, safe\_load
+              \item 戻り値の要点: (profile\_path, cfg)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item profile\_path に \_resolve\_profile\_path(path\_like) の結果を代入する。
+\item with 文で profile\_path.open('r', encoding='utf-8') を管理しながら処理する。
+\item 条件 not isinstance(cfg, dict) を判定し、真なら内部処理を行う。
+\item (profile\_path, cfg) を返す。
+            \end{enumerate}
+
+\subsection*{L77 関数 \path|merged_dict|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|merged_dict(*payloads)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_merge, deepcopy, get, isinstance, items
+              \item 戻り値の要点: out / dst
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_merge を定義する。
+\item out に \{\} を代入する。
+\item payloads を順に走査し、各要素を payload に入れて処理する。
+\item out を返す。
+            \end{enumerate}
+
+\subsection*{L93 関数 \path|get_section|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|get_section(cfg, key, default)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: deepcopy, get, isinstance, split, str
+              \item 戻り値の要点: copy.deepcopy(current) / copy.deepcopy(default) if default is not None else \{\} / copy.deepcopy(default) if default is not None else \{\} / copy.deepcopy(default) if default is not None else \{\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item current に cfg を代入する。
+\item str(key or '').split('.') を順に走査し、各要素を part に入れて処理する。
+\item 条件 current is None を判定し、真なら内部処理を行う。
+\item copy.deepcopy(current) を返す。
+            \end{enumerate}
+
+\subsection*{L108 関数 \path|get_path|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|get_path(cfg, profile_path, key, default)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, get, get\_section, isinstance, resolve, resolve\_relative\_path, str, strip
+              \item 戻り値の要点: resolve\_relative\_path(profile\_dir, raw)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item profile\_dir に Path(profile\_path).resolve().parent の結果を代入する。
+\item raw に '' の結果を代入する。
+\item paths\_cfg に cfg.get('paths', \{\}) if isinstance(cfg, dict) else \{\} の結果を代入する。
+\item 条件 isinstance(paths\_cfg, dict) を判定し、真なら内部処理を行う。
+\item 条件 not raw を判定し、真なら内部処理を行う。
+\item 条件 not raw を判定し、真なら内部処理を行う。
+\item resolve\_relative\_path(profile\_dir, raw) を返す。
+            \end{enumerate}
+
+
+
+
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/solar_profile.py| を
+        \textbf{config}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

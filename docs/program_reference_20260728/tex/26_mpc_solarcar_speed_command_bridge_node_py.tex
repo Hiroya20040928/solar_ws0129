@@ -1,0 +1,252 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={planner 指令の安全橋渡し},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{26. planner 指令の安全橋渡し}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/speed_command_bridge_node.py| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & planner/speed\_cmd と drive\_mode を受け、起動直後や system state を見ながら安全な出力 topic/UDP に整形する。 \\
+        起動文脈 & 実機へ出る直前のガード層。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        planner/speed\_cmd と drive\_mode を受け、起動直後や system state を見ながら安全な出力 topic/UDP に整形する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item rate limiter と command gate を持つ。
+\item planner の生指令をそのまま実車へは出さない。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/live_launch.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_preflight_logic.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/signal_utils.py|
+\item \path|mpc_solarcar/solar_preflight_logic.py|
+\item \path|mpc_solarcar/telemetry_protocol.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from .telemetry_protocol import utc_iso_now
+
+
+class SpeedCommandBridgeNode(Node):
+    def __init__(self) -> None:
+        super().__init__("speed_command_bridge_node")
+        self.declare_parameter("output_speed_topic", "/vehicle/speed_cmd_kmh")
+        self.declare_parameter("output_drive_mode_topic", "/vehicle/drive_mode_cmd")
+        self.declare_parameter("udp_enabled", False)
+        self.declare_parameter("udp_host", "127.0.0.1")
+        self.declare_parameter("udp_port", 50050)
+        self.declare_parameter("publish_rate_hz", 5.0)
+        self.declare_parameter("input_timeout_sec", 3.0)
+        self.declare_parameter("safe_speed_kmh", 0.0)
+        self.declare_parameter("startup_hold_sec", 2.0)
+        self.declare_parameter("filter_tau_sec", 1.0)
+        self.declare_parameter("accel_limit_kmhps", 1.2)
+        self.declare_parameter("decel_limit_kmhps", 3.5)
+        self.declare_parameter("speed_deadband_kmh", 0.1)
+        self.declare_parameter("speed_quantize_step_kmh", 0.1)
+        self.declare_parameter("max_output_speed_kmh", 120.0)
+        self.declare_parameter("drive_mode_min_hold_sec", 5.0)
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは SpeedCommandBridgeNode。 主要関数は main。 ROS パラメータ宣言は 18 件。 ROS I/O は publisher 2 件、subscription 4 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            17 & class & \path|SpeedCommandBridgeNode| & bases: Node \\
+18 & function & \path|__init__| & args: self \\
+89 & function & \path|_on_speed_cmd| & args: self, msg \\
+93 & function & \path|_on_upper_speed_cmd| & args: self, msg \\
+96 & function & \path|_on_drive_mode| & args: self, msg \\
+100 & function & \path|_on_system_state| & args: self, msg \\
+104 & function & \path|_step| & args: self \\
+162 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            17 & クラス SpeedCommandBridgeNode を定義する。 \\
+162 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|import json| & manifest、checkpoint、UDP payload をやり取りするため。 このファイル内での主な使用位置は L153。 \\
+4 & \path|import socket| & socket モジュールを利用するため。 このファイル内での主な使用位置は L73。 \\
+5 & \path|import time| & wall/monotonic time に基づく周期制御や freshness 判定を行うため。 このファイル内での主な使用位置は L74, L91, L98, L102, L105, L143。 \\
+7 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L163, L165, L167。 \\
+8 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L17。 \\
+10 & \path|from std_msgs.msg import Float32, String| & Float32 や String など軽量メッセージで planner / vehicle 値を publish するため。 このファイル内での主な使用位置は L66, L67, L68, L69, L70, L71, L89, L93, ...。 \\
+12 & \path|from .signal_utils import SmoothRateLimiter| & signal\_utils.py から SmoothRateLimiter を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/signal\_utils.py。 このファイル内での主な使用位置は L54。 \\
+13 & \path|from .solar_preflight_logic import evaluate_command_gate| & preflight 判定ロジック から evaluate\_command\_gate を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_preflight\_logic.py。 このファイル内での主な使用位置は L107。 \\
+14 & \path|from .telemetry_protocol import utc_iso_now| & telemetry\_protocol.py から utc\_iso\_now を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/telemetry\_protocol.py。 このファイル内での主な使用位置は L144。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L17 クラス \path|SpeedCommandBridgeNode|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|SpeedCommandBridgeNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, SmoothRateLimiter, String, \_\_init\_\_, bool, create\_publisher, create\_subscription, create\_timer, declare\_parameter, dumps, encode, error
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_on\_speed\_cmd を定義する。
+\item 関数 \_on\_upper\_speed\_cmd を定義する。
+\item 関数 \_on\_drive\_mode を定義する。
+\item 関数 \_on\_system\_state を定義する。
+\item 関数 \_step を定義する。
+            \end{enumerate}
+
+\subsection*{L162 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: SpeedCommandBridgeNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に SpeedCommandBridgeNode() の結果を代入する。
+\item rclpy.spin(...) を実行する。
+\item node.destroy\_node(...) を実行する。
+\item rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+
+        \subsection*{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            20 & \path|output_speed_topic| & /vehicle/speed\_cmd\_kmh \\
+21 & \path|output_drive_mode_topic| & /vehicle/drive\_mode\_cmd \\
+22 & \path|udp_enabled| & False \\
+23 & \path|udp_host| & 127.0.0.1 \\
+24 & \path|udp_port| & 50050 \\
+25 & \path|publish_rate_hz| & 5.0 \\
+26 & \path|input_timeout_sec| & 3.0 \\
+27 & \path|safe_speed_kmh| & 0.0 \\
+28 & \path|startup_hold_sec| & 2.0 \\
+29 & \path|filter_tau_sec| & 1.0 \\
+30 & \path|accel_limit_kmhps| & 1.2 \\
+31 & \path|decel_limit_kmhps| & 3.5 \\
+32 & \path|speed_deadband_kmh| & 0.1 \\
+33 & \path|speed_quantize_step_kmh| & 0.1 \\
+34 & \path|max_output_speed_kmh| & 120.0 \\
+35 & \path|drive_mode_min_hold_sec| & 5.0 \\
+36 & \path|require_system_running| & True \\
+37 & \path|system_state_timeout_sec| & 2.5 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            66 & publisher & \path|self.output_speed_topic| & publisher \\
+67 & publisher & \path|self.output_drive_mode_topic| & publisher \\
+68 & subscription & \path|/planner/speed_cmd| & self.\_on\_speed\_cmd \\
+69 & subscription & \path|/planner/upper_speed_cmd| & self.\_on\_upper\_speed\_cmd \\
+70 & subscription & \path|/planner/drive_mode| & self.\_on\_drive\_mode \\
+71 & subscription & \path|/system/state| & self.\_on\_system\_state \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/speed_command_bridge_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

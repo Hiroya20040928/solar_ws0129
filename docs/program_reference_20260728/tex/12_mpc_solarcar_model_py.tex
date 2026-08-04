@@ -1,0 +1,254 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={車体物理・電気モデル本体},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{12. 車体物理・電気モデル本体}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/model.py| \\
+        種別 & Python \\
+        区分 & model \\
+        役割 & 空力、転がり、坂、PV、MPPT、drive/regen 効率、battery IV、SoC 更新を統合した vehicle model。 \\
+        起動文脈 & planner と simulation の数理コア。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        空力、転がり、坂、PV、MPPT、drive/regen 効率、battery IV、SoC 更新を統合した vehicle model。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item SolarCarModel と Params が中心。
+\item electrical\_balance が planner 側で最も多く呼ばれる。
+\item resistive\_forces、battery\_iv、soc\_step が各所から再利用される。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_node.py|
+\item \path|solar_state_node.py|
+\item \path|scripts/solar_sim.py|
+\item \path|estimator.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/utils_maps.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/utils_maps.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+)
+
+@dataclass
+class Params:
+    dt: float=600.0
+    rho: float=1.18
+    air_density_mode: str='constant'
+    air_density_reference_pressure_pa: float=101325.0
+    CdA: float=0.13
+    Crr: float=0.002
+    Crr_per_wheel: float=0.0
+    m: float=250.0
+    g: float=9.80665
+    P_aux: float=60.0
+    P_aux_stopped: float=60.0
+    P_aux_night: float=0.0
+    aux_night_ghi_threshold_wm2: float=20.0
+    gear_eta: float=0.98
+    gear_ratio: float=6.0
+    wheel_radius: float=0.28
+    wheel_count: int=4
+    driven_wheel_count: int=2
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは Params, SolarCarModel。 主要関数は eff\_drive, eff\_regen, select\_drive\_mode, R\_int, pv\_balance, pv\_power\_mppt, charge\_efficiency, soc\_step。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            17 & class & \path|Params| &  \\
+73 & class & \path|SolarCarModel| &  \\
+10 & function & \path|_is_symbolic| & args: x \\
+74 & function & \path|__init__| & args: self, drive\_map\_path, regen\_map\_path, Rint\_map\_path, params, panel\_eff\_map\_path, mppt\_eff\_map\_path, drive\_map\_eco\_path, drive\_map\_power\_path, regen\_map\_eco\_path, regen\_map\_power\_path, ocv\_soc\_map\_path \\
+124 & function & \path|eff_drive| & args: self, v\_ms, tau\_nm \\
+137 & function & \path|eff_regen| & args: self, v\_ms, tau\_nm \\
+150 & function & \path|_update_mode_limits| & args: self \\
+158 & function & \path|_select_mode| & args: self, v\_ms, tau\_nm \\
+169 & function & \path|select_drive_mode| & args: self, v\_ms, tau\_nm \\
+172 & function & \path|R_int| & args: self, T\_C, z \\
+179 & function & \path|pv_balance| & args: self, G\_poa, T\_cell\_C \\
+222 & function & \path|pv_power_mppt| & args: self, G\_poa, T\_cell\_C \\
+225 & function & \path|_scaled_slope_pct| & args: self, slope\_pct \\
+228 & function & \path|charge_efficiency| & args: self, P\_pack \\
+235 & function & \path|soc_step| & args: self, z, P\_pack, dt\_sec \\
+262 & function & \path|ocv_from_soc| & args: self, z \\
+271 & function & \path|load_ocv_map| & args: self, path \\
+280 & function & \path|air_density| & args: self, ambient\_temp\_c, elevation\_m \\
+297 & function & \path|resistive_forces| & args: self, v\_ms, slope\_pct, headwind\_ms \\
+344 & function & \path|battery_iv| & args: self, P\_pack, z, Tbat\_C \\
+368 & function & \path|mech_power| & args: self, v\_ms, slope\_pct, headwind\_ms, inertial\_power\_w \\
+389 & function & \path|auxiliary_power| & args: self, aux\_power\_w \\
+396 & function & \path|scheduled_auxiliary_power| & args: self \\
+405 & function & \path|torque_from_mech| & args: self, P\_mech, v\_ms, wheel\_radius, ratio \\
+416 & function & \path|electrical_balance| & args: self, v\_ms, slope\_pct, z, Tbat\_C, G\_poa, Tcell\_C, headwind\_ms, aux\_power\_w, inertial\_power\_w, ambient\_temp\_c, elevation\_m \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            3 & 例外処理を伴う try ブロックを実行する。 \\
+10 & 関数 \_is\_symbolic を定義する。 \\
+17 & クラス Params を定義する。 \\
+73 & クラス SolarCarModel を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L329, L331, L336, L362。 \\
+2 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L135, L148, L266, L269, L292, L347, L447。 \\
+4 & \path|import casadi as ca| & casadi モジュールを利用するため。 このファイル内での主な使用位置は L6, L11, L12, L126, L128, L130, L139, L143, ...。 \\
+7 & \path|from dataclasses import dataclass| & dataclasses から dataclass を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L16。 \\
+8 & \path|from .utils_maps import read_eff_map, read_Rint_map, read_map, bilinear_interp, read_1d_map| & 効率マップ・抵抗マップ読込補間 から read\_eff\_map, read\_Rint\_map, read\_map, bilinear\_interp, read\_1d\_map を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/utils\_maps.py。 このファイル内での主な使用位置は L81, L82, L93, L95, L97, L99, L101, L106, ...。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L10 関数 \path|_is_symbolic|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|_is_symbolic(x)|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: hasattr, is\_symbolic, isinstance
+  \item 戻り値の要点: ca is not None and (isinstance(x, (ca.SX, ca.MX)) or (hasattr(x, 'is\_symbolic') and x.is\_symbolic()))
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item ca is not None and (isinstance(x, (ca.SX, ca.MX)) or (hasattr(x, 'is\_symbolic') and x.is\_symbolic())) を返す。
+\end{enumerate}
+
+\subsection*{L17 クラス \path|Params|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|Params(bases=なし)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item dt に 600.0 を代入する。
+\item rho に 1.18 を代入する。
+\item air\_density\_mode に 'constant' を代入する。
+\item air\_density\_reference\_pressure\_pa に 101325.0 を代入する。
+\item CdA に 0.13 を代入する。
+\item Crr に 0.002 を代入する。
+\item Crr\_per\_wheel に 0.0 を代入する。
+\item m に 250.0 を代入する。
+\item g に 9.80665 を代入する。
+\item P\_aux に 60.0 を代入する。
+\item P\_aux\_stopped に 60.0 を代入する。
+\item P\_aux\_night に 0.0 を代入する。
+            \end{enumerate}
+
+\subsection*{L73 クラス \path|SolarCarModel|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|SolarCarModel(bases=なし)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Params, R\_int, \_is\_symbolic, \_scaled\_slope\_pct, \_select\_mode, \_update\_mode\_limits, abs, air\_density, atan, auxiliary\_power, battery\_iv, bilinear\_interp
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 eff\_drive を定義する。
+\item 関数 eff\_regen を定義する。
+\item 関数 \_update\_mode\_limits を定義する。
+\item 関数 \_select\_mode を定義する。
+\item 関数 select\_drive\_mode を定義する。
+\item 関数 R\_int を定義する。
+\item 関数 pv\_balance を定義する。
+\item 関数 pv\_power\_mppt を定義する。
+\item 関数 \_scaled\_slope\_pct を定義する。
+\item 関数 charge\_efficiency を定義する。
+\item 関数 soc\_step を定義する。
+            \end{enumerate}
+
+
+
+
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/model.py| を
+        \textbf{model}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

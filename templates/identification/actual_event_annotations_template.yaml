@@ -1,0 +1,13 @@
+events:
+  - label: control_stop_1
+    kind: control_stop
+    start_local: 2027-08-22T11:00:00
+    end_local: 2027-08-22T11:30:00
+    timezone: Australia/Darwin
+    s_km: 320.0
+    fit_flags:
+      exclude_power_fit: false
+      exclude_voltage_fit: false
+      exclude_weather_fit: false
+    notes:
+      - Replace with the real race-day event annotation.

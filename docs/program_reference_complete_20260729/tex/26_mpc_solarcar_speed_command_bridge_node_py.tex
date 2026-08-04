@@ -1,0 +1,909 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={planner 指令の安全橋渡し},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{26. planner 指令の安全橋渡し}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/speed_command_bridge_node.py| \\
+        ソースSHA-256 & \path|a91dadd4b230c80c827cd7002b487ced7c6d7262daed711e6ca5809536f74b67| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & planner/speed\_cmd と drive\_mode を受け、起動直後や system state を見ながら安全な出力 topic/UDP に整形する。 \\
+        起動文脈 & 実機へ出る直前のガード層。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        planner/speed\_cmd と drive\_mode を受け、起動直後や system state を見ながら安全な出力 topic/UDP に整形する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item rate limiter と command gate を持つ。
+\item planner の生指令をそのまま実車へは出さない。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/live_launch.py|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_preflight_logic.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/signal_utils.py|
+\item \path|mpc_solarcar/solar_preflight_logic.py|
+\item \path|mpc_solarcar/telemetry_protocol.py|
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from .telemetry_protocol import utc_iso_now
+
+
+class SpeedCommandBridgeNode(Node):
+    def __init__(self) -> None:
+        super().__init__("speed_command_bridge_node")
+        self.declare_parameter("output_speed_topic", "/vehicle/speed_cmd_kmh")
+        self.declare_parameter("output_drive_mode_topic", "/vehicle/drive_mode_cmd")
+        self.declare_parameter("udp_enabled", False)
+        self.declare_parameter("udp_host", "127.0.0.1")
+        self.declare_parameter("udp_port", 50050)
+        self.declare_parameter("publish_rate_hz", 5.0)
+        self.declare_parameter("input_timeout_sec", 3.0)
+        self.declare_parameter("safe_speed_kmh", 0.0)
+        self.declare_parameter("startup_hold_sec", 2.0)
+        self.declare_parameter("filter_tau_sec", 1.0)
+        self.declare_parameter("accel_limit_kmhps", 1.2)
+        self.declare_parameter("decel_limit_kmhps", 3.5)
+        self.declare_parameter("speed_deadband_kmh", 0.1)
+        self.declare_parameter("speed_quantize_step_kmh", 0.1)
+        self.declare_parameter("max_output_speed_kmh", 120.0)
+        self.declare_parameter("drive_mode_min_hold_sec", 5.0)
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要クラスは SpeedCommandBridgeNode。 主要関数は main。 ROS パラメータ宣言は 18 件。 ROS I/O は publisher 2 件、subscription 4 件。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            17 & class & \path|SpeedCommandBridgeNode| & bases: Node \\
+18 & function & \path|__init__| & args: self \\
+89 & function & \path|_on_speed_cmd| & args: self, msg \\
+93 & function & \path|_on_upper_speed_cmd| & args: self, msg \\
+96 & function & \path|_on_drive_mode| & args: self, msg \\
+100 & function & \path|_on_system_state| & args: self, msg \\
+104 & function & \path|_step| & args: self \\
+162 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            17 & クラス SpeedCommandBridgeNode を定義する。 \\
+162 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|import json| & manifest、checkpoint、UDP payload をやり取りするため。 このファイル内での主な使用位置は L153。 \\
+4 & \path|import socket| & socket モジュールを利用するため。 このファイル内での主な使用位置は L73。 \\
+5 & \path|import time| & wall/monotonic time に基づく周期制御や freshness 判定を行うため。 このファイル内での主な使用位置は L74, L91, L98, L102, L105, L143。 \\
+7 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L163, L165, L167。 \\
+8 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L17。 \\
+10 & \path|from std_msgs.msg import Float32, String| & Float32、Bool、Stringなどの標準ROS messageで値をpublishまたはsubscribeするため。 このファイル内での主な使用位置は L66, L67, L68, L69, L70, L71, L89, L93, ...。 \\
+12 & \path|from .signal_utils import SmoothRateLimiter| & signal\_utils.py から SmoothRateLimiter を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/signal\_utils.py。 このファイル内での主な使用位置は L54。 \\
+13 & \path|from .solar_preflight_logic import evaluate_command_gate| & preflight 判定ロジック から evaluate\_command\_gate を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_preflight\_logic.py。 このファイル内での主な使用位置は L107。 \\
+14 & \path|from .telemetry_protocol import utc_iso_now| & telemetry\_protocol.py から utc\_iso\_now を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/telemetry\_protocol.py。 このファイル内での主な使用位置は L144。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{class、独自クラス、インスタンス、self、継承}
+クラスは、保持するデータと、そのデータを扱う関数を一つの型としてまとめる設計単位である。「独自クラス」とはPythonやROS 2が最初から用意した型ではなく、このプロジェクトが目的に合わせて定義した新しい型を指す。
+
+
+`class MPCNode(Node)`は、rclpyのNodeを基底クラスとして継承し、Nodeが持つpublisher、subscription、timer、parameterなどの機能にMPC固有機能を追加する。丸括弧内は関数引数ではなく基底クラス指定である。
+
+
+`MPCNode()`はクラスオブジェクトを呼び出して新しいインスタンスを作る。Pythonは新しい実体を用意し、その実体を第1引数selfとして`\_\_init\_\_`へ渡す。`self`は予約語ではなく慣習的な名前だが、この慣習を守ることでコードの意味が共有される。
+
+
+\begin{lstlisting}[language=python]
+class Counter:
+    def __init__(self):
+        self.value = 0
+
+    def increment(self):
+        self.value += 1
+
+counter = Counter()
+counter.increment()
+\end{lstlisting}
+
+
+`super().\_\_init\_\_(...)`は継承元の初期化処理を呼ぶ。MPCNodeではこれを省くとROSノードとして必要な内部実体が作られず、`create\_publisher`などを正しく使えない。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{先頭アンダースコア、\_\_init\_\_、名前付けの作法}
+`self.\_step\_solar`の先頭1個のアンダースコアは「クラス内部で使う実装詳細」という慣習であり、アクセスを強制禁止する機構ではない。外部コードから呼べるが、公開APIとして依存しない意思表示である。
+
+
+`\_\_init\_\_`の前後2個のアンダースコアはPythonが定めた特殊メソッド名である。クラス生成時に自動で呼ばれる。任意の名前に前後2個を付けて独自仕様を作ることは避ける。
+
+
+`\_`で始まるローカル変数は、未使用または外部へ見せない意図を示す場合がある。例えば`\_base\_csv`は戻り値として受け取る必要はあるが、その後の処理では使わないことを読者へ示す。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{rclpy、rcl、rmw、DDS/RTPSの層}
+rclpyはPython利用者向けROS 2 client libraryである。利用者のNode、publisher、subscriptionなどをPython APIとして提供し、その下で共通C層のrclを利用する。
+
+
+\begin{lstlisting}
+本プロジェクトのPythonコード -> rclpy -> rcl -> rmw -> DDS/RTPS実装 -> ネットワークまたは同一PC内通信
+\end{lstlisting}
+
+
+rclは言語に依存しない共通ROS機能を提供するC API、rmwはROS 2と具体的middleware実装の境界である。DDS/RTPS側が探索、serialize、publish/subscribe、request/replyなどを担う。executorの実行モデルはrclだけで完結せずclient library側にも実装される。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Concepts/About-Internal-Interfaces.html}{ROS 2 Humble公式: Internal ROS 2 interfaces}
+\end{itemize}
+
+\subsection{ROS graph、Node、topic、service、action、parameter}
+ROS graphは、実行中Nodeと、それらが持つpublisher、subscription、service、actionなどの接続関係である。Pythonクラス、プロセス、ROS graph上のNode名は関連するが同一物ではない。
+
+
+topicは継続データ向けの非同期一方向publish/subscribe、serviceは短いrequest/response、actionは時間のかかる目標へfeedback、cancel、resultを持たせる。parameterはNodeごとの設定値である。
+
+
+publisherが送った時点とsubscription callbackが実行される時点は同じとは限らない。通信遅延、QoS queue、executor待ちを挟むため、センサ値にはtimestampとfreshness判定が必要になる。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/Interfaces-Topics-Services-Actions.html}{ROS 2 Humble公式: Topics, Services, Actions}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/About-Parameters.html}{ROS 2 Humble公式: Parameters}
+\end{itemize}
+
+\subsection{callback、timer、Executor、spin、Callback Group}
+callbackは、メッセージ受信、timer満了、service requestなどのイベントが成立した後でExecutorから呼ばれる関数である。登録時に`self.\_on\_speed`と括弧なしで渡すのは、今実行せず後で呼ぶ関数オブジェクトを渡すためである。
+
+
+Executorは実行可能になったcallbackを見つけ、Callback Groupの条件を確認して実行する。`spin()`は終了要求まで待機・dispatchを続けるため、通常運転中はmainの次の行へ戻らない。
+
+
+MutuallyExclusiveCallbackGroupは同じgroup内のcallbackを同時実行させない。別group間はMultiThreadedExecutorで並行実行し得る。groupを分けただけでは共有属性への完全な排他にはならないため、複数groupが同じ状態を読む・書く場合は設計確認が必要である。
+
+
+\begin{lstlisting}
+DDS受信またはtimer満了 -> wait setでready -> Executorが選択 -> Callback Groupが許可 -> worker threadがcallback実行 -> 終了後Executorへ戻る
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Executors.html}{ROS 2公式: Executors}
+\item \href{https://docs.ros.org/en/humble/Concepts/About-Internal-Interfaces.html}{ROS 2 Humble公式: Internal ROS 2 interfaces}
+\end{itemize}
+
+\subsection{rqt\_graph、ros2 CLI、rosbag2をいつ使うか}
+rqt\_graphは接続関係を見る道具であり、数値の正しさや更新周期までは保証しない。起動直後、topic名変更後、publisherが複数存在する疑いがある時に使う。
+
+
+\begin{lstlisting}[language=bash]
+ros2 node list
+ros2 node info /mpc_node
+ros2 topic list -t
+ros2 topic info -v /planner/speed_cmd
+ros2 topic hz /planner/speed_cmd
+ros2 topic echo /planner/status
+rqt_graph
+\end{lstlisting}
+
+
+rosbag2はtopicメッセージを時系列のまま記録・再生する。通信不具合、freshness、再計画trigger、実車とSILSの差を再現可能にするため、本番前試験では制御入力だけでなく原因となる全telemetry、status、parameter情報を記録する。
+
+
+\begin{lstlisting}[language=bash]
+ros2 bag record -o outputs/bags/preflight \
+  /vehicle/s_km /vehicle/speed_kmh /vehicle/batt_soc \
+  /vehicle/batt_temp_c /vehicle/batt_current_a /vehicle/batt_voltage_v \
+  /planner/upper_speed_cmd /planner/speed_cmd /planner/status
+
+ros2 bag info outputs/bags/preflight
+ros2 bag play outputs/bags/preflight --clock
+\end{lstlisting}
+
+
+bag再生時はQoS互換性、simulation time、外部publisherとの二重入力に注意する。実車Nodeを同時に動かす場合はnamespaceまたはremappingで入力源を明確に分離する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/ros2_packages/humble/api/rqt_graph/index.html}{ROS 2 Humble公式: rqt\_graph}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html}{ROS 2 Humble公式: Recording and playing back data}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L17 クラス SpeedCommandBridgeNode}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L17--L159
+              \item 所属: module直下
+              \item 定義: \path|SpeedCommandBridgeNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_on\_speed\_cmd を定義する。
+\item 関数 \_on\_upper\_speed\_cmd を定義する。
+\item 関数 \_on\_drive\_mode を定義する。
+\item 関数 \_on\_system\_state を定義する。
+\item 関数 \_step を定義する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class SpeedCommandBridgeNode(Node):
+    def __init__(self) -> None:
+        super().__init__("speed_command_bridge_node")
+        self.declare_parameter("output_speed_topic", "/vehicle/speed_cmd_kmh")
+        self.declare_parameter("output_drive_mode_topic", "/vehicle/drive_mode_cmd")
+        self.declare_parameter("udp_enabled", False)
+        self.declare_parameter("udp_host", "127.0.0.1")
+        self.declare_parameter("udp_port", 50050)
+        self.declare_parameter("publish_rate_hz", 5.0)
+        self.declare_parameter("input_timeout_sec", 3.0)
+        self.declare_parameter("safe_speed_kmh", 0.0)
+        self.declare_parameter("startup_hold_sec", 2.0)
+        self.declare_parameter("filter_tau_sec", 1.0)
+        self.declare_parameter("accel_limit_kmhps", 1.2)
+        self.declare_parameter("decel_limit_kmhps", 3.5)
+        self.declare_parameter("speed_deadband_kmh", 0.1)
+        self.declare_parameter("speed_quantize_step_kmh", 0.1)
+        self.declare_parameter("max_output_speed_kmh", 120.0)
+        self.declare_parameter("drive_mode_min_hold_sec", 5.0)
+        self.declare_parameter("require_system_running", True)
+        self.declare_parameter("system_state_timeout_sec", 2.5)
+
+        self.output_speed_topic = str(self.get_parameter("output_speed_topic").value)
+        self.output_drive_mode_topic = str(self.get_parameter("output_drive_mode_topic").value)
+        self.udp_enabled = bool(self.get_parameter("udp_enabled").value)
+        self.udp_host = str(self.get_parameter("udp_host").value)
+        self.udp_port = int(self.get_parameter("udp_port").value)
+        self.publish_rate_hz = max(1.0, float(self.get_parameter("publish_rate_hz").value))
+        self.input_timeout_sec = max(0.1, float(self.get_parameter("input_timeout_sec").value))
+        self.safe_speed_kmh = float(self.get_parameter("safe_speed_kmh").value)
+        self.startup_hold_sec = max(0.0, float(self.get_parameter("startup_hold_sec").value))
+        self.drive_mode_min_hold_sec = max(0.0, float(self.get_parameter("drive_mode_min_hold_sec").value))
+        self.require_system_running = bool(self.get_parameter("require_system_running").value)
+        self.system_state_timeout_sec = max(
+            0.1, float(self.get_parameter("system_state_timeout_sec").value)
+...
+\end{lstlisting}
+
+\subsection{L18 関数 SpeedCommandBridgeNode.\_\_init\_\_}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L18--L87
+              \item 所属: \path|SpeedCommandBridgeNode|
+              \item 定義: \path|__init__(self) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: SmoothRateLimiter, \_\_init\_\_, bool, create\_publisher, create\_subscription, create\_timer, declare\_parameter, float, get\_logger, get\_parameter, info, int
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.\_on\_drive\_mode, self.\_on\_speed\_cmd, self.\_on\_system\_state, self.\_on\_upper\_speed\_cmd, self.\_step, self.create\_publisher, self.create\_subscription, self.create\_timer, self.declare\_parameter, self.get\_logger, self.get\_parameter, self.limiter, self.output\_drive\_mode\_topic, self.output\_speed\_topic, self.publish\_rate\_hz, self.safe\_speed\_kmh, self.start\_time, self.udp\_enabled
+              \item 更新する主なインスタンス属性: self.applied\_drive\_mode, self.drive\_mode\_min\_hold\_sec, self.input\_timeout\_sec, self.last\_drive\_mode, self.last\_drive\_mode\_change, self.last\_gate\_reason, self.last\_mode\_input\_time, self.last\_speed\_cmd, self.last\_speed\_input\_time, self.last\_system\_state\_time, self.last\_udp\_error\_log\_time, self.last\_upper\_speed\_cmd, self.limiter, self.mode\_pub, self.output\_drive\_mode\_topic, self.output\_speed\_topic, self.publish\_rate\_hz, self.require\_system\_running, self.safe\_speed\_kmh, self.sock, self.speed\_pub, self.start\_time, self.startup\_hold\_sec, self.system\_state
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item super().\_\_init\_\_(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.output\_speed\_topic に str(self.get\_parameter('output\_speed\_topic').value) の結果を代入する。
+\item self.output\_drive\_mode\_topic に str(self.get\_parameter('output\_drive\_mode\_topic').value) の結果を代入する。
+\item self.udp\_enabled に bool(self.get\_parameter('udp\_enabled').value) の結果を代入する。
+\item self.udp\_host に str(self.get\_parameter('udp\_host').value) の結果を代入する。
+\item self.udp\_port に int(self.get\_parameter('udp\_port').value) の結果を代入する。
+\item self.publish\_rate\_hz に max(1.0, float(self.get\_parameter('publish\_rate\_hz').value)) の結果を代入する。
+\item self.input\_timeout\_sec に max(0.1, float(self.get\_parameter('input\_timeout\_sec').value)) の結果を代入する。
+\item self.safe\_speed\_kmh に float(self.get\_parameter('safe\_speed\_kmh').value) の結果を代入する。
+\item self.startup\_hold\_sec に max(0.0, float(self.get\_parameter('startup\_hold\_sec').value)) の結果を代入する。
+\item self.drive\_mode\_min\_hold\_sec に max(0.0, float(self.get\_parameter('drive\_mode\_min\_hold\_sec').value)) の結果を代入する。
+\item self.require\_system\_running に bool(self.get\_parameter('require\_system\_running').value) の結果を代入する。
+\item self.system\_state\_timeout\_sec に max(0.1, float(self.get\_parameter('system\_state\_timeout\_sec').value)) の結果を代入する。
+\item self.limiter に SmoothRateLimiter(min\_value=0.0, max\_value=float(self.get\_parameter('max\_output\_speed\_kmh').value), tau\_sec=float(self.get\_parameter('filter\_tau\_sec').value), rise\_rate=float(self.get\_parameter('accel\_limit\_kmhps').value), fall\_rate=float(self.get\_parameter('decel\_limit\_kmhps').value), deadband=float(self.get\_parameter('speed\_deadband\_kmh').value), quantize\_step=float(self.get\_parameter('speed\_quantize\_step\_kmh').value), initial\_value=self.safe\_speed\_kmh) の結果を代入する。
+\item self.limiter.reset(...) を実行する。
+\item self.speed\_pub に self.create\_publisher(Float32, self.output\_speed\_topic, 10) の結果を代入する。
+\item self.mode\_pub に self.create\_publisher(String, self.output\_drive\_mode\_topic, 10) の結果を代入する。
+\item self.create\_subscription(...) を実行する。
+\item self.create\_subscription(...) を実行する。
+\item self.create\_subscription(...) を実行する。
+\item self.create\_subscription(...) を実行する。
+\item self.sock に socket.socket(socket.AF\_INET, socket.SOCK\_DGRAM) if self.udp\_enabled else None の結果を代入する。
+\item self.start\_time に time.monotonic() の結果を代入する。
+\item self.last\_speed\_input\_time に None の結果を代入する。
+\item self.last\_mode\_input\_time に None の結果を代入する。
+\item self.last\_system\_state\_time に None の結果を代入する。
+\item self.system\_state に 'STARTING' の結果を代入する。
+\item self.last\_speed\_cmd に self.safe\_speed\_kmh の結果を代入する。
+\item self.last\_upper\_speed\_cmd に self.safe\_speed\_kmh の結果を代入する。
+\item self.last\_drive\_mode に 'stop' の結果を代入する。
+\item self.applied\_drive\_mode に 'stop' の結果を代入する。
+\item self.last\_drive\_mode\_change に self.start\_time の結果を代入する。
+\item self.last\_udp\_error\_log\_time に float('-inf') の結果を代入する。
+\item self.last\_gate\_reason に 'startup\_hold' の結果を代入する。
+\item self.timer に self.create\_timer(1.0 / self.publish\_rate\_hz, self.\_step) の結果を代入する。
+\item self.get\_logger().info(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def __init__(self) -> None:
+        super().__init__("speed_command_bridge_node")
+        self.declare_parameter("output_speed_topic", "/vehicle/speed_cmd_kmh")
+        self.declare_parameter("output_drive_mode_topic", "/vehicle/drive_mode_cmd")
+        self.declare_parameter("udp_enabled", False)
+        self.declare_parameter("udp_host", "127.0.0.1")
+        self.declare_parameter("udp_port", 50050)
+        self.declare_parameter("publish_rate_hz", 5.0)
+        self.declare_parameter("input_timeout_sec", 3.0)
+        self.declare_parameter("safe_speed_kmh", 0.0)
+        self.declare_parameter("startup_hold_sec", 2.0)
+        self.declare_parameter("filter_tau_sec", 1.0)
+        self.declare_parameter("accel_limit_kmhps", 1.2)
+        self.declare_parameter("decel_limit_kmhps", 3.5)
+        self.declare_parameter("speed_deadband_kmh", 0.1)
+        self.declare_parameter("speed_quantize_step_kmh", 0.1)
+        self.declare_parameter("max_output_speed_kmh", 120.0)
+        self.declare_parameter("drive_mode_min_hold_sec", 5.0)
+        self.declare_parameter("require_system_running", True)
+        self.declare_parameter("system_state_timeout_sec", 2.5)
+
+        self.output_speed_topic = str(self.get_parameter("output_speed_topic").value)
+        self.output_drive_mode_topic = str(self.get_parameter("output_drive_mode_topic").value)
+        self.udp_enabled = bool(self.get_parameter("udp_enabled").value)
+        self.udp_host = str(self.get_parameter("udp_host").value)
+        self.udp_port = int(self.get_parameter("udp_port").value)
+        self.publish_rate_hz = max(1.0, float(self.get_parameter("publish_rate_hz").value))
+        self.input_timeout_sec = max(0.1, float(self.get_parameter("input_timeout_sec").value))
+        self.safe_speed_kmh = float(self.get_parameter("safe_speed_kmh").value)
+        self.startup_hold_sec = max(0.0, float(self.get_parameter("startup_hold_sec").value))
+        self.drive_mode_min_hold_sec = max(0.0, float(self.get_parameter("drive_mode_min_hold_sec").value))
+        self.require_system_running = bool(self.get_parameter("require_system_running").value)
+        self.system_state_timeout_sec = max(
+            0.1, float(self.get_parameter("system_state_timeout_sec").value)
+        )
+...
+\end{lstlisting}
+
+\subsection{L89 関数 SpeedCommandBridgeNode.\_on\_speed\_cmd}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L89--L91
+              \item 所属: \path|SpeedCommandBridgeNode|
+              \item 定義: \path|_on_speed_cmd(self, msg: Float32) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, monotonic
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: self.last\_speed\_cmd, self.last\_speed\_input\_time
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.last\_speed\_cmd に float(msg.data) の結果を代入する。
+\item self.last\_speed\_input\_time に time.monotonic() の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _on_speed_cmd(self, msg: Float32) -> None:
+        self.last_speed_cmd = float(msg.data)
+        self.last_speed_input_time = time.monotonic()
+\end{lstlisting}
+
+\subsection{L93 関数 SpeedCommandBridgeNode.\_on\_upper\_speed\_cmd}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L93--L94
+              \item 所属: \path|SpeedCommandBridgeNode|
+              \item 定義: \path|_on_upper_speed_cmd(self, msg: Float32) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: self.last\_upper\_speed\_cmd
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.last\_upper\_speed\_cmd に float(msg.data) の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _on_upper_speed_cmd(self, msg: Float32) -> None:
+        self.last_upper_speed_cmd = float(msg.data)
+\end{lstlisting}
+
+\subsection{L96 関数 SpeedCommandBridgeNode.\_on\_drive\_mode}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L96--L98
+              \item 所属: \path|SpeedCommandBridgeNode|
+              \item 定義: \path|_on_drive_mode(self, msg: String) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: monotonic, str
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: self.last\_drive\_mode, self.last\_mode\_input\_time
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.last\_drive\_mode に str(msg.data or 'stop') の結果を代入する。
+\item self.last\_mode\_input\_time に time.monotonic() の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _on_drive_mode(self, msg: String) -> None:
+        self.last_drive_mode = str(msg.data or "stop")
+        self.last_mode_input_time = time.monotonic()
+\end{lstlisting}
+
+\subsection{L100 関数 SpeedCommandBridgeNode.\_on\_system\_state}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L100--L102
+              \item 所属: \path|SpeedCommandBridgeNode|
+              \item 定義: \path|_on_system_state(self, msg: String) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: monotonic, str, strip, upper
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: self.last\_system\_state\_time, self.system\_state
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.system\_state に str(msg.data or '').strip().upper() の結果を代入する。
+\item self.last\_system\_state\_time に time.monotonic() の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _on_system_state(self, msg: String) -> None:
+        self.system_state = str(msg.data or "").strip().upper()
+        self.last_system_state_time = time.monotonic()
+\end{lstlisting}
+
+\subsection{L104 関数 SpeedCommandBridgeNode.\_step}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L104--L159
+              \item 所属: \path|SpeedCommandBridgeNode|
+              \item 定義: \path|_step(self) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, String, dumps, encode, error, evaluate\_command\_gate, float, get\_logger, monotonic, publish, sendto, time
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: gate, mode\_is\_fresh, now, payload, requested\_mode, speed\_out, speed\_target
+              \item 読み取る主なインスタンス属性: self.applied\_drive\_mode, self.drive\_mode\_min\_hold\_sec, self.get\_logger, self.input\_timeout\_sec, self.last\_drive\_mode, self.last\_drive\_mode\_change, self.last\_gate\_reason, self.last\_mode\_input\_time, self.last\_speed\_cmd, self.last\_speed\_input\_time, self.last\_system\_state\_time, self.last\_udp\_error\_log\_time, self.last\_upper\_speed\_cmd, self.limiter, self.mode\_pub, self.require\_system\_running, self.safe\_speed\_kmh, self.sock, self.speed\_pub, self.start\_time, self.startup\_hold\_sec, self.system\_state, self.system\_state\_timeout\_sec, self.udp\_host
+              \item 更新する主なインスタンス属性: self.applied\_drive\_mode, self.last\_drive\_mode\_change, self.last\_gate\_reason, self.last\_udp\_error\_log\_time
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 5、ループ 0、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item now に time.monotonic() の結果を代入する。
+\item speed\_target に self.safe\_speed\_kmh の結果を代入する。
+\item gate に evaluate\_command\_gate(elapsed\_sec=now - self.start\_time, speed\_input\_age\_sec=None if self.last\_speed\_input\_time is None else now - self.last\_speed\_input\_time, system\_state=self.system\_state, system\_state\_age\_sec=None if self.last\_system\_state\_time is None else now - self.last\_system\_state\_time, startup\_hold\_sec=self.startup\_hold\_sec, input\_timeout\_sec=self.input\_timeout\_sec, system\_state\_timeout\_sec=self.system\_state\_timeout\_sec, require\_system\_running=self.require\_system\_running) の結果を代入する。
+\item self.last\_gate\_reason に gate.reason の結果を代入する。
+\item 条件 gate.allowed を判定し、真なら内部処理を行う。
+\item   speed\_target に self.last\_speed\_cmd の結果を代入する。
+\item speed\_out に float(self.limiter.update(speed\_target, now=now)) の結果を代入する。
+\item mode\_is\_fresh に self.last\_mode\_input\_time is not None and now - self.last\_mode\_input\_time <= self.input\_timeout\_sec の結果を代入する。
+\item requested\_mode に self.last\_drive\_mode if gate.allowed and mode\_is\_fresh else 'stop' の結果を代入する。
+\item 条件 requested\_mode == 'stop' を判定し、真なら内部処理を行う。
+\item   self.applied\_drive\_mode に 'stop' の結果を代入する。
+\item   self.last\_drive\_mode\_change に now の結果を代入する。
+\item   上の条件が偽の場合:
+\item   条件 requested\_mode != self.applied\_drive\_mode and now - self.last\_drive\_mode\_change >= self.drive\_mode\_min\_hold\_sec を判定し、真なら内部処理を行う。
+\item     self.applied\_drive\_mode に requested\_mode の結果を代入する。
+\item     self.last\_drive\_mode\_change に now の結果を代入する。
+\item self.speed\_pub.publish(...) を実行する。
+\item self.mode\_pub.publish(...) を実行する。
+\item 条件 self.sock is not None を判定し、真なら内部処理を行う。
+\item   payload に \{'type': 'planner\_command', 'ts\_unix': time.time(), 'timestamp\_utc': utc\_iso\_now(), 'planner': \{'speed\_cmd\_kmh': speed\_out, 'upper\_speed\_cmd\_kmh': self.last\_upper\_speed\_cmd, 'drive\_mode': self.applied\_drive\_mode, 'command\_gate': self.last\_gate\_reason\}\} の結果を代入する。
+\item   例外処理を伴う try ブロックを実行する。
+\item     self.sock.sendto(...) を実行する。
+\item     OSErrorを捕捉した場合:
+\item     条件 now - self.last\_udp\_error\_log\_time >= 5.0 を判定し、真なら内部処理を行う。
+\item       self.get\_logger().error(...) を実行する。
+\item       self.last\_udp\_error\_log\_time に now の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _step(self) -> None:
+        now = time.monotonic()
+        speed_target = self.safe_speed_kmh
+        gate = evaluate_command_gate(
+            elapsed_sec=now - self.start_time,
+            speed_input_age_sec=(
+                None if self.last_speed_input_time is None else now - self.last_speed_input_time
+            ),
+            system_state=self.system_state,
+            system_state_age_sec=(
+                None if self.last_system_state_time is None else now - self.last_system_state_time
+            ),
+            startup_hold_sec=self.startup_hold_sec,
+            input_timeout_sec=self.input_timeout_sec,
+            system_state_timeout_sec=self.system_state_timeout_sec,
+            require_system_running=self.require_system_running,
+        )
+        self.last_gate_reason = gate.reason
+        if gate.allowed:
+            speed_target = self.last_speed_cmd
+        speed_out = float(self.limiter.update(speed_target, now=now))
+
+        mode_is_fresh = (
+            self.last_mode_input_time is not None
+            and (now - self.last_mode_input_time) <= self.input_timeout_sec
+        )
+        requested_mode = self.last_drive_mode if gate.allowed and mode_is_fresh else "stop"
+        if requested_mode == "stop":
+            self.applied_drive_mode = "stop"
+            self.last_drive_mode_change = now
+        elif requested_mode != self.applied_drive_mode and (now - self.last_drive_mode_change) >= self.drive_mode_min_hold_sec:
+            self.applied_drive_mode = requested_mode
+            self.last_drive_mode_change = now
+
+        self.speed_pub.publish(Float32(data=speed_out))
+...
+\end{lstlisting}
+
+\subsection{L162 関数 main}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L162--L167
+              \item 所属: module直下
+              \item 定義: \path|main() -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: SpeedCommandBridgeNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: node
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に SpeedCommandBridgeNode() の結果を代入する。
+\item rclpy.spin(...) を実行する。
+\item node.destroy\_node(...) を実行する。
+\item rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def main() -> None:
+    rclpy.init()
+    node = SpeedCommandBridgeNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+\end{lstlisting}
+
+        \subsection{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            20 & \path|output_speed_topic| & /vehicle/speed\_cmd\_kmh \\
+21 & \path|output_drive_mode_topic| & /vehicle/drive\_mode\_cmd \\
+22 & \path|udp_enabled| & False \\
+23 & \path|udp_host| & 127.0.0.1 \\
+24 & \path|udp_port| & 50050 \\
+25 & \path|publish_rate_hz| & 5.0 \\
+26 & \path|input_timeout_sec| & 3.0 \\
+27 & \path|safe_speed_kmh| & 0.0 \\
+28 & \path|startup_hold_sec| & 2.0 \\
+29 & \path|filter_tau_sec| & 1.0 \\
+30 & \path|accel_limit_kmhps| & 1.2 \\
+31 & \path|decel_limit_kmhps| & 3.5 \\
+32 & \path|speed_deadband_kmh| & 0.1 \\
+33 & \path|speed_quantize_step_kmh| & 0.1 \\
+34 & \path|max_output_speed_kmh| & 120.0 \\
+35 & \path|drive_mode_min_hold_sec| & 5.0 \\
+36 & \path|require_system_running| & True \\
+37 & \path|system_state_timeout_sec| & 2.5 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            66 & publisher & \path|self.output_speed_topic| & publisher \\
+67 & publisher & \path|self.output_drive_mode_topic| & publisher \\
+68 & subscription & \path|/planner/speed_cmd| & self.\_on\_speed\_cmd \\
+69 & subscription & \path|/planner/upper_speed_cmd| & self.\_on\_upper\_speed\_cmd \\
+70 & subscription & \path|/planner/drive_mode| & self.\_on\_drive\_mode \\
+71 & subscription & \path|/system/state| & self.\_on\_system\_state \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/speed_command_bridge_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

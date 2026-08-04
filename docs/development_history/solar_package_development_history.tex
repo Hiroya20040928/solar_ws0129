@@ -1,0 +1,851 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{space}{xeCJK}
+\documentclass[
+  japanese,
+  a4paper,
+  11pt]{article}
+\usepackage{xcolor}
+\usepackage[top=16mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+  \setmainfont[]{Times New Roman}
+  \setsansfont[]{Yu Gothic}
+  \setmonofont[]{Consolas}
+  \ifXeTeX
+    \usepackage{xeCJK}
+    \setCJKmainfont[]{Yu Gothic}
+    \setCJKsansfont[]{Yu Gothic}
+    \setCJKmonofont[]{Yu Gothic}
+  \fi
+  \ifLuaTeX
+    \usepackage[]{luatexja-fontspec}
+    \setmainjfont[]{Yu Gothic}
+  \fi
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\ifLuaTeX
+\usepackage[bidi=basic,shorthands=off,provide=*]{babel}
+\else
+\usepackage[bidi=default,shorthands=off,provide=*]{babel}
+\fi
+\ifPDFTeX
+\else
+\babelfont{rm}[]{Times New Roman}
+\fi
+\ifLuaTeX
+  \usepackage{selnolig} % disable illegal ligatures
+\fi
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+% fallback for those not using the hyperref driver hyperxmp:
+\makeatletter
+\@ifundefined{xmpquote}{\newcommand{\xmpquote}[1]{#1}}{}
+\makeatother
+\hypersetup{
+  pdftitle={MPCEMS YATA 改良・改変の全履歴},
+  pdflang={ja-JP},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{MPCEMS YATA 改良・改変の全履歴}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{初期試作から車両同定・大会全体MPC・ライブ運用・独立受入まで}
+\author{}
+\date{2026-07-18}
+
+\begin{document}
+\maketitle
+
+{
+\setcounter{tocdepth}{3}
+\tableofcontents
+}
+更新基準日: 2026-07-18\\
+対象: \texttt{solar\_ws0129-main}
+のうち、ソーラーカーEMSを中心とする実質的な改良\\
+用途: GitHubリリースノート、後任者への引継ぎ、設計変更理由の保存
+
+\subsection{1.
+この資料の読み方}\label{1-ux3053ux306eux8cc7ux6599ux306eux8aadux307fux65b9}
+
+この資料は、作業中の確認、同じ試験の繰り返し、進捗監視、入力ミスの修正などを省き、パッケージの機能・精度・安全性・使い方を変えた改良だけを時系列で記録したものです。
+
+各段階を次の4点で説明します。
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{以前の問題}: なぜ変更が必要だったか。
+\item
+  \textbf{変更内容}: 何を実装または再設計したか。
+\item
+  \textbf{利用者への効果}: 初めて使う人から見て何が変わったか。
+\item
+  \textbf{残る制限}: 現時点で保証していないこと。
+\end{itemize}
+
+ここでいう「同定」は、実測データに最もよく合う車両パラメータを推定する処理です。「MPC」は、将来の天候・道路・電池状態を予測し、一定時間または距離ごとに計画を解き直す制御です。「CEM」は、多数の候補を試し、良かった候補の分布へ探索範囲を寄せていく最適化です。
+
+\subsection{2.
+一文で表す全体の変化}\label{2-ux4e00ux6587ux3067ux8868ux3059ux5168ux4f53ux306eux5909ux5316}
+
+当初のリポジトリは、ソーラーカー用試作MPCとPASSO用機能が混在し、起動入口、時刻、相対パス、YAML反映、実測同定、ライブ通信、長距離シミュレーションが十分に統合されていませんでした。現在は、\textbf{実測データ準備
+→ 車両同定 → 大会環境投入 → 全行程MPCシミュレーション → ライブWiFi運用 →
+記録・表示 → 独立検証 → 配布}を同じprofile構造でつなぐROS
+2パッケージへ発展しています。
+
+\subsection{3.
+変更の時系列}\label{3-ux5909ux66f4ux306eux6642ux7cfbux5217}
+
+\subsubsection{Phase 0:
+初期試作版}\label{phase-0-ux521dux671fux8a66ux4f5cux7248}
+
+\textbf{以前の状態}
+
+\begin{itemize}
+\tightlist
+\item
+  ソーラーカーMPCとPASSO燃費支援が同じパッケージに混在していました。
+\item
+  \texttt{mpc\_node.py} と \texttt{scripts/solar\_sim.py}
+  に似た計算が別々にあり、片側だけを修正すると結果がずれる危険がありました。
+\item
+  launchから渡す相対パスが実行ディレクトリに依存し、データを読めない場合がありました。
+\item
+  2025年の絶対時刻スケジュールと、起動時刻を基準にする相対予報が混在していました。
+\item
+  ROS
+  2のresource登録や配布ファイルが不足し、\texttt{colcon\ build}後の起動が不安定でした。
+\end{itemize}
+
+\textbf{この段階の位置付け}
+
+物理モデルとMPCの骨格はありましたが、「大会で第三者が再現可能に運用する製品」ではなく、研究用コードの集合に近い状態でした。
+
+\subsubsection{Phase 1: ROS
+2パッケージとして起動可能に再構成}\label{phase-1-ros-2ux30d1ux30c3ux30b1ux30fcux30b8ux3068ux3057ux3066ux8d77ux52d5ux53efux80fdux306bux518dux69cbux6210}
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{resource/mpc\_solarcar}、\texttt{setup.cfg}、\texttt{setup.py}の配布定義を整えました。
+\item
+  パス解決を共通化し、source tree、install
+  tree、WSLのどこから起動してもprofile・map・dataを解決できる構造へ変更しました。
+\item
+  \texttt{solar\_state\_node.py}を追加し、シミュレーション時に車速、距離、SoC、電圧、電流などの車両状態を自己完結して生成できるようにしました。
+\item
+  ROSノードが生存している状態でrqt
+  graphを出力する専用処理を追加しました。graph取得専用ノードだけが写る誤った画像を避け、実際のMPC・GPS・logger・dashboardの接続を保存できるようにしました。
+\end{itemize}
+
+\textbf{利用者への効果}
+
+ROS
+2の内部構造を知らない利用者でも、同じ入口からビルド・起動・停止・状態確認・graph保存を行える土台ができました。
+
+\subsubsection{Phase 2:
+PowerShell一括入口と3つの主要モード}\label{phase-2-powershellux4e00ux62ecux5165ux53e3ux30683ux3064ux306eux4e3bux8981ux30e2ux30fcux30c9}
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  Windows側に\texttt{SolarSim.ps1}、WSL/Ubuntu側に\texttt{scripts/solar\_control.sh}を設けました。
+\item
+  \texttt{sim}、\texttt{measure}、\texttt{live}を別launchへ分離しました。
+\item
+  さらに、オフライン大会全体計算を\texttt{simulate}、車両同定を\texttt{fit}/\texttt{identify}、気象取得を\texttt{forecast}として同じ入口へ統合しました。
+\item
+  全入力をprofile
+  YAMLから参照する構造へ変更し、コード中の大会距離、開始時刻、保存先、車両係数の固定値を削減しました。
+\item
+  YAML値がノード初期化後に上書きされて効かない問題を修正し、\texttt{dt}、horizon、drive
+  mode、SoC上下限などを初期化前に確定するようにしました。
+\item
+  シミュレーション結果を上書きせず、日時・run名付きの別ディレクトリへ保存し、最新版を指すmanifest
+  JSONから追跡できるようにしました。
+\end{itemize}
+
+\textbf{利用者への効果}
+
+利用者は主にprofile
+YAMLと入力CSVを編集し、PowerShellコマンドを選ぶだけで、実測、同定、事前計算、本番運用を切り替えられます。過去結果も自動的に残ります。
+
+\subsubsection{Phase 3:
+ライブ運用を自動化}\label{phase-3-ux30e9ux30a4ux30d6ux904bux7528ux3092ux81eaux52d5ux5316}
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{weather\_fetch\_node.py}を追加し、GNSS位置に応じてOpen-Meteoから予報を定期取得するようにしました。
+\item
+  \texttt{solar\_autocal\_node.py}を追加し、発電倍率、走行電力倍率、補機電力を範囲制約付きで更新できるようにしました。
+\item
+  \texttt{speed\_command\_bridge\_node.py}を追加し、MPCの速度指令に起動待ち、timeout、加減速率制限、deadband、量子化、上限制限を適用してから車両へ渡すようにしました。
+\item
+  \texttt{distance\_node.py}と\texttt{grade\_node.py}をソーラー運用へ統合し、伴走車GNSS・高度・車速から距離と勾配を更新できるようにしました。
+\item
+  \texttt{solar\_preflight\_node.py}を追加し、テレメトリ、planner、時刻、予報の鮮度を起動前と走行中に判定するようにしました。
+\item
+  \texttt{solar\_logger\_node.py}を追加し、車両、伴走車、上位計画、下位指令、天候、校正値、通信状態、安全状態を同じ時系列で保存するようにしました。
+\end{itemize}
+
+\textbf{利用者への効果}
+
+大会開始前から起動しておけば、データ取得、再計画、1
+Hz速度指令、保存、表示が連続して動く構成になりました。センサが途絶えた場合は古い値を無期限に使わず、安全側へ移行します。
+
+\subsubsection{Phase 4:
+WiFi文字列通信と風予測補正}\label{phase-4-wifiux6587ux5b57ux5217ux901aux4fe1ux3068ux98a8ux4e88ux6e2cux88dcux6b63}
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{telemetry\_protocol.py}で、UDP文字列の形式、時刻、送信元、フィールド名、単位を定義しました。
+\item
+  \texttt{telemetry\_text\_bridge\_node.py}で、ソーラーカーと伴走車から届く文字列を検査し、外れ値除去、低域フィルタ、変化率制限を通してROS
+  topicへ変換するようにしました。
+\item
+  車速、距離、電池、風、GNSSなどについて、上限、逆行許容量、timeoutを個別設定できるようにしました。
+\item
+  車両側・伴走車側・planner側の送受信サンプルを追加し、Raspberry
+  Piやマイコン側の実装見本を用意しました。
+\item
+  \texttt{wind\_correction\_node.py}を追加し、実測風と予報風の差を距離・時間相関で将来へ伝搬し、補正予報と信頼区間を生成するようにしました。
+\end{itemize}
+
+\textbf{利用者への効果}
+
+同一WiFi内のRaspberry Piは、決められた1行文字列をUDPで送るだけでROS
+2へ接続できます。ROS
+2を車両側へ入れなくても、伴走車PCが全情報を統合できます。
+
+\subsubsection{Phase 5:
+一画面dashboardとGrafana}\label{phase-5-ux4e00ux753bux9762dashboardux3068grafana}
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  初期dashboardを、数値カード中心の一画面表示へ圧縮しました。
+\item
+  車速指令、実車速、SoC、距離、発電、消費、電圧、電流、風、勾配、温度、通信鮮度、安全状態をスクロールなしで確認できる配置へ整理しました。
+\item
+  \texttt{dashboard\_node.py}へJSON
+  APIに加えてPrometheus形式の\texttt{/metrics}を追加しました。
+\item
+  \texttt{grafana/}へPrometheusとGrafanaのprovisioningを追加し、\texttt{SolarSim.ps1\ -Action\ grafana}で同じ画面を再現できるようにしました。
+\end{itemize}
+
+\textbf{利用者への効果}
+
+ブラウザを開くだけで運転判断に必要な値を一画面で確認でき、表示設定を各PCで手作業再構築する必要がなくなりました。
+
+\subsubsection{Phase 6:
+汎用の実測データ入力・車両同定パイプライン}\label{phase-6-ux6c4eux7528ux306eux5b9fux6e2cux30c7ux30fcux30bfux5165ux529bux8ecaux4e21ux540cux5b9aux30d1ux30a4ux30d7ux30e9ux30a4ux30f3}
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  raw
+  CSV雛形とsampleデータを追加し、必要な列、単位、時刻形式、欠損時の扱いを定義しました。
+\item
+  GPSからroute
+  profileを作る処理、OCV-SoC曲線、Rint温度/SoCマップ、PV/MPPTマップ、駆動/回生マップを作る処理を追加しました。
+\item
+  \texttt{run\_identification\_pipeline.py}を簡易入口、\texttt{run\_vehicle\_identification.py}をセグメント分割・multi-start・joint
+  refinementを含む本格入口として整備しました。
+\item
+  係数だけでなく、mapの形状補正、温度依存、SoC依存、ライン抵抗、分極抵抗・時定数、grade
+  scale、headwind exposureも推定対象へ拡張しました。
+\item
+  同定結果から候補profile、map、fit summary、replay
+  CSV、図、TeX/PDFを自動生成し、手作業の転記をなくしました。
+\item
+  同定候補は自動で本番profileへ昇格させず、独立validation
+  gateを通った場合だけpromoteできる構造へ変更しました。
+\end{itemize}
+
+\textbf{利用者への効果}
+
+別車両でも、決められたCSVへ実測ログを入れて同じコマンドを実行すれば、その車両用のmodel/maps/profile一式を作成できます。どの値が実測、仕様書、理論、推定かも追跡できます。
+
+\subsubsection{Phase 7:
+根拠のある物理mapへ再設計}\label{phase-7-ux6839ux62e0ux306eux3042ux308bux7269ux7406mapux3078ux518dux8a2dux8a08}
+
+\textbf{以前の問題}
+
+初期mapには、製品仕様書や実測値との対応が弱い仮置き形状があり、map全体へ倍率を掛けるだけでは実車再現性を説明できませんでした。
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  モーター/コントローラは回転数、トルク、銅損、鉄損、インバータ損失を基礎にeco/power
+  mapを分離しました。
+\item
+  回生は駆動mapの単純コピーをやめ、回生可能電流、低速域、充電効率を別に扱いました。
+\item
+  電池はOCV-SoC、Rint温度/SoC、配線抵抗、分極抵抗と時定数をThevenin形で分離しました。
+\item
+  パネルは面積、基準効率、温度係数、入射日射、panel map、MPPT
+  mapを分離しました。
+\item
+  仕様書・試験結果・チーム観測・推定値をevidence
+  bundleに保存し、根拠のない自由度を増やさない方針へ変更しました。
+\end{itemize}
+
+\textbf{利用者への効果}
+
+同じRMSEでも「たまたま係数が相殺したモデル」と「部品の物理に沿ったモデル」を区別できます。将来部品を交換した場合も、該当mapだけを差し替えやすくなりました。
+
+\subsubsection{Phase 8: BWSC
+2025実ログによる再同定の世代更新}\label{phase-8-bwsc-2025ux5b9fux30edux30b0ux306bux3088ux308bux518dux540cux5b9aux306eux4e16ux4ee3ux66f4ux65b0}
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{day1}から\texttt{day6}の大会ログだけを本戦ログとして扱い、サーキット試走などを分離しました。
+\item
+  公式control
+  stop、短いトラブル停車、日跨ぎ、最終事故を別イベントとして扱いました。
+\item
+  車重を235 kg、走行中補機を約21 W、夜間補機を0 W、新品電池を3011
+  Wh、CdAを設計値0.093より悪化した約0.11近傍という物理事前条件で再同定しました。
+\item
+  70 km/h巡航で約800 Wというチーム分析を独立のsanity
+  checkとして使いました。
+\item
+  MLE世代を進める中で、瞬時気象、回生同期、距離窓エネルギー、慣性電力、区間別grade、停止中充電、終端SoCアンカーを順に追加しました。
+\item
+  現在のパッケージ世代は\texttt{bwsc2025\_fitted\_mle19\_energywindow\_inertia}、その内部の最新研究同定runは\texttt{mle35\_expanded\_grade\_single\_source\_ultra\_v1}です。番号は「パッケージ世代」と「内部実験run」で役割が異なります。
+\end{itemize}
+
+\textbf{現在の研究候補値}
+
+\begin{itemize}
+\tightlist
+\item
+  mass: 235 kg
+\item
+  CdA: 約0.1112 m2
+\item
+  Crr: 約0.00626
+\item
+  driving auxiliary: 約21.02 W
+\item
+  nominal energy: 3011 Wh
+\item
+  panel gain: 約0.7127
+\item
+  conditional clean power RMSE: 約201.34 W
+\item
+  end-to-end clean power RMSE: 約246.09 W
+\item
+  battery-conditioned voltage RMSE: 約0.968 V
+\end{itemize}
+
+\textbf{残る制限}
+
+70 km/h巡航中央値は実測約800.05 Wに対してモデル約818.05
+Wで近い一方、加減速、低速、Day
+1/4/6、終端電圧に残差があります。終端SoCの独立根拠は約19.64 percentage
+pointsの幅を持つため、MLE35は研究候補であり、本番canonical
+profileへ自動昇格していません。
+
+\subsubsection{Phase 9:
+天候データの時刻・地点・独立性を修正}\label{phase-9-ux5929ux5019ux30c7ux30fcux30bfux306eux6642ux523bux5730ux70b9ux72ecux7acbux6027ux3092ux4feeux6b63}
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  予報CSVの値が「その時刻の瞬時値」か「前1時間平均」かをmetadataで明示しました。
+\item
+  走行地点と時刻に対応するOpen-Meteo
+  archiveのGHI/DNI/DHI、気温、風をroute-time gridへ変換しました。
+\item
+  GHIからパネル面へのPOAへ変換する経路を追加しました。
+\item
+  実測PVから逆算したeffective
+  irradianceは同定診断専用とし、将来方策の性能評価には使用禁止としました。
+\item
+  通常の日射列へ物理上限を設け、補正前の有効値は別列として保存しました。
+\item
+  \texttt{check\_policy\_weather\_input.py}を追加し、ファイル名だけでなく全行のsource、product
+  role、時刻意味を検査し、PV由来の循環天候をGPU探索・厳密受入へ入れられないようにしました。
+\end{itemize}
+
+\textbf{利用者への効果}
+
+「車両の発電実績で補正した晴天」を同じ車両の最適化に再利用して、性能を楽観的に見せる循環評価を防げます。Day
+5/6の600から700
+W/m2は日平均ではなく瞬時上位値であり、日平均はそれぞれ約433、417
+W/m2として区別されます。
+
+\subsubsection{Phase 10:
+大会全行程・公式規則をモデルへ統合}\label{phase-10-ux5927ux4f1aux5168ux884cux7a0bux516cux5f0fux898fux5247ux3092ux30e2ux30c7ux30ebux3078ux7d71ux5408}
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  リタイア地点2831 kmで計算を打ち切る方式をやめ、BWSC 2025の全3026.9
+  kmを最適化対象にしました。
+\item
+  公式programに基づく9か所のcontrol
+  stop、各30分、opening/closing時刻を入力しました。
+\item
+  Adelaideの最終締切を2025-08-29 17:30 local、すなわち08:00
+  UTCとして絶対制約にしました。
+\item
+  早着時はopeningまで待機、closing後到着またはfinish
+  deadline超過は非可行としました。
+\item
+  no-trouble実験では公式停車だけを残し、実走行時の故障停車と2831
+  kmの車体破損を除外しました。
+\item
+  停車中・夜間は走行用補機を0
+  Wとし、朝夕の静止充電とパネル傾斜条件を別に扱いました。
+\end{itemize}
+
+\textbf{利用者への効果}
+
+「実ログを再現するシミュレーション」と「故障がなかった場合の反実仮想MPC」を混同せず比較できます。完走判定は距離だけでなく、全control
+stopと最終締切を含みます。
+
+\subsubsection{Phase 11:
+階層MPCと実運用向け平滑化}\label{phase-11-ux968eux5c64mpcux3068ux5b9fux904bux7528ux5411ux3051ux5e73ux6ed1ux5316}
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  上位plannerを大会残距離のdistance-domain
+  MPCとして整理し、速度、時間、SoC、電池温度を予測するようにしました。
+\item
+  下位plannerを1
+  Hzで動かし、上位速度参照への追従と指令変化を同時に最小化するようにしました。
+\item
+  指令には加減速率、slew、deadband、measurement timeout、low-pass
+  filterを追加しました。
+\item
+  上位目的関数を待ち時間、走行時間、終端/日末SoC、速度平滑性、電流二乗、Joule損、空力/機械エネルギー、電力slew、温度、制約barrierへ分解しました。
+\item
+  \texttt{upper\_policy.py}を追加し、offline学習済み方策はlive
+  MPCを固定するのではなく、初回のwarm
+  startとして利用するようにしました。以後は最新の計測と予報でreceding-horizon再計画します。
+\end{itemize}
+
+\textbf{利用者への効果}
+
+ノイズで速度指令が上下する問題を抑えつつ、予報やSoCが変わった場合は計画を更新できます。認証用の固定方策と本番用の再計画MPCを別profileに分離しました。
+
+\subsubsection{Phase 12:
+自己学習とGPU多段方策探索}\label{phase-12-ux81eaux5df1ux5b66ux7fd2ux3068gpuux591aux6bb5ux65b9ux7b56ux63a2ux7d22}
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{tune\_upper\_planner\_weights.py}で、人間の速度計画を正解として模倣せず、完走時間、制約、終端エネルギーから目的関数重みをCEMで探索できるようにしました。
+\item
+  TensorBoardへ世代、候補分布、best
+  score、制約を保存するようにしました。
+\item
+  \texttt{gpu\_upper\_policy\_search.py}で、距離ごとの速度方策をCUDA上で一括評価できるようにしました。
+\item
+  全3026.9 kmを、粗探索5 km積分/25 km制御、fine 1 km/5 km、ultra 0.1
+  km/5 km、さらに2 kmと1 km制御へ段階的に細分化しました。
+\item
+  制御変数の次元は123、607、1515、3028へ増えます。物理積分は最終的に約30,269個の100
+  m遷移を持ちます。
+\item
+  4独立seed、8400世代、合計32,993,280候補をSlurm dependency
+  chainで処理し、checkpointとprofile SHAを各段に固定しました。
+\item
+  100 m段の過大populationを実測所要時間に基づいて256へ修正し、24時間job
+  limit内で完走可能な構成にしました。
+\end{itemize}
+
+\textbf{利用者への効果}
+
+旧4点速度計画では表現できなかった地点別速度差を、道路・天候・control
+stopに合わせて探索できます。GPU探索はMPCの代替ではなく、live
+MPCの高品質な初期解を作る役割です。
+
+\subsubsection{Phase 13: 厳密1 Hz受入とmesh
+convergence}\label{phase-13-ux53b3ux5bc61-hzux53d7ux5165ux3068mesh-convergence}
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  GPU
+  surrogateの結果をそのまま採用せず、\texttt{solar\_sim.py}で固定方策を100
+  m予測・1 Hz実行として再生する受入段を追加しました。
+\item
+  固定方策評価が同じ30,269区間を2回計算していた冗長処理を1回へ削減しました。
+\item
+  5 km、2 km、1
+  km制御方策を別々に最適化し、同じ方策を補間しただけの偽のmesh比較を禁止しました。
+\item
+  3格子 x 4 seedを最大12
+  CPUで並列評価し、各seedの結果を独立保存した後、最速の可行候補だけをmergeするようにしました。
+\item
+  時間差、終端SoC差、速度RMS、prediction/execution
+  SoC差に受入閾値を設けました。
+\item
+  数値方策合格を\texttt{POLICY\_ACCEPTANCE\_COMPLETE}、車両modelも含む本番昇格を\texttt{ACCEPTANCE\_COMPLETE}として分離しました。
+\end{itemize}
+
+\textbf{利用者への効果}
+
+CUDA上の近似計算が速いだけでは本番採用されません。離散化を細かくしても結果が変わらず、1秒刻みで電圧・電流・SoC・時刻制約を守ることを確認して初めて方策を採用できます。
+
+\subsubsection{Phase 14:
+出力CSV・追跡可能性・安全gate}\label{phase-14-ux51faux529bcsvux8ffdux8de1ux53efux80fdux6027ux5b89ux5168gate}
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  summary CSV、detail CSV、upper plan、1 Hz lower command、HTML
+  report、manifest JSONをrunごとに保存するようにしました。
+\item
+  detail
+  CSVへGHI/DNI/DHI/POA、panel/MPPT効率、PV電力、走行/回生/補機電力、OCV、Rint、電圧、電流、SoC、温度、勾配、風、速度制限、計画/実行速度を追加しました。
+\item
+  \texttt{step\_dt}が600秒から端数へ変化する理由を、区間末端、stop境界、日末、control
+  stop境界へ正確に合わせる可変最終stepとして明示しました。
+\item
+  model validation、weather independence、surrogate feasibility、exact
+  replay、mesh convergenceを別gateにしました。
+\item
+  profile、map、入力CSV、出力成果物へSHA-256とmanifestを付け、異なる世代を混ぜないようにしました。
+\end{itemize}
+
+\textbf{利用者への効果}
+
+結果の数字だけでなく、「どの入力とmodelで、各秒に何W発電し、何W使い、なぜそのSoCになったか」を後から追跡できます。
+
+\subsubsection{Phase 15:
+教材・運用資料・配布パッケージ}\label{phase-15-ux6559ux6750ux904bux7528ux8cc7ux6599ux914dux5e03ux30d1ux30c3ux30b1ux30fcux30b8}
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  READMEを、入口、各mode、入力、保存先、内部処理、model世代、安全gateまで含む体系へ拡張しました。
+\item
+  オールインワン解説書、導入運用書、全フローワークブック、MLE手計算ワークブックをTeX/PDFで作成しました。
+\item
+  問題編、解答用紙、完全解答を分離し、map補間、車両抵抗、PV、電池IV、上位CEM/L-BFGS-B、下位MPC、UDP、MLE、保存先を手計算できるようにしました。
+\item
+  PDFは文字重なり、切れ、空白ページ、未解決参照を修正し、主要ページの画像確認用成果物を保存しました。
+\item
+  \texttt{create\_solarcar\_only\_package.py}でPASSO、磁力、build/install/log、旧MLE世代を除いたソーラーカー専用配布物を生成できるようにしました。
+\item
+  \texttt{create\_solarcar\_blank\_package.py}で、同じ機能と資料を保ちながら車両・大会データだけを空にした新車両用templateを生成できるようにしました。
+\end{itemize}
+
+\textbf{利用者への効果}
+
+研究者本人以外のチームメンバーが、GitHub
+ZIPの取得から、Windows/Ubuntu設定、実測、同定、sim、live、マイコン通信、障害復旧まで学べる形になりました。
+
+\subsubsection{Phase 16:
+磁気カプラ研究を別系統として高度化}\label{phase-16-ux78c1ux6c17ux30abux30d7ux30e9ux7814ux7a76ux3092ux5225ux7cfbux7d71ux3068ux3057ux3066ux9ad8ux5ea6ux5316}
+
+この変更はソーラーカーEMSの本番配布には含めませんが、root
+repository内の別研究系統として実施されました。
+
+\textbf{変更内容}
+
+\begin{itemize}
+\tightlist
+\item
+  単純磁場表示から、円柱磁石、固定高さ自由配列、有限変位復元力、yaw復元、clearance、package、site
+  spacingを扱う高忠実度モデルへ拡張しました。
+\item
+  GPU dipole screening、有限モデル再評価、Fourier topology、adaptive
+  random、CEMを段階分離しました。
+\item
+  正定値剛性、並進復元、yaw復元、負復元なし、clearance、package、線形性、直交漏れ、条件数、中心釣合いなど16
+  gateを設けました。
+\item
+  surrogate合格後に円柱磁石のexact
+  static評価を行い、gate通過候補だけをSTEPへ出力する構成にしました。
+\item
+  \texttt{reevaluate\_fourier\_gpu\_candidates.py}の\texttt{inner\_support\_points\_mm}は、exact評価で最小内側支持半径を計算するための正式な設計保存値です。
+\end{itemize}
+
+\textbf{分離理由}
+
+磁気カプラは車両EMSのROS
+runtimeに不要です。root研究repositoryでは保持しますが、solar-only
+releaseでは削除し、運用者が誤って起動しないようにしています。
+
+\subsection{4.
+現在、結局何をしているのか}\label{4-ux73feux5728ux7d50ux5c40ux4f55ux3092ux3057ux3066ux3044ux308bux306eux304b}
+
+2026-07-18時点で行っているのは、\textbf{MLE35研究候補modelを使った、故障なしBWSC
+2025全3026.9 km方策のGPU多段探索}です。
+
+処理順は次のとおりです。
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  25 kmごと123変数の粗い速度方策を、5 km物理積分で1800世代探索する。
+\item
+  5 kmごと607変数へ増やし、1 km物理積分で200世代改善する。
+\item
+  同じ607変数を100 m物理積分で60世代再調整する。
+\item
+  制御間隔を2 km、次に1 kmへ細かくし、それぞれ20世代調整する。
+\item
+  4つの独立seedが全部終わったら、最良候補を統合する。
+\item
+  GPU近似とは別の\texttt{solar\_sim.py}で、100 m予測と1 Hz実行のfull
+  simulationを行う。
+\item
+  5/2/1 km方策のmesh convergence、公式時刻、電流、電圧、SoCを判定する。
+\item
+  方策gateと車両model
+  gateの両方を通った場合だけlive用profileへ昇格する。
+\end{enumerate}
+
+\subsubsection{2026-07-18 18:52
+JSTの状態}\label{2026-07-18-1852-jstux306eux72b6ux614b}
+
+\begin{itemize}
+\tightlist
+\item
+  seed 0: coarse、fine、100 m、2 km control、1 km controlを完了。
+\item
+  seed 1: coarseとfineを完了し、100 m段を実行中。
+\item
+  seed 2、seed 3: GPU割当待ち。
+\item
+  campaign finalizer: 4 seed完了待ち。
+\item
+  exact 1 Hz acceptance: campaign finalizer待ち。
+\item
+  エラー: なし。GPU使用枠が1枚のため直列進行。
+\end{itemize}
+
+seed 0の暫定値は、1 km
+control方策で約125.4452時間、終端SoC約10.549\%、公式時刻違反0秒です。ただし、これはGPU
+surrogate値であり、厳密1 Hz合格値ではありません。
+
+\subsection{5.
+完了済みと未完了の境界}\label{5-ux5b8cux4e86ux6e08ux307fux3068ux672aux5b8cux4e86ux306eux5883ux754c}
+
+\subsubsection{完了済み}\label{ux5b8cux4e86ux6e08ux307f}
+
+\begin{itemize}
+\tightlist
+\item
+  ROS 2のsim、measure、live、live WiFi入口。
+\item
+  profile YAMLによる入力・出力管理。
+\item
+  WiFi文字列protocol、filter、timeout、安全指令bridge。
+\item
+  Open-Meteo取得、風補正、online bounded calibration。
+\item
+  logger、preflight、one-screen dashboard、Grafana。
+\item
+  汎用CSV同定、map生成、候補profile、報告書生成。
+\item
+  BWSC 2025全3026.9 km、9 control stops、finish deadlineのモデル化。
+\item
+  MLE35研究候補と独立model gate。
+\item
+  GPU多段探索、checkpoint、weather gate、exact acceptance
+  pipelineの実装。
+\item
+  solar-only releaseとblank releaseの生成器。
+\item
+  README、運用書、ワークブック群。
+\end{itemize}
+
+\subsubsection{未完了}\label{ux672aux5b8cux4e86}
+
+\begin{itemize}
+\tightlist
+\item
+  現在の4-seed GPU campaignの全完走。
+\item
+  その結果に対する100 m/1 Hz厳密full simulation。
+\item
+  mesh convergence後の最終方策PDF。
+\item
+  MLE35の本番canonical profileへの昇格。
+\item
+  終端SoC証拠幅19.64 pointsを縮める新しい独立実測データの取得。
+\end{itemize}
+
+\subsection{6.
+現在の品質をどう解釈するか}\label{6-ux73feux5728ux306eux54c1ux8ceaux3092ux3069ux3046ux89e3ux91c8ux3059ux308bux304b}
+
+現在のplanner探索が長時間かかっている理由は、単に「数千世代だから」だけではありません。1候補の中で、全3026.9
+km、日跨ぎ、9停車、天候、map、電池IV、温度を順番に計算するためです。さらに4
+seedと複数meshを使い、偶然良かった1回を採用しない設計にしています。
+
+一方、世代数を増やしても実測データの不足は解消しません。plannerの最適化誤差とvehicle
+modelの同定誤差を分離するため、次の3段階を守ります。
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  GPUで良い方策候補を探す。
+\item
+  exact 1 Hz replayで数値方策を検証する。
+\item
+  独立ログでvehicle modelを検証する。
+\end{enumerate}
+
+第2段まで通っても第3段が落ちた場合、その方策は研究用であり、本番採用しません。
+
+\subsection{7.
+GitHubへ掲載するときの短い要約例}\label{7-githubux3078ux63b2ux8f09ux3059ux308bux3068ux304dux306eux77edux3044ux8981ux7d04ux4f8b}
+
+\begin{quote}
+YATAソーラーカーEMSを、試作ROS
+2ノード群から、車両同定・大会全体MPC・ライブWiFi運用・記録・Grafana表示・独立検証・配布まで一貫したprofile駆動パッケージへ再構成しました。BWSC
+2025の全3026.9 km、公式9 control stops、最終締切、夜間補機0
+Wを実装し、実ログと独立気象から物理mapを再同定しました。上位方策は4
+seed、8400世代、約3300万候補のmulti-fidelity CUDA探索を行い、100
+m予測・1 Hz full replay・mesh convergence・vehicle-model
+gateを通った結果だけをlive MPCのwarm
+startへ昇格します。PASSO/磁力/旧成果物を除いたsolar-only
+releaseと、データ空のbase
+template、初心者向け運用書・手計算教材も追加しました。
+\end{quote}
+
+\subsection{8.
+重要な成果物}\label{8-ux91cdux8981ux306aux6210ux679cux7269}
+
+\begin{itemize}
+\tightlist
+\item
+  主要README: \texttt{README.md}
+\item
+  PowerShell入口: \texttt{SolarSim.ps1}
+\item
+  ROSノード: \texttt{mpc\_solarcar/}
+\item
+  simulation launch: \texttt{launch/solarcar\_sim.launch.py}
+\item
+  measurement launch: \texttt{launch/solar\_measurement.launch.py}
+\item
+  live launch: \texttt{launch/solar\_race\_live.launch.py}
+\item
+  live WiFi launch: \texttt{launch/solar\_race\_live\_wifi.launch.py}
+\item
+  本格同定: \texttt{scripts/run\_vehicle\_identification.py}
+\item
+  full simulation: \texttt{scripts/solar\_sim.py}
+\item
+  GPU探索: \texttt{scripts/gpu\_upper\_policy\_search.py}
+\item
+  multi-fidelity投入:
+  \texttt{scripts/submit\_solar\_gpu\_multifidelity\_campaign.sh}
+\item
+  exact受入:
+  \texttt{scripts/run\_solar\_gpu\_acceptance\_pipeline.sbatch}
+\item
+  Grafana: \texttt{grafana/}
+\item
+  現行研究package:
+  \texttt{project\_packages/}下の\texttt{bwsc2025\_fitted\_mle19\_energywindow\_inertia/}
+\item
+  新車両template: \texttt{project\_packages/bwsc2027\_template/}
+\item
+  統合資料: \texttt{docs/solar\_all\_in\_one\_manual/}
+\item
+  全フロー手計算教材: \texttt{docs/complete\_flow\_workbook/}
+\item
+  MLE手計算教材: \texttt{docs/mle\_hand\_calculation\_workbook/}
+\item
+  同定済み版の配布生成:
+  \texttt{scripts/create\_solarcar\_only\_package.py}
+\item
+  空版の配布生成: \texttt{scripts/create\_solarcar\_blank\_package.py}
+\end{itemize}
+
+\subsection{9. 最後に}\label{9-ux6700ux5f8cux306b}
+
+最大の改良は、単にMPCの係数を変えたことではありません。入力データの根拠、物理model、最適化、1
+Hz実行、独立validation、保存先、資料、配布物を一つの追跡可能な流れへつないだことです。
+
+現在のGPU結果が良好でも、それだけで「YATAが必ず完走する」「連続問題の大域最適解が証明された」「vehicle
+modelが高精度」とは扱いません。定義した有限候補集合での探索、mesh
+convergence、exact replay、独立model
+gateを順に通し、合格範囲を明示して初めて運用へ移します。
+
+\end{document}

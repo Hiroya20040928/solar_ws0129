@@ -1,0 +1,224 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={sim ROS2 launch 入口},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{05. sim ROS2 launch 入口}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|launch/solarcar_sim.launch.py| \\
+        種別 & ROS 2 launch Python \\
+        区分 & launch \\
+        役割 & GPS 模擬、車体状態模擬、MPC、dashboard を立ち上げる simulation launch。 \\
+        起動文脈 & sim モード起動時に ros2 launch される。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        GPS 模擬、車体状態模擬、MPC、dashboard を立ち上げる simulation launch。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item route/forecast/maps の存在確認を先に行う。
+\item sim 用の common\_mpc パラメータ束を構成する。
+\item planner speed が GPS/state 側へ戻る閉ループを作る。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/solar_control.sh|
+\item \path|SolarSim.ps1|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/gps_sim_node.py|
+\item \path|mpc_solarcar/solar_state_node.py|
+\item \path|mpc_solarcar/mpc_node.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_profile.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+"s0_km": float(sim_cfg.get("start_s_km", 0.0)),
+    }
+
+    return [
+        Node(
+            package="mpc_solarcar",
+            executable="gps_sim_node",
+            name="gps_sim_node",
+            parameters=[
+                {
+                    "route_csv": route_waypoints_csv,
+                    "dt": float(sim_cfg.get("gps_rate_hz", 1.0)),
+                    "init_speed_kmh": float(sim_cfg.get("gps_init_speed_kmh", sim_cfg.get("v0_kmh", 45.0))),
+                }
+            ],
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要関数は generate\_launch\_description。 launch から起動する Node action は 4 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            17 & function & \path|_cfg_path| & args: profile\_path, raw \\
+21 & function & \path|_setup| & args: context \\
+146 & function & \path|generate_launch_description| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            17 & 関数 \_cfg\_path を定義する。 \\
+21 & 関数 \_setup を定義する。 \\
+146 & 関数 generate\_launch\_description を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|from launch import LaunchDescription| & launch が実行すべき action 群をまとめるため。 このファイル内での主な使用位置は L147。 \\
+4 & \path|from launch.actions import DeclareLaunchArgument, OpaqueFunction| & DeclareLaunchArgument や OpaqueFunction など launch action を使うため。 このファイル内での主な使用位置は L149, L150。 \\
+5 & \path|from launch.substitutions import LaunchConfiguration| & launch 引数の実行時値を参照するため。 このファイル内での主な使用位置は L22。 \\
+6 & \path|from launch_ros.actions import Node| & ROS 2 ノード起動 action を launch から記述するため。 このファイル内での主な使用位置は L83, L95, L126, L132。 \\
+8 & \path|from mpc_solarcar.solar_profile import get_path, get_section, load_profile, require_csv_data_rows, resolve_relative_path| & profile YAML 読込と検証 から get\_path, get\_section, load\_profile, require\_csv\_data\_rows, resolve\_relative\_path を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_profile.py。 このファイル内での主な使用位置は L18, L23, L24, L25, L27, L28, L29, L30, ...。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L17 関数 \path|_cfg_path|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|_cfg_path(profile_path, raw)|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: resolve\_relative\_path, str, strip
+  \item 戻り値の要点: resolve\_relative\_path(profile\_path.parent, raw) if str(raw or '').strip() else ''
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item resolve\_relative\_path(profile\_path.parent, raw) if str(raw or '').strip() else '' を返す。
+\end{enumerate}
+
+\subsection*{L21 関数 \path|_setup|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_setup(context)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: LaunchConfiguration, Node, float, get, get\_path, get\_section, int, items, load\_profile, perform, require\_csv\_data\_rows, str
+              \item 戻り値の要点: [Node(package='mpc\_solarcar', executable='gps\_sim\_node', name='gps\_sim\_node', parameters=[\{'route\_csv': route\_waypoints\_csv, 'dt': float(sim\_cfg.get('gps\_rate\_hz', 1.0)), 'init\_speed\_kmh': float(sim\_cfg.get('gps\_init\_speed\_kmh', sim\_cfg.get('v0\_kmh', 45.0)))\}]), Node(package='mpc\_solarcar', executable='solar\_state\_node', name='solar\_state\_node', parameters=[\{'profile\_yaml': str(profile\_path), 'forecast\_csv': forecast\_csv, 'route\_profile\_csv': route\_profile\_csv, 'params\_yaml': str(profile\_path), 'publish\_rate\_hz': float(sim\_cfg.get('gps\_rate\_hz', 1.0)), 'init\_speed\_kmh': float(sim\_cfg.get('v0\_kmh', sim\_cfg.get('gps\_init\_speed\_kmh', 45.0))), 'soc0': float(sim\_cfg.get('soc0', 0.95)), 'Tb0': float(sim\_cfg.get('Tb0', 30.0)), 's0\_km': float(sim\_cfg.get('start\_s\_km', 0.0)), 'forecast\_time\_mode': str(sim\_cfg.get('forecast\_time\_mode', runtime\_cfg.get('forecast\_time\_mode', 'auto'))), 'forecast\_time\_tz': str(runtime\_cfg.get('forecast\_time\_tz', 'Australia/Darwin')), 'forecast\_start\_time\_utc': str(sim\_cfg.get('forecast\_start\_time\_utc', sim\_cfg.get('start\_utc', ''))), 'drive\_eff\_map': common\_mpc['drive\_eff\_map'], 'regen\_eff\_map': common\_mpc['regen\_eff\_map'], 'rint\_map': common\_mpc['rint\_map'], 'panel\_eff\_map': common\_mpc['panel\_eff\_map'], 'mppt\_eff\_map': common\_mpc['mppt\_eff\_map'], 'drive\_map\_eco': common\_mpc['drive\_map\_eco'], 'drive\_map\_power': common\_mpc['drive\_map\_power'], 'regen\_map\_eco': common\_mpc['regen\_map\_eco'], 'regen\_map\_power': common\_mpc['regen\_map\_power'], 'ocv\_soc\_map': common\_mpc['ocv\_soc\_map']\}]), Node(package='mpc\_solarcar', executable='mpc\_node', name='mpc\_node', parameters=[common\_mpc]), Node(package='mpc\_solarcar', executable='dashboard\_node', name='dashboard\_node', parameters=[\{'host': str(runtime\_cfg.get('dashboard\_host', '0.0.0.0')), 'port': int(runtime\_cfg.get('dashboard\_port', 8080))\}])]
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item profile\_yaml に LaunchConfiguration('profile\_yaml').perform(context) の結果を代入する。
+\item (profile\_path, cfg) に load\_profile(profile\_yaml) の結果を代入する。
+\item runtime\_cfg に get\_section(cfg, 'runtime') の結果を代入する。
+\item sim\_cfg に get\_section(cfg, 'simulation') の結果を代入する。
+\item forecast\_csv に get\_path(cfg, profile\_path, 'forecast\_csv') の結果を代入する。
+\item route\_waypoints\_csv に get\_path(cfg, profile\_path, 'route\_waypoints\_csv') の結果を代入する。
+\item route\_profile\_csv に get\_path(cfg, profile\_path, 'route\_profile\_csv') の結果を代入する。
+\item speed\_profile\_csv に get\_path(cfg, profile\_path, 'speed\_profile\_csv') の結果を代入する。
+\item stop\_yaml に get\_path(cfg, profile\_path, 'stop\_yaml') の結果を代入する。
+\item drive\_schedule\_yaml に get\_path(cfg, profile\_path, 'drive\_schedule\_yaml') の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L146 関数 \path|generate_launch_description|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|generate_launch_description()|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: DeclareLaunchArgument, LaunchDescription, OpaqueFunction
+  \item 戻り値の要点: LaunchDescription([DeclareLaunchArgument('profile\_yaml', default\_value='config/solar/bwsc\_2027\_demo.yaml'), OpaqueFunction(function=\_setup)])
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item LaunchDescription([DeclareLaunchArgument('profile\_yaml', default\_value='config/solar/bwsc\_2027\_demo.yaml'), OpaqueFunction(function=\_setup)]) を返す。
+\end{enumerate}
+
+
+
+
+
+        \subsection*{launch から起動するノード}
+            \begin{longtable}{p{0.07\linewidth} p{0.30\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & executable & package / name \\
+            \midrule
+            83 & \path|gps_sim_node| & package=mpc\_solarcar, name=gps\_sim\_node \\
+95 & \path|solar_state_node| & package=mpc\_solarcar, name=solar\_state\_node \\
+126 & \path|mpc_node| & package=mpc\_solarcar, name=mpc\_node \\
+132 & \path|dashboard_node| & package=mpc\_solarcar, name=dashboard\_node \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item launch 引数を受け取り、profile を読み込む。
+\item Node action を動的に組み立てる。
+\item LaunchDescription として ROS 2 launch へ返す。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|launch/solarcar_sim.launch.py| を
+        \textbf{launch}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

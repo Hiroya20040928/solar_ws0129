@@ -1,0 +1,2 @@
+time_utc,speed_kmh,batt_voltage_v,batt_current_a,slope_pct,G_poa,Tamb_C,Tcell_C,headwind_ms,soc,batt_temp_c,accel_kmhps,throttle_pct
+2027-08-22T08:00:00Z,65.0,96.4,18.2,0.15,820.0,31.0,46.0,-1.2,0.92,33.5,0.0,24.0

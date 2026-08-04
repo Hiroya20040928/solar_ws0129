@@ -1,0 +1,907 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={上位探索ソルバ},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{17. 上位探索ソルバ}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/upper_solver.py| \\
+        ソースSHA-256 & \path|0ea0437c48c25f839a8edbfffe74f8d613a11451728eb7751db21756dd76be2a| \\
+        種別 & Python \\
+        区分 & planner helper \\
+        役割 & bounded global candidate search、CEM、SHGO、L-BFGS-B を束ねて upper policy を最適化する。 \\
+        起動文脈 & upper planner の数値最適化 backend。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        bounded global candidate search、CEM、SHGO、L-BFGS-B を束ねて upper policy を最適化する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item hybrid\_bounded\_minimize が中心。
+\item global 探索と local refine の接着層である。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_node.py|
+\item \path|scripts/solar_sim.py|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 特記事項なし。
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+_FORK_COST_FN: Callable[[np.ndarray], float] | None = None
+
+
+def _fork_finite_cost(vec: np.ndarray) -> float:
+    if _FORK_COST_FN is None:
+        return float("inf")
+    return finite_cost(_FORK_COST_FN, vec)
+
+
+def clip_to_bounds(vec: np.ndarray, bounds: Bounds) -> np.ndarray:
+    out = np.asarray(vec, dtype=float).copy()
+    for idx, (lo, hi) in enumerate(bounds):
+        out[idx] = float(np.clip(out[idx], lo, hi))
+    return out
+
+
+def finite_cost(cost_fn: Callable[[np.ndarray], float], vec: np.ndarray) -> float:
+    try:
+        value = float(cost_fn(np.asarray(vec, dtype=float)))
+    except Exception:
+        return float("inf")
+    if not np.isfinite(value):
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要関数は clip\_to\_bounds, finite\_cost, default\_seed\_library, hybrid\_bounded\_minimize, add\_candidate, local\_refine\_rows, emit\_progress, record\_grid\_candidate。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            19 & function & \path|_fork_finite_cost| & args: vec \\
+25 & function & \path|clip_to_bounds| & args: vec, bounds \\
+32 & function & \path|finite_cost| & args: cost\_fn, vec \\
+42 & function & \path|default_seed_library| & args: x0, bounds \\
+57 & function & \path|hybrid_bounded_minimize| & args: cost\_fn, x0, bounds \\
+91 & function & \path|add_candidate| & args: label, vec \\
+143 & function & \path|local_refine_rows| & args: pool \\
+201 & function & \path|emit_progress| & args: payload \\
+225 & function & \path|record_grid_candidate| & args: idx, candidate\_x, candidate\_fun \\
+369 & function & \path|should_run_cem_from_seed_consensus| & args: rows \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            13 & Bounds に Sequence[Tuple[float, float]] の結果を代入する。 \\
+16 & \_FORK\_COST\_FN に None を代入する。 \\
+19 & 関数 \_fork\_finite\_cost を定義する。 \\
+25 & 関数 clip\_to\_bounds を定義する。 \\
+32 & 関数 finite\_cost を定義する。 \\
+42 & 関数 default\_seed\_library を定義する。 \\
+57 & 関数 hybrid\_bounded\_minimize を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor| & concurrent.futures から ProcessPoolExecutor, ThreadPoolExecutor を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L273, L280。 \\
+4 & \path|from itertools import product| & itertools から product を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L260。 \\
+5 & \path|import multiprocessing as mp| & multiprocessing モジュールを利用するため。 このファイル内での主な使用位置は L275。 \\
+6 & \path|import os| & パス、環境変数、プロセス外部状態を扱うため。 このファイル内での主な使用位置は L270。 \\
+7 & \path|from typing import Callable, Iterable, List, Sequence, Tuple| & typing から Callable, Iterable, List, Sequence, Tuple を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L13, L16, L32, L42, L47, L58, L63, L75, ...。 \\
+9 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L16, L19, L25, L26, L28, L32, L34, L37, ...。 \\
+10 & \path|from scipy.optimize import minimize, shgo| & scipy.optimize から minimize, shgo を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L148, L311。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{list、dict、deque、NumPy配列、pandas DataFrame}
+listは順序付き可変列、tupleは順序付きで通常変更しない列、dictはキーから値を引く対応表、dequeは両端追加・削除が効率的なキューである。どの構造を選ぶかはアクセス方法と更新方法で決まる。
+
+
+NumPy配列は同種数値を連続的に扱い、要素ごとの演算、clip、補間、線形代数を簡潔に書く。shapeは各次元の要素数であり、速度系列なら通常`(N,)`、候補集団なら`(population, N)`となる。
+
+
+pandas DataFrameは列名を持つ表である。CSV読込後は列型、欠損、単位、timezone、並び順、重複を明示的に処理しなければ、数値計算が動いても意味が誤る。
+
+
+
+\subsection{目的関数、制約、L-BFGS-B、SHGO、有限grid証明}
+数値最適化器は、利用者が与えた目的関数を複数の候補点で評価し、より小さい値を持つ候補を探す。solverが物理を理解するのではなく、物理と運用価値はcost関数へ書かれる。
+
+
+L-BFGS-Bは変数ごとの上下限を扱える局所最適化法である。初期値の近くの谷へ収束し得るため、非凸問題では複数seedや大域探索と組み合わせる。successがFalseでも有限な候補が返る場合があるため、採用条件をコード側で決める。
+
+
+SHGOは定めたsamplingと局所最適化を組み合わせる大域最適化法である。有限Cartesian gridの全列挙は、そのgrid上の最良を証明できるが、連続領域全体の最良を自動的に証明しない。資料ではこの証明範囲を区別する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.shgo.html}{SciPy公式: scipy.optimize.shgo}
+\end{itemize}
+
+\subsection{Cross-Entropy Methodを式と実装で理解する}
+CEMは候補を生成する確率分布を持ち、良かったelite候補から分布を更新する反復的な確率最適化である。このリポジトリのupper\_solver.pyは各制御点速度を独立正規分布で生成し、上下限へclipする。
+
+
+\[
+u_i^{(j)} \sim \mathcal{N}(\mu_i^{(g)},(\sigma_i^{(g)})^2),\qquad u_i^{(j)}\leftarrow\operatorname{clip}(u_i^{(j)},l_i,h_i)
+\]
+
+\[
+\mu_i^{(g+1)}=\frac{1}{K}\sum_{j\in\mathcal{E}_g}u_i^{(j)},\qquad \sigma_i^{(g+1)}=\max\left(\operatorname{Std}_{j\in\mathcal{E}_g}u_i^{(j)},0.05(h_i-l_i)\right)
+\]
+
+ここでE\_gはcostが小さい上位K候補である。平均は良い領域へ移り、標準偏差は探索幅を表す。標準偏差の下限は探索が完全に潰れることを避ける。
+
+
+現行hybrid\_bounded\_minimizeは、deterministic seedを評価し、上位候補をL-BFGS-Bで局所refineし、設定とseed間不一致に応じてCEMを実行し、最後に再度局所refineする。したがってCEM単独ではなくhybrid solverである。
+
+
+CEMで落とした候補を永久保存しないこと自体は通常の最適化として自然だが、off-nominal状態からの再利用には別のpolicy library設計が必要である。状態を無制限に全組合せ保存する代わりに、SoC、進捗、時刻、予報誤差、停止状態などのscenarioを設計し、近傍policyを検索してMPCで再最適化する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://link.springer.com/book/10.1007/978-1-4757-4321-0}{Rubinstein and Kroese: The Cross-Entropy Method}
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+\subsection{warm startは何を保存し、どう効くか}
+warm startは前回またはoffline探索で得た入力系列を、次の最適化の初期候補として渡すことである。答えを固定するのではなく、探索開始点と候補libraryの一員を与える。
+
+
+\[
+u^{0,\mathrm{new}}_i=\operatorname{interp}\left(s_i^{\mathrm{new}};\,s_j^{\mathrm{old}},u_j^{\ast,\mathrm{old}}\right)
+\]
+
+距離基準計画では、現在より後ろの旧制御点を捨て、新しい絶対距離制御点へ補間してshiftする。初期状態や天候が変わればcost評価は新条件で行われるので、warm startが不適切でも他seed、CEM、安全fallbackが補う設計が必要である。
+
+
+warm startの効き方は、局所法なら収束先と反復数、CEMなら初期meanまたは候補pool、receding horizonなら前回解の時間・距離shiftとして現れる。どの位置に渡しているかを呼出引数まで追う。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\item \href{https://link.springer.com/book/10.1007/978-1-4757-4321-0}{Rubinstein and Kroese: The Cross-Entropy Method}
+\end{itemize}
+
+\subsection{freshness、filter、guard、fallback、fail-safe}
+分散システムでは最後に受け取った値が現在も有効とは限らない。受信時刻とtimeoutからfreshnessを判定し、stale値を計画状態へ無条件に同期しない。
+
+
+filterはnoiseと一時的な飛び値を抑えるが、遅れを生む。slew limitは指令変化率を制限する。安全guardはsolverのcost罰則とは別に、現在出力へ強制制約を適用する最後の防波堤である。
+
+
+fallbackは失敗時の代替動作を事前に決める設計である。前回計画保持、物理に基づく決定論的入力、停止、低速制限などから、故障modeごとに選ぶ。fallback発生はstatusとlogへ残し、正常解と区別する。
+
+
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+\subsection{単体試験、SILS、replay、観測可能性}
+単体試験は関数やモデル項の局所契約、SILSは複数Nodeと時間進行を含む閉ループ、historical replayは実測入力への再現性、本番preflightは実機通信と停止動作を確認する。目的が異なるため一つで代用しない。
+
+
+再現可能な診断には、入力、出力、内部状態、solver成否、候補数、計算時間、fallback、source revision、profile hashを同じrun IDで記録する。
+
+
+非同期不具合は最終値だけでは追えない。topic周期、message age、callback所要時間、queue遅延、Node生存、publisher数を同時に観測する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/ros2_packages/humble/api/rqt_graph/index.html}{ROS 2 Humble公式: rqt\_graph}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html}{ROS 2 Humble公式: Recording and playing back data}
+\item \href{https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Executors.html}{ROS 2公式: Executors}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L19 関数 \_fork\_finite\_cost}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L19--L22
+              \item 所属: module直下
+              \item 定義: \path|_fork_finite_cost(vec: np.ndarray) -> float|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: finite\_cost, float
+              \item 戻り値の要点: finite\_cost(\_FORK\_COST\_FN, vec) / float('inf')
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 \_FORK\_COST\_FN is None を判定し、真なら内部処理を行う。
+\item   float('inf') を返す。
+\item finite\_cost(\_FORK\_COST\_FN, vec) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def _fork_finite_cost(vec: np.ndarray) -> float:
+    if _FORK_COST_FN is None:
+        return float("inf")
+    return finite_cost(_FORK_COST_FN, vec)
+\end{lstlisting}
+
+\subsection{L25 関数 clip\_to\_bounds}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L25--L29
+              \item 所属: module直下
+              \item 定義: \path|clip_to_bounds(vec: np.ndarray, bounds: Bounds) -> np.ndarray|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: asarray, clip, copy, enumerate, float
+              \item 戻り値の要点: out
+              \item 主なローカル代入名: hi, idx, lo, out
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item out に np.asarray(vec, dtype=float).copy() の結果を代入する。
+\item enumerate(bounds) を順に走査し、各要素を (idx, (lo, hi)) に入れて処理する。
+\item   out[idx] に float(np.clip(out[idx], lo, hi)) の結果を代入する。
+\item out を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def clip_to_bounds(vec: np.ndarray, bounds: Bounds) -> np.ndarray:
+    out = np.asarray(vec, dtype=float).copy()
+    for idx, (lo, hi) in enumerate(bounds):
+        out[idx] = float(np.clip(out[idx], lo, hi))
+    return out
+\end{lstlisting}
+
+\subsection{L32 関数 finite\_cost}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L32--L39
+              \item 所属: module直下
+              \item 定義: \path|finite_cost(cost_fn: Callable[[np.ndarray], float], vec: np.ndarray) -> float|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: asarray, cost\_fn, float, isfinite
+              \item 戻り値の要点: value / float('inf') / float('inf')
+              \item 主なローカル代入名: value
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 例外処理を伴う try ブロックを実行する。
+\item   value に float(cost\_fn(np.asarray(vec, dtype=float))) の結果を代入する。
+\item   Exceptionを捕捉した場合:
+\item   float('inf') を返す。
+\item 条件 not np.isfinite(value) を判定し、真なら内部処理を行う。
+\item   float('inf') を返す。
+\item value を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def finite_cost(cost_fn: Callable[[np.ndarray], float], vec: np.ndarray) -> float:
+    try:
+        value = float(cost_fn(np.asarray(vec, dtype=float)))
+    except Exception:
+        return float("inf")
+    if not np.isfinite(value):
+        return float("inf")
+    return value
+\end{lstlisting}
+
+\subsection{L42 関数 default\_seed\_library}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L42--L54
+              \item 所属: module直下
+              \item 定義: \path|default_seed_library(x0: np.ndarray, bounds: Bounds) -> List[tuple[str, np.ndarray]]|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, array, asarray, clip\_to\_bounds, float, len, linspace, maximum
+              \item 戻り値の要点: seeds
+              \item 主なローカル代入名: \_, const, frac, hi, hi\_i, lo, lo\_i, seeds, span, x0
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item x0 に np.asarray(x0, dtype=float) の結果を代入する。
+\item lo に np.array([float(lo\_i) for lo\_i, \_ in bounds], dtype=float) の結果を代入する。
+\item hi に np.array([float(hi\_i) for \_, hi\_i in bounds], dtype=float) の結果を代入する。
+\item span に np.maximum(hi - lo, 1e-06) の結果を代入する。
+\item seeds に [('warm\_start', clip\_to\_bounds(x0, bounds))] を代入する。
+\item (0.25, 0.4, 0.55, 0.7, 0.85) を順に走査し、各要素を frac に入れて処理する。
+\item   const に lo + frac * span の結果を代入する。
+\item   seeds.append(...) を実行する。
+\item   seeds.append(...) を実行する。
+\item seeds.append(...) を実行する。
+\item seeds.append(...) を実行する。
+\item seeds を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def default_seed_library(x0: np.ndarray, bounds: Bounds) -> List[tuple[str, np.ndarray]]:
+    x0 = np.asarray(x0, dtype=float)
+    lo = np.array([float(lo_i) for lo_i, _ in bounds], dtype=float)
+    hi = np.array([float(hi_i) for _, hi_i in bounds], dtype=float)
+    span = np.maximum(hi - lo, 1.0e-6)
+    seeds: List[tuple[str, np.ndarray]] = [("warm_start", clip_to_bounds(x0, bounds))]
+    for frac in (0.25, 0.40, 0.55, 0.70, 0.85):
+        const = lo + frac * span
+        seeds.append((f"const_{frac:.2f}", clip_to_bounds(const, bounds)))
+        seeds.append((f"warm_mix_{frac:.2f}", clip_to_bounds(0.5 * x0 + 0.5 * const, bounds)))
+    seeds.append(("ramp_up", clip_to_bounds(np.linspace(lo[0], hi[0], len(x0)), bounds)))
+    seeds.append(("ramp_down", clip_to_bounds(np.linspace(hi[0], lo[0], len(x0)), bounds)))
+    return seeds
+\end{lstlisting}
+
+\subsection{L57 関数 hybrid\_bounded\_minimize}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L57--L473
+              \item 所属: module直下
+              \item 定義: \path!hybrid_bounded_minimize(cost_fn: Callable[[np.ndarray], float], x0: np.ndarray, bounds: Bounds, *, maxiter: int, structured_seeds: Iterable[tuple[str, np.ndarray]] | None = None, cem_enabled: bool = True, cem_mode: str = 'auto', cem_generations: int = 4, cem_population: int = 16, cem_elite: int = 4, local_refine_topk: int = 4, seed_library_mode: str = 'full', rng_seed: int = 0, shgo_samples: int = 256, shgo_iters: int = 2, cert_grid_levels: int = 0, cert_grid_values: Sequence[float] | None = None, cert_max_evaluations: int = 250000, cert_workers: int = 1, progress_callback: Callable[[dict], None] | None = None, cert_progress_interval: int = 25) -> tuple[np.ndarray, dict]!
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ProcessPoolExecutor, ThreadPoolExecutor, abs, add, add\_candidate, all, append, array, asarray, bool, clip, clip\_to\_bounds
+              \item 戻り値の要点: (np.asarray(best['x'], dtype=float), \{'success': bool(best.get('success', True)), 'fun': float(best['fun']), 'label': str(best.get('label', 'best')), 'nit': int(best.get('nit', 0) or 0), 'method': str(best.get('source', 'seed')), 'message': str(best.get('message', '')), 'candidates\_evaluated': int(len(evaluated) + discrete\_grid\_candidates + shgo\_nfev), 'cem\_mode': cem\_mode\_norm, 'cem\_used': cem\_used, 'seed\_consensus\_spread': consensus\_spread, 'shgo\_used': shgo\_used, 'shgo\_nfev': shgo\_nfev, 'shgo\_local\_minima': shgo\_local\_minima, 'discrete\_global\_proof': discrete\_global\_proof, 'discrete\_grid\_levels': discrete\_grid\_levels, 'discrete\_grid\_values': grid\_values.tolist() if grid\_values.size else [], 'discrete\_grid\_candidates': discrete\_grid\_candidates, 'discrete\_grid\_nonfinite': discrete\_grid\_nonfinite, 'discrete\_grid\_best\_fun': discrete\_grid\_best\_fun, 'discrete\_grid\_best\_x': discrete\_grid\_best\_x, 'deterministic\_seed\_candidates': deterministic\_seed\_candidates, 'deterministic\_seed\_nonfinite': deterministic\_seed\_nonfinite, 'finite\_library\_candidates': int(deterministic\_seed\_candidates + discrete\_grid\_candidates), 'seed\_library\_mode': seed\_library\_mode\_norm, 'selected\_x': np.asarray(best['x'], dtype=float).tolist(), 'selected\_no\_worse\_than\_grid': selected\_no\_worse\_than\_grid, 'finite\_library\_global\_proof': finite\_library\_global\_proof, 'continuous\_global\_proof': False, 'certificate\_scope': certificate\_scope\}) / (clip\_to\_bounds(x0, bounds), \{'success': False, 'fun': float('inf'), 'label': 'fallback\_warm\_start', 'nit': 0, 'method': 'fallback', 'candidates\_evaluated': int(len(evaluated)), 'cem\_used': False\}) / refined / (run, spread)
+              \item 主なローカル代入名: \_, \_FORK\_COST\_FN, axes, base\_seeds, best, best\_fun, bounds, candidate\_fun, candidate\_x, cem\_mode\_norm, cem\_used, certificate\_scope, clipped, completed, consensus\_spread, declared\_grid\_values, default\_seeds, deterministic\_seed\_candidates, deterministic\_seed\_nonfinite, discrete\_global\_proof
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 32、ループ 10、try 2
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item lambdaは名前を付けずに短い関数オブジェクトを作る構文である。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+\item with文はcontext managerに開始・終了処理を任せ、ファイルなどの資源を確実に解放する。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item x0 に np.asarray(x0, dtype=float) の結果を代入する。
+\item bounds に list(bounds) の結果を代入する。
+\item lo に np.array([float(lo\_i) for lo\_i, \_ in bounds], dtype=float) の結果を代入する。
+\item hi に np.array([float(hi\_i) for \_, hi\_i in bounds], dtype=float) の結果を代入する。
+\item span に np.maximum(hi - lo, 1e-06) の結果を代入する。
+\item rng に np.random.default\_rng(int(rng\_seed)) の結果を代入する。
+\item evaluated に [] を代入する。
+\item seen に set() を代入する。
+\item 関数 add\_candidate を定義する。
+\item base\_seeds に list(structured\_seeds or []) の結果を代入する。
+\item seed\_library\_mode\_norm に str(seed\_library\_mode or 'full').strip().lower() の結果を代入する。
+\item 条件 seed\_library\_mode\_norm not in \{'full', 'realtime', 'minimal'\} を判定し、真なら内部処理を行う。
+\item   seed\_library\_mode\_norm に 'full' の結果を代入する。
+\item default\_seeds に default\_seed\_library(x0, bounds) の結果を代入する。
+\item 条件 seed\_library\_mode\_norm == 'minimal' を判定し、真なら内部処理を行う。
+\item   default\_seeds に default\_seeds[:1] の結果を代入する。
+\item   上の条件が偽の場合:
+\item   条件 seed\_library\_mode\_norm == 'realtime' を判定し、真なら内部処理を行う。
+\item     nominal に lo + 0.625 * span の結果を代入する。
+\item     default\_seeds に [default\_seeds[0], ('nominal\_cruise', clip\_to\_bounds(nominal, bounds))] の結果を代入する。
+\item default\_seeds を順に走査し、各要素を (label, vec) に入れて処理する。
+\item   add\_candidate(...) を実行する。
+\item base\_seeds を順に走査し、各要素を (label, vec) に入れて処理する。
+\item   add\_candidate(...) を実行する。
+\item finite\_pool に [row for row in evaluated if np.isfinite(row['fun'])] の結果を代入する。
+\item 条件 not finite\_pool を判定し、真なら内部処理を行う。
+\item   (clip\_to\_bounds(x0, bounds), \{'success': False, 'fun': float('inf'), 'label': 'fallback\_warm\_start', 'nit': 0, 'method': 'fallback', 'candidates\_evaluated': int(len(evaluated)), 'cem\_used': False\}) を返す。
+\item finite\_pool.sort(...) を実行する。
+\item best に dict(finite\_pool[0]) の結果を代入する。
+\item 関数 local\_refine\_rows を定義する。
+\item refine\_pool に finite\_pool[:max(1, int(local\_refine\_topk))] の結果を代入する。
+\item refined\_rows に local\_refine\_rows(refine\_pool) の結果を代入する。
+\item refined\_rows を順に走査し、各要素を row に入れて処理する。
+\item   evaluated.append(...) を実行する。
+\item 条件 refined\_rows and float(refined\_rows[0]['fun']) < float(best['fun']) を判定し、真なら内部処理を行う。
+\item   best に dict(refined\_rows[0]) の結果を代入する。
+\item cem\_mode\_norm に str(cem\_mode or 'auto').strip().lower() の結果を代入する。
+\item 条件 cem\_mode\_norm not in \{'always', 'auto', 'never', 'shgo', 'certify'\} を判定し、真なら内部処理を行う。
+\item   cem\_mode\_norm に 'auto' の結果を代入する。
+\item consensus\_spread に float('nan') の結果を代入する。
+\item cem\_used に False の結果を代入する。
+\item shgo\_used に False の結果を代入する。
+\item shgo\_nfev に 0 の結果を代入する。
+\item shgo\_local\_minima に 0 の結果を代入する。
+\item discrete\_global\_proof に False の結果を代入する。
+\item discrete\_grid\_candidates に 0 の結果を代入する。
+\item discrete\_grid\_nonfinite に 0 の結果を代入する。
+\item declared\_grid\_values に np.asarray(list(cert\_grid\_values or []), dtype=float) の結果を代入する。
+\item declared\_grid\_values に declared\_grid\_values[np.isfinite(declared\_grid\_values)] の結果を代入する。
+\item 条件 declared\_grid\_values.size を判定し、真なら内部処理を行う。
+\item   grid\_values に np.unique(np.clip(declared\_grid\_values, lo[0], hi[0])) の結果を代入する。
+\item   discrete\_grid\_levels に int(len(grid\_values)) の結果を代入する。
+\item   上の条件が偽の場合:
+\item   grid\_values に np.asarray([], dtype=float) の結果を代入する。
+\item   discrete\_grid\_levels に max(0, int(cert\_grid\_levels)) の結果を代入する。
+\item deterministic\_seed\_candidates に int(len(evaluated)) の結果を代入する。
+\item deterministic\_seed\_nonfinite に int(sum((not np.isfinite(float(row.get('fun', float('inf')))) for row in evaluated))) の結果を代入する。
+\item discrete\_grid\_best\_fun に float('inf') の結果を代入する。
+\item discrete\_grid\_best\_x に [] を代入する。
+\item 関数 emit\_progress を定義する。
+\item 条件 cem\_mode\_norm == 'certify' and discrete\_grid\_levels >= 2 and (len(x0) > 0) を判定し、真なら内部処理を行う。
+\item   requested に int(discrete\_grid\_levels ** len(x0)) の結果を代入する。
+\item   条件 requested <= max(1, int(cert\_max\_evaluations)) を判定し、真なら内部処理を行う。
+\item     emit\_progress(...) を実行する。
+\item     axes に [grid\_values.copy() if grid\_values.size else np.linspace(lo\_i, hi\_i, discrete\_grid\_levels) for lo\_i, hi\_i in bounds] の結果を代入する。
+\item     grid\_best に None の結果を代入する。
+\item     interval に max(1, int(cert\_progress\_interval)) の結果を代入する。
+\item     workers に max(1, int(cert\_workers)) の結果を代入する。
+\item     executor\_kind に 'serial' の結果を代入する。
+\item     関数 record\_grid\_candidate を定義する。
+\item     grid\_candidates に [(idx, np.asarray(values, dtype=float)) for idx, values in enumerate(product(*axes))] の結果を代入する。
+\item     条件 workers == 1 を判定し、真なら内部処理を行う。
+\item       grid\_candidates を順に走査し、各要素を (idx, candidate\_x) に入れて処理する。
+\item       上の条件が偽の場合:
+\item       条件 os.name == 'posix' を判定し、真なら内部処理を行う。
+\item       with 文で executor\_context を管理しながら処理する。
+\item     条件 grid\_best is not None and np.isfinite(float(grid\_best['fun'])) を判定し、真なら内部処理を行う。
+\item       discrete\_grid\_best\_fun に float(grid\_best['fun']) の結果を代入する。
+\item       discrete\_grid\_best\_x に np.asarray(grid\_best['x'], dtype=float).tolist() の結果を代入する。
+\item       evaluated.append(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def hybrid_bounded_minimize(
+    cost_fn: Callable[[np.ndarray], float],
+    x0: np.ndarray,
+    bounds: Bounds,
+    *,
+    maxiter: int,
+    structured_seeds: Iterable[tuple[str, np.ndarray]] | None = None,
+    cem_enabled: bool = True,
+    cem_mode: str = "auto",
+    cem_generations: int = 4,
+    cem_population: int = 16,
+    cem_elite: int = 4,
+    local_refine_topk: int = 4,
+    seed_library_mode: str = "full",
+    rng_seed: int = 0,
+    shgo_samples: int = 256,
+    shgo_iters: int = 2,
+    cert_grid_levels: int = 0,
+    cert_grid_values: Sequence[float] | None = None,
+    cert_max_evaluations: int = 250_000,
+    cert_workers: int = 1,
+    progress_callback: Callable[[dict], None] | None = None,
+    cert_progress_interval: int = 25,
+) -> tuple[np.ndarray, dict]:
+    x0 = np.asarray(x0, dtype=float)
+    bounds = list(bounds)
+    lo = np.array([float(lo_i) for lo_i, _ in bounds], dtype=float)
+    hi = np.array([float(hi_i) for _, hi_i in bounds], dtype=float)
+    span = np.maximum(hi - lo, 1.0e-6)
+    rng = np.random.default_rng(int(rng_seed))
+
+    evaluated: list[dict] = []
+    seen: set[tuple[float, ...]] = set()
+
+    def add_candidate(label: str, vec: np.ndarray) -> None:
+...
+\end{lstlisting}
+
+\subsection{L91 関数 hybrid\_bounded\_minimize.add\_candidate}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L91--L105
+              \item 所属: \path|hybrid_bounded_minimize|
+              \item 定義: \path|add_candidate(label: str, vec: np.ndarray) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: add, append, clip\_to\_bounds, finite\_cost, round, str, tuple
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: clipped, key, value
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item clipped に clip\_to\_bounds(vec, bounds) の結果を代入する。
+\item key に tuple(np.round(clipped, 6)) の結果を代入する。
+\item 条件 key in seen を判定し、真なら内部処理を行う。
+\item    を返す。
+\item seen.add(...) を実行する。
+\item value に finite\_cost(cost\_fn, clipped) の結果を代入する。
+\item evaluated.append(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def add_candidate(label: str, vec: np.ndarray) -> None:
+        clipped = clip_to_bounds(vec, bounds)
+        key = tuple(np.round(clipped, 6))
+        if key in seen:
+            return
+        seen.add(key)
+        value = finite_cost(cost_fn, clipped)
+        evaluated.append(
+            {
+                "label": str(label),
+                "x": clipped,
+                "fun": value,
+                "source": "seed",
+            }
+        )
+\end{lstlisting}
+
+\subsection{L143 関数 hybrid\_bounded\_minimize.local\_refine\_rows}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L143--L165
+              \item 所属: \path|hybrid_bounded_minimize|
+              \item 定義: \path|local_refine_rows(pool: Sequence[dict]) -> list[dict]|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: all, append, asarray, bool, clip\_to\_bounds, dict, finite\_cost, float, getattr, hasattr, int, isfinite
+              \item 戻り値の要点: refined / refined
+              \item 主なローカル代入名: candidate\_fun, candidate\_x, refined, res, row
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item lambdaは名前を付けずに短い関数オブジェクトを作る構文である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item refined に [] を代入する。
+\item 条件 maxiter <= 0 を判定し、真なら内部処理を行う。
+\item   refined を返す。
+\item pool を順に走査し、各要素を row に入れて処理する。
+\item   res に minimize(cost\_fn, row['x'], method='L-BFGS-B', bounds=bounds, options=dict(maxiter=int(maxiter))) の結果を代入する。
+\item   candidate\_x に row['x'] の結果を代入する。
+\item   条件 hasattr(res, 'x') and res.x is not None and (len(res.x) == len(x0)) and np.all(np.isfinite(res.x)) を判定し、真なら内部処理を行う。
+\item     candidate\_x に clip\_to\_bounds(np.asarray(res.x, dtype=float), bounds) の結果を代入する。
+\item   candidate\_fun に finite\_cost(cost\_fn, candidate\_x) の結果を代入する。
+\item   refined.append(...) を実行する。
+\item refined.sort(...) を実行する。
+\item refined を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def local_refine_rows(pool: Sequence[dict]) -> list[dict]:
+        refined: list[dict] = []
+        if maxiter <= 0:
+            return refined
+        for row in pool:
+            res = minimize(cost_fn, row["x"], method="L-BFGS-B", bounds=bounds, options=dict(maxiter=int(maxiter)))
+            candidate_x = row["x"]
+            if hasattr(res, "x") and res.x is not None and len(res.x) == len(x0) and np.all(np.isfinite(res.x)):
+                candidate_x = clip_to_bounds(np.asarray(res.x, dtype=float), bounds)
+            candidate_fun = finite_cost(cost_fn, candidate_x)
+            refined.append(
+                {
+                    "label": f"local_refine:{row['label']}",
+                    "x": candidate_x,
+                    "fun": candidate_fun,
+                    "source": "local_refine",
+                    "nit": int(getattr(res, "nit", 0) or 0),
+                    "success": bool(getattr(res, "success", False)),
+                    "message": str(getattr(res, "message", "")),
+                }
+            )
+        refined.sort(key=lambda item: float(item["fun"]))
+        return refined
+\end{lstlisting}
+
+\subsection{L201 関数 hybrid\_bounded\_minimize.emit\_progress}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L201--L208
+              \item 所属: \path|hybrid_bounded_minimize|
+              \item 定義: \path|emit_progress(payload: dict) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: dict, progress\_callback
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 progress\_callback is None を判定し、真なら内部処理を行う。
+\item    を返す。
+\item 例外処理を伴う try ブロックを実行する。
+\item   progress\_callback(...) を実行する。
+\item   Exceptionを捕捉した場合:
+\item    を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def emit_progress(payload: dict) -> None:
+        if progress_callback is None:
+            return
+        try:
+            progress_callback(dict(payload))
+        except Exception:
+            # Progress telemetry must never change the optimizer result.
+            return
+\end{lstlisting}
+
+\subsection{L369 関数 hybrid\_bounded\_minimize.should\_run\_cem\_from\_seed\_consensus}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L369--L380
+              \item 所属: \path|hybrid_bounded_minimize|
+              \item 定義: \path|should_run_cem_from_seed_consensus(rows: Sequence[dict]) -> tuple[bool, float]|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, asarray, bool, float, get, isfinite, len, max, maximum, min, std, vstack
+              \item 戻り値の要点: (run, spread) / (False, 0.0)
+              \item 主なローカル代入名: best\_fun, gap, mat, next\_fun, row, run, spread, top, usable
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item usable に [row for row in rows if np.isfinite(float(row.get('fun', float('inf'))))] の結果を代入する。
+\item 条件 len(usable) < 2 を判定し、真なら内部処理を行う。
+\item   (False, 0.0) を返す。
+\item top に usable[:min(3, len(usable))] の結果を代入する。
+\item mat に np.vstack([np.asarray(row['x'], dtype=float) for row in top]) の結果を代入する。
+\item spread に float(np.max(np.std(mat, axis=0) / np.maximum(span, 1e-06))) の結果を代入する。
+\item best\_fun に float(top[0]['fun']) の結果を代入する。
+\item next\_fun に float(top[1]['fun']) の結果を代入する。
+\item gap に abs(next\_fun - best\_fun) / max(1.0, abs(best\_fun)) の結果を代入する。
+\item run に bool(spread > 0.08 or gap > 0.1 or (not bool(top[0].get('success', True)))) の結果を代入する。
+\item (run, spread) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def should_run_cem_from_seed_consensus(rows: Sequence[dict]) -> tuple[bool, float]:
+        usable = [row for row in rows if np.isfinite(float(row.get("fun", float("inf"))))]
+        if len(usable) < 2:
+            return False, 0.0
+        top = usable[: min(3, len(usable))]
+        mat = np.vstack([np.asarray(row["x"], dtype=float) for row in top])
+        spread = float(np.max(np.std(mat, axis=0) / np.maximum(span, 1.0e-6)))
+        best_fun = float(top[0]["fun"])
+        next_fun = float(top[1]["fun"])
+        gap = abs(next_fun - best_fun) / max(1.0, abs(best_fun))
+        run = bool((spread > 0.08) or (gap > 0.10) or (not bool(top[0].get("success", True))))
+        return run, spread
+\end{lstlisting}
+
+
+
+
+
+
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/upper_solver.py| を
+        \textbf{planner helper}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

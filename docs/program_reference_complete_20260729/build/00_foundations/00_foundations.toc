@@ -1,0 +1,45 @@
+\contentsline {section}{\numberline {1}プログラム、プロセス、メモリ、オブジェクトを区別する}{3}{section.1}%
+\contentsline {paragraph}{根拠資料}{3}{section*.2}%
+\contentsline {section}{\numberline {2}名前、代入、型、参照}{3}{section.2}%
+\contentsline {paragraph}{根拠資料}{3}{section*.3}%
+\contentsline {section}{\numberline {3}関数、引数、戻り値、スコープ}{3}{section.3}%
+\contentsline {paragraph}{根拠資料}{4}{section*.4}%
+\contentsline {section}{\numberline {4}class、独自クラス、インスタンス、self、継承}{4}{section.4}%
+\contentsline {paragraph}{根拠資料}{4}{section*.5}%
+\contentsline {section}{\numberline {5}先頭アンダースコア、\_\_init\_\_、名前付けの作法}{4}{section.5}%
+\contentsline {paragraph}{根拠資料}{4}{section*.6}%
+\contentsline {section}{\numberline {6}デコレータと@dataclass}{4}{section.6}%
+\contentsline {paragraph}{根拠資料}{5}{section*.7}%
+\contentsline {section}{\numberline {7}module、package、import、console\_scripts}{5}{section.7}%
+\contentsline {paragraph}{根拠資料}{5}{section*.8}%
+\contentsline {section}{\numberline {8}例外、try/finally、with、資源解放}{5}{section.8}%
+\contentsline {section}{\numberline {9}list、dict、deque、NumPy配列、pandas DataFrame}{6}{section.9}%
+\contentsline {section}{\numberline {10}CLI、PowerShell、Bash、環境変数、終了コード}{6}{section.10}%
+\contentsline {paragraph}{根拠資料}{6}{section*.9}%
+\contentsline {section}{\numberline {11}rclpy、rcl、rmw、DDS/RTPSの層}{6}{section.11}%
+\contentsline {paragraph}{根拠資料}{6}{section*.10}%
+\contentsline {section}{\numberline {12}ROS graph、Node、topic、service、action、parameter}{6}{section.12}%
+\contentsline {paragraph}{根拠資料}{7}{section*.11}%
+\contentsline {section}{\numberline {13}callback、timer、Executor、spin、Callback Group}{7}{section.13}%
+\contentsline {paragraph}{根拠資料}{7}{section*.12}%
+\contentsline {section}{\numberline {14}launch Action、Node Action、実行可能名、remapping}{7}{section.14}%
+\contentsline {paragraph}{根拠資料}{7}{section*.13}%
+\contentsline {section}{\numberline {15}rqt\_graph、ros2 CLI、rosbag2をいつ使うか}{7}{section.15}%
+\contentsline {paragraph}{根拠資料}{8}{section*.14}%
+\contentsline {section}{\numberline {16}制御、状態、入力、モデル予測制御MPC}{8}{section.16}%
+\contentsline {paragraph}{根拠資料}{8}{section*.15}%
+\contentsline {section}{\numberline {17}上位MPCと下位MPCの役割}{8}{section.17}%
+\contentsline {section}{\numberline {18}目的関数、制約、L-BFGS-B、SHGO、有限grid証明}{9}{section.18}%
+\contentsline {paragraph}{根拠資料}{9}{section*.16}%
+\contentsline {section}{\numberline {19}Cross-Entropy Methodを式と実装で理解する}{9}{section.19}%
+\contentsline {paragraph}{根拠資料}{9}{section*.17}%
+\contentsline {section}{\numberline {20}warm startは何を保存し、どう効くか}{10}{section.20}%
+\contentsline {paragraph}{根拠資料}{10}{section*.18}%
+\contentsline {section}{\numberline {21}車両力学、電力収支、効率map}{10}{section.21}%
+\contentsline {section}{\numberline {22}SoC、内部抵抗、端子電圧、温度、MHE}{10}{section.22}%
+\contentsline {paragraph}{根拠資料}{10}{section*.19}%
+\contentsline {section}{\numberline {23}天候、route、補間、時刻、単位}{11}{section.23}%
+\contentsline {section}{\numberline {24}freshness、filter、guard、fallback、fail-safe}{11}{section.24}%
+\contentsline {section}{\numberline {25}CSV/YAMLのdata contractと検証}{11}{section.25}%
+\contentsline {section}{\numberline {26}単体試験、SILS、replay、観測可能性}{11}{section.26}%
+\contentsline {paragraph}{根拠資料}{11}{section*.20}%

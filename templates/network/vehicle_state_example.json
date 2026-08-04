@@ -1,0 +1,16 @@
+{
+  "type": "vehicle_state",
+  "ts_unix": 1781700000.0,
+  "speed_kmh": 72.4,
+  "soc": 0.83,
+  "batt_temp_c": 34.1,
+  "batt_current_a": 8.6,
+  "batt_voltage_v": 97.8,
+  "s_km": 412.6,
+  "lat": -19.13542,
+  "lon": 146.81235,
+  "alt_m": 18.4,
+  "wind_speed_ms": 6.8,
+  "wind_dir_deg": 118.0,
+  "course_deg": 176.5
+}

@@ -1,0 +1,257 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={live 風補正ノード},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{23. live 風補正ノード}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/wind_correction_node.py| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & 観測 headwind と現在距離から raw forecast CSV を補正し、corrected forecast CSV を書き出す。 \\
+        起動文脈 & live\_wifi で planner 入力の風を上書きする前処理。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        観測 headwind と現在距離から raw forecast CSV を補正し、corrected forecast CSV を書き出す。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item planner は /weather/headwind\_corrected\_ms を直接読むのではない。
+\item corrected CSV を mpc\_node が再読込して効かせる。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|launch/solar_race_live_wifi.launch.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/mpc_node.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+return int(pd.Timestamp(value).value)
+
+
+class WindCorrectionNode(Node):
+    def __init__(self) -> None:
+        super().__init__("wind_correction_node")
+        self.declare_parameter("forecast_csv", "")
+        self.declare_parameter("corrected_forecast_csv", "outputs/runtime/live_forecast_corrected.csv")
+        self.declare_parameter("forecast_time_tz", "Australia/Darwin")
+        self.declare_parameter("publish_period_sec", 30.0)
+        self.declare_parameter("measurement_sigma_ms", 1.0)
+        self.declare_parameter("correlation_distance_km", 300.0)
+        self.declare_parameter("fallback_correlation_time_h", 3.0)
+        self.declare_parameter("forecast_sigma0_ms", 1.5)
+        self.declare_parameter("forecast_variance_growth_per_hour", 0.05)
+        self.declare_parameter("planning_quantile", 0.5)
+        self.declare_parameter("confidence_z", 1.96)
+        self.declare_parameter("min_sigma_ms", 0.2)
+        self.declare_parameter("preferred_source", "auto")
+        self.declare_parameter("use_exp_distance_decay", True)
+
+        self.forecast_csv = Path(str(self.get_parameter("forecast_csv").value or "")).expanduser()
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは WindCorrectionNode。 主要関数は main。 ROS パラメータ宣言は 14 件。 ROS I/O は publisher 2 件、subscription 2 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            20 & class & \path|WindCorrectionNode| & bases: Node \\
+16 & function & \path|_timestamp_ns| & args: value \\
+21 & function & \path|__init__| & args: self \\
+64 & function & \path|_on_headwind| & args: self, msg \\
+67 & function & \path|_on_s| & args: self, msg \\
+70 & function & \path|_load_base| & args: self \\
+91 & function & \path|_interp_headwind_now| & args: self, now\_utc \\
+105 & function & \path|_step| & args: self \\
+154 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            16 & 関数 \_timestamp\_ns を定義する。 \\
+20 & クラス WindCorrectionNode を定義する。 \\
+154 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L52, L53, L111, L121, L122, L130, L131, L135。 \\
+4 & \path|import os| & パス、環境変数、プロセス外部状態を扱うため。 このファイル内での主な使用位置は L72。 \\
+5 & \path|from datetime import datetime, timezone| & UTC 時刻や相対時間を扱うため。 このファイル内での主な使用位置は L91, L109, L128。 \\
+6 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L38, L39。 \\
+7 & \path|from statistics import NormalDist| & statistics から NormalDist を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L50。 \\
+9 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L17, L77, L79, L96, L119, L128, L140, L147。 \\
+10 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L155, L157, L159。 \\
+11 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L20。 \\
+13 & \path|from std_msgs.msg import Float32, String| & Float32 や String など軽量メッセージで planner / vehicle 値を publish するため。 このファイル内での主な使用位置は L57, L58, L59, L60, L64, L67, L115, L151。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L16 関数 \path|_timestamp_ns|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|_timestamp_ns(value)|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: Timestamp, int
+  \item 戻り値の要点: int(pd.Timestamp(value).value)
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item int(pd.Timestamp(value).value) を返す。
+\end{enumerate}
+
+\subsection*{L20 クラス \path|WindCorrectionNode|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|WindCorrectionNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, NormalDist, Path, String, Timedelta, Timestamp, \_\_init\_\_, \_interp\_headwind\_now, \_load\_base, abs, any, append
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_on\_headwind を定義する。
+\item 関数 \_on\_s を定義する。
+\item 関数 \_load\_base を定義する。
+\item 関数 \_interp\_headwind\_now を定義する。
+\item 関数 \_step を定義する。
+            \end{enumerate}
+
+\subsection*{L154 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: WindCorrectionNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に WindCorrectionNode() の結果を代入する。
+\item rclpy.spin(...) を実行する。
+\item node.destroy\_node(...) を実行する。
+\item rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+
+        \subsection*{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            23 & \path|forecast_csv| &  \\
+24 & \path|corrected_forecast_csv| & outputs/runtime/live\_forecast\_corrected.csv \\
+25 & \path|forecast_time_tz| & Australia/Darwin \\
+26 & \path|publish_period_sec| & 30.0 \\
+27 & \path|measurement_sigma_ms| & 1.0 \\
+28 & \path|correlation_distance_km| & 300.0 \\
+29 & \path|fallback_correlation_time_h| & 3.0 \\
+30 & \path|forecast_sigma0_ms| & 1.5 \\
+31 & \path|forecast_variance_growth_per_hour| & 0.05 \\
+32 & \path|planning_quantile| & 0.5 \\
+33 & \path|confidence_z| & 1.96 \\
+34 & \path|min_sigma_ms| & 0.2 \\
+35 & \path|preferred_source| & auto \\
+36 & \path|use_exp_distance_decay| & True \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            57 & publisher & \path|/weather/headwind_corrected_ms| & publisher \\
+58 & publisher & \path|/weather/wind_correction_status| & publisher \\
+59 & subscription & \path|/weather/headwind_meas_ms| & self.\_on\_headwind \\
+60 & subscription & \path|/vehicle/s_km| & self.\_on\_s \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/wind_correction_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

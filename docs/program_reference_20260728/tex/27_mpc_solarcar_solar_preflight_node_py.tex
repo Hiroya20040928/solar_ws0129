@@ -1,0 +1,234 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={live 計測鮮度監視},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{27. live 計測鮮度監視}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/solar_preflight_node.py| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & speed、distance、battery、planner status の鮮度を見て system/state と health を publish する。 \\
+        起動文脈 & 起動可否と運用中の健全性の監視役。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        speed、distance、battery、planner status の鮮度を見て system/state と health を publish する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item planner 自体は止めずに、system/state と health を出す。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/live_launch.py|
+\item \path|launch/solar_measurement.launch.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_preflight_logic.py|
+\item \path|mpc_solarcar/speed_command_bridge_node.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_preflight_logic.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from .solar_preflight_logic import evaluate_freshness
+
+
+class SolarPreflightNode(Node):
+    """Preflight monitor based only on solar-car telemetry freshness."""
+
+    def __init__(self):
+        super().__init__("solar_preflight_node")
+        self.declare_parameter("startup_grace_sec", 10.0)
+        self.declare_parameter("measurement_timeout_sec", 3.0)
+        self.declare_parameter("require_speed", True)
+        self.declare_parameter("require_distance", True)
+        self.declare_parameter("require_battery", True)
+        self.declare_parameter("require_planner", True)
+
+        self.start_mono = time.monotonic()
+        self.last_seen: dict[str, float] = {}
+
+        self.pub_state = self.create_publisher(String, "/system/state", 10)
+        self.pub_health = self.create_publisher(Float32, "/system/health", 10)
+        self.pub_diag = self.create_publisher(String, "/system/diag", 10)
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは SolarPreflightNode。 主要関数は callback, main。 ROS パラメータ宣言は 6 件。 ROS I/O は publisher 3 件、subscription 6 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            12 & class & \path|SolarPreflightNode| & bases: Node \\
+15 & function & \path|__init__| & args: self \\
+41 & function & \path|_seen| & args: self, key \\
+42 & function & \path|callback| & args: \_msg \\
+47 & function & \path|_required| & args: self \\
+59 & function & \path|_step| & args: self \\
+78 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            12 & クラス SolarPreflightNode を定義する。 \\
+78 & 関数 main を定義する。 \\
+88 & 条件 \_\_name\_\_ == '\_\_main\_\_' を判定し、真なら内部処理を行う。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|import time| & wall/monotonic time に基づく周期制御や freshness 判定を行うため。 このファイル内での主な使用位置は L24, L43, L60。 \\
+5 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L79, L82, L85。 \\
+6 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L12。 \\
+7 & \path|from std_msgs.msg import Float32, Float32MultiArray, String| & Float32 や String など軽量メッセージで planner / vehicle 値を publish するため。 このファイル内での主な使用位置は L27, L28, L29, L31, L32, L33, L34, L35, ...。 \\
+9 & \path|from .solar_preflight_logic import evaluate_freshness| & preflight 判定ロジック から evaluate\_freshness を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_preflight\_logic.py。 このファイル内での主な使用位置は L66。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L12 クラス \path|SolarPreflightNode|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|SolarPreflightNode(bases=Node)|
+              \item docstring: Preflight monitor based only on solar-car telemetry freshness.
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, String, \_\_init\_\_, \_required, \_seen, append, bool, create\_publisher, create\_subscription, create\_timer, declare\_parameter, evaluate\_freshness
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item docstring または説明文字列を置く。
+\item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_seen を定義する。
+\item 関数 \_required を定義する。
+\item 関数 \_step を定義する。
+            \end{enumerate}
+
+\subsection*{L78 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: SolarPreflightNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に SolarPreflightNode() の結果を代入する。
+\item 例外処理を伴う try ブロックを実行する。
+            \end{enumerate}
+
+        \subsection*{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            17 & \path|startup_grace_sec| & 10.0 \\
+18 & \path|measurement_timeout_sec| & 3.0 \\
+19 & \path|require_speed| & True \\
+20 & \path|require_distance| & True \\
+21 & \path|require_battery| & True \\
+22 & \path|require_planner| & True \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            27 & publisher & \path|/system/state| & publisher \\
+28 & publisher & \path|/system/health| & publisher \\
+29 & publisher & \path|/system/diag| & publisher \\
+31 & subscription & \path|/vehicle/speed_kmh| & self.\_seen('speed') \\
+32 & subscription & \path|/vehicle/s_km| & self.\_seen('distance') \\
+33 & subscription & \path|/vehicle/batt_soc| & self.\_seen('batt\_soc') \\
+34 & subscription & \path|/vehicle/batt_voltage_v| & self.\_seen('batt\_voltage') \\
+35 & subscription & \path|/vehicle/batt_current_a| & self.\_seen('batt\_current') \\
+36 & subscription & \path|/planner/status| & self.\_seen('planner') \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/solar_preflight_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

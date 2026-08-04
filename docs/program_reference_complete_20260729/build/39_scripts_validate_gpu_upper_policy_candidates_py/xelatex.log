@@ -1,0 +1,533 @@
+===== xelatex pass 1 =====
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/39_scripts_validate_gpu_upper_policy_candidates_py.te
+x
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\39_scripts_validate_gpu_upper_policy_candidates_py\
+39_scripts_validate_gpu_upper_policy_candidates_py.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\39_scripts_validate_gpu_upper_policy_candidates_py\
+39_scripts_validate_gpu_upper_policy_candidates_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\39_scripts_validate_gpu_upper_policy_candidates_py\
+39_scripts_validate_gpu_upper_policy_candidates_py.out)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\39_scripts_validate_gpu_upper_policy_candidates_py\
+39_scripts_validate_gpu_upper_policy_candidates_py.toc [1]) [2]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[3]
+Underfull \hbox (badness 2126) in paragraph at lines 120--121
+\TU/YuGothic(0)/m/n/10.95 主 要 関 数 は \TU/TimesNewRoman(0)/m/n/10.95 resolve_resu
+lt_path, resolve_profile_asset, evaluate_event_timing, exact_replay_signature, 
+in-
+
+Underfull \hbox (badness 10000) in paragraph at lines 130--130
+[]|$[][][][][] [] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 131--131
+[]|$[][][][][][][] [] [][][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 132--132
+[]|$[][][][][][][][][][] [] [][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 133--133
+[]|$[][][][][][][][] [] [][][] [] [][][][][] []
+ignored error: Infinite glue shrinkage found in box being split [4]
+Underfull \hbox (badness 10000) in paragraph at lines 162--162
+[]|$[][][][] [] [][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 172--172
+[]|$[][][][][][][][][][][] [] [][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 172--172
+[][][][] [] [][][][][][][][][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 3049) in paragraph at lines 172--173
+[]|\TU/TimesNewRoman(0)/m/n/10.95 upper mesh \TU/YuGothic(0)/m/n/10.95 収 束 確 認 
+か ら \TU/TimesNewRoman(0)/m/n/10.95 file_sha256, material-
+
+Underfull \hbox (badness 1565) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 ize_profile \TU/YuGothic(0)/m/n/10.95 を 読 み 込 み、
+|  こ の フ ァ イ ル の 内 部
+
+Underfull \hbox (badness 3343) in paragraph at lines 172--173
+\TU/YuGothic(0)/m/n/10.95 処 理 を 分 担 さ せ る た め。|  実 体 フ ァ イ ル は
+
+Underfull \hbox (badness 10000) in paragraph at lines 173--173
+[]|$[][][][][][][] [] [][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 173--173
+[][][][][][][][][][][][][][][][][][][][][] []
+[5]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 196.
+
+[6] [7] [8] [9]
+Underfull \hbox (badness 2856) in paragraph at lines 425--426
+\TU/TimesNewRoman(0)/m/n/10.95 in stop_results))), ’finish_deadline_pass’: bool
+(deadline_late_sec <= 1.0), ’max_control_stop_late_sec’:
+[10] [11]
+Underfull \hbox (badness 2435) in paragraph at lines 474--475
+[]\TU/TimesNewRoman(0)/m/n/10.95 deadline_late_sec \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 max(0.0, float((finish_time - deadline).total_se
+conds())) if deadline_raw and (not
+
+Overfull \hbox (0.57474pt too wide) in paragraph at lines 475--476
+\TU/TimesNewRoman(0)/m/n/10.95 ish_deadline_late_sec’: deadline_late_sec, ’fini
+sh_time_utc’: finish_time.isoformat() if not pd.isna(finish_time)
+[12]
+Underfull \hbox (badness 3601) in paragraph at lines 539--540
+\TU/TimesNewRoman(0)/m/n/10.95 / ’upper_cost.py’, ROOT / ’mpc_solarcar’ / ’mode
+l.py’, ROOT / ’mpc_solarcar’ / ’signal_utils.py’,
+[13] [14] [15]
+Underfull \hbox (badness 3701) in paragraph at lines 676--677
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : {’initi
+al_prediction_soc’: initial_prediction, ’latest_nontrivial_prediction_soc’: lat
+-
+
+Underfull \hbox (badness 3826) in paragraph at lines 676--677
+\TU/TimesNewRoman(0)/m/n/10.95 est_prediction, ’initial_error’: final_soc - ini
+tial_prediction, ’latest_nontrivial_error’: final_soc - lat-
+
+Underfull \hbox (badness 4084) in paragraph at lines 676--677
+\TU/TimesNewRoman(0)/m/n/10.95 est_prediction} / {’initial_prediction_soc’: flo
+at(’nan’), ’latest_nontrivial_prediction_soc’: float(’nan’),
+[16]
+Underfull \hbox (badness 10000) in paragraph at lines 699--700
+[]\TU/TimesNewRoman(0)/m/n/10.95 {’initial_prediction_soc’: float(’nan’), ’late
+st_nontrivial_prediction_soc’: float(’nan’), ’initial_error’:
+
+Underfull \hbox (badness 10000) in paragraph at lines 703--704
+[]\TU/TimesNewRoman(0)/m/n/10.95 {’initial_prediction_soc’: initial_prediction,
+ ’latest_nontrivial_prediction_soc’: latest_prediction, ’ini-
+
+Underfull \hbox (badness 1946) in paragraph at lines 703--704
+\TU/TimesNewRoman(0)/m/n/10.95 tial_error’: final_soc - initial_prediction, ’la
+test_nontrivial_error’: final_soc - latest_prediction} \TU/YuGothic(0)/m/n/10.9
+5 を 返
+[17]
+Overfull \hbox (4.65318pt too wide) in paragraph at lines 768--769
+[]\TU/TimesNewRoman(0)/m/n/10.95 {’intervention_rows’: intervention_rows, ’inte
+rvention_sec’: intervention_sec, ’passed’: bool(intervention_rows
+[18] [19]
+Overfull \hbox (3.54715pt too wide) in paragraph at lines 841--842
+[]\TU/TimesNewRoman(0)/m/n/10.95 cfg \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 materialize_profile(base_profile, profile_path, policy_path=po
+licy, ds_km=float(args.integration_ds_km),
+
+Underfull \hbox (badness 1383) in paragraph at lines 849--850
+[]\TU/TimesNewRoman(0)/m/n/10.95 reusable \TU/YuGothic(0)/m/n/10.95 に \TU/Times
+NewRoman(0)/m/n/10.95 bool(not args.no_resume and manifest_path.is_file() and s
+ignature_path.is_file() and (signa-
+[20]
+Underfull \hbox (badness 3009) in paragraph at lines 857--858
+[]\TU/TimesNewRoman(0)/m/n/10.95 result \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 subprocess.run([sys.executable, ’-u’, str(ROOT / ’scripts’ 
+/ ’solar_sim.py’), ’–profile_yaml’,
+
+Overfull \hbox (15.59749pt too wide) in paragraph at lines 863--864
+\TU/TimesNewRoman(0)/m/n/10.95 start_s_km=float(cfg.get(’simulation’, {}).get(’
+start_s_km’, 0.0)), race_km=float(cfg.get(’mpc’, {}).get(’race_km’,
+[21]
+Underfull \hbox (badness 2680) in paragraph at lines 880--881
+[]\TU/TimesNewRoman(0)/m/n/10.95 checks \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 {’finish’: bool(manifest.get(’finish_reached’, False)), ’so
+c’: float(manifest.get(’min_soc’, -
+
+Underfull \hbox (badness 3954) in paragraph at lines 880--881
+\TU/TimesNewRoman(0)/m/n/10.95 40.0)) + 0.1, ’charge_current’: max_charge_a >= 
+float(model.get(’I_chg_min’, -16.5)) - 0.1, ’volt-
+
+Underfull \hbox (badness 1490) in paragraph at lines 880--881
+\TU/TimesNewRoman(0)/m/n/10.95 age_min’: min_voltage_v >= float(model.get(’V_mi
+n’, 0.0)) - 0.1, ’voltage_max’: max_voltage_v <=
+
+Overfull \hbox (44.13942pt too wide) in paragraph at lines 880--881
+\TU/TimesNewRoman(0)/m/n/10.95 ’finish_deadline’: bool(event_timing[’finish_dea
+dline_pass’]), ’no_soc_guard_intervention’: bool(soc_guard[’passed’])}
+
+Underfull \hbox (badness 1478) in paragraph at lines 883--884
+[]\TU/TimesNewRoman(0)/m/n/10.95 ranking \TU/YuGothic(0)/m/n/10.95 に \TU/TimesN
+ewRoman(0)/m/n/10.95 ranking.sort_values([’feasible’, ’elapsed_hours’], ascendi
+ng=[False, True], na_position=’last’,
+[22] [23]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\39_scripts_validate_gpu_upper_policy_candidates_py\
+39_scripts_validate_gpu_upper_policy_candidates_py.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\39_scripts_validate_gpu_upper_poli
+cy_candidates_py\39_scripts_validate_gpu_upper_policy_candidates_py.pdf (23 pag
+es).
+Transcript written on "C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-ma
+in\docs\program_reference_complete_20260729\build\39_scripts_validate_gpu_upper
+_policy_candidates_py\39_scripts_validate_gpu_upper_policy_candidates_py.log".
+
+miktex-dvipdfmx: major issue: So far, you have not checked for MiKTeX updates.
+xelatex: major issue: So far, you have not checked for MiKTeX updates.
+
+
+===== xelatex pass 2 =====
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/39_scripts_validate_gpu_upper_policy_candidates_py.te
+x
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y))) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty)
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx))
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\39_scripts_validate_gpu_upper_policy_candidates_py\
+39_scripts_validate_gpu_upper_policy_candidates_py.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\39_scripts_validate_gpu_upper_policy_candidates_py\
+39_scripts_validate_gpu_upper_policy_candidates_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\39_scripts_validate_gpu_upper_policy_candidates_py\
+39_scripts_validate_gpu_upper_policy_candidates_py.out)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\39_scripts_validate_gpu_upper_policy_candidates_py\
+39_scripts_validate_gpu_upper_policy_candidates_py.toc [1]) [2]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty)
+[3]
+Underfull \hbox (badness 2126) in paragraph at lines 120--121
+\TU/YuGothic(0)/m/n/10.95 主 要 関 数 は \TU/TimesNewRoman(0)/m/n/10.95 resolve_resu
+lt_path, resolve_profile_asset, evaluate_event_timing, exact_replay_signature, 
+in-
+
+Underfull \hbox (badness 10000) in paragraph at lines 130--130
+[]|$[][][][][] [] [][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 131--131
+[]|$[][][][][][][] [] [][][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 132--132
+[]|$[][][][][][][][][][] [] [][][][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 133--133
+[]|$[][][][][][][][] [] [][][] [] [][][][][] []
+ignored error: Infinite glue shrinkage found in box being split [4]
+Underfull \hbox (badness 10000) in paragraph at lines 162--162
+[]|$[][][][] [] [][][][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 172--172
+[]|$[][][][][][][][][][][] [] [][][] [] [][][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 172--172
+[][][][] [] [][][][][][][][][][][][][][][][][][][][][] []
+
+Underfull \hbox (badness 3049) in paragraph at lines 172--173
+[]|\TU/TimesNewRoman(0)/m/n/10.95 upper mesh \TU/YuGothic(0)/m/n/10.95 収 束 確 認 
+か ら \TU/TimesNewRoman(0)/m/n/10.95 file_sha256, material-
+
+Underfull \hbox (badness 1565) in paragraph at lines 172--173
+\TU/TimesNewRoman(0)/m/n/10.95 ize_profile \TU/YuGothic(0)/m/n/10.95 を 読 み 込 み、
+|  こ の フ ァ イ ル の 内 部
+
+Underfull \hbox (badness 3343) in paragraph at lines 172--173
+\TU/YuGothic(0)/m/n/10.95 処 理 を 分 担 さ せ る た め。|  実 体 フ ァ イ ル は
+
+Underfull \hbox (badness 10000) in paragraph at lines 173--173
+[]|$[][][][][][][] [] [][][][][] [] [][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 173--173
+[][][][][][][][][][][][][][][][][][][][][] []
+[5]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 196.
+
+[6] [7] [8] [9]
+Underfull \hbox (badness 2856) in paragraph at lines 425--426
+\TU/TimesNewRoman(0)/m/n/10.95 in stop_results))), ’finish_deadline_pass’: bool
+(deadline_late_sec <= 1.0), ’max_control_stop_late_sec’:
+[10] [11]
+Underfull \hbox (badness 2435) in paragraph at lines 474--475
+[]\TU/TimesNewRoman(0)/m/n/10.95 deadline_late_sec \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 max(0.0, float((finish_time - deadline).total_se
+conds())) if deadline_raw and (not
+
+Overfull \hbox (0.57474pt too wide) in paragraph at lines 475--476
+\TU/TimesNewRoman(0)/m/n/10.95 ish_deadline_late_sec’: deadline_late_sec, ’fini
+sh_time_utc’: finish_time.isoformat() if not pd.isna(finish_time)
+[12]
+Underfull \hbox (badness 3601) in paragraph at lines 539--540
+\TU/TimesNewRoman(0)/m/n/10.95 / ’upper_cost.py’, ROOT / ’mpc_solarcar’ / ’mode
+l.py’, ROOT / ’mpc_solarcar’ / ’signal_utils.py’,
+[13] [14] [15]
+Underfull \hbox (badness 3701) in paragraph at lines 676--677
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : {’initi
+al_prediction_soc’: initial_prediction, ’latest_nontrivial_prediction_soc’: lat
+-
+
+Underfull \hbox (badness 3826) in paragraph at lines 676--677
+\TU/TimesNewRoman(0)/m/n/10.95 est_prediction, ’initial_error’: final_soc - ini
+tial_prediction, ’latest_nontrivial_error’: final_soc - lat-
+
+Underfull \hbox (badness 4084) in paragraph at lines 676--677
+\TU/TimesNewRoman(0)/m/n/10.95 est_prediction} / {’initial_prediction_soc’: flo
+at(’nan’), ’latest_nontrivial_prediction_soc’: float(’nan’),
+[16]
+Underfull \hbox (badness 10000) in paragraph at lines 699--700
+[]\TU/TimesNewRoman(0)/m/n/10.95 {’initial_prediction_soc’: float(’nan’), ’late
+st_nontrivial_prediction_soc’: float(’nan’), ’initial_error’:
+
+Underfull \hbox (badness 10000) in paragraph at lines 703--704
+[]\TU/TimesNewRoman(0)/m/n/10.95 {’initial_prediction_soc’: initial_prediction,
+ ’latest_nontrivial_prediction_soc’: latest_prediction, ’ini-
+
+Underfull \hbox (badness 1946) in paragraph at lines 703--704
+\TU/TimesNewRoman(0)/m/n/10.95 tial_error’: final_soc - initial_prediction, ’la
+test_nontrivial_error’: final_soc - latest_prediction} \TU/YuGothic(0)/m/n/10.9
+5 を 返
+[17]
+Overfull \hbox (4.65318pt too wide) in paragraph at lines 768--769
+[]\TU/TimesNewRoman(0)/m/n/10.95 {’intervention_rows’: intervention_rows, ’inte
+rvention_sec’: intervention_sec, ’passed’: bool(intervention_rows
+[18] [19]
+Overfull \hbox (3.54715pt too wide) in paragraph at lines 841--842
+[]\TU/TimesNewRoman(0)/m/n/10.95 cfg \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 materialize_profile(base_profile, profile_path, policy_path=po
+licy, ds_km=float(args.integration_ds_km),
+
+Underfull \hbox (badness 1383) in paragraph at lines 849--850
+[]\TU/TimesNewRoman(0)/m/n/10.95 reusable \TU/YuGothic(0)/m/n/10.95 に \TU/Times
+NewRoman(0)/m/n/10.95 bool(not args.no_resume and manifest_path.is_file() and s
+ignature_path.is_file() and (signa-
+[20]
+Underfull \hbox (badness 3009) in paragraph at lines 857--858
+[]\TU/TimesNewRoman(0)/m/n/10.95 result \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 subprocess.run([sys.executable, ’-u’, str(ROOT / ’scripts’ 
+/ ’solar_sim.py’), ’–profile_yaml’,
+
+Overfull \hbox (15.59749pt too wide) in paragraph at lines 863--864
+\TU/TimesNewRoman(0)/m/n/10.95 start_s_km=float(cfg.get(’simulation’, {}).get(’
+start_s_km’, 0.0)), race_km=float(cfg.get(’mpc’, {}).get(’race_km’,
+[21]
+Underfull \hbox (badness 2680) in paragraph at lines 880--881
+[]\TU/TimesNewRoman(0)/m/n/10.95 checks \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 {’finish’: bool(manifest.get(’finish_reached’, False)), ’so
+c’: float(manifest.get(’min_soc’, -
+
+Underfull \hbox (badness 3954) in paragraph at lines 880--881
+\TU/TimesNewRoman(0)/m/n/10.95 40.0)) + 0.1, ’charge_current’: max_charge_a >= 
+float(model.get(’I_chg_min’, -16.5)) - 0.1, ’volt-
+
+Underfull \hbox (badness 1490) in paragraph at lines 880--881
+\TU/TimesNewRoman(0)/m/n/10.95 age_min’: min_voltage_v >= float(model.get(’V_mi
+n’, 0.0)) - 0.1, ’voltage_max’: max_voltage_v <=
+
+Overfull \hbox (44.13942pt too wide) in paragraph at lines 880--881
+\TU/TimesNewRoman(0)/m/n/10.95 ’finish_deadline’: bool(event_timing[’finish_dea
+dline_pass’]), ’no_soc_guard_intervention’: bool(soc_guard[’passed’])}
+
+Underfull \hbox (badness 1478) in paragraph at lines 883--884
+[]\TU/TimesNewRoman(0)/m/n/10.95 ranking \TU/YuGothic(0)/m/n/10.95 に \TU/TimesN
+ewRoman(0)/m/n/10.95 ranking.sort_values([’feasible’, ’elapsed_hours’], ascendi
+ng=[False, True], na_position=’last’,
+[22] [23]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\39_scripts_validate_gpu_upper_policy_candidates_py\
+39_scripts_validate_gpu_upper_policy_candidates_py.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\39_scripts_validate_gpu_upper_poli
+cy_candidates_py\39_scripts_validate_gpu_upper_policy_candidates_py.pdf (23 pag
+es).
+Transcript written on "C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-ma
+in\docs\program_reference_complete_20260729\build\39_scripts_validate_gpu_upper
+_policy_candidates_py\39_scripts_validate_gpu_upper_policy_candidates_py.log".
+
+miktex-dvipdfmx: major issue: So far, you have not checked for MiKTeX updates.
+xelatex: major issue: So far, you have not checked for MiKTeX updates.
+

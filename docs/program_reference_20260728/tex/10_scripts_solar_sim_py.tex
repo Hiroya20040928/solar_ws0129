@@ -1,0 +1,1112 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={offline フルレース simulation 本体},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{10. offline フルレース simulation 本体}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|scripts/solar_sim.py| \\
+        種別 & Python \\
+        区分 & offline core \\
+        役割 & profile、forecast、route、maps を使って全レースを逐次再生し、upper/lower 相当の実行を CSV と HTML に落とす。 \\
+        起動文脈 & simulate や historical-simulate で直接呼ばれる同期版の基準実装。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        profile、forecast、route、maps を使って全レースを逐次再生し、upper/lower 相当の実行を CSV と HTML に落とす。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item SolarCarModel を直に持つ同期版なので、数理理解の最短入口。
+\item full summary JSON、detail CSV、upper plan CSV、HTML report を生成する。
+\item live の mpc\_node とかなり同型の距離上位計画ロジックを持つ。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/solar_control.sh|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/model.py|
+\item \path|mpc_solarcar/upper_horizon.py|
+\item \path|mpc_solarcar/upper_solver.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/model.py|
+\item \path|mpc_solarcar/route_utils.py|
+\item \path|mpc_solarcar/schedule_utils.py|
+\item \path|mpc_solarcar/signal_utils.py|
+\item \path|mpc_solarcar/solar_profile.py|
+\item \path|mpc_solarcar/upper_cost.py|
+\item \path|mpc_solarcar/upper_horizon.py|
+\item \path|mpc_solarcar/upper_policy.py|
+\item \path|mpc_solarcar/upper_solver.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+os.makedirs(parent, exist_ok=True)
+
+
+class DetailCsvStream:
+    """Write the 1 Hz execution trace without retaining the full race in RAM."""
+
+    def __init__(self, path):
+        self.path = str(path)
+        self._file = None
+        self._writer = None
+        self.fieldnames = []
+        self.row_count = 0
+
+    def write(self, row):
+        if self._writer is None:
+            ensure_parent_dir(self.path)
+            self.fieldnames = list(row.keys())
+            opener = gzip.open if self.path.lower().endswith('.gz') else open
+            self._file = opener(self.path, 'wt' if opener is gzip.open else 'w', encoding='utf-8', newline='')
+            self._writer = csv.DictWriter(self._file, fieldnames=self.fieldnames, extrasaction='ignore')
+            self._writer.writeheader()
+        self._writer.writerow(row)
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは DetailCsvStream。 主要関数は load\_yaml, sim\_log, select\_optimized\_vector, limit\_step\_duration\_to\_distance, terminal\_soc\_predictions, advance\_rate\_limiter\_to\_distance\_boundary, snap\_execution\_stop\_speed\_kmh, choose\_integration\_step\_seconds。 CLI 引数宣言は 96 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            549 & class & \path|DetailCsvStream| &  \\
+63 & function & \path|load_yaml| & args: path \\
+73 & function & \path|sim_log| & args: message \\
+77 & function & \path|select_optimized_vector| & args: res, x0 \\
+115 & function & \path|limit_step_duration_to_distance| & args: step\_sec, speed\_kmh, s0\_km, race\_km \\
+129 & function & \path|terminal_soc_predictions| & args: upper\_solve\_log \\
+145 & function & \path|advance_rate_limiter_to_distance_boundary| & args: limiter, target\_kmh \\
+195 & function & \path|snap_execution_stop_speed_kmh| & args: speed\_kmh, target\_kmh \\
+212 & function & \path|choose_integration_step_seconds| & args: simulation\_step\_sec, weather\_step\_sec \\
+218 & function & \path|choose_stationary_integration_step_seconds| & args: simulation\_step\_sec, weather\_step\_sec, requested\_step\_sec \\
+230 & function & \path|write_model_snapshot| & args: detail\_csv, parameters, map\_paths \\
+278 & function & \path|get_workspace_revision| & args: root\_dir \\
+331 & function & \path|timestamp_ns| & args: value \\
+335 & function & \path|load_stops| & args: path \\
+365 & function & \path|load_profile| & args: path \\
+373 & function & \path|forecast_distance_column| & args: df \\
+383 & function & \path|load_forecast_dataframe| & args: path, tzname \\
+410 & function & \path|merge_forecast_dataframes| & args: primary, fallback \\
+423 & function & \path|build_forecast_grid_payload| & args: df \\
+476 & function & \path|interp_forecast_grid| & args: payload, col, t\_utc, s\_km, default \\
+523 & function & \path|load_progress_reference_dataframe| & args: path \\
+543 & function & \path|ensure_parent_dir| & args: path \\
+552 & function & \path|__init__| & args: self, path \\
+559 & function & \path|write| & args: self, row \\
+570 & function & \path|close| & args: self \\
+576 & function & \path|__enter__| & args: self \\
+579 & function & \path|__exit__| & args: self, exc\_type, exc, tb \\
+583 & function & \path|_deep_copy_cfg| & args: cfg \\
+587 & function & \path|_set_nested| & args: cfg, dotted\_key, value \\
+601 & function & \path|apply_overrides| & args: cfg, overrides \\
+618 & function & \path|build_config_tag| & args: profile\_path, profile\_cfg, overrides \\
+633 & function & \path|tag_output_path| & args: path\_value, tag, default\_ext \\
+645 & function & \path|apply_profile_cfg_to_args| & args: profile\_path, profile\_cfg, args \\
+798 & function & \path|apply_profile_defaults| & args: args \\
+806 & function & \path|resolve_config_path| & args: profile\_path, value \\
+820 & function & \path|evaluate_model_validation_gate| & args: cfg, profile\_path \\
+1032 & function & \path|get_profile_val| & args: df, s\_km, field, default \\
+1040 & function & \path|parse_utc_arg| & args: raw\_value \\
+1052 & function & \path|resolve_forecast_mode| & args: mode, df \\
+1064 & function & \path|forecast_row_index| & args: df, sim\_t \\
+1082 & function & \path|format_metric| & args: value, digits, default \\
+1094 & function & \path|decimate_xy| & args: xs, ys, max\_points \\
+1105 & function & \path|build_svg_chart| & args: xs, ys \\
+1146 & function & \path|flatten_params_for_report| & args: cfg \\
+1149 & function & \path|visit| & args: prefix, value \\
+1166 & function & \path|write_simulation_report| & args: path, summary, detail\_df, params\_rows \\
+1288 & function & \path|mpc_solve| & args: model, data, z0, Tb0, s0\_km, v0\_kmh, v\_max\_kmh, term\_soc\_min, w\_dv, w\_dv\_limit, dv\_max\_kmhps, w\_T, w\_speed\_limit, w\_current, speed\_profile, soc\_target, soc\_band, w\_soc\_target, w\_soc\_band, schedule, soc\_day\_end\_max, w\_soc\_day\_max, soc\_finish\_target, soc\_finish\_tol, w\_soc\_progress, w\_soc\_terminal, race\_km, soc\_day\_end\_target, soc\_day\_end\_tol, w\_soc\_day\_track \\
+1305 & function & \path|quad_penalty| & args: x, cap \\
+1312 & function & \path|cost| & args: v \\
+1402 & function & \path|soc_guard_speed| & args: model, v\_kmh, z, Tb, s\_km, d0, route\_profile, mode, soc\_guard \\
+1409 & function & \path|z_next_for| & args: v\_kmh\_local \\
+1451 & function & \path|soc_day_guard_speed| & args: model, v\_kmh, z, Tb, s\_km, d0, route\_profile, target\_soc, tol \\
+1458 & function & \path|z_next_for| & args: v\_kmh\_local \\
+1485 & function & \path|main| &  \\
+1852 & function & \path|integration_step_seconds| &  \\
+1859 & function & \path|forecast_has_coverage| & args: t\_utc \\
+1868 & function & \path|integrate_drive_time_between| & args: t\_start\_utc, t\_end\_utc \\
+1885 & function & \path|reference_value_at_time| & args: t\_utc, field \\
+1907 & function & \path|reference_distance_at_time| & args: t\_utc \\
+1958 & function & \path|time_to_index| & args: dt\_utc \\
+2095 & function & \path|remaining_day_budget| & args: sim\_t\_local, \_k\_idx \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            23 & \_numeric\_threads に str(os.environ.get('SOLAR\_NUMERIC\_THREADS', '1')) の結果を代入する。 \\
+24 & ('OPENBLAS\_NUM\_THREADS', 'OMP\_NUM\_THREADS', 'MKL\_NUM\_THREADS', 'NUMEXPR\_NUM\_THREADS') を順に走査し、各要素を \_thread\_variable に入れて処理する。 \\
+36 & ROOT に Path(\_\_file\_\_).resolve().parents[1] の結果を代入する。 \\
+37 & 条件 str(ROOT) not in sys.path を判定し、真なら内部処理を行う。 \\
+60 & DISTANCE\_EPS\_KM に 1e-06 の結果を代入する。 \\
+63 & 関数 load\_yaml を定義する。 \\
+73 & 関数 sim\_log を定義する。 \\
+77 & 関数 select\_optimized\_vector を定義する。 \\
+115 & 関数 limit\_step\_duration\_to\_distance を定義する。 \\
+129 & 関数 terminal\_soc\_predictions を定義する。 \\
+145 & 関数 advance\_rate\_limiter\_to\_distance\_boundary を定義する。 \\
+195 & 関数 snap\_execution\_stop\_speed\_kmh を定義する。 \\
+212 & 関数 choose\_integration\_step\_seconds を定義する。 \\
+218 & 関数 choose\_stationary\_integration\_step\_seconds を定義する。 \\
+230 & 関数 write\_model\_snapshot を定義する。 \\
+278 & 関数 get\_workspace\_revision を定義する。 \\
+331 & 関数 timestamp\_ns を定義する。 \\
+335 & 関数 load\_stops を定義する。 \\
+365 & 関数 load\_profile を定義する。 \\
+373 & 関数 forecast\_distance\_column を定義する。 \\
+383 & 関数 load\_forecast\_dataframe を定義する。 \\
+410 & 関数 merge\_forecast\_dataframes を定義する。 \\
+423 & 関数 build\_forecast\_grid\_payload を定義する。 \\
+476 & 関数 interp\_forecast\_grid を定義する。 \\
+523 & 関数 load\_progress\_reference\_dataframe を定義する。 \\
+543 & 関数 ensure\_parent\_dir を定義する。 \\
+549 & クラス DetailCsvStream を定義する。 \\
+583 & 関数 \_deep\_copy\_cfg を定義する。 \\
+587 & 関数 \_set\_nested を定義する。 \\
+601 & 関数 apply\_overrides を定義する。 \\
+618 & 関数 build\_config\_tag を定義する。 \\
+633 & 関数 tag\_output\_path を定義する。 \\
+645 & 関数 apply\_profile\_cfg\_to\_args を定義する。 \\
+798 & 関数 apply\_profile\_defaults を定義する。 \\
+806 & 関数 resolve\_config\_path を定義する。 \\
+820 & 関数 evaluate\_model\_validation\_gate を定義する。 \\
+1032 & 関数 get\_profile\_val を定義する。 \\
+1040 & 関数 parse\_utc\_arg を定義する。 \\
+1052 & 関数 resolve\_forecast\_mode を定義する。 \\
+1064 & 関数 forecast\_row\_index を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            2 & \path|import argparse| & CLI 引数を宣言し、実行時パラメータを外から受け取るため。 このファイル内での主な使用位置は L1486, L1534。 \\
+3 & \path|import csv| & CSV の逐次読込・逐次書込を行うため。 このファイル内での主な使用位置は L565。 \\
+4 & \path|import copy| & 設定辞書や payload を安全に複製するため。 このファイル内での主な使用位置は L584。 \\
+5 & \path|import gzip| & detail CSV などの圧縮出力を行うため。 このファイル内での主な使用位置は L563, L564。 \\
+6 & \path|import hashlib| & snapshot ID や入力資産の digest を作るため。 このファイル内での主な使用位置は L238, L252, L624。 \\
+7 & \path|import html| & HTML report の文字列を安全に埋め込むため。 このファイル内での主な使用位置は L1131, L1136, L1206, L1210, L1214, L1222, L1253, L1254。 \\
+8 & \path|import json| & manifest、checkpoint、UDP payload をやり取りするため。 このファイル内での主な使用位置は L253, L1206, L2830, L2950, L4001, L4005。 \\
+9 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L134, L138, L885, L886, L887, L888, L889, L890, ...。 \\
+10 & \path|import time| & wall/monotonic time に基づく周期制御や freshness 判定を行うため。 このファイル内での主な使用位置は L2055, L3713。 \\
+11 & \path|import os| & パス、環境変数、プロセス外部状態を扱うため。 このファイル内での主な使用位置は L23, L30, L544, L546, L626, L639, L739, L742, ...。 \\
+12 & \path|import subprocess| & git 情報取得や外部コマンド実行を行うため。 このファイル内での主な使用位置は L286, L299, L308, L317。 \\
+13 & \path|import sys| & sys モジュールを利用するため。 このファイル内での主な使用位置は L37, L38, L4028。 \\
+14 & \path|import traceback| & 例外時に crash log を残すため。 このファイル内での主な使用位置は L4025。 \\
+15 & \path|from collections import deque| & 固定長の時系列や遅延キューを効率よく保持するため。 このファイル内での主な使用位置は L2075。 \\
+16 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L36, L235, L270, L278, L810, L813, L835, L901, ...。 \\
+17 & \path|from zoneinfo import ZoneInfo| & zoneinfo から ZoneInfo を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L393, L2030, L2032, L3736, L3756。 \\
+18 & \path|from datetime import datetime, timedelta, timezone| & UTC 時刻や相対時間を扱うため。 このファイル内での主な使用位置は L476, L626, L628, L1046, L1048, L1049, L1064, L1364, ...。 \\
+32 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L78, L93, L100, L135, L433, L470, L484, L486, ...。 \\
+33 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L332, L369, L373, L374, L383, L384, L387, L410, ...。 \\
+34 & \path|import yaml| & profile、stop、schedule、summary YAML を読み書きするため。 このファイル内での主な使用位置は L68, L271, L612, L623, L3785。 \\
+40 & \path|from mpc_solarcar.model import SolarCarModel, Params| & 車体物理・電気モデル本体 から SolarCarModel, Params を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/model.py。 このファイル内での主な使用位置は L1689, L1703。 \\
+41 & \path|from mpc_solarcar.route_utils import average_profile, interpolate_profile| & route\_utils.py から average\_profile, interpolate\_profile を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/route\_utils.py。 このファイル内での主な使用位置は L1035, L2460, L2656。 \\
+42 & \path|from mpc_solarcar.schedule_utils import DriveSchedule| & schedule\_utils.py から DriveSchedule を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/schedule\_utils.py。 このファイル内での主な使用位置は L1664。 \\
+43 & \path|from mpc_solarcar.signal_utils import SmoothRateLimiter| & signal\_utils.py から SmoothRateLimiter を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/signal\_utils.py。 このファイル内での主な使用位置は L2078。 \\
+44 & \path|from mpc_solarcar.solar_profile import get_path, get_section, load_profile as load_workflow_profile| & profile YAML 読込と検証 から get\_path, get\_section, load\_profile as load\_workflow\_profile を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_profile.py。 このファイル内での主な使用位置は L649, L650, L651, L659, L660, L661, L662, L663, ...。 \\
+45 & \path|from mpc_solarcar.upper_cost import active_upper_cost_terms, load_upper_cost_config, quad_penalty, upper_stage_cost, upper_terminal_cost| & 上位MPC 目的関数 から active\_upper\_cost\_terms, load\_upper\_cost\_config, quad\_penalty, upper\_stage\_cost, upper\_terminal\_cost を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/upper\_cost.py。 このファイル内での主な使用位置は L1350, L1360, L1362, L1366, L1370, L1376, L1378, L1379, ...。 \\
+52 & \path|from mpc_solarcar.upper_horizon import build_upper_distance_horizon, plan_segment_index| & 上位MPC 距離メッシュ生成 から build\_upper\_distance\_horizon, plan\_segment\_index を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/upper\_horizon.py。 このファイル内での主な使用位置は L2341, L3431, L3470, L3590。 \\
+53 & \path|from mpc_solarcar.upper_policy import absolute_control_distances, shift_upper_policy_warm_start| & 上位速度計画の補間と warm start から absolute\_control\_distances, shift\_upper\_policy\_warm\_start を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/upper\_policy.py。 このファイル内での主な使用位置は L2366, L2374。 \\
+57 & \path|from mpc_solarcar.upper_solver import hybrid_bounded_minimize| & 上位探索ソルバ から hybrid\_bounded\_minimize を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/upper\_solver.py。 このファイル内での主な使用位置は L2873。 \\
+1394 & \path|from scipy.optimize import minimize| & 連続最適化や MHE の逆推定を解くため。 このファイル内での主な使用位置は L1396。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L63 関数 \path|load_yaml|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|load_yaml(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: open, safe\_load
+              \item 戻り値の要点: \{\} / yaml.safe\_load(f) or \{\} / \{\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not path を判定し、真なら内部処理を行う。
+\item 例外処理を伴う try ブロックを実行する。
+            \end{enumerate}
+
+\subsection*{L73 関数 \path|sim_log|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|sim_log(message)|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: print
+  \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item print(...) を実行する。
+\end{enumerate}
+
+\subsection*{L77 関数 \path|select_optimized_vector|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|select_optimized_vector(res, x0, label)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: all, asarray, bool, getattr, isfinite, sim\_log, str, strip
+              \item 戻り値の要点: x\_arr / x0\_arr / x0\_arr / x0\_arr
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item x0\_arr に np.asarray(x0, dtype=float) の結果を代入する。
+\item 条件 res is None を判定し、真なら内部処理を行う。
+\item success に bool(getattr(res, 'success', False)) の結果を代入する。
+\item status に getattr(res, 'status', None) の結果を代入する。
+\item message に str(getattr(res, 'message', '') or '').strip() の結果を代入する。
+\item raw\_x に getattr(res, 'x', None) の結果を代入する。
+\item 条件 raw\_x is None を判定し、真なら内部処理を行う。
+\item 例外処理を伴う try ブロックを実行する。
+\item 条件 x\_arr.shape != x0\_arr.shape or not np.all(np.isfinite(x\_arr)) を判定し、真なら内部処理を行う。
+\item 条件 not success を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L115 関数 \path|limit_step_duration_to_distance|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|limit_step_duration_to_distance(step_sec, speed_kmh, s0_km, race_km)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, max, min
+              \item 戻り値の要点: min(step\_sec, max\_step\_sec) / step\_sec / 0.0 / step\_sec
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item step\_sec に max(0.0, float(step\_sec)) の結果を代入する。
+\item 条件 race\_km is None を判定し、真なら内部処理を行う。
+\item remaining\_km に max(0.0, float(race\_km) - float(s0\_km)) の結果を代入する。
+\item 条件 remaining\_km <= DISTANCE\_EPS\_KM を判定し、真なら内部処理を行う。
+\item speed\_kmh に max(0.0, float(speed\_kmh)) の結果を代入する。
+\item 条件 speed\_kmh <= 1e-09 を判定し、真なら内部処理を行う。
+\item max\_step\_sec に remaining\_km * 3600.0 / speed\_kmh の結果を代入する。
+\item min(step\_sec, max\_step\_sec) を返す。
+            \end{enumerate}
+
+\subsection*{L129 関数 \path|terminal_soc_predictions|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|terminal_soc_predictions(upper_solve_log)|
+              \item docstring: Return initial full-horizon and latest nontrivial terminal-SoC predictions.
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, dict, float, get, int, isfinite
+              \item 戻り値の要点: (float(initial\_soc), float(latest\_nontrivial\_soc)) / (math.nan, math.nan)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item candidates に [] の結果を代入する。
+\item upper\_solve\_log を順に走査し、各要素を row に入れて処理する。
+\item 条件 not candidates を判定し、真なら内部処理を行う。
+\item initial\_soc に candidates[0][1] の結果を代入する。
+\item nontrivial に [terminal\_soc for steps, terminal\_soc in candidates if steps > 1] の結果を代入する。
+\item latest\_nontrivial\_soc に nontrivial[-1] if nontrivial else candidates[-1][1] の結果を代入する。
+\item (float(initial\_soc), float(latest\_nontrivial\_soc)) を返す。
+            \end{enumerate}
+
+\subsection*{L145 関数 \path|advance_rate_limiter_to_distance_boundary|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|advance_rate_limiter_to_distance_boundary(limiter, target_kmh, start_time_sec, step_sec, s0_km, distance_limit_km)|
+              \item docstring: Advance a limiter by the actual substep, including a short boundary remainder.
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, float, limit\_step\_duration\_to\_distance, max, range, update
+              \item 戻り値の要点: (speed\_kmh, actual\_dt) / (float(limiter.value), 0.0) / (speed\_kmh, next\_dt)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item requested\_dt に max(0.0, float(step\_sec)) の結果を代入する。
+\item 条件 requested\_dt <= 0.0 を判定し、真なら内部処理を行う。
+\item initial\_value に float(limiter.value) の結果を代入する。
+\item actual\_dt に requested\_dt の結果を代入する。
+\item speed\_kmh に initial\_value の結果を代入する。
+\item range(8) を順に走査し、各要素を \_ に入れて処理する。
+\item limiter.value に initial\_value の結果を代入する。
+\item limiter.last\_time に float(start\_time\_sec) の結果を代入する。
+\item speed\_kmh に float(limiter.update(target\_kmh, now=float(start\_time\_sec) + actual\_dt)) の結果を代入する。
+\item (speed\_kmh, actual\_dt) を返す。
+            \end{enumerate}
+
+\subsection*{L195 関数 \path|snap_execution_stop_speed_kmh|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|snap_execution_stop_speed_kmh(speed_kmh, target_kmh, stop_requested, deadband_kmh, quantize_step_kmh)|
+              \item docstring: Remove the final quantized crawl once a stop command has nearly settled.
+              \item このブロックが直接呼ぶ主な関数・メソッド: bool, float, max
+              \item 戻り値の要点: (speed, False) / (0.0, True)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item speed に max(0.0, float(speed\_kmh)) の結果を代入する。
+\item target に max(0.0, float(target\_kmh)) の結果を代入する。
+\item threshold に max(1e-06, float(deadband\_kmh), float(quantize\_step\_kmh)) の結果を代入する。
+\item 条件 bool(stop\_requested) and target <= 1e-09 and (speed <= threshold + 1e-09) を判定し、真なら内部処理を行う。
+\item (speed, False) を返す。
+            \end{enumerate}
+
+\subsection*{L212 関数 \path|choose_integration_step_seconds|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|choose_integration_step_seconds(simulation_step_sec, weather_step_sec)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, max, min
+              \item 戻り値の要点: max(60.0, min(simulation\_step, weather\_step))
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item simulation\_step に float(max(simulation\_step\_sec, 1.0)) の結果を代入する。
+\item weather\_step に float(max(weather\_step\_sec, 1.0)) の結果を代入する。
+\item max(60.0, min(simulation\_step, weather\_step)) を返す。
+            \end{enumerate}
+
+\subsection*{L218 関数 \path|choose_stationary_integration_step_seconds|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|choose_stationary_integration_step_seconds(simulation_step_sec, weather_step_sec, requested_step_sec)|
+              \item docstring: Use a fine state step after weather interpolation during long stops.
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, max, min
+              \item 戻り値の要点: min(requested, simulation\_step, weather\_step)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item requested に max(1.0, float(requested\_step\_sec)) の結果を代入する。
+\item simulation\_step に max(1.0, float(simulation\_step\_sec)) の結果を代入する。
+\item weather\_step に max(1.0, float(weather\_step\_sec)) の結果を代入する。
+\item min(requested, simulation\_step, weather\_step) を返す。
+            \end{enumerate}
+
+\subsection*{L230 関数 \path|write_model_snapshot|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|write_model_snapshot(detail_csv, parameters, map_paths)|
+              \item docstring: Write immutable model provenance once instead of repeating map paths at 1 Hz.
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, bool, dict, dumps, encode, endswith, ensure\_parent\_dir, hexdigest, int, is\_file, items, iter
+              \item 戻り値の要点: (snapshot\_id, output)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item maps に \{\} の結果を代入する。
+\item sorted((map\_paths or \{\}).items()) を順に走査し、各要素を (key, raw\_path) に入れて処理する。
+\item canonical に \{'parameters': dict(sorted((parameters or \{\}).items())), 'maps': maps\} の結果を代入する。
+\item snapshot\_id に hashlib.sha256(json.dumps(canonical, sort\_keys=True, ensure\_ascii=False, default=str).encode('utf-8')).hexdigest()[:16] の結果を代入する。
+\item raw\_base に str(detail\_csv) の結果を代入する。
+\item 条件 raw\_base.lower().endswith('.gz') を判定し、真なら内部処理を行う。
+\item 条件 raw\_base.lower().endswith('.csv') を判定し、真なら内部処理を行う。
+\item output に raw\_base + '\_model\_snapshot.yaml' の結果を代入する。
+\item payload に \{'schema\_version': 1, 'model\_snapshot\_id': snapshot\_id, 'detail\_csv': str(detail\_csv), 'parameters\_repeated\_in\_detail\_csv': True, 'maps\_referenced\_by\_snapshot\_id': True, **canonical\} の結果を代入する。
+\item ensure\_parent\_dir(...) を実行する。
+            \end{enumerate}
+
+\subsection*{L278 関数 \path|get_workspace_revision|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|get_workspace_revision(root_dir)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: bool, lower, run, strip
+              \item 戻り値の要点: info / info / info / info
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item info に \{'git\_available': False, 'git\_head': '', 'git\_branch': '', 'git\_dirty': None\} の結果を代入する。
+\item 例外処理を伴う try ブロックを実行する。
+\item 条件 inside.returncode != 0 or inside.stdout.strip().lower() != 'true' を判定し、真なら内部処理を行う。
+\item info['git\_available'] に True の結果を代入する。
+\item 例外処理を伴う try ブロックを実行する。
+\item info を返す。
+            \end{enumerate}
+
+\subsection*{L331 関数 \path|timestamp_ns|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|timestamp_ns(value)|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: Timestamp, int
+  \item 戻り値の要点: int(pd.Timestamp(value).value)
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item int(pd.Timestamp(value).value) を返す。
+\end{enumerate}
+
+\subsection*{L335 関数 \path|load_stops|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|load_stops(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, float, get, isinstance, load\_yaml, max, str
+              \item 戻り値の要点: stops
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item cfg に load\_yaml(path) の結果を代入する。
+\item raw\_stops に cfg.get('stops', []) if isinstance(cfg, dict) else [] の結果を代入する。
+\item stops に [] の結果を代入する。
+\item raw\_stops or [] を順に走査し、各要素を item に入れて処理する。
+\item stops を返す。
+            \end{enumerate}
+
+\subsection*{L365 関数 \path|load_profile|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|load_profile(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: read\_csv
+              \item 戻り値の要点: None / pd.read\_csv(path) / None
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not path を判定し、真なら内部処理を行う。
+\item 例外処理を伴う try ブロックを実行する。
+            \end{enumerate}
+
+\subsection*{L373 関数 \path|forecast_distance_column|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|forecast_distance_column(df)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: isinstance
+              \item 戻り値の要点: '' / '' / 's\_km' / 'route\_progress\_km'
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not isinstance(df, pd.DataFrame) を判定し、真なら内部処理を行う。
+\item 条件 's\_km' in df.columns を判定し、真なら内部処理を行う。
+\item 条件 'route\_progress\_km' in df.columns を判定し、真なら内部処理を行う。
+\item '' を返す。
+            \end{enumerate}
+
+\subsection*{L383 関数 \path|load_forecast_dataframe|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|load_forecast_dataframe(path, tzname)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ZoneInfo, copy, drop\_duplicates, forecast\_distance\_column, notna, read\_csv, reset\_index, sort\_values, str, to\_datetime, tz\_convert, tz\_localize
+              \item 戻り値の要点: df / df
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item df に pd.read\_csv(path) の結果を代入する。
+\item 条件 'time' not in df.columns を判定し、真なら内部処理を行う。
+\item t に pd.to\_datetime(df['time'], format='mixed', errors='coerce') の結果を代入する。
+\item tzname に str(tzname or 'UTC') の結果を代入する。
+\item 条件 t.dt.tz is None を判定し、真なら内部処理を行う。
+\item df に df.copy() の結果を代入する。
+\item df['time'] に t の結果を代入する。
+\item dist\_col に forecast\_distance\_column(df) の結果を代入する。
+\item sort\_cols に ['time'] + ([dist\_col] if dist\_col else []) の結果を代入する。
+\item dedup\_cols に ['time'] + ([dist\_col] if dist\_col else []) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L410 関数 \path|merge_forecast_dataframes|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|merge_forecast_dataframes(primary, fallback)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, combine\_first, copy, len, reset\_index, set\_index, sort\_index
+              \item 戻り値の要点: merged / fallback.copy() if fallback is not None else pd.DataFrame() / primary.copy() / primary.copy()
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 primary is None or len(primary) == 0 を判定し、真なら内部処理を行う。
+\item 条件 fallback is None or len(fallback) == 0 を判定し、真なら内部処理を行う。
+\item 条件 'time' not in primary.columns or 'time' not in fallback.columns を判定し、真なら内部処理を行う。
+\item primary\_idx に primary.set\_index('time') の結果を代入する。
+\item fallback\_idx に fallback.set\_index('time') の結果を代入する。
+\item merged に primary\_idx.combine\_first(fallback\_idx).sort\_index().reset\_index() の結果を代入する。
+\item merged を返す。
+            \end{enumerate}
+
+\subsection*{L423 関数 \path|build_forecast_grid_payload|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|build_forecast_grid_payload(df)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Index, apply, array, bfill, copy, drop\_duplicates, dropna, ffill, forecast\_distance\_column, interpolate, len, max
+              \item 戻り値の要点: \{'dist\_col': dist\_col, 'time\_ns': np.array([timestamp\_ns(value) for value in time\_index], dtype=np.int64), 's\_grid': s\_grid, 'matrices': matrices\} / None / None / None
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item dist\_col に forecast\_distance\_column(df) の結果を代入する。
+\item 条件 not dist\_col or 'time' not in df.columns を判定し、真なら内部処理を行う。
+\item work に df.copy() の結果を代入する。
+\item work[dist\_col] に pd.to\_numeric(work[dist\_col], errors='coerce') の結果を代入する。
+\item work に work.dropna(subset=['time', dist\_col]).sort\_values(['time', dist\_col]) の結果を代入する。
+\item 条件 work.empty を判定し、真なら内部処理を行う。
+\item time\_index に pd.Index(work['time'].drop\_duplicates().sort\_values()) の結果を代入する。
+\item s\_grid に np.array(sorted(work[dist\_col].dropna().unique()), dtype=float) の結果を代入する。
+\item 条件 len(time\_index) < 2 or len(s\_grid) < 2 を判定し、真なら内部処理を行う。
+\item 条件 len(work) <= max(len(time\_index), len(s\_grid)) を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L476 関数 \path|interp_forecast_grid|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|interp_forecast_grid(payload, col, t_utc, s_km, default)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: clip, float, get, int, len, max, searchsorted, timestamp\_ns
+              \item 戻り値の要点: float((1.0 - wt) * v0 + wt * v1) / float(default) / float(default)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not payload を判定し、真なら内部処理を行う。
+\item matrix に payload.get('matrices', \{\}).get(col) の結果を代入する。
+\item tg に payload.get('time\_ns') の結果を代入する。
+\item sg に payload.get('s\_grid') の結果を代入する。
+\item 条件 matrix is None or tg is None or sg is None or (len(tg) == 0) or (len(sg) == 0) を判定し、真なら内部処理を行う。
+\item t\_ns に int(np.clip(timestamp\_ns(t\_utc), int(tg[0]), int(tg[-1]))) の結果を代入する。
+\item s\_val に float(s\_km if s\_km is not None else sg[0]) の結果を代入する。
+\item s\_val に float(np.clip(s\_val, float(sg[0]), float(sg[-1]))) の結果を代入する。
+\item i\_hi に int(np.searchsorted(tg, t\_ns, side='left')) の結果を代入する。
+\item 条件 i\_hi <= 0 を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L523 関数 \path|load_progress_reference_dataframe|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|load_progress_reference_dataframe(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, drop\_duplicates, dropna, read\_csv, reset\_index, sort\_values, to\_datetime, to\_numeric
+              \item 戻り値の要点: out.reset\_index(drop=True) / None / None / None
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not path を判定し、真なら内部処理を行う。
+\item 例外処理を伴う try ブロックを実行する。
+\item time\_col に 'time\_utc' if 'time\_utc' in df.columns else 'time' if 'time' in df.columns else '' の結果を代入する。
+\item 条件 not time\_col or 's\_km' not in df.columns を判定し、真なら内部処理を行う。
+\item t に pd.to\_datetime(df[time\_col], format='mixed', utc=True, errors='coerce') の結果を代入する。
+\item out に pd.DataFrame(\{'time\_utc': t, 's\_km': pd.to\_numeric(df['s\_km'], errors='coerce')\}) の結果を代入する。
+\item 条件 'speed\_kmh' in df.columns を判定し、真なら内部処理を行う。
+\item out に out.dropna(subset=['time\_utc', 's\_km']).sort\_values('time\_utc').drop\_duplicates(subset=['time\_utc'], keep='last') の結果を代入する。
+\item 条件 out.empty を判定し、真なら内部処理を行う。
+\item out.reset\_index(drop=True) を返す。
+            \end{enumerate}
+
+\subsection*{L543 関数 \path|ensure_parent_dir|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|ensure_parent_dir(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: dirname, makedirs
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item parent に os.path.dirname(path) の結果を代入する。
+\item 条件 parent を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L549 クラス \path|DetailCsvStream|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|DetailCsvStream(bases=なし)|
+              \item docstring: Write the 1 Hz execution trace without retaining the full race in RAM.
+              \item このブロックが直接呼ぶ主な関数・メソッド: DictWriter, close, endswith, ensure\_parent\_dir, flush, keys, list, lower, opener, str, writeheader, writerow
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item docstring または説明文字列を置く。
+\item 関数 \_\_init\_\_ を定義する。
+\item 関数 write を定義する。
+\item 関数 close を定義する。
+\item 関数 \_\_enter\_\_ を定義する。
+\item 関数 \_\_exit\_\_ を定義する。
+            \end{enumerate}
+
+\subsection*{L583 関数 \path|_deep_copy_cfg|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|_deep_copy_cfg(cfg)|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: deepcopy, isinstance
+  \item 戻り値の要点: copy.deepcopy(cfg) if isinstance(cfg, dict) else \{\}
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item copy.deepcopy(cfg) if isinstance(cfg, dict) else \{\} を返す。
+\end{enumerate}
+
+\subsection*{L587 関数 \path|_set_nested|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_set_nested(cfg, dotted_key, value)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, get, isinstance, split, str
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item parts に [part for part in str(dotted\_key).split('.') if part] の結果を代入する。
+\item 条件 not parts を判定し、真なら内部処理を行う。
+\item cur に cfg の結果を代入する。
+\item parts[:-1] を順に走査し、各要素を part に入れて処理する。
+\item cur[parts[-1]] に value の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L601 関数 \path|apply_overrides|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|apply_overrides(cfg, overrides)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, \_deep\_copy\_cfg, \_set\_nested, append, safe\_load, split, str, strip
+              \item 戻り値の要点: (cfg, applied)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item cfg に \_deep\_copy\_cfg(cfg) の結果を代入する。
+\item applied に [] の結果を代入する。
+\item overrides or [] を順に走査し、各要素を raw に入れて処理する。
+\item (cfg, applied) を返す。
+            \end{enumerate}
+
+\subsection*{L618 関数 \path|build_config_tag|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|build_config_tag(profile_path, profile_cfg, overrides)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: encode, fromtimestamp, getmtime, hexdigest, isinstance, now, safe\_dump, sha1, strftime
+              \item 戻り値の要点: f'\{stamp\}\_\{digest\}'
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item payload に \{'profile\_cfg': profile\_cfg if isinstance(profile\_cfg, dict) else \{\}, 'overrides': overrides or []\} の結果を代入する。
+\item canonical に yaml.safe\_dump(payload, sort\_keys=True, allow\_unicode=True) の結果を代入する。
+\item digest に hashlib.sha1(canonical.encode('utf-8')).hexdigest()[:8] の結果を代入する。
+\item 例外処理を伴う try ブロックを実行する。
+\item stamp に mtime.strftime('\%Y\%m\%d\_\%H\%M\%S') の結果を代入する。
+\item f'\{stamp\}\_\{digest\}' を返す。
+            \end{enumerate}
+
+\subsection*{L633 関数 \path|tag_output_path|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|tag_output_path(path_value, tag, default_ext)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: replace, splitext, str, strip
+              \item 戻り値の要点: f'\{stem\}\_\{tag\}\{ext\}' / raw / raw.replace('\{tag\}', tag)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item raw に str(path\_value or '').strip() の結果を代入する。
+\item 条件 not raw or not tag を判定し、真なら内部処理を行う。
+\item 条件 '\{tag\}' in raw を判定し、真なら内部処理を行う。
+\item (stem, ext) に os.path.splitext(raw) の結果を代入する。
+\item 条件 not ext and default\_ext を判定し、真なら内部処理を行う。
+\item f'\{stem\}\_\{tag\}\{ext\}' を返す。
+            \end{enumerate}
+
+\subsection*{L645 関数 \path|apply_profile_cfg_to_args|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|apply_profile_cfg_to_args(profile_path, profile_cfg, args, force_output_defaults)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: bool, build\_config\_tag, clip, endswith, float, get, get\_path, get\_section, getattr, int, isinstance, join
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not profile\_cfg を判定し、真なら内部処理を行う。
+\item sim\_cfg に get\_section(profile\_cfg, 'simulation') の結果を代入する。
+\item runtime\_cfg に get\_section(profile\_cfg, 'runtime') の結果を代入する。
+\item logging\_cfg に get\_section(profile\_cfg, 'logging') の結果を代入する。
+\item auto\_version\_outputs に bool(sim\_cfg.get('auto\_version\_outputs', True)) の結果を代入する。
+\item output\_tag に build\_config\_tag(profile\_path, profile\_cfg, getattr(args, 'override', [])) if auto\_version\_outputs else '' の結果を代入する。
+\item args.params\_yaml に profile\_path の結果を代入する。
+\item args.profile\_path\_resolved に profile\_path の結果を代入する。
+\item args.auto\_version\_outputs に auto\_version\_outputs の結果を代入する。
+\item args.output\_tag に output\_tag の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L798 関数 \path|apply_profile_defaults|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|apply_profile_defaults(args)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: apply\_profile\_cfg\_to\_args, load\_workflow\_profile
+              \item 戻り値の要点: profile\_cfg / \{\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not args.profile\_yaml を判定し、真なら内部処理を行う。
+\item (profile\_path, profile\_cfg) に load\_workflow\_profile(args.profile\_yaml) の結果を代入する。
+\item apply\_profile\_cfg\_to\_args(...) を実行する。
+\item profile\_cfg を返す。
+            \end{enumerate}
+
+\subsection*{L806 関数 \path|resolve_config_path|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|resolve_config_path(profile_path, value)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, exists, is\_absolute, resolve, str, strip
+              \item 戻り値の要点: str((ROOT / path).resolve()) / '' / str(path) / str(candidate)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item value に str(value or '').strip() の結果を代入する。
+\item 条件 not value を判定し、真なら内部処理を行う。
+\item path に Path(value) の結果を代入する。
+\item 条件 path.is\_absolute() を判定し、真なら内部処理を行う。
+\item profile\_dir に Path(profile\_path).resolve().parent if profile\_path else ROOT の結果を代入する。
+\item candidate に (profile\_dir / path).resolve() の結果を代入する。
+\item 条件 candidate.exists() を判定し、真なら内部処理を行う。
+\item str((ROOT / path).resolve()) を返す。
+            \end{enumerate}
+
+\subsection*{L820 関数 \path|evaluate_model_validation_gate|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|evaluate_model_validation_gate(cfg, profile_path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, abs, all, bool, dict, exists, float, get, int, isfinite, isinstance, load\_yaml
+              \item 戻り値の要点: result / result
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item identification に cfg.get('identification', \{\}) if isinstance(cfg, dict) else \{\} の結果を代入する。
+\item gate\_cfg に identification.get('validation\_gate', \{\}) if isinstance(identification, dict) else \{\} の結果を代入する。
+\item 条件 not isinstance(gate\_cfg, dict) を判定し、真なら内部処理を行う。
+\item fit\_summary\_path に resolve\_config\_path(profile\_path, identification.get('fit\_summary\_yaml', '')) の結果を代入する。
+\item terminal\_path に resolve\_config\_path(profile\_path, identification.get('terminal\_consistency\_yaml', '')) の結果を代入する。
+\item result に \{'available': False, 'fit\_summary\_yaml': fit\_summary\_path, 'terminal\_consistency\_yaml': terminal\_path, 'gate\_pass': False, 'checks': \{\}, 'thresholds': \{\}\} の結果を代入する。
+\item 条件 not fit\_summary\_path or not Path(fit\_summary\_path).exists() を判定し、真なら内部処理を行う。
+\item summary に load\_yaml(fit\_summary\_path) の結果を代入する。
+\item metrics に summary.get('validation\_metrics', \{\}) if isinstance(summary, dict) else \{\} の結果を代入する。
+\item thresholds に \{'vehicle\_power\_rmse\_max\_w': float(gate\_cfg.get('vehicle\_power\_rmse\_max\_w', 150.0)), 'vehicle\_voltage\_rmse\_max\_v': float(gate\_cfg.get('vehicle\_voltage\_rmse\_max\_v', 1.0)), 'conditional\_power\_rmse\_max\_w': float(gate\_cfg.get('conditional\_power\_rmse\_max\_w', 150.0)), 'conditional\_voltage\_rmse\_max\_v': float(gate\_cfg.get('conditional\_voltage\_rmse\_max\_v', 1.0)), 'end\_to\_end\_power\_rmse\_max\_w': float(gate\_cfg.get('end\_to\_end\_power\_rmse\_max\_w', 200.0)), 'end\_to\_end\_voltage\_rmse\_max\_v': float(gate\_cfg.get('end\_to\_end\_voltage\_rmse\_max\_v', 2.0)), 'moving\_pv\_rmse\_max\_w': float(gate\_cfg.get('moving\_pv\_rmse\_max\_w', 150.0)), 'pv\_lodo\_moving\_rmse\_max\_w': float(gate\_cfg.get('pv\_lodo\_moving\_rmse\_max\_w', 150.0)), 'pv\_lodo\_deployed\_stop\_rmse\_max\_w': float(gate\_cfg.get('pv\_lodo\_deployed\_stop\_rmse\_max\_w', 200.0)), 'power\_residual\_mean\_120s\_rmse\_max\_w': float(gate\_cfg.get('power\_residual\_mean\_120s\_rmse\_max\_w', 150.0)), 'energy\_error\_25km\_rmse\_max\_wh': float(gate\_cfg.get('energy\_error\_25km\_rmse\_max\_wh', 35.0)), 'terminal\_soc\_evidence\_spread\_max': float(gate\_cfg.get('terminal\_soc\_evidence\_spread\_max', 0.05)), 'terminal\_replay\_soc\_error\_max': float(gate\_cfg.get('terminal\_replay\_soc\_error\_max', 0.02)), 'terminal\_replay\_voltage\_error\_max\_v': float(gate\_cfg.get('terminal\_replay\_voltage\_error\_max\_v', 0.5)), 'vehicle\_terminal\_soc\_error\_max': float(gate\_cfg.get('vehicle\_terminal\_soc\_error\_max', 0.02)), 'vehicle\_terminal\_voltage\_error\_max\_v': float(gate\_cfg.get('vehicle\_terminal\_voltage\_error\_max\_v', 0.5)), 'end\_to\_end\_terminal\_soc\_error\_max': float(gate\_cfg.get('end\_to\_end\_terminal\_soc\_error\_max', 0.03)), 'end\_to\_end\_terminal\_voltage\_error\_max\_v': float(gate\_cfg.get('end\_to\_end\_terminal\_voltage\_error\_max\_v', 1.0)), 'acceleration\_validation\_rmse\_ratio\_max': float(gate\_cfg.get('acceleration\_validation\_rmse\_ratio\_max', 1.02)), 'acceleration\_validation\_min\_samples': int(gate\_cfg.get('acceleration\_validation\_min\_samples', 100)), 'grade\_validation\_rmse\_ratio\_max': float(gate\_cfg.get('grade\_validation\_rmse\_ratio\_max', 1.02)), 'grade\_validation\_min\_samples': int(gate\_cfg.get('grade\_validation\_min\_samples', 100))\} の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L1032 関数 \path|get_profile_val|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|get_profile_val(df, s_km, field, default)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, interpolate\_profile, isfinite
+              \item 戻り値の要点: float(val) / float(default) / float(default)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 df is None or field not in df.columns を判定し、真なら内部処理を行う。
+\item val に float(interpolate\_profile(df, s\_km, field, default)) の結果を代入する。
+\item 条件 not math.isfinite(val) を判定し、真なら内部処理を行う。
+\item float(val) を返す。
+            \end{enumerate}
+
+\subsection*{L1040 関数 \path|parse_utc_arg|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|parse_utc_arg(raw_value)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: astimezone, endswith, fromisoformat, replace, str, strip
+              \item 戻り値の要点: dt.astimezone(timezone.utc) / None
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item text に str(raw\_value or '').strip() の結果を代入する。
+\item 条件 not text を判定し、真なら内部処理を行う。
+\item 条件 text.endswith('Z') を判定し、真なら内部処理を行う。
+\item dt に datetime.fromisoformat(text) の結果を代入する。
+\item 条件 dt.tzinfo is None を判定し、真なら内部処理を行う。
+\item dt.astimezone(timezone.utc) を返す。
+            \end{enumerate}
+
+\subsection*{L1052 関数 \path|resolve_forecast_mode|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|resolve_forecast_mode(mode, df)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: all, isna, lower, str, strip
+              \item 戻り値の要点: raw / 'absolute' if has\_time else 'relative' / 'relative' / 'relative'
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item raw に str(mode or 'auto').strip().lower() の結果を代入する。
+\item has\_time に 'time' in df.columns and (not df['time'].isna().all()) の結果を代入する。
+\item 条件 raw == 'auto' を判定し、真なら内部処理を行う。
+\item 条件 raw not in ('absolute', 'relative', 'loop') を判定し、真なら内部処理を行う。
+\item 条件 raw == 'absolute' and (not has\_time) を判定し、真なら内部処理を行う。
+\item raw を返す。
+            \end{enumerate}
+
+\subsection*{L1064 関数 \path|forecast_row_index|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|forecast_row_index(df, sim_t, dt_sec, mode, forecast_start_time)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Timestamp, all, clip, int, isna, len, max, searchsorted, total\_seconds
+              \item 戻り値の要点: int(np.clip(idx, 0, len(df) - 1)) / 0 / int(idx \% len(df)) / int(np.clip(idx, 0, len(df) - 1))
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 len(df) == 0 を判定し、真なら内部処理を行う。
+\item 条件 mode == 'absolute' and 'time' in df.columns and (not df['time'].isna().all()) を判定し、真なら内部処理を行う。
+\item elapsed に max(0.0, (sim\_t - forecast\_start\_time).total\_seconds()) の結果を代入する。
+\item idx に int(elapsed / max(dt\_sec, 0.001)) の結果を代入する。
+\item 条件 mode == 'loop' を判定し、真なら内部処理を行う。
+\item int(np.clip(idx, 0, len(df) - 1)) を返す。
+            \end{enumerate}
+
+\subsection*{L1082 関数 \path|format_metric|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|format_metric(value, digits, default)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, isfinite
+              \item 戻り値の要点: default / default / f'\{fval:.\{digits\}f\}'
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 value is None を判定し、真なら内部処理を行う。
+\item 例外処理を伴う try ブロックを実行する。
+\item default を返す。
+            \end{enumerate}
+
+\subsection*{L1094 関数 \path|decimate_xy|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|decimate_xy(xs, ys, max_points)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, ceil, float, int, isfinite, len, max, zip
+              \item 戻り値の要点: reduced / pts
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item pts に [(float(x), float(y)) for x, y in zip(xs, ys) if math.isfinite(float(y))] の結果を代入する。
+\item 条件 len(pts) <= max\_points を判定し、真なら内部処理を行う。
+\item step に max(1, int(math.ceil(len(pts) / max\_points))) の結果を代入する。
+\item reduced に pts[::step] の結果を代入する。
+\item 条件 reduced[-1] != pts[-1] を判定し、真なら内部処理を行う。
+\item reduced を返す。
+            \end{enumerate}
+
+\subsection*{L1105 関数 \path|build_svg_chart|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|build_svg_chart(xs, ys, color, width, height, pad, label)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, append, decimate\_xy, escape, format\_metric, join, max, min
+              \item 戻り値の要点: f'<svg viewBox="0 0 \{width\} \{height\}" class="chart-svg" role="img" aria-label="\{html.escape(label)\}"><rect x="0" y="0" width="\{width\}" height="\{height\}" rx="18" ry="18" fill="\#fffdf8" stroke="\#d8d1c4" /><line x1="\{pad\}" y1="\{pad\}" x2="\{pad\}" y2="\{height - pad\}" stroke="\#a9a293" stroke-width="1" /><line x1="\{pad\}" y1="\{height - pad\}" x2="\{width - pad\}" y2="\{height - pad\}" stroke="\#a9a293" stroke-width="1" /><polyline fill="none" stroke="\{color\}" stroke-width="2.6" points="\{polyline\}" /><text x="\{pad\}" y="18" font-size="12" fill="\#50483f">\{html.escape(label)\}</text><text x="\{width - pad\}" y="18" text-anchor="end" font-size="11" fill="\#6f665b">\{format\_metric(y\_max, 2)\}</text><text x="\{width - pad\}" y="\{height - 8\}" text-anchor="end" font-size="11" fill="\#6f665b">\{format\_metric(x\_max, 1)\}</text><text x="\{pad\}" y="\{height - 8\}" font-size="11" fill="\#6f665b">\{format\_metric(x\_min, 1)\}</text><text x="\{width - pad\}" y="\{height / 2:.1f\}" text-anchor="end" font-size="11" fill="\#6f665b">\{format\_metric(y\_mid, 2)\}</text><text x="\{width - pad\}" y="\{height - pad + 16\}" text-anchor="end" font-size="11" fill="\#6f665b">x</text></svg>' / '<div class="chart-empty">no data</div>'
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item pts に decimate\_xy(xs, ys, max\_points=700) の結果を代入する。
+\item 条件 not pts を判定し、真なら内部処理を行う。
+\item x\_vals に [p[0] for p in pts] の結果を代入する。
+\item y\_vals に [p[1] for p in pts] の結果を代入する。
+\item x\_min に min(x\_vals) の結果を代入する。
+\item x\_max に max(x\_vals) の結果を代入する。
+\item y\_min に min(y\_vals) の結果を代入する。
+\item y\_max に max(y\_vals) の結果を代入する。
+\item 条件 x\_max <= x\_min を判定し、真なら内部処理を行う。
+\item 条件 y\_max <= y\_min を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L1146 関数 \path|flatten_params_for_report|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|flatten_params_for_report(cfg)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, get, isinstance, items, str, visit
+              \item 戻り値の要点: rows / rows
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rows に [] の結果を代入する。
+\item 関数 visit を定義する。
+\item 条件 not isinstance(cfg, dict) を判定し、真なら内部処理を行う。
+\item ('simulation', 'model', 'mpc', 'runtime') を順に走査し、各要素を section\_name に入れて処理する。
+\item rows を返す。
+            \end{enumerate}
+
+\subsection*{L1166 関数 \path|write_simulation_report|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|write_simulation_report(path, summary, detail_df, params_rows)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Series, append, build\_svg\_chart, dumps, ensure\_parent\_dir, escape, extend, format\_metric, get, join, len, list
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item ensure\_parent\_dir(...) を実行する。
+\item x\_index に list(range(len(detail\_df))) の結果を代入する。
+\item speed\_exec\_present に 'v\_exec\_kmh' in detail\_df.columns の結果を代入する。
+\item speed\_series に detail\_df.get('v\_exec\_kmh', detail\_df.get('v\_cmd\_kmh', pd.Series(dtype=float))) の結果を代入する。
+\item speed\_svg に build\_svg\_chart(x\_index, speed\_series, color='\#0f766e', label='speed exec [km/h]' if speed\_exec\_present else 'speed cmd [km/h]') の結果を代入する。
+\item speed\_cmd\_svg に '' の結果を代入する。
+\item 条件 speed\_exec\_present を判定し、真なら内部処理を行う。
+\item soc\_svg に build\_svg\_chart(x\_index, detail\_df.get('soc', pd.Series(dtype=float)), color='\#b45309', label='soc [-]') の結果を代入する。
+\item pack\_svg に build\_svg\_chart(x\_index, detail\_df.get('P\_pack', pd.Series(dtype=float)), color='\#b91c1c', label='pack power [W]') の結果を代入する。
+\item solar\_svg に build\_svg\_chart(x\_index, detail\_df.get('P\_pv', pd.Series(dtype=float)), color='\#2563eb', label='pv power [W]') の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L1288 関数 \path|mpc_solve|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|mpc_solve(model, data, z0, Tb0, s0_km, v0_kmh, v_max_kmh, term_soc_min, w_dv, w_dv_limit, dv_max_kmhps, w_T, w_speed_limit, w_current, speed_profile, soc_target, soc_band, w_soc_target, w_soc_band, schedule, soc_day_end_max, w_soc_day_max, soc_finish_target, soc_finish_tol, w_soc_progress, w_soc_terminal, race_km, soc_day_end_target, soc_day_end_tol, w_soc_day_track)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, array, clip, current\_drive\_window, dict, electrical\_balance, float, get, get\_profile\_val, is\_drive\_time, len, list
+              \item 戻り値の要点: float(np.clip(v0\_kmh, 0.0, v\_max\_kmh)) / v0\_kmh / x * x / J
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item p に model.p の結果を代入する。
+\item Np に len(data) の結果を代入する。
+\item 条件 Np <= 0 を判定し、真なら内部処理を行う。
+\item v0\_ms に v0\_kmh / 3.6 の結果を代入する。
+\item x0 に np.array([v0\_ms] * Np, dtype=float) の結果を代入する。
+\item lb に np.zeros(Np, dtype=float) の結果を代入する。
+\item ub に np.ones(Np, dtype=float) * (v\_max\_kmh / 3.6) の結果を代入する。
+\item dv\_max\_msps に dv\_max\_kmhps / 3.6 の結果を代入する。
+\item 関数 quad\_penalty を定義する。
+\item 関数 cost を定義する。
+            \end{enumerate}
+
+\subsection*{L1402 関数 \path|soc_guard_speed|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|soc_guard_speed(model, v_kmh, z, Tb, s_km, d0, route_profile, mode, soc_guard)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: electrical\_balance, float, get, get\_profile\_val, lower, max, range, soc\_step, str, z\_next\_for
+              \item 戻り値の要点: float(lo) / model.soc\_step(z, P\_pack, model.p.dt, current\_a=float(out['I']), Tbat\_C=Tb) / float(lo) / v\_kmh
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item mode に str(mode).lower() の結果を代入する。
+\item target に model.p.soc\_min + soc\_guard の結果を代入する。
+\item slope\_pct に get\_profile\_val(route\_profile, s\_km, 'slope\_pct', d0.get('slope\_pct', 0.0)) の結果を代入する。
+\item headwind\_ms に d0.get('headwind\_ms', 0.0) の結果を代入する。
+\item elevation\_m に get\_profile\_val(route\_profile, s\_km, 'elev\_m', d0.get('elevation\_m', 0.0)) の結果を代入する。
+\item 関数 z\_next\_for を定義する。
+\item 条件 z <= target を判定し、真なら内部処理を行う。
+\item 条件 z\_next\_for(v\_kmh) >= target を判定し、真なら内部処理を行う。
+\item lo に 0.0 の結果を代入する。
+\item hi に max(0.0, float(v\_kmh)) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L1451 関数 \path|soc_day_guard_speed|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|soc_day_guard_speed(model, v_kmh, z, Tb, s_km, d0, route_profile, target_soc, tol)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: electrical\_balance, float, get, get\_profile\_val, max, range, soc\_step, z\_next\_for
+              \item 戻り値の要点: float(lo) / v\_kmh / model.soc\_step(z, P\_pack, model.p.dt, current\_a=float(out['I']), Tbat\_C=Tb) / v\_kmh
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 target\_soc <= 0.0 を判定し、真なら内部処理を行う。
+\item slope\_pct に get\_profile\_val(route\_profile, s\_km, 'slope\_pct', d0.get('slope\_pct', 0.0)) の結果を代入する。
+\item headwind\_ms に d0.get('headwind\_ms', 0.0) の結果を代入する。
+\item elevation\_m に get\_profile\_val(route\_profile, s\_km, 'elev\_m', d0.get('elevation\_m', 0.0)) の結果を代入する。
+\item 関数 z\_next\_for を定義する。
+\item 条件 z\_next\_for(v\_kmh) >= target\_soc - tol を判定し、真なら内部処理を行う。
+\item lo に 0.0 の結果を代入する。
+\item hi に max(0.0, float(v\_kmh)) の結果を代入する。
+\item range(25) を順に走査し、各要素を \_ に入れて処理する。
+\item float(lo) を返す。
+            \end{enumerate}
+
+\subsection*{L1485 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ArgumentParser, DataFrame, DetailCsvStream, Params, Path, SmoothRateLimiter, SolarCarModel, Timestamp, ValueError, ZoneInfo, \_deep\_copy\_cfg, abs
+              \item 戻り値の要点: choose\_integration\_step\_seconds(args.dt, forecast\_native\_dt\_sec) / t\_utc >= forecast\_start\_time / total\_sec / s0 + alpha * (s1 - s0)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item ap に argparse.ArgumentParser() の結果を代入する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+            \end{enumerate}
+
+
+
+
+
+
+
+        \subsection*{CLI 引数}
+            \begin{longtable}{p{0.07\linewidth} p{0.78\linewidth}}
+            \toprule
+            行 & 引数 \\
+            \midrule
+            1487 & \path|--profile_yaml| \\
+1488 & \path|--forecast_csv| \\
+1489 & \path|--forecast_fill_csv| \\
+1490 & \path|--progress_reference_csv| \\
+1491 & \path|--forecast_time_mode| \\
+1492 & \path|--forecast_time_tz| \\
+1493 & \path|--route_profile_csv| \\
+1494 & \path|--speed_profile_csv| \\
+1495 & \path|--params_yaml| \\
+1496 & \path|--stop_yaml| \\
+1497 & \path|--drive_schedule_yaml| \\
+1498 & \path|--panel_eff_map| \\
+1499 & \path|--mppt_eff_map| \\
+1500 & \path|--ocv_soc_map| \\
+1501 & \path|--drive_eff_map| \\
+1502 & \path|--regen_eff_map| \\
+1503 & \path|--rint_map| \\
+1504 & \path|--drive_map_eco| \\
+1505 & \path|--drive_map_power| \\
+1506 & \path|--regen_map_eco| \\
+1507 & \path|--regen_map_power| \\
+1508 & \path|--dt| \\
+1509 & \path|--horizon_steps| \\
+1510 & \path|--soc0| \\
+1511 & \path|--Tb0| \\
+1512 & \path|--v0_kmh| \\
+1513 & \path|--start_utc| \\
+1514 & \path|--forecast_start_time_utc| \\
+1515 & \path|--start_index| \\
+1516 & \path|--start_s_km| \\
+1517 & \path|--resume_csv| \\
+1518 & \path|--resume_s_km| \\
+1519 & \path|--out_csv| \\
+1520 & \path|--out_detail_csv| \\
+1521 & \path|--report_html| \\
+1522 & \path|--summary_json| \\
+1523 & \path|--resolved_yaml| \\
+1524 & \path|--latest_manifest_json| \\
+1525 & \path|--override| \\
+1526 & \path|--soc_guard_margin| \\
+1527 & \path|--soc_guard_mode| \\
+1528 & \path|--solar_gain| \\
+1529 & \path|--poa_gain_drive| \\
+1530 & \path|--poa_gain_stop| \\
+1531 & \path|--stop_tilt_fraction| \\
+1532 & \path|--control_stop_tilt_fraction| \\
+1533 & \path|--energy_budget| \\
+1534 & \path|--exec_model_enabled| \\
+1535 & \path|--exec_inner_dt_sec| \\
+1536 & \path|--detail_rate_hz| \\
+1537 & \path|--exec_tau_sec| \\
+1538 & \path|--exec_accel_limit_kmhps| \\
+1539 & \path|--exec_decel_limit_kmhps| \\
+1540 & \path|--exec_deadband_kmh| \\
+1541 & \path|--exec_quantize_step_kmh| \\
+1542 & \path|--exec_reaction_delay_sec| \\
+1543 & \path|--upper_mode| \\
+1544 & \path|--upper_ds_km| \\
+1545 & \path|--upper_horizon_km| \\
+1546 & \path|--upper_max_steps| \\
+1547 & \path|--upper_horizon_mode| \\
+1548 & \path|--upper_adaptive_min_ds_km| \\
+1549 & \path|--upper_adaptive_max_ds_km| \\
+1550 & \path|--upper_adaptive_growth| \\
+1551 & \path|--upper_replan_km| \\
+1552 & \path|--upper_replan_sec| \\
+1553 & \path|--upper_max_iter| \\
+1554 & \path|--upper_global_search_enabled| \\
+1555 & \path|--upper_global_search_mode| \\
+1556 & \path|--upper_cem_generations| \\
+1557 & \path|--upper_cem_population| \\
+1558 & \path|--upper_cem_elite| \\
+1559 & \path|--upper_local_refine_topk| \\
+1560 & \path|--upper_shgo_samples| \\
+1561 & \path|--upper_shgo_iters| \\
+1562 & \path|--upper_cert_grid_levels| \\
+1563 & \path|--upper_cert_max_evaluations| \\
+1564 & \path|--upper_cert_workers| \\
+1570 & \path|--upper_ctrl_km| \\
+1571 & \path|--upper_vmin_kmh| \\
+            \bottomrule
+            \end{longtable}
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item CLI 引数を解釈し、main() から処理を起動する。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|scripts/solar_sim.py| を
+        \textbf{offline core}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

@@ -1,0 +1,177 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={自動校正ロジック関数群},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{25. 自動校正ロジック関数群}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/solar_autocal_logic.py| \\
+        種別 & Python \\
+        区分 & runtime helper \\
+        役割 & solar\_autocal\_node が使う昼間停止時 aux 推定などの純ロジック関数をまとめる。 \\
+        起動文脈 & Node から切り出された小さな判定ロジック。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        solar\_autocal\_node が使う昼間停止時 aux 推定などの純ロジック関数をまとめる。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item Node 依存を持たないので単体試験しやすい。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_autocal_node.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 特記事項なし。
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        Pure helpers for bounded online solar-car calibration.
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+import math
+
+
+def daytime_stationary_aux_estimate(
+    *,
+    ghi_wm2: float,
+    day_ghi_threshold_wm2: float,
+    speed_kmh: float,
+    stationary_speed_kmh: float,
+    pack_power_w: float,
+    solar_power_w: float,
+) -> float | None:
+    values = (ghi_wm2, speed_kmh, pack_power_w, solar_power_w)
+    if not all(math.isfinite(float(value)) for value in values):
+        return None
+    if float(ghi_wm2) < float(day_ghi_threshold_wm2):
+        return None
+    if abs(float(speed_kmh)) > float(stationary_speed_kmh):
+        return None
+    return max(0.0, float(pack_power_w) + float(solar_power_w))
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要関数は daytime\_stationary\_aux\_estimate。
+
+        \subsection*{主要クラス・関数}
+\begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+\toprule
+行 & 種別 & 名前 & 補足 \\
+\midrule
+8 & function & \path|daytime_stationary_aux_estimate| &  \\
+\bottomrule
+\end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+\begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+\toprule
+行 & 内容 \\
+\midrule
+8 & 関数 daytime\_stationary\_aux\_estimate を定義する。 \\
+\bottomrule
+\end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            3 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+5 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L18。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L8 関数 \path|daytime_stationary_aux_estimate|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|daytime_stationary_aux_estimate(ghi_wm2, day_ghi_threshold_wm2, speed_kmh, stationary_speed_kmh, pack_power_w, solar_power_w)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, all, float, isfinite, max
+              \item 戻り値の要点: max(0.0, float(pack\_power\_w) + float(solar\_power\_w)) / None / None / None
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item values に (ghi\_wm2, speed\_kmh, pack\_power\_w, solar\_power\_w) の結果を代入する。
+\item 条件 not all((math.isfinite(float(value)) for value in values)) を判定し、真なら内部処理を行う。
+\item 条件 float(ghi\_wm2) < float(day\_ghi\_threshold\_wm2) を判定し、真なら内部処理を行う。
+\item 条件 abs(float(speed\_kmh)) > float(stationary\_speed\_kmh) を判定し、真なら内部処理を行う。
+\item max(0.0, float(pack\_power\_w) + float(solar\_power\_w)) を返す。
+            \end{enumerate}
+
+
+
+
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/solar_autocal_logic.py| を
+        \textbf{runtime helper}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

@@ -1,0 +1,581 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={上位速度計画の補間と warm start},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{15. 上位速度計画の補間と warm start}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/upper_policy.py| \\
+        ソースSHA-256 & \path|8417d8498b74ae45328fb84745a5eb7cd940722eabb155b23e29baa3423d0252| \\
+        種別 & Python \\
+        区分 & planner helper \\
+        役割 & 外部 speed policy CSV と前回解を絶対距離基準で現在メッシュへ補間し直す。 \\
+        起動文脈 & upper planner の初期値品質を決める補助。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        外部 speed policy CSV と前回解を絶対距離基準で現在メッシュへ補間し直す。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item absolute\_control\_distances と shift\_upper\_policy\_warm\_start が重要。
+\item 相対距離ではなくルート絶対距離に揃える修正済み箇所。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_node.py|
+\item \path|scripts/solar_sim.py|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/upper_solver.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+import pandas as pd
+
+
+def _finite_vector(values, *, name: str) -> np.ndarray:
+    vector = np.asarray(values, dtype=float)
+    if vector.ndim != 1 or len(vector) == 0 or not np.all(np.isfinite(vector)):
+        raise ValueError(f"{name} must be a non-empty finite one-dimensional array")
+    return vector
+
+
+def absolute_control_distances(start_s_km: float, relative_control_s_km) -> np.ndarray:
+    """Convert a horizon-relative control mesh to route-absolute distances."""
+    start = float(start_s_km)
+    if not np.isfinite(start):
+        raise ValueError("start_s_km must be finite")
+    relative = _finite_vector(relative_control_s_km, name="relative_control_s_km")
+    if np.any(relative < -1.0e-9) or np.any(np.diff(relative) < -1.0e-9):
+        raise ValueError("relative_control_s_km must be non-negative and non-decreasing")
+    return start + relative
+
+
+def shift_upper_policy_warm_start(
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要関数は absolute\_control\_distances, shift\_upper\_policy\_warm\_start, load\_upper\_policy\_csv, interpolate\_upper\_policy。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            9 & function & \path|_finite_vector| & args: values \\
+16 & function & \path|absolute_control_distances| & args: start\_s\_km, relative\_control\_s\_km \\
+27 & function & \path|shift_upper_policy_warm_start| & args: previous\_control\_s\_km, previous\_speeds\_kmh, current\_control\_s\_km \\
+57 & function & \path|load_upper_policy_csv| & args: path \\
+81 & function & \path|interpolate_upper_policy| & args: frame, control\_s\_km \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            9 & 関数 \_finite\_vector を定義する。 \\
+16 & 関数 absolute\_control\_distances を定義する。 \\
+27 & 関数 shift\_upper\_policy\_warm\_start を定義する。 \\
+57 & 関数 load\_upper\_policy\_csv を定義する。 \\
+81 & 関数 interpolate\_upper\_policy を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L57, L59。 \\
+5 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L9, L10, L11, L16, L19, L22, L34, L41, ...。 \\
+6 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L57, L60, L65, L66, L82, L90, L91。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{list、dict、deque、NumPy配列、pandas DataFrame}
+listは順序付き可変列、tupleは順序付きで通常変更しない列、dictはキーから値を引く対応表、dequeは両端追加・削除が効率的なキューである。どの構造を選ぶかはアクセス方法と更新方法で決まる。
+
+
+NumPy配列は同種数値を連続的に扱い、要素ごとの演算、clip、補間、線形代数を簡潔に書く。shapeは各次元の要素数であり、速度系列なら通常`(N,)`、候補集団なら`(population, N)`となる。
+
+
+pandas DataFrameは列名を持つ表である。CSV読込後は列型、欠損、単位、timezone、並び順、重複を明示的に処理しなければ、数値計算が動いても意味が誤る。
+
+
+
+\subsection{warm startは何を保存し、どう効くか}
+warm startは前回またはoffline探索で得た入力系列を、次の最適化の初期候補として渡すことである。答えを固定するのではなく、探索開始点と候補libraryの一員を与える。
+
+
+\[
+u^{0,\mathrm{new}}_i=\operatorname{interp}\left(s_i^{\mathrm{new}};\,s_j^{\mathrm{old}},u_j^{\ast,\mathrm{old}}\right)
+\]
+
+距離基準計画では、現在より後ろの旧制御点を捨て、新しい絶対距離制御点へ補間してshiftする。初期状態や天候が変わればcost評価は新条件で行われるので、warm startが不適切でも他seed、CEM、安全fallbackが補う設計が必要である。
+
+
+warm startの効き方は、局所法なら収束先と反復数、CEMなら初期meanまたは候補pool、receding horizonなら前回解の時間・距離shiftとして現れる。どの位置に渡しているかを呼出引数まで追う。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\item \href{https://link.springer.com/book/10.1007/978-1-4757-4321-0}{Rubinstein and Kroese: The Cross-Entropy Method}
+\end{itemize}
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L9 関数 \_finite\_vector}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L9--L13
+              \item 所属: module直下
+              \item 定義: \path|_finite_vector(values, *, name: str) -> np.ndarray|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, all, asarray, isfinite, len
+              \item 戻り値の要点: vector
+              \item 主なローカル代入名: vector
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: ValueError(f'\{name\} must be a non-empty finite one-dimensional array')
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item vector に np.asarray(values, dtype=float) の結果を代入する。
+\item 条件 vector.ndim != 1 or len(vector) == 0 or (not np.all(np.isfinite(vector))) を判定し、真なら内部処理を行う。
+\item   ValueError(f'\{name\} must be a non-empty finite one-dimensional array') を送出する。
+\item vector を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def _finite_vector(values, *, name: str) -> np.ndarray:
+    vector = np.asarray(values, dtype=float)
+    if vector.ndim != 1 or len(vector) == 0 or not np.all(np.isfinite(vector)):
+        raise ValueError(f"{name} must be a non-empty finite one-dimensional array")
+    return vector
+\end{lstlisting}
+
+\subsection{L16 関数 absolute\_control\_distances}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L16--L24
+              \item 所属: module直下
+              \item 定義: \path|absolute_control_distances(start_s_km: float, relative_control_s_km) -> np.ndarray|
+              \item docstring: Convert a horizon-relative control mesh to route-absolute distances.
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, \_finite\_vector, any, diff, float, isfinite
+              \item 戻り値の要点: start + relative
+              \item 主なローカル代入名: relative, start
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: ValueError('relative\_control\_s\_km must be non-negative and non-decreasing'), ValueError('start\_s\_km must be finite')
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item start に float(start\_s\_km) の結果を代入する。
+\item 条件 not np.isfinite(start) を判定し、真なら内部処理を行う。
+\item   ValueError('start\_s\_km must be finite') を送出する。
+\item relative に \_finite\_vector(relative\_control\_s\_km, name='relative\_control\_s\_km') の結果を代入する。
+\item 条件 np.any(relative < -1e-09) or np.any(np.diff(relative) < -1e-09) を判定し、真なら内部処理を行う。
+\item   ValueError('relative\_control\_s\_km must be non-negative and non-decreasing') を送出する。
+\item start + relative を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def absolute_control_distances(start_s_km: float, relative_control_s_km) -> np.ndarray:
+    """Convert a horizon-relative control mesh to route-absolute distances."""
+    start = float(start_s_km)
+    if not np.isfinite(start):
+        raise ValueError("start_s_km must be finite")
+    relative = _finite_vector(relative_control_s_km, name="relative_control_s_km")
+    if np.any(relative < -1.0e-9) or np.any(np.diff(relative) < -1.0e-9):
+        raise ValueError("relative_control_s_km must be non-negative and non-decreasing")
+    return start + relative
+\end{lstlisting}
+
+\subsection{L27 関数 shift\_upper\_policy\_warm\_start}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L27--L54
+              \item 所属: module直下
+              \item 定義: \path|shift_upper_policy_warm_start(previous_control_s_km, previous_speeds_kmh, current_control_s_km, *, minimum_speed_kmh: float, maximum_speed_kmh: float) -> np.ndarray|
+              \item docstring: Shift a prior route-indexed policy onto the current absolute control mesh.
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, \_finite\_vector, any, argsort, clip, diff, float, interp, len, unique
+              \item 戻り値の要点: np.clip(shifted, float(minimum\_speed\_kmh), float(maximum\_speed\_kmh))
+              \item 主なローカル代入名: current\_s, keep, order, previous\_s, previous\_v, reverse\_index, shifted, unique\_s
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: ValueError('current\_control\_s\_km must be non-decreasing'), ValueError('previous control distances and speeds must have equal length')
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item previous\_s に \_finite\_vector(previous\_control\_s\_km, name='previous\_control\_s\_km') の結果を代入する。
+\item previous\_v に \_finite\_vector(previous\_speeds\_kmh, name='previous\_speeds\_kmh') の結果を代入する。
+\item current\_s に \_finite\_vector(current\_control\_s\_km, name='current\_control\_s\_km') の結果を代入する。
+\item 条件 len(previous\_s) != len(previous\_v) を判定し、真なら内部処理を行う。
+\item   ValueError('previous control distances and speeds must have equal length') を送出する。
+\item 条件 np.any(np.diff(current\_s) < -1e-09) を判定し、真なら内部処理を行う。
+\item   ValueError('current\_control\_s\_km must be non-decreasing') を送出する。
+\item order に np.argsort(previous\_s, kind='stable') の結果を代入する。
+\item previous\_s に previous\_s[order] の結果を代入する。
+\item previous\_v に previous\_v[order] の結果を代入する。
+\item (unique\_s, reverse\_index) に np.unique(previous\_s[::-1], return\_index=True) の結果を代入する。
+\item keep に len(previous\_s) - 1 - reverse\_index の結果を代入する。
+\item keep に keep[np.argsort(unique\_s)] の結果を代入する。
+\item previous\_s に previous\_s[keep] の結果を代入する。
+\item previous\_v に previous\_v[keep] の結果を代入する。
+\item shifted に np.interp(current\_s, previous\_s, previous\_v) の結果を代入する。
+\item np.clip(shifted, float(minimum\_speed\_kmh), float(maximum\_speed\_kmh)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def shift_upper_policy_warm_start(
+    previous_control_s_km,
+    previous_speeds_kmh,
+    current_control_s_km,
+    *,
+    minimum_speed_kmh: float,
+    maximum_speed_kmh: float,
+) -> np.ndarray:
+    """Shift a prior route-indexed policy onto the current absolute control mesh."""
+    previous_s = _finite_vector(previous_control_s_km, name="previous_control_s_km")
+    previous_v = _finite_vector(previous_speeds_kmh, name="previous_speeds_kmh")
+    current_s = _finite_vector(current_control_s_km, name="current_control_s_km")
+    if len(previous_s) != len(previous_v):
+        raise ValueError("previous control distances and speeds must have equal length")
+    if np.any(np.diff(current_s) < -1.0e-9):
+        raise ValueError("current_control_s_km must be non-decreasing")
+
+    order = np.argsort(previous_s, kind="stable")
+    previous_s = previous_s[order]
+    previous_v = previous_v[order]
+    unique_s, reverse_index = np.unique(previous_s[::-1], return_index=True)
+    keep = len(previous_s) - 1 - reverse_index
+    keep = keep[np.argsort(unique_s)]
+    previous_s = previous_s[keep]
+    previous_v = previous_v[keep]
+
+    shifted = np.interp(current_s, previous_s, previous_v)
+    return np.clip(shifted, float(minimum_speed_kmh), float(maximum_speed_kmh))
+\end{lstlisting}
+
+\subsection{L57 関数 load\_upper\_policy\_csv}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L57--L78
+              \item 所属: module直下
+              \item 定義: \path!load_upper_policy_csv(path: str | Path) -> pd.DataFrame!
+              \item docstring: Load a distance-indexed upper speed policy with strict schema checks.
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, ValueError, copy, drop\_duplicates, dropna, float, issubset, len, read\_csv, replace, reset\_index, sort\_values
+              \item 戻り値の要点: out
+              \item 主なローカル代入名: frame, out, policy\_path, required
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: ValueError(f'upper policy distance must increase: \{policy\_path\}'), ValueError(f'upper policy must contain \{sorted(required)\}: \{policy\_path\}'), ValueError(f'upper policy needs at least two finite distance points: \{policy\_path\}')
+              \item 制御構造の規模: 条件分岐 3、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item policy\_path に Path(path) の結果を代入する。
+\item frame に pd.read\_csv(policy\_path) の結果を代入する。
+\item required に \{'s\_km', 'v\_kmh'\} の結果を代入する。
+\item 条件 not required.issubset(frame.columns) を判定し、真なら内部処理を行う。
+\item   ValueError(f'upper policy must contain \{sorted(required)\}: \{policy\_path\}') を送出する。
+\item out に frame.loc[:, ['s\_km', 'v\_kmh']].copy() の結果を代入する。
+\item out['s\_km'] に pd.to\_numeric(out['s\_km'], errors='coerce') の結果を代入する。
+\item out['v\_kmh'] に pd.to\_numeric(out['v\_kmh'], errors='coerce') の結果を代入する。
+\item out に out.replace([np.inf, -np.inf], np.nan).dropna().sort\_values('s\_km').drop\_duplicates('s\_km', keep='last').reset\_index(drop=True) の結果を代入する。
+\item 条件 len(out) < 2 を判定し、真なら内部処理を行う。
+\item   ValueError(f'upper policy needs at least two finite distance points: \{policy\_path\}') を送出する。
+\item 条件 float(out['s\_km'].iloc[-1]) <= float(out['s\_km'].iloc[0]) を判定し、真なら内部処理を行う。
+\item   ValueError(f'upper policy distance must increase: \{policy\_path\}') を送出する。
+\item out を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def load_upper_policy_csv(path: str | Path) -> pd.DataFrame:
+    """Load a distance-indexed upper speed policy with strict schema checks."""
+    policy_path = Path(path)
+    frame = pd.read_csv(policy_path)
+    required = {"s_km", "v_kmh"}
+    if not required.issubset(frame.columns):
+        raise ValueError(f"upper policy must contain {sorted(required)}: {policy_path}")
+    out = frame.loc[:, ["s_km", "v_kmh"]].copy()
+    out["s_km"] = pd.to_numeric(out["s_km"], errors="coerce")
+    out["v_kmh"] = pd.to_numeric(out["v_kmh"], errors="coerce")
+    out = (
+        out.replace([np.inf, -np.inf], np.nan)
+        .dropna()
+        .sort_values("s_km")
+        .drop_duplicates("s_km", keep="last")
+        .reset_index(drop=True)
+    )
+    if len(out) < 2:
+        raise ValueError(f"upper policy needs at least two finite distance points: {policy_path}")
+    if float(out["s_km"].iloc[-1]) <= float(out["s_km"].iloc[0]):
+        raise ValueError(f"upper policy distance must increase: {policy_path}")
+    return out
+\end{lstlisting}
+
+\subsection{L81 関数 interpolate\_upper\_policy}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L81--L95
+              \item 所属: module直下
+              \item 定義: \path|interpolate_upper_policy(frame: pd.DataFrame, control_s_km, *, minimum_speed_kmh: float, maximum_speed_kmh: float) -> np.ndarray|
+              \item docstring: Interpolate a learned full-course policy onto the current MPC control mesh.
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, \_finite\_vector, all, clip, float, interp, isfinite, len, to\_numeric, to\_numpy
+              \item 戻り値の要点: np.clip(interpolated, float(minimum\_speed\_kmh), float(maximum\_speed\_kmh))
+              \item 主なローカル代入名: control\_s, interpolated, source\_s, source\_v
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: ValueError('upper policy contains non-finite or insufficient points')
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item control\_s に \_finite\_vector(control\_s\_km, name='control\_s\_km') の結果を代入する。
+\item source\_s に pd.to\_numeric(frame['s\_km'], errors='coerce').to\_numpy(dtype=float) の結果を代入する。
+\item source\_v に pd.to\_numeric(frame['v\_kmh'], errors='coerce').to\_numpy(dtype=float) の結果を代入する。
+\item 条件 len(source\_s) < 2 or not np.all(np.isfinite(source\_s)) or (not np.all(np.isfinite(source\_v))) を判定し、真なら内部処理を行う。
+\item   ValueError('upper policy contains non-finite or insufficient points') を送出する。
+\item interpolated に np.interp(control\_s, source\_s, source\_v) の結果を代入する。
+\item np.clip(interpolated, float(minimum\_speed\_kmh), float(maximum\_speed\_kmh)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def interpolate_upper_policy(
+    frame: pd.DataFrame,
+    control_s_km,
+    *,
+    minimum_speed_kmh: float,
+    maximum_speed_kmh: float,
+) -> np.ndarray:
+    """Interpolate a learned full-course policy onto the current MPC control mesh."""
+    control_s = _finite_vector(control_s_km, name="control_s_km")
+    source_s = pd.to_numeric(frame["s_km"], errors="coerce").to_numpy(dtype=float)
+    source_v = pd.to_numeric(frame["v_kmh"], errors="coerce").to_numpy(dtype=float)
+    if len(source_s) < 2 or not np.all(np.isfinite(source_s)) or not np.all(np.isfinite(source_v)):
+        raise ValueError("upper policy contains non-finite or insufficient points")
+    interpolated = np.interp(control_s, source_s, source_v)
+    return np.clip(interpolated, float(minimum_speed_kmh), float(maximum_speed_kmh))
+\end{lstlisting}
+
+
+
+
+
+
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/upper_policy.py| を
+        \textbf{planner helper}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

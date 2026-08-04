@@ -1,0 +1,1012 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={solar 運用 CSV logger},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{29. solar 運用 CSV logger}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/solar_logger_node.py| \\
+        ソースSHA-256 & \path|6ad5861c795593dc8a6cbd661335f2d379ddf42987433a40f1805c49884b5e2e| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & vehicle、planner、weather、calib、system、raw telemetry を一つの時刻行へ集約して CSV に書く。 \\
+        起動文脈 & 運用ログの最終集約点。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        vehicle、planner、weather、calib、system、raw telemetry を一つの時刻行へ集約して CSV に書く。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item topic 名と CSV 列名の対応を内部辞書で持つ。
+\item planner/env、planner/metrics、planner/status も記録する。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/live_launch.py|
+\item \path|launch/solar_measurement.launch.py|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 特記事項なし。
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+}
+
+
+class SolarLoggerNode(Node):
+    def __init__(self):
+        super().__init__("solar_logger_node")
+        self.declare_parameter("log_dir", "outputs/logs")
+        self.declare_parameter("file_prefix", "solar_live")
+        self.declare_parameter("log_rate_hz", 2.0)
+        self.declare_parameter("flush_every_rows", 1)
+        self.declare_parameter("output_speed_topic", "/vehicle/speed_cmd_kmh")
+        self.declare_parameter("output_drive_mode_topic", "/vehicle/drive_mode_cmd")
+
+        log_dir = os.fspath(self.get_parameter("log_dir").value)
+        prefix = str(self.get_parameter("file_prefix").value)
+        rate_hz = max(0.1, float(self.get_parameter("log_rate_hz").value))
+        self.flush_every_rows = max(1, int(self.get_parameter("flush_every_rows").value))
+        self.rows_since_flush = 0
+
+        os.makedirs(log_dir, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.log_path = os.path.join(log_dir, f"{prefix}_{stamp}.csv")
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要クラスは SolarLoggerNode。 主要関数は handler, handler, handler, destroy\_node, main。 ROS パラメータ宣言は 6 件。 ROS I/O は publisher 0 件、subscription 6 件。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            85 & class & \path|SolarLoggerNode| & bases: Node \\
+86 & function & \path|__init__| & args: self \\
+139 & function & \path|_set_float| & args: self, field \\
+140 & function & \path|handler| & args: msg \\
+148 & function & \path|_set_string| & args: self, field \\
+149 & function & \path|handler| & args: msg \\
+154 & function & \path|_set_array| & args: self, fields \\
+155 & function & \path|handler| & args: msg \\
+163 & function & \path|_clean_float| & args: value \\
+170 & function & \path|_write_row| & args: self \\
+183 & function & \path|destroy_node| & args: self \\
+192 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            11 & FLOAT\_TOPICS に \{'speed\_kmh': '/vehicle/speed\_kmh', 's\_km': '/vehicle/s\_km', 'altitude\_m': '/vehicle/altitude\_m', 'grade\_pct': '/vehicle/grade', 'batt\_soc': '/vehicle/batt\_soc', 'batt\_temp\_c': '/vehicle/batt\_temp\_c', 'batt\_current\_a': '/vehicle/batt\_current\_a', 'batt\_voltage\_v': '/vehicle/batt\_voltage\_v', 'solar\_power\_w': '/vehicle/solar\_power\_w', 'headwind\_meas\_ms': '/weather/headwind\_meas\_ms', 'headwind\_corrected\_ms': '/weather/headwind\_corrected\_ms', 'wind\_speed\_ms': '/weather/wind\_speed\_ms', 'wind\_dir\_deg': '/weather/wind\_dir\_deg', 'course\_deg': '/weather/course\_deg', 'speed\_cmd\_kmh': '/planner/speed\_cmd', 'upper\_speed\_cmd\_kmh': '/planner/upper\_speed\_cmd', 'throttle\_cmd\_pct': '/planner/throttle\_cmd\_pct', 'calib\_solar\_gain': '/calib/solar\_gain', 'calib\_drive\_power\_gain': '/calib/drive\_power\_gain', 'calib\_aux\_power\_w': '/calib/aux\_power\_w', 'system\_health': '/system/health'\} の結果を代入する。 \\
+35 & FLOAT64\_TOPICS に \{'solar\_source\_ts\_unix': '/telemetry/solar\_source\_ts\_unix', 'chase\_source\_ts\_unix': '/telemetry/chase\_source\_ts\_unix'\} の結果を代入する。 \\
+40 & STRING\_TOPICS に \{'drive\_mode': '/planner/drive\_mode', 'system\_state': '/system/state', 'system\_diag': '/system/diag', 'mpc\_state': '/system/mpc\_state', 'telemetry\_bridge\_status': '/telemetry/bridge\_status', 'wind\_correction\_status': '/weather/wind\_correction\_status', 'weather\_fetch\_status': '/weather/fetch\_status', 'autocal\_status': '/calib/status', 'raw\_solar': '/telemetry/raw\_solar', 'raw\_chase': '/telemetry/raw\_chase'\} の結果を代入する。 \\
+53 & ARRAY\_TOPICS に \{'/planner/status': ['planner\_soc', 'planner\_temp\_c', 'planner\_s\_km', 'planner\_step', 'planner\_sec\_to\_next', 'planner\_control\_stop\_hold', 'planner\_control\_stop\_remaining\_sec', 'planner\_control\_stop\_completed\_count'], '/planner/metrics': ['model\_pack\_voltage\_v', 'model\_pack\_current\_a', 'model\_soc', 'model\_motor\_power\_w', 'model\_motor\_current\_a', 'model\_pv\_power\_w', 'model\_speed\_kmh', 'model\_mech\_power\_w', 'model\_pack\_power\_w'], '/planner/env': ['env\_poa\_wm2', 'env\_cell\_temp\_c', 'env\_ambient\_temp\_c', 'env\_grade\_pct', 'env\_headwind\_ms']\} の結果を代入する。 \\
+85 & クラス SolarLoggerNode を定義する。 \\
+192 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|import csv| & CSV の逐次読込・逐次書込を行うため。 このファイル内での主な使用位置は L133。 \\
+2 & \path|import math| & Python標準のスカラー数値関数と定数を使うため。実際に参照する名前と行は使用位置欄で確認する。 このファイル内での主な使用位置は L109, L144, L158, L168。 \\
+3 & \path|import os| & パス、環境変数、プロセス外部状態を扱うため。 このファイル内での主な使用位置は L95, L101, L103。 \\
+4 & \path|from datetime import datetime, timezone| & UTC 時刻や相対時間を扱うため。 このファイル内での主な使用位置は L102, L172。 \\
+6 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L193, L196, L199。 \\
+7 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L85。 \\
+8 & \path|from std_msgs.msg import Float32, Float32MultiArray, Float64, String| & Float32、Bool、Stringなどの標準ROS messageで値をpublishまたはsubscribeするため。 このファイル内での主な使用位置は L115, L117, L119, L121, L126, L129。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{class、独自クラス、インスタンス、self、継承}
+クラスは、保持するデータと、そのデータを扱う関数を一つの型としてまとめる設計単位である。「独自クラス」とはPythonやROS 2が最初から用意した型ではなく、このプロジェクトが目的に合わせて定義した新しい型を指す。
+
+
+`class MPCNode(Node)`は、rclpyのNodeを基底クラスとして継承し、Nodeが持つpublisher、subscription、timer、parameterなどの機能にMPC固有機能を追加する。丸括弧内は関数引数ではなく基底クラス指定である。
+
+
+`MPCNode()`はクラスオブジェクトを呼び出して新しいインスタンスを作る。Pythonは新しい実体を用意し、その実体を第1引数selfとして`\_\_init\_\_`へ渡す。`self`は予約語ではなく慣習的な名前だが、この慣習を守ることでコードの意味が共有される。
+
+
+\begin{lstlisting}[language=python]
+class Counter:
+    def __init__(self):
+        self.value = 0
+
+    def increment(self):
+        self.value += 1
+
+counter = Counter()
+counter.increment()
+\end{lstlisting}
+
+
+`super().\_\_init\_\_(...)`は継承元の初期化処理を呼ぶ。MPCNodeではこれを省くとROSノードとして必要な内部実体が作られず、`create\_publisher`などを正しく使えない。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{先頭アンダースコア、\_\_init\_\_、名前付けの作法}
+`self.\_step\_solar`の先頭1個のアンダースコアは「クラス内部で使う実装詳細」という慣習であり、アクセスを強制禁止する機構ではない。外部コードから呼べるが、公開APIとして依存しない意思表示である。
+
+
+`\_\_init\_\_`の前後2個のアンダースコアはPythonが定めた特殊メソッド名である。クラス生成時に自動で呼ばれる。任意の名前に前後2個を付けて独自仕様を作ることは避ける。
+
+
+`\_`で始まるローカル変数は、未使用または外部へ見せない意図を示す場合がある。例えば`\_base\_csv`は戻り値として受け取る必要はあるが、その後の処理では使わないことを読者へ示す。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{rclpy、rcl、rmw、DDS/RTPSの層}
+rclpyはPython利用者向けROS 2 client libraryである。利用者のNode、publisher、subscriptionなどをPython APIとして提供し、その下で共通C層のrclを利用する。
+
+
+\begin{lstlisting}
+本プロジェクトのPythonコード -> rclpy -> rcl -> rmw -> DDS/RTPS実装 -> ネットワークまたは同一PC内通信
+\end{lstlisting}
+
+
+rclは言語に依存しない共通ROS機能を提供するC API、rmwはROS 2と具体的middleware実装の境界である。DDS/RTPS側が探索、serialize、publish/subscribe、request/replyなどを担う。executorの実行モデルはrclだけで完結せずclient library側にも実装される。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Concepts/About-Internal-Interfaces.html}{ROS 2 Humble公式: Internal ROS 2 interfaces}
+\end{itemize}
+
+\subsection{ROS graph、Node、topic、service、action、parameter}
+ROS graphは、実行中Nodeと、それらが持つpublisher、subscription、service、actionなどの接続関係である。Pythonクラス、プロセス、ROS graph上のNode名は関連するが同一物ではない。
+
+
+topicは継続データ向けの非同期一方向publish/subscribe、serviceは短いrequest/response、actionは時間のかかる目標へfeedback、cancel、resultを持たせる。parameterはNodeごとの設定値である。
+
+
+publisherが送った時点とsubscription callbackが実行される時点は同じとは限らない。通信遅延、QoS queue、executor待ちを挟むため、センサ値にはtimestampとfreshness判定が必要になる。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/Interfaces-Topics-Services-Actions.html}{ROS 2 Humble公式: Topics, Services, Actions}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/About-Parameters.html}{ROS 2 Humble公式: Parameters}
+\end{itemize}
+
+\subsection{callback、timer、Executor、spin、Callback Group}
+callbackは、メッセージ受信、timer満了、service requestなどのイベントが成立した後でExecutorから呼ばれる関数である。登録時に`self.\_on\_speed`と括弧なしで渡すのは、今実行せず後で呼ぶ関数オブジェクトを渡すためである。
+
+
+Executorは実行可能になったcallbackを見つけ、Callback Groupの条件を確認して実行する。`spin()`は終了要求まで待機・dispatchを続けるため、通常運転中はmainの次の行へ戻らない。
+
+
+MutuallyExclusiveCallbackGroupは同じgroup内のcallbackを同時実行させない。別group間はMultiThreadedExecutorで並行実行し得る。groupを分けただけでは共有属性への完全な排他にはならないため、複数groupが同じ状態を読む・書く場合は設計確認が必要である。
+
+
+\begin{lstlisting}
+DDS受信またはtimer満了 -> wait setでready -> Executorが選択 -> Callback Groupが許可 -> worker threadがcallback実行 -> 終了後Executorへ戻る
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Executors.html}{ROS 2公式: Executors}
+\item \href{https://docs.ros.org/en/humble/Concepts/About-Internal-Interfaces.html}{ROS 2 Humble公式: Internal ROS 2 interfaces}
+\end{itemize}
+
+\subsection{rqt\_graph、ros2 CLI、rosbag2をいつ使うか}
+rqt\_graphは接続関係を見る道具であり、数値の正しさや更新周期までは保証しない。起動直後、topic名変更後、publisherが複数存在する疑いがある時に使う。
+
+
+\begin{lstlisting}[language=bash]
+ros2 node list
+ros2 node info /mpc_node
+ros2 topic list -t
+ros2 topic info -v /planner/speed_cmd
+ros2 topic hz /planner/speed_cmd
+ros2 topic echo /planner/status
+rqt_graph
+\end{lstlisting}
+
+
+rosbag2はtopicメッセージを時系列のまま記録・再生する。通信不具合、freshness、再計画trigger、実車とSILSの差を再現可能にするため、本番前試験では制御入力だけでなく原因となる全telemetry、status、parameter情報を記録する。
+
+
+\begin{lstlisting}[language=bash]
+ros2 bag record -o outputs/bags/preflight \
+  /vehicle/s_km /vehicle/speed_kmh /vehicle/batt_soc \
+  /vehicle/batt_temp_c /vehicle/batt_current_a /vehicle/batt_voltage_v \
+  /planner/upper_speed_cmd /planner/speed_cmd /planner/status
+
+ros2 bag info outputs/bags/preflight
+ros2 bag play outputs/bags/preflight --clock
+\end{lstlisting}
+
+
+bag再生時はQoS互換性、simulation time、外部publisherとの二重入力に注意する。実車Nodeを同時に動かす場合はnamespaceまたはremappingで入力源を明確に分離する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/ros2_packages/humble/api/rqt_graph/index.html}{ROS 2 Humble公式: rqt\_graph}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html}{ROS 2 Humble公式: Recording and playing back data}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{天候、route、補間、時刻、単位}
+予報は時刻だけの系列か、時刻とroute距離の2次元gridになり得る。現在時刻tと距離sがgrid点の間なら、周囲の値から補間して日射、温度、風を求める。
+
+
+UTC、現地timezone、naive datetimeを混ぜると数時間のずれが発生する。入力でtimezoneを確定し、内部比較はUTC、表示は現地時刻という役割分担が安全である。
+
+
+route距離のkm、速度のkm/hとm/s、時間の秒、energyのWhとJを跨ぐため、変換係数3.6、3600、1000の意味を各式で確認する。
+
+
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L85 クラス SolarLoggerNode}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L85--L189
+              \item 所属: module直下
+              \item 定義: \path|SolarLoggerNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_set\_float を定義する。
+\item 関数 \_set\_string を定義する。
+\item 関数 \_set\_array を定義する。
+\item 関数 \_clean\_float を定義する。
+\item 関数 \_write\_row を定義する。
+\item 関数 destroy\_node を定義する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class SolarLoggerNode(Node):
+    def __init__(self):
+        super().__init__("solar_logger_node")
+        self.declare_parameter("log_dir", "outputs/logs")
+        self.declare_parameter("file_prefix", "solar_live")
+        self.declare_parameter("log_rate_hz", 2.0)
+        self.declare_parameter("flush_every_rows", 1)
+        self.declare_parameter("output_speed_topic", "/vehicle/speed_cmd_kmh")
+        self.declare_parameter("output_drive_mode_topic", "/vehicle/drive_mode_cmd")
+
+        log_dir = os.fspath(self.get_parameter("log_dir").value)
+        prefix = str(self.get_parameter("file_prefix").value)
+        rate_hz = max(0.1, float(self.get_parameter("log_rate_hz").value))
+        self.flush_every_rows = max(1, int(self.get_parameter("flush_every_rows").value))
+        self.rows_since_flush = 0
+
+        os.makedirs(log_dir, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.log_path = os.path.join(log_dir, f"{prefix}_{stamp}.csv")
+
+        array_fields = [field for fields in ARRAY_TOPICS.values() for field in fields]
+        self.fields = ["t_ros_sec", "t_wall_utc"] + list(FLOAT_TOPICS) + list(FLOAT64_TOPICS) + [
+            "output_speed_cmd_kmh",
+        ] + list(STRING_TOPICS) + ["output_drive_mode"] + array_fields
+        self.latest = {field: math.nan for field in self.fields}
+        for field in ["t_wall_utc", *STRING_TOPICS, "output_drive_mode"]:
+            self.latest[field] = ""
+
+        self._topic_subscriptions = []
+        for field, topic in FLOAT_TOPICS.items():
+            self._topic_subscriptions.append(self.create_subscription(Float32, topic, self._set_float(field), 10))
+        for field, topic in FLOAT64_TOPICS.items():
+            self._topic_subscriptions.append(self.create_subscription(Float64, topic, self._set_float(field), 10))
+        for field, topic in STRING_TOPICS.items():
+            self._topic_subscriptions.append(self.create_subscription(String, topic, self._set_string(field), 10))
+...
+\end{lstlisting}
+
+\subsection{L86 関数 SolarLoggerNode.\_\_init\_\_}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L86--L137
+              \item 所属: \path|SolarLoggerNode|
+              \item 定義: \path|__init__(self)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DictWriter, \_\_init\_\_, \_set\_array, \_set\_float, \_set\_string, append, create\_subscription, create\_timer, declare\_parameter, float, flush, fspath
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: array\_fields, field, fields, log\_dir, output\_mode\_topic, output\_speed\_topic, prefix, rate\_hz, stamp, topic
+              \item 読み取る主なインスタンス属性: self.\_set\_array, self.\_set\_float, self.\_set\_string, self.\_topic\_subscriptions, self.\_write\_row, self.create\_subscription, self.create\_timer, self.csv\_file, self.declare\_parameter, self.fields, self.get\_logger, self.get\_parameter, self.latest, self.log\_path, self.writer
+              \item 更新する主なインスタンス属性: self.\_topic\_subscriptions, self.csv\_file, self.fields, self.flush\_every\_rows, self.latest, self.log\_path, self.rows\_since\_flush, self.timer, self.writer
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 5、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item super().\_\_init\_\_(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item log\_dir に os.fspath(self.get\_parameter('log\_dir').value) の結果を代入する。
+\item prefix に str(self.get\_parameter('file\_prefix').value) の結果を代入する。
+\item rate\_hz に max(0.1, float(self.get\_parameter('log\_rate\_hz').value)) の結果を代入する。
+\item self.flush\_every\_rows に max(1, int(self.get\_parameter('flush\_every\_rows').value)) の結果を代入する。
+\item self.rows\_since\_flush に 0 の結果を代入する。
+\item os.makedirs(...) を実行する。
+\item stamp に datetime.now().strftime('\%Y\%m\%d\_\%H\%M\%S') の結果を代入する。
+\item self.log\_path に os.path.join(log\_dir, f'\{prefix\}\_\{stamp\}.csv') の結果を代入する。
+\item array\_fields に [field for fields in ARRAY\_TOPICS.values() for field in fields] の結果を代入する。
+\item self.fields に ['t\_ros\_sec', 't\_wall\_utc'] + list(FLOAT\_TOPICS) + list(FLOAT64\_TOPICS) + ['output\_speed\_cmd\_kmh'] + list(STRING\_TOPICS) + ['output\_drive\_mode'] + array\_fields の結果を代入する。
+\item self.latest に \{field: math.nan for field in self.fields\} の結果を代入する。
+\item ['t\_wall\_utc', *STRING\_TOPICS, 'output\_drive\_mode'] を順に走査し、各要素を field に入れて処理する。
+\item   self.latest[field] に '' の結果を代入する。
+\item self.\_topic\_subscriptions に [] の結果を代入する。
+\item FLOAT\_TOPICS.items() を順に走査し、各要素を (field, topic) に入れて処理する。
+\item   self.\_topic\_subscriptions.append(...) を実行する。
+\item FLOAT64\_TOPICS.items() を順に走査し、各要素を (field, topic) に入れて処理する。
+\item   self.\_topic\_subscriptions.append(...) を実行する。
+\item STRING\_TOPICS.items() を順に走査し、各要素を (field, topic) に入れて処理する。
+\item   self.\_topic\_subscriptions.append(...) を実行する。
+\item ARRAY\_TOPICS.items() を順に走査し、各要素を (topic, fields) に入れて処理する。
+\item   self.\_topic\_subscriptions.append(...) を実行する。
+\item output\_speed\_topic に str(self.get\_parameter('output\_speed\_topic').value) の結果を代入する。
+\item output\_mode\_topic に str(self.get\_parameter('output\_drive\_mode\_topic').value) の結果を代入する。
+\item self.\_topic\_subscriptions.append(...) を実行する。
+\item self.\_topic\_subscriptions.append(...) を実行する。
+\item self.csv\_file に open(self.log\_path, 'w', encoding='utf-8', newline='') の結果を代入する。
+\item self.writer に csv.DictWriter(self.csv\_file, fieldnames=self.fields) の結果を代入する。
+\item self.writer.writeheader(...) を実行する。
+\item self.csv\_file.flush(...) を実行する。
+\item self.timer に self.create\_timer(1.0 / rate\_hz, self.\_write\_row) の結果を代入する。
+\item self.get\_logger().info(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def __init__(self):
+        super().__init__("solar_logger_node")
+        self.declare_parameter("log_dir", "outputs/logs")
+        self.declare_parameter("file_prefix", "solar_live")
+        self.declare_parameter("log_rate_hz", 2.0)
+        self.declare_parameter("flush_every_rows", 1)
+        self.declare_parameter("output_speed_topic", "/vehicle/speed_cmd_kmh")
+        self.declare_parameter("output_drive_mode_topic", "/vehicle/drive_mode_cmd")
+
+        log_dir = os.fspath(self.get_parameter("log_dir").value)
+        prefix = str(self.get_parameter("file_prefix").value)
+        rate_hz = max(0.1, float(self.get_parameter("log_rate_hz").value))
+        self.flush_every_rows = max(1, int(self.get_parameter("flush_every_rows").value))
+        self.rows_since_flush = 0
+
+        os.makedirs(log_dir, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.log_path = os.path.join(log_dir, f"{prefix}_{stamp}.csv")
+
+        array_fields = [field for fields in ARRAY_TOPICS.values() for field in fields]
+        self.fields = ["t_ros_sec", "t_wall_utc"] + list(FLOAT_TOPICS) + list(FLOAT64_TOPICS) + [
+            "output_speed_cmd_kmh",
+        ] + list(STRING_TOPICS) + ["output_drive_mode"] + array_fields
+        self.latest = {field: math.nan for field in self.fields}
+        for field in ["t_wall_utc", *STRING_TOPICS, "output_drive_mode"]:
+            self.latest[field] = ""
+
+        self._topic_subscriptions = []
+        for field, topic in FLOAT_TOPICS.items():
+            self._topic_subscriptions.append(self.create_subscription(Float32, topic, self._set_float(field), 10))
+        for field, topic in FLOAT64_TOPICS.items():
+            self._topic_subscriptions.append(self.create_subscription(Float64, topic, self._set_float(field), 10))
+        for field, topic in STRING_TOPICS.items():
+            self._topic_subscriptions.append(self.create_subscription(String, topic, self._set_string(field), 10))
+        for topic, fields in ARRAY_TOPICS.items():
+...
+\end{lstlisting}
+
+\subsection{L139 関数 SolarLoggerNode.\_set\_float}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L139--L146
+              \item 所属: \path|SolarLoggerNode|
+              \item 定義: \path|_set_float(self, field)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float
+              \item 戻り値の要点: handler
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.latest
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 handler を定義する。
+\item handler を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _set_float(self, field):
+        def handler(msg):
+            try:
+                self.latest[field] = float(msg.data)
+            except (TypeError, ValueError):
+                self.latest[field] = math.nan
+
+        return handler
+\end{lstlisting}
+
+\subsection{L140 関数 SolarLoggerNode.\_set\_float.handler}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L140--L144
+              \item 所属: \path|SolarLoggerNode._set_float|
+              \item 定義: \path|handler(msg)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.latest
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 例外処理を伴う try ブロックを実行する。
+\item   self.latest[field] に float(msg.data) の結果を代入する。
+\item   (TypeError, ValueError)を捕捉した場合:
+\item   self.latest[field] に math.nan の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+        def handler(msg):
+            try:
+                self.latest[field] = float(msg.data)
+            except (TypeError, ValueError):
+                self.latest[field] = math.nan
+\end{lstlisting}
+
+\subsection{L148 関数 SolarLoggerNode.\_set\_string}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L148--L152
+              \item 所属: \path|SolarLoggerNode|
+              \item 定義: \path|_set_string(self, field)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: replace, str
+              \item 戻り値の要点: handler
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.latest
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 handler を定義する。
+\item handler を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _set_string(self, field):
+        def handler(msg):
+            self.latest[field] = str(msg.data).replace("\r", "").replace("\n", "\\n")
+
+        return handler
+\end{lstlisting}
+
+\subsection{L149 関数 SolarLoggerNode.\_set\_string.handler}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L149--L150
+              \item 所属: \path|SolarLoggerNode._set_string|
+              \item 定義: \path|handler(msg)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: replace, str
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.latest
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.latest[field] に str(msg.data).replace('\textbackslash{}r', '').replace('\textbackslash{}n', '\textbackslash{}\textbackslash{}n') の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+        def handler(msg):
+            self.latest[field] = str(msg.data).replace("\r", "").replace("\n", "\\n")
+\end{lstlisting}
+
+\subsection{L154 関数 SolarLoggerNode.\_set\_array}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L154--L160
+              \item 所属: \path|SolarLoggerNode|
+              \item 定義: \path|_set_array(self, fields)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: enumerate, float, len, list
+              \item 戻り値の要点: handler
+              \item 主なローカル代入名: field, idx, values
+              \item 読み取る主なインスタンス属性: self.latest
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 handler を定義する。
+\item handler を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _set_array(self, fields):
+        def handler(msg):
+            values = list(msg.data)
+            for idx, field in enumerate(fields):
+                self.latest[field] = float(values[idx]) if idx < len(values) else math.nan
+
+        return handler
+\end{lstlisting}
+
+\subsection{L155 関数 SolarLoggerNode.\_set\_array.handler}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L155--L158
+              \item 所属: \path|SolarLoggerNode._set_array|
+              \item 定義: \path|handler(msg)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: enumerate, float, len, list
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: field, idx, values
+              \item 読み取る主なインスタンス属性: self.latest
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item values に list(msg.data) の結果を代入する。
+\item enumerate(fields) を順に走査し、各要素を (idx, field) に入れて処理する。
+\item   self.latest[field] に float(values[idx]) if idx < len(values) else math.nan の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+        def handler(msg):
+            values = list(msg.data)
+            for idx, field in enumerate(fields):
+                self.latest[field] = float(values[idx]) if idx < len(values) else math.nan
+\end{lstlisting}
+
+\subsection{L163 関数 SolarLoggerNode.\_clean\_float}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L163--L168
+              \item 所属: \path|SolarLoggerNode|
+              \item 定義: \path|_clean_float(value)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, isfinite
+              \item 戻り値の要点: value if math.isfinite(value) else '' / ''
+              \item 主なローカル代入名: value
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item @で始まる行は、定義した関数を別の関数へ渡して加工するdecoratorである。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 例外処理を伴う try ブロックを実行する。
+\item   value に float(value) の結果を代入する。
+\item   (TypeError, ValueError)を捕捉した場合:
+\item   '' を返す。
+\item value if math.isfinite(value) else '' を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _clean_float(value):
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            return ""
+        return value if math.isfinite(value) else ""
+\end{lstlisting}
+
+\subsection{L170 関数 SolarLoggerNode.\_write\_row}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L170--L181
+              \item 所属: \path|SolarLoggerNode|
+              \item 定義: \path|_write_row(self)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_clean\_float, flush, get, get\_clock, isoformat, now, str, writerow
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: field, row, string\_fields
+              \item 読み取る主なインスタンス属性: self.\_clean\_float, self.csv\_file, self.fields, self.flush\_every\_rows, self.get\_clock, self.latest, self.rows\_since\_flush, self.writer
+              \item 更新する主なインスタンス属性: self.rows\_since\_flush
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.latest['t\_ros\_sec'] に self.get\_clock().now().nanoseconds / 1000000000.0 の結果を代入する。
+\item self.latest['t\_wall\_utc'] に datetime.now(timezone.utc).isoformat() の結果を代入する。
+\item row に \{\} の結果を代入する。
+\item string\_fields に \{'t\_wall\_utc', *STRING\_TOPICS, 'output\_drive\_mode'\} の結果を代入する。
+\item self.fields を順に走査し、各要素を field に入れて処理する。
+\item   row[field] に str(self.latest.get(field, '')) if field in string\_fields else self.\_clean\_float(self.latest.get(field)) の結果を代入する。
+\item self.writer.writerow(...) を実行する。
+\item self.rows\_since\_flush を Add で更新する。
+\item 条件 self.rows\_since\_flush >= self.flush\_every\_rows を判定し、真なら内部処理を行う。
+\item   self.csv\_file.flush(...) を実行する。
+\item   self.rows\_since\_flush に 0 の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _write_row(self):
+        self.latest["t_ros_sec"] = self.get_clock().now().nanoseconds / 1.0e9
+        self.latest["t_wall_utc"] = datetime.now(timezone.utc).isoformat()
+        row = {}
+        string_fields = {"t_wall_utc", *STRING_TOPICS, "output_drive_mode"}
+        for field in self.fields:
+            row[field] = str(self.latest.get(field, "")) if field in string_fields else self._clean_float(self.latest.get(field))
+        self.writer.writerow(row)
+        self.rows_since_flush += 1
+        if self.rows_since_flush >= self.flush_every_rows:
+            self.csv_file.flush()
+            self.rows_since_flush = 0
+\end{lstlisting}
+
+\subsection{L183 関数 SolarLoggerNode.destroy\_node}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L183--L189
+              \item 所属: \path|SolarLoggerNode|
+              \item 定義: \path|destroy_node(self)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: close, destroy\_node, flush, super
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.csv\_file
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 例外処理を伴う try ブロックを実行する。
+\item   self.csv\_file.flush(...) を実行する。
+\item   self.csv\_file.close(...) を実行する。
+\item   Exceptionを捕捉した場合:
+\item   Pass 文を実行する。
+\item super().destroy\_node(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def destroy_node(self):
+        try:
+            self.csv_file.flush()
+            self.csv_file.close()
+        except Exception:
+            pass
+        super().destroy_node()
+\end{lstlisting}
+
+\subsection{L192 関数 main}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L192--L199
+              \item 所属: module直下
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: SolarLoggerNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: node
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に SolarLoggerNode() の結果を代入する。
+\item 例外処理を伴う try ブロックを実行する。
+\item   rclpy.spin(...) を実行する。
+\item   成否にかかわらずfinallyで:
+\item   node.destroy\_node(...) を実行する。
+\item   rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def main():
+    rclpy.init()
+    node = SolarLoggerNode()
+    try:
+        rclpy.spin(node)
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+\end{lstlisting}
+
+        \subsection{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            88 & \path|log_dir| & outputs/logs \\
+89 & \path|file_prefix| & solar\_live \\
+90 & \path|log_rate_hz| & 2.0 \\
+91 & \path|flush_every_rows| & 1 \\
+92 & \path|output_speed_topic| & /vehicle/speed\_cmd\_kmh \\
+93 & \path|output_drive_mode_topic| & /vehicle/drive\_mode\_cmd \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            115 & subscription & \path|topic| & self.\_set\_float(field) \\
+117 & subscription & \path|topic| & self.\_set\_float(field) \\
+119 & subscription & \path|topic| & self.\_set\_string(field) \\
+121 & subscription & \path|topic| & self.\_set\_array(fields) \\
+126 & subscription & \path|output_speed_topic| & self.\_set\_float('output\_speed\_cmd\_kmh') \\
+129 & subscription & \path|output_mode_topic| & self.\_set\_string('output\_drive\_mode') \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/solar_logger_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

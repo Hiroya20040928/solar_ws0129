@@ -1,0 +1,1174 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={フル MLE 同定本体},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{35. フル MLE 同定本体}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|scripts/run_vehicle_identification.py| \\
+        種別 & Python \\
+        区分 & identification \\
+        役割 & 実車ログ、weather、grounded maps、battery/PV/vehicle モデルを用いて MLE 同定を実行する大型スクリプト。 \\
+        起動文脈 & fit action の本丸。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        実車ログ、weather、grounded maps、battery/PV/vehicle モデルを用いて MLE 同定を実行する大型スクリプト。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item 出力 tag を持つ immutable run を作る。
+\item adopt までは canonical profile を上書きしない流れに対応する。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/solar_control.sh|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/generate_fit_fullsim_report.py|
+\item \path|scripts/tune_upper_planner_weights.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+}
+
+
+def neutralize_identification_scalars(model):
+    """Fit each calibration factor once on top of the declared physical maps."""
+    model.p.panel_gain = 1.0
+    model.p.drive_eff_scale = 1.0
+    model.p.regen_eff_scale = 1.0
+    model.p.regen_utilization = 1.0
+    model.p.rint_scale = 1.0
+    model.p.r_polarization_ohm = 0.0
+    model.aux_power_override_w = None
+    return model
+
+
+def resolve_relative(base_dir: Path, raw: str) -> Path:
+    path = Path(str(raw or "").strip())
+    if not path:
+        return base_dir
+    if path.is_absolute():
+        return path
+    return (base_dir / path).resolve()
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要関数は neutralize\_identification\_scalars, resolve\_relative, stage, load\_manifest, relpath\_from, tex\_path\_fragment, tex\_text\_fragment, load\_yaml\_if\_exists。 CLI 引数宣言は 9 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            123 & function & \path|neutralize_identification_scalars| & args: model \\
+135 & function & \path|resolve_relative| & args: base\_dir, raw \\
+144 & function & \path|stage| & args: message \\
+148 & function & \path|load_manifest| & args: package\_dir, manifest\_arg \\
+168 & function & \path|relpath_from| & args: base\_dir, target \\
+177 & function & \path|tex_path_fragment| & args: value \\
+199 & function & \path|tex_text_fragment| & args: value \\
+216 & function & \path|load_yaml_if_exists| & args: path \\
+223 & function & \path|declared_control_stop_km| & args: profile\_cfg, profile\_path \\
+245 & function & \path|_terminal_anchor_from_payload| & args: payload \\
+292 & function & \path|_append_reason_column| & args: frame, mask, reason \\
+300 & function & \path|resolve_manifest_context| & args: package\_dir, manifest \\
+306 & function & \path|opt_path| & args: raw\_value \\
+413 & function & \path|hampel_mask| & args: series \\
+425 & function & \path|apply_sensor_quality_annotations| & args: work \\
+520 & function & \path|polarization_current_trace| & args: replay \\
+544 & function & \path|fit_battery_polarization| & args: replay \\
+682 & function & \path|apply_battery_polarization| & args: replay, dynamic\_fit \\
+706 & function & \path|resolve_fit_plan| & args: options \\
+750 & function & \path|resolve_identification_output_layout| & args: package\_dir, profile\_cfg \\
+777 & function & \path|identification_profile_output_path| & args: canonical\_profile, run\_output\_dir \\
+789 & function & \path|load_ocv_df| & args: profile\_cfg, profile\_yaml \\
+797 & function & \path|build_source_map_assets| & args: profile\_cfg, profile\_yaml \\
+801 & function & \path|rel| & args: key, fallback \\
+821 & function & \path|apply_actual_event_annotations| & args: work, payload \\
+863 & function & \path|truncate_at_retire_event| & args: work, payload \\
+892 & function & \path|normalize_generic_log| & args: log\_csv \\
+994 & function & \path|build_terminal_anchor| & args: log\_df, ocv\_df, base\_model, anchor\_km \\
+1029 & function & \path|terminal_metrics| & args: replay\_df, ocv\_df, base\_model, batt, anchor\_km \\
+1078 & function & \path|replay_day_metrics| & args: replay\_df \\
+1099 & function & \path|identification_selection_score| & args: metrics \\
+1135 & function & \path|condition_vehicle_fit_on_measured_pv| & args: frame \\
+1155 & function & \path|calibrate_solar_measurement_to_pack| & args: frame \\
+1271 & function & \path|_shift_acceleration_within_segments| & args: frame, sample\_shift, acceleration \\
+1283 & function & \path|_acceleration_trace_from_speed| & args: frame \\
+1321 & function & \path|_bilinear_interp_array| & args: x\_grid, y\_grid, values, x, y \\
+1341 & function & \path|_map_efficiency_array| & args: base\_model, maps, speed\_ms, torque\_nm \\
+1364 & function & \path|_motion_predictions_for_acceleration| & args: frame, acceleration, base\_model, mot \\
+1431 & function & \path|fit_acceleration_timestamp_alignment| & args: frame, base\_model, mot, options \\
+1541 & function & \path|rmse| & args: mask \\
+1631 & function & \path|_grade_from_smoothed_elevation| & args: distance\_km, elevation\_m, smoothing\_window\_km \\
+1653 & function & \path|fit_grade_observation_alignment| & args: frame, route\_profile\_csv, output\_csv, base\_model, mot, options \\
+1750 & function & \path|rmse| & args: predicted, mask \\
+1886 & function & \path|pv_leave_one_day_out_validation| & args: frame, model \\
+1950 & function & \path|rmse| & args: values \\
+1964 & function & \path|add_end_to_end_metrics| & args: primary, end\_to\_end \\
+1973 & function & \path|add_battery_conditional_metrics| & args: primary, conditional \\
+1981 & function & \path|write_replay_csv| & args: frame, output\_path \\
+1998 & function & \path|apply_fit_to_cfg| & args: cfg \\
+2113 & function & \path|update_profile| & args: profile\_yaml, cfg, map\_assets, pv, batt, mot, observed\_log\_csv, battery\_dynamic\_fit, solar\_measurement\_calibration, route\_profile\_asset, package\_dir \\
+2157 & function & \path|update_profile_artifact_references| & args: profile\_yaml, package\_dir \\
+2180 & function & \path|write_terminal_consistency_from_anchor| & args: output\_path, terminal\_anchor \\
+2318 & function & \path|sync_canonical_fullsim_profile| & args: package\_dir \\
+2353 & function & \path|write_generic_summary| & args: package\_dir, manifest\_path, profile\_yaml, map\_assets, pv, batt, mot, metrics, terminal\_anchor, stage\_anchors, map\_shape\_fit, post\_refine, day\_metrics, battery\_dynamic\_fit, fit\_plan, manifest\_context, output\_dir, replay\_csv, battery\_conditioned\_replay\_csv, end\_to\_end\_replay\_csv \\
+2422 & function & \path|write_generic_report| & args: package\_dir, profile\_yaml, manifest\_path, summary\_yaml, observed\_log\_csv, pv, batt, mot, metrics, post\_refine, map\_assets \\
+3075 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            20 & SCRIPT\_DIR に Path(\_\_file\_\_).resolve().parent の結果を代入する。 \\
+21 & ROOT に SCRIPT\_DIR.parents[0] の結果を代入する。 \\
+22 & (SCRIPT\_DIR, ROOT) を順に走査し、各要素を candidate に入れて処理する。 \\
+67 & FIT\_QUALITY\_PRESETS に \{'quick': \{'battery\_restart\_count': 2, 'battery\_maxiter': 50, 'motion\_restart\_count': 3, 'motion\_maxiter': 70, 'joint\_restart\_count': 2, 'joint\_random\_start\_count': 8, 'joint\_local\_topk': 2, 'joint\_maxiter': 24, 'fit\_stride': 3, 'allow\_map\_shape\_fit': False, 'post\_refine\_enabled': False\}, 'standard': \{'battery\_restart\_count': 4, 'battery\_maxiter': 80, 'motion\_restart\_count': 5, 'motion\_maxiter': 100, 'joint\_restart\_count': 4, 'joint\_random\_start\_count': 6, 'joint\_local\_topk': 3, 'joint\_maxiter': 40, 'fit\_stride': 2, 'allow\_map\_shape\_fit': True, 'post\_refine\_enabled': False\}, 'full': \{'battery\_restart\_count': 6, 'battery\_maxiter': 140, 'motion\_restart\_count': 8, 'motion\_maxiter': 180, 'joint\_restart\_count': 6, 'joint\_random\_start\_count': 18, 'joint\_local\_topk': 6, 'joint\_maxiter': 80, 'fit\_stride': 2, 'allow\_map\_shape\_fit': True, 'post\_refine\_enabled': False\}, 'ultra': \{'battery\_restart\_count': 8, 'battery\_maxiter': 220, 'motion\_restart\_count': 10, 'motion\_maxiter': 260, 'joint\_restart\_count': 8, 'joint\_random\_start\_count': 28, 'joint\_local\_topk': 8, 'joint\_maxiter': 120, 'fit\_stride': 1, 'allow\_map\_shape\_fit': True, 'post\_refine\_enabled': True\}\} を代入する。 \\
+123 & 関数 neutralize\_identification\_scalars を定義する。 \\
+135 & 関数 resolve\_relative を定義する。 \\
+144 & 関数 stage を定義する。 \\
+148 & 関数 load\_manifest を定義する。 \\
+168 & 関数 relpath\_from を定義する。 \\
+177 & 関数 tex\_path\_fragment を定義する。 \\
+199 & 関数 tex\_text\_fragment を定義する。 \\
+216 & 関数 load\_yaml\_if\_exists を定義する。 \\
+223 & 関数 declared\_control\_stop\_km を定義する。 \\
+245 & 関数 \_terminal\_anchor\_from\_payload を定義する。 \\
+292 & 関数 \_append\_reason\_column を定義する。 \\
+300 & 関数 resolve\_manifest\_context を定義する。 \\
+413 & 関数 hampel\_mask を定義する。 \\
+425 & 関数 apply\_sensor\_quality\_annotations を定義する。 \\
+520 & 関数 polarization\_current\_trace を定義する。 \\
+544 & 関数 fit\_battery\_polarization を定義する。 \\
+682 & 関数 apply\_battery\_polarization を定義する。 \\
+706 & 関数 resolve\_fit\_plan を定義する。 \\
+750 & 関数 resolve\_identification\_output\_layout を定義する。 \\
+777 & 関数 identification\_profile\_output\_path を定義する。 \\
+789 & 関数 load\_ocv\_df を定義する。 \\
+797 & 関数 build\_source\_map\_assets を定義する。 \\
+821 & 関数 apply\_actual\_event\_annotations を定義する。 \\
+863 & 関数 truncate\_at\_retire\_event を定義する。 \\
+892 & 関数 normalize\_generic\_log を定義する。 \\
+994 & 関数 build\_terminal\_anchor を定義する。 \\
+1029 & 関数 terminal\_metrics を定義する。 \\
+1078 & 関数 replay\_day\_metrics を定義する。 \\
+1099 & 関数 identification\_selection\_score を定義する。 \\
+1135 & 関数 condition\_vehicle\_fit\_on\_measured\_pv を定義する。 \\
+1155 & 関数 calibrate\_solar\_measurement\_to\_pack を定義する。 \\
+1271 & 関数 \_shift\_acceleration\_within\_segments を定義する。 \\
+1283 & 関数 \_acceleration\_trace\_from\_speed を定義する。 \\
+1321 & 関数 \_bilinear\_interp\_array を定義する。 \\
+1341 & 関数 \_map\_efficiency\_array を定義する。 \\
+1364 & 関数 \_motion\_predictions\_for\_acceleration を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            2 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+4 & \path|import argparse| & CLI 引数を宣言し、実行時パラメータを外から受け取るため。 このファイル内での主な使用位置は L3076。 \\
+5 & \path|import json| & manifest、checkpoint、UDP payload をやり取りするため。 このファイル内での主な使用位置は L3181, L3841。 \\
+6 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L539, L1595, L1596, L1834, L3619。 \\
+7 & \path|import os| & パス、環境変数、プロセス外部状態を扱うため。 このファイル内での主な使用位置は L23, L172, L174, L2013, L2014, L2380, L2381, L2382, ...。 \\
+8 & \path|import re| & re モジュールを利用するため。 このファイル内での主な使用位置は L764。 \\
+9 & \path|import sys| & sys モジュールを利用するため。 このファイル内での主な使用位置は L24, L25。 \\
+10 & \path|import textwrap| & textwrap モジュールを利用するため。 このファイル内での主な使用位置は L3070。 \\
+11 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L20, L135, L136, L148, L151, L158, L168, L216, ...。 \\
+12 & \path|from typing import Any, Dict, Tuple| & typing から Any, Dict, Tuple を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L67, L148, L245, L251, L331, L366, L544, L600, ...。 \\
+14 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L296, L422, L458, L466, L492, L502, L512, L525, ...。 \\
+15 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L292, L413, L414, L426, L430, L464, L465, L466, ...。 \\
+16 & \path|import yaml| & profile、stop、schedule、summary YAML を読み書きするため。 このファイル内での主な使用位置は L164, L220, L2154, L2164, L2174, L2311, L2333, L2349, ...。 \\
+17 & \path|from scipy.optimize import least_squares| & scipy.optimize から least\_squares を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L1206, L1213, L1232。 \\
+18 & \path|from scipy.signal import savgol_filter| & scipy.signal から savgol\_filter を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L1304, L1643。 \\
+27 & \path|from build_bwsc2025_fitted_package import BATTERY_PACK_MAX_CHARGE_V, BATTERY_NOMINAL_VOLTAGE_V, INVALID_PACK_VOLTAGE_MIN_V, ROOT, TIMEZONE_LOCAL, BatteryFitResult, MotionFitResult, PostRefineResult, PvFitResult, attach_archive_pv_model, build_grounded_map_assets, build_stage_anchors, build_model_from_map_assets, build_model_from_profile_cfg, compile_tex, dcir_observations, ensure_dir, fit_battery_parameters, fit_map_shapes, fit_motion_parameters, fit_pv_parameters, fit_regen_utilization, fit_stop_tilt_fraction, infer_soc_from_loaded_state, joint_refine_parameters, joint_replay, load_profile_yaml, metrics_from_replay, motion_power_prediction, post_refine_replay_scalars, replay_segment_start_mask, resample_for_fit, soc_fit_upper_bound, write_current_maps_and_coefficients, write_scaled_maps| & build\_bwsc2025\_fitted\_package から BATTERY\_PACK\_MAX\_CHARGE\_V, BATTERY\_NOMINAL\_VOLTAGE\_V, INVALID\_PACK\_VOLTAGE\_MIN\_V, ROOT, TIMEZONE\_LOCAL, BatteryFitResult, MotionFitResult, PostRefineResult, PvFitResult, attach\_archive\_pv\_model, build\_grounded\_map\_assets, build\_stage\_anchors, build\_model\_from\_map\_assets, build\_model\_from\_profile\_cfg, compile\_tex, dcir\_observations, ensure\_dir, fit\_battery\_parameters, fit\_map\_shapes, fit\_motion\_parameters, fit\_pv\_parameters, fit\_regen\_utilization, fit\_stop\_tilt\_fraction, infer\_soc\_from\_loaded\_state, joint\_refine\_parameters, joint\_replay, load\_profile\_yaml, metrics\_from\_replay, motion\_power\_prediction, post\_refine\_replay\_scalars, replay\_segment\_start\_mask, resample\_for\_fit, soc\_fit\_upper\_bound, write\_current\_maps\_and\_coefficients, write\_scaled\_maps を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L21, L22, L157, L381, L444, L531, L567, L842, ...。 \\
+64 & \path|from audit_identification_residuals import run_audit as run_residual_audit| & audit\_identification\_residuals から run\_audit as run\_residual\_audit を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L3671。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L123 関数 \path|neutralize_identification_scalars|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|neutralize_identification_scalars(model)|
+              \item docstring: Fit each calibration factor once on top of the declared physical maps.
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: model
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item model.p.panel\_gain に 1.0 の結果を代入する。
+\item model.p.drive\_eff\_scale に 1.0 の結果を代入する。
+\item model.p.regen\_eff\_scale に 1.0 の結果を代入する。
+\item model.p.regen\_utilization に 1.0 の結果を代入する。
+\item model.p.rint\_scale に 1.0 の結果を代入する。
+\item model.p.r\_polarization\_ohm に 0.0 の結果を代入する。
+\item model.aux\_power\_override\_w に None の結果を代入する。
+\item model を返す。
+            \end{enumerate}
+
+\subsection*{L135 関数 \path|resolve_relative|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|resolve_relative(base_dir, raw)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, is\_absolute, resolve, str, strip
+              \item 戻り値の要点: (base\_dir / path).resolve() / base\_dir / path
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item path に Path(str(raw or '').strip()) の結果を代入する。
+\item 条件 not path を判定し、真なら内部処理を行う。
+\item 条件 path.is\_absolute() を判定し、真なら内部処理を行う。
+\item (base\_dir / path).resolve() を返す。
+            \end{enumerate}
+
+\subsection*{L144 関数 \path|stage|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|stage(message)|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: print
+  \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item print(...) を実行する。
+\end{enumerate}
+
+\subsection*{L148 関数 \path|load_manifest|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|load_manifest(package_dir, manifest_arg)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, cwd, is\_absolute, is\_file, next, open, resolve, safe\_load, str, strip
+              \item 戻り値の要点: (manifest\_path, payload)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item default\_path に package\_dir / 'data' / 'identification' / 'identification\_manifest.yaml' の結果を代入する。
+\item 条件 manifest\_arg を判定し、真なら内部処理を行う。
+\item with 文で manifest\_path.open('r', encoding='utf-8') を管理しながら処理する。
+\item (manifest\_path, payload) を返す。
+            \end{enumerate}
+
+\subsection*{L168 関数 \path|relpath_from|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|relpath_from(base_dir, target)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: fspath, relpath, replace
+              \item 戻り値の要点: '' / os.path.relpath(target, base\_dir).replace('\textbackslash{}\textbackslash{}', '/') / os.fspath(target)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 target is None を判定し、真なら内部処理を行う。
+\item 例外処理を伴う try ブロックを実行する。
+            \end{enumerate}
+
+\subsection*{L177 関数 \path|tex_path_fragment|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|tex_path_fragment(value)|
+              \item docstring: Render ASCII and Unicode paths without losing CJK glyphs or TeX syntax.
+              \item このブロックが直接呼ぶ主な関数・メソッド: get, isascii, join, replace, str
+              \item 戻り値の要点: f'\textbackslash{}\textbackslash{}texttt\{\{\{escaped\}\}\}' / f'\textbackslash{}\textbackslash{}path\{\{\{text\}\}\}'
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item text に str(value) の結果を代入する。
+\item 条件 text.isascii() を判定し、真なら内部処理を行う。
+\item replacements に \{'\textbackslash{}\textbackslash{}': '\textbackslash{}\textbackslash{}textbackslash\{\}', '\{': '\textbackslash{}\textbackslash{}\{', '\}': '\textbackslash{}\textbackslash{}\}', '\$': '\textbackslash{}\textbackslash{}\$', '\&': '\textbackslash{}\textbackslash{}\&', '\#': '\textbackslash{}\textbackslash{}\#', '\%': '\textbackslash{}\textbackslash{}\%', '\_': '\textbackslash{}\textbackslash{}\_', '\textasciicircum{}': '\textbackslash{}\textbackslash{}textasciicircum\{\}', '\textasciitilde{}': '\textbackslash{}\textbackslash{}textasciitilde\{\}'\} の結果を代入する。
+\item escaped に ''.join((replacements.get(char, char) for char in text)) の結果を代入する。
+\item escaped に escaped.replace('/', '/\textbackslash{}\textbackslash{}allowbreak\{\}') の結果を代入する。
+\item f'\textbackslash{}\textbackslash{}texttt\{\{\{escaped\}\}\}' を返す。
+            \end{enumerate}
+
+\subsection*{L199 関数 \path|tex_text_fragment|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|tex_text_fragment(value)|
+              \item docstring: Escape arbitrary report prose without path-style whitespace handling.
+              \item このブロックが直接呼ぶ主な関数・メソッド: get, join, str
+              \item 戻り値の要点: ''.join((replacements.get(char, char) for char in str(value)))
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item replacements に \{'\textbackslash{}\textbackslash{}': '\textbackslash{}\textbackslash{}textbackslash\{\}', '\{': '\textbackslash{}\textbackslash{}\{', '\}': '\textbackslash{}\textbackslash{}\}', '\$': '\textbackslash{}\textbackslash{}\$', '\&': '\textbackslash{}\textbackslash{}\&', '\#': '\textbackslash{}\textbackslash{}\#', '\%': '\textbackslash{}\textbackslash{}\%', '\_': '\textbackslash{}\textbackslash{}\_', '\textasciicircum{}': '\textbackslash{}\textbackslash{}textasciicircum\{\}', '\textasciitilde{}': '\textbackslash{}\textbackslash{}textasciitilde\{\}'\} の結果を代入する。
+\item ''.join((replacements.get(char, char) for char in str(value))) を返す。
+            \end{enumerate}
+
+\subsection*{L216 関数 \path|load_yaml_if_exists|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|load_yaml_if_exists(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: exists, open, safe\_load
+              \item 戻り値の要点: \{\} / yaml.safe\_load(f) or \{\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 path is None or not path.exists() を判定し、真なら内部処理を行う。
+\item with 文で path.open('r', encoding='utf-8') を管理しながら処理する。
+            \end{enumerate}
+
+\subsection*{L223 関数 \path|declared_control_stop_km|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|declared_control_stop_km(profile_cfg, profile_path)|
+              \item docstring: Load control-stop distances declared by the vehicle package.
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, bool, float, get, isinstance, load\_yaml\_if\_exists, resolve\_relative, set, sorted, str, strip
+              \item 戻り値の要点: [] / sorted(set(distances))
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item paths に profile\_cfg.get('paths', \{\}) if isinstance(profile\_cfg, dict) else \{\} の結果を代入する。
+\item ('actual\_stop\_yaml', 'stop\_yaml') を順に走査し、各要素を key に入れて処理する。
+\item [] を返す。
+            \end{enumerate}
+
+\subsection*{L245 関数 \path|_terminal_anchor_from_payload|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_terminal_anchor_from_payload(payload)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: bool, float, get, isinstance, str, strip
+              \item 戻り値の要点: out / \{\} / \{\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not isinstance(payload, dict) を判定し、真なら内部処理を行う。
+\item anchor に payload.get('terminal\_anchor', payload) の結果を代入する。
+\item 条件 not isinstance(anchor, dict) を判定し、真なら内部処理を行う。
+\item out に \{\} を代入する。
+\item ('count', 's\_km', 'voltage\_v', 'current\_a', 'temp\_c', 'soc\_target', 'soc\_sigma', 'soc\_evidence\_min', 'soc\_evidence\_max', 'voltage\_sigma\_v', 'ocv\_terminal\_v', 'series\_resistance\_ohm', 'ocv\_statistical\_sigma\_v', 'ocv\_systematic\_sigma\_v', 'ocv\_total\_sigma\_v') を順に走査し、各要素を key に入れて処理する。
+\item raw\_time に str(anchor.get('time\_utc', '') or '').strip() の結果を代入する。
+\item 条件 raw\_time を判定し、真なら内部処理を行う。
+\item ('notes', 'source\_documents', 'method', 'soc\_target\_basis') を順に走査し、各要素を key に入れて処理する。
+\item ('quality\_gate\_pass', 'conditional\_on\_grounded\_ocv\_map', 'weak\_channel\_cross\_consistency\_gate\_pass') を順に走査し、各要素を key に入れて処理する。
+\item out を返す。
+            \end{enumerate}
+
+\subsection*{L292 関数 \path|_append_reason_column|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_append_reason_column(frame, mask, reason)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: any, astype, fillna, len, where
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not mask.any() を判定し、真なら内部処理を行う。
+\item current に frame.loc[mask, 'exclude\_reason'].fillna('').astype(str) の結果を代入する。
+\item merged に np.where(current.str.len() > 0, current + ';' + reason, reason) の結果を代入する。
+\item frame.loc[mask, 'exclude\_reason'] に merged の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L300 関数 \path|resolve_manifest_context|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|resolve_manifest_context(package_dir, manifest)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: FileNotFoundError, Path, ValueError, \_terminal\_anchor\_from\_payload, append, difference, exists, get, is\_absolute, isinstance, items, join
+              \item 戻り値の要点: \{'inputs': inputs, 'options': options, 'grounded\_sources': grounded, 'evidence': evidence, 'actual\_event\_path': actual\_event\_path, 'counterfactual\_event\_path': counterfactual\_event\_path, 'terminal\_anchor\_path': terminal\_anchor\_path, 'grounded\_summary\_path': grounded\_summary\_path, 'source\_inventory\_path': source\_inventory\_path, 'notes\_markdown\_path': notes\_markdown\_path, 'explicit\_grounded\_assets': explicit\_grounded\_assets, 'grounded\_summary\_payload': grounded\_summary\_payload, 'actual\_event\_payload': actual\_event\_payload, 'terminal\_anchor\_override': terminal\_anchor\_override, 'external\_documents': external\_documents, 'declared\_evidence': declared\_evidence\} / resolve\_relative(package\_dir, raw) / None
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item inputs に manifest.get('inputs', \{\}) if isinstance(manifest, dict) else \{\} の結果を代入する。
+\item options に manifest.get('options', \{\}) if isinstance(manifest, dict) else \{\} の結果を代入する。
+\item grounded に manifest.get('grounded\_sources', \{\}) if isinstance(manifest, dict) else \{\} の結果を代入する。
+\item evidence に manifest.get('evidence', \{\}) if isinstance(manifest, dict) else \{\} の結果を代入する。
+\item 関数 opt\_path を定義する。
+\item actual\_event\_path に opt\_path(inputs.get('actual\_event\_yaml')) の結果を代入する。
+\item counterfactual\_event\_path に opt\_path(inputs.get('counterfactual\_event\_yaml')) の結果を代入する。
+\item terminal\_anchor\_path に opt\_path(inputs.get('terminal\_anchor\_yaml')) の結果を代入する。
+\item grounded\_summary\_path に opt\_path(grounded.get('grounded\_map\_summary\_yaml', '') or options.get('grounded\_map\_summary\_yaml', '')) の結果を代入する。
+\item source\_inventory\_path に opt\_path(evidence.get('source\_inventory\_json')) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L413 関数 \path|hampel_mask|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|hampel_mask(series, window, n_sigma, min_abs)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, astype, clip, float, int, max, maximum, median, rolling, to\_numeric
+              \item 戻り値の要点: abs\_dev > np.maximum(float(min\_abs), float(n\_sigma) * scale)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item x に pd.to\_numeric(series, errors='coerce').astype(float) の結果を代入する。
+\item window に max(3, int(window)) の結果を代入する。
+\item 条件 window \% 2 == 0 を判定し、真なら内部処理を行う。
+\item med に x.rolling(window, center=True, min\_periods=1).median() の結果を代入する。
+\item abs\_dev に (x - med).abs() の結果を代入する。
+\item mad に abs\_dev.rolling(window, center=True, min\_periods=1).median() の結果を代入する。
+\item scale に (1.4826 * mad).clip(lower=max(1e-06, float(min\_abs) * 0.25)) の結果を代入する。
+\item abs\_dev > np.maximum(float(min\_abs), float(n\_sigma) * scale) を返す。
+            \end{enumerate}
+
+\subsection*{L425 関数 \path|apply_sensor_quality_annotations|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|apply_sensor_quality_annotations(work, base_model, options)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_append\_reason\_column, abs, any, astype, copy, diff, fillna, float, get, getattr, hampel\_mask, int
+              \item 戻り値の要点: out / work
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item options に options if isinstance(options, dict) else \{\} の結果を代入する。
+\item sensor\_cfg に options.get('sensor\_filter', \{\}) if isinstance(options.get('sensor\_filter', \{\}), dict) else \{\} の結果を代入する。
+\item 条件 sensor\_cfg.get('enabled', True) is False を判定し、真なら内部処理を行う。
+\item out に work.copy() の結果を代入する。
+\item ('exclude\_power\_fit', 'exclude\_voltage\_fit', 'exclude\_weather\_fit') を順に走査し、各要素を key に入れて処理する。
+\item 条件 'exclude\_reason' not in out.columns を判定し、真なら内部処理を行う。
+\item invalid\_v\_threshold に float(sensor\_cfg.get('invalid\_voltage\_threshold\_v', INVALID\_PACK\_VOLTAGE\_MIN\_V)) の結果を代入する。
+\item current\_limit\_margin\_a に float(sensor\_cfg.get('charge\_current\_limit\_margin\_a', 2.0)) の結果を代入する。
+\item current\_spike\_window に int(sensor\_cfg.get('current\_spike\_window', 9)) の結果を代入する。
+\item current\_spike\_sigma に float(sensor\_cfg.get('current\_spike\_sigma', 4.0)) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L520 関数 \path|polarization_current_trace|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|polarization_current_trace(replay, current_column, tau_sec)|
+              \item docstring: Return the 1-RC branch current state immediately before each sample.
+              \item このブロックが直接呼ぶ主な関数・メソッド: diff, exp, float, isfinite, len, max, min, range, replay\_segment\_start\_mask, to\_datetime, to\_numeric, to\_numpy
+              \item 戻り値の要点: state
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item current に pd.to\_numeric(replay[current\_column], errors='coerce').to\_numpy(dtype=float) の結果を代入する。
+\item current に np.where(np.isfinite(current), current, 0.0) の結果を代入する。
+\item time\_utc に pd.to\_datetime(replay['time\_utc'], utc=True, errors='coerce') の結果を代入する。
+\item dt\_sec に time\_utc.diff().dt.total\_seconds().to\_numpy(dtype=float) の結果を代入する。
+\item segment\_starts に replay\_segment\_start\_mask(replay) の結果を代入する。
+\item state に np.zeros(len(replay), dtype=float) の結果を代入する。
+\item tau に max(float(tau\_sec), 1e-06) の結果を代入する。
+\item range(1, len(replay)) を順に走査し、各要素を idx に入れて処理する。
+\item state を返す。
+            \end{enumerate}
+
+\subsection*{L544 関数 \path|fit_battery_polarization|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|fit_battery_polarization(replay)|
+              \item docstring: Fit a bounded one-RC branch and gate it on the last independent day.
+              \item このブロックが直接呼ぶ主な関数・メソッド: Series, astype, bool, clip, dot, fillna, float, geomspace, get, int, isfinite, len
+              \item 戻り値の要点: \{'adopted': adopted, 'reason': 'bounded\_1rc\_improves\_training\_and\_last\_day\_holdout\_rmse' if adopted else 'training\_or\_last\_day\_holdout\_gate\_failed', 'sample\_count': int(base\_valid.sum()), 'training\_sample\_count': int(training\_valid.sum()), 'validation\_sample\_count': int(validation\_valid.sum()), 'holdout\_group': holdout\_group, 'r\_polarization\_ohm': float(best['r\_polarization\_ohm'] if adopted else 0.0), 'tau\_sec': float(best['tau\_sec']), 'rmse\_before\_v': rmse\_before, 'rmse\_after\_v': float(best['rmse\_after\_v'] if adopted else rmse\_before), 'rmse\_improvement\_v': float(improvement if adopted else 0.0), 'validation\_rmse\_before\_v': validation\_before, 'validation\_rmse\_after\_v': validation\_after, 'validation\_rmse\_ratio': validation\_ratio, 'validation\_rmse\_ratio\_max': 1.0, 'method': 'bounded deterministic tau grid with closed-form least-squares Rp on earlier race days; last race day is an untouched adoption holdout'\} / \{'adopted': False, 'reason': 'insufficient\_valid\_voltage\_samples', 'sample\_count': int(base\_valid.sum()), 'r\_polarization\_ohm': 0.0, 'tau\_sec': 60.0, 'rmse\_before\_v': float('nan'), 'rmse\_after\_v': float('nan')\} / \{'adopted': False, 'reason': 'no\_independent\_day\_holdout', 'sample\_count': int(base\_valid.sum()), 'training\_sample\_count': 0, 'validation\_sample\_count': 0, 'r\_polarization\_ohm': 0.0, 'tau\_sec': 60.0, 'rmse\_before\_v': float(np.sqrt(np.mean(residual[base\_valid] ** 2))), 'rmse\_after\_v': float(np.sqrt(np.mean(residual[base\_valid] ** 2)))\} / \{'adopted': False, 'reason': 'insufficient\_independent\_day\_holdout\_samples', 'sample\_count': int(base\_valid.sum()), 'training\_sample\_count': int(training\_valid.sum()), 'validation\_sample\_count': int(validation\_valid.sum()), 'holdout\_group': holdout\_group, 'r\_polarization\_ohm': 0.0, 'tau\_sec': 60.0, 'rmse\_before\_v': float(np.sqrt(np.mean(residual[base\_valid] ** 2))), 'rmse\_after\_v': float(np.sqrt(np.mean(residual[base\_valid] ** 2)))\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item residual に (pd.to\_numeric(replay['battery\_voltage\_v\_obs'], errors='coerce') - pd.to\_numeric(replay['battery\_voltage\_v\_pred'], errors='coerce')).to\_numpy(dtype=float) の結果を代入する。
+\item excluded に replay.get('exclude\_voltage\_fit', pd.Series(False, index=replay.index)).fillna(True).astype(bool).to\_numpy() の結果を代入する。
+\item base\_valid に np.isfinite(residual) \& \textasciitilde{}excluded の結果を代入する。
+\item 条件 int(base\_valid.sum()) < 500 を判定し、真なら内部処理を行う。
+\item 条件 'day' in replay.columns を判定し、真なら内部処理を行う。
+\item unique\_groups に sorted((float(value) for value in np.unique(groups[base\_valid \& np.isfinite(groups)]))) の結果を代入する。
+\item 条件 len(unique\_groups) < 2 を判定し、真なら内部処理を行う。
+\item holdout\_group に unique\_groups[-1] の結果を代入する。
+\item training\_valid に base\_valid \& np.isfinite(groups) \& (groups != holdout\_group) の結果を代入する。
+\item validation\_valid に base\_valid \& np.isfinite(groups) \& (groups == holdout\_group) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L682 関数 \path|apply_battery_polarization|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|apply_battery_polarization(replay, dynamic_fit, current_column)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: bool, copy, float, get, polarization\_current\_trace, to\_numeric
+              \item 戻り値の要点: out / out
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item out に replay.copy() の結果を代入する。
+\item out['battery\_voltage\_v\_pred\_static'] に pd.to\_numeric(out['battery\_voltage\_v\_pred'], errors='coerce') の結果を代入する。
+\item 条件 not bool(dynamic\_fit.get('adopted', False)) を判定し、真なら内部処理を行う。
+\item state に polarization\_current\_trace(out, current\_column=current\_column, tau\_sec=float(dynamic\_fit['tau\_sec'])) の結果を代入する。
+\item polarization\_v に float(dynamic\_fit['r\_polarization\_ohm']) * state の結果を代入する。
+\item out['battery\_polarization\_v'] に polarization\_v の結果を代入する。
+\item out['battery\_voltage\_v\_pred'] に out['battery\_voltage\_v\_pred\_static'] - polarization\_v の結果を代入する。
+\item out を返す。
+            \end{enumerate}
+
+\subsection*{L706 関数 \path|resolve_fit_plan|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|resolve_fit_plan(options, quality)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: dict, float, get, isinstance, items, lower, str, strip
+              \item 戻り値の要点: plan
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item options に options if isinstance(options, dict) else \{\} の結果を代入する。
+\item quality\_norm に str(quality or options.get('fit\_quality', 'standard')).strip().lower() の結果を代入する。
+\item 条件 quality\_norm not in FIT\_QUALITY\_PRESETS を判定し、真なら内部処理を行う。
+\item plan に dict(FIT\_QUALITY\_PRESETS[quality\_norm]) の結果を代入する。
+\item key\_map に \{'battery\_restart\_count': 'battery\_restart\_count', 'battery\_maxiter': 'battery\_maxiter', 'motion\_restart\_count': 'motion\_restart\_count', 'motion\_maxiter': 'motion\_maxiter', 'joint\_restart\_count': 'joint\_restart\_count', 'joint\_random\_start\_count': 'joint\_random\_start\_count', 'joint\_local\_topk': 'joint\_local\_topk', 'joint\_maxiter': 'joint\_maxiter', 'fit\_stride': 'fit\_stride', 'allow\_map\_shape\_fit': 'allow\_map\_shape\_fit', 'post\_refine\_enabled': 'post\_refine\_enabled'\} の結果を代入する。
+\item key\_map.items() を順に走査し、各要素を (out\_key, opt\_key) に入れて処理する。
+\item plan['panel\_deployment\_stopped\_speed\_kmh'] に float(options.get('panel\_deployment\_stopped\_speed\_kmh', 2.0)) の結果を代入する。
+\item plan['panel\_deployment\_min\_dwell\_sec'] に float(options.get('panel\_deployment\_min\_dwell\_sec', 300.0)) の結果を代入する。
+\item plan['panel\_deployment\_max\_sample\_gap\_sec'] に float(options.get('panel\_deployment\_max\_sample\_gap\_sec', 60.0)) の結果を代入する。
+\item plan['panel\_control\_stop\_tolerance\_km'] に float(options.get('panel\_control\_stop\_tolerance\_km', 1.0)) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L750 関数 \path|resolve_identification_output_layout|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|resolve_identification_output_layout(package_dir, profile_cfg, output_tag_override)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: get, resolve\_relative, str, strip, sub
+              \item 戻り値の要点: \{'tag': tag, 'output\_root': output\_root, 'run\_root': run\_root, 'report\_root': report\_root, 'grounded\_maps': run\_root / 'grounded\_base\_maps', 'adopted\_maps': run\_root / 'adopted\_maps'\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item identification\_cfg に profile\_cfg.get('identification', \{\}) or \{\} の結果を代入する。
+\item output\_root に resolve\_relative(package\_dir, str(identification\_cfg.get('output\_dir', 'outputs/identification') or 'outputs/identification')) の結果を代入する。
+\item raw\_tag に output\_tag\_override の結果を代入する。
+\item 条件 raw\_tag is None を判定し、真なら内部処理を行う。
+\item tag に re.sub('[\textasciicircum{}A-Za-z0-9\_.-]+', '\_', str(raw\_tag).strip()).strip('.\_') の結果を代入する。
+\item run\_root に output\_root / 'runs' / tag if tag else output\_root の結果を代入する。
+\item report\_root に run\_root / 'reports' if tag else package\_dir / 'outputs' / 'reports' の結果を代入する。
+\item \{'tag': tag, 'output\_root': output\_root, 'run\_root': run\_root, 'report\_root': report\_root, 'grounded\_maps': run\_root / 'grounded\_base\_maps', 'adopted\_maps': run\_root / 'adopted\_maps'\} を返す。
+            \end{enumerate}
+
+\subsection*{L777 関数 \path|identification_profile_output_path|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|identification_profile_output_path(canonical_profile, run_output_dir, output_tag, adopt_profile)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, str, strip
+              \item 戻り値の要点: Path(canonical\_profile) / Path(run\_output\_dir) / 'profile\_candidate.yaml'
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 str(output\_tag).strip() and (not adopt\_profile) を判定し、真なら内部処理を行う。
+\item Path(canonical\_profile) を返す。
+            \end{enumerate}
+
+\subsection*{L789 関数 \path|load_ocv_df|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|load_ocv_df(profile_cfg, profile_yaml)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: FileNotFoundError, get, read\_csv, resolve\_relative, str, strip
+              \item 戻り値の要点: pd.read\_csv(ocv\_path)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item raw に str((profile\_cfg.get('paths', \{\}) or \{\}).get('ocv\_soc\_map', '') or '').strip() の結果を代入する。
+\item 条件 not raw を判定し、真なら内部処理を行う。
+\item ocv\_path に resolve\_relative(profile\_yaml.parent, raw) の結果を代入する。
+\item pd.read\_csv(ocv\_path) を返す。
+            \end{enumerate}
+
+\subsection*{L797 関数 \path|build_source_map_assets|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|build_source_map_assets(profile_cfg, profile_yaml)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: FileNotFoundError, get, rel, resolve\_relative, str, strip
+              \item 戻り値の要点: \{'drive\_eff\_map': rel('drive\_eff\_map'), 'drive\_map\_eco': rel('drive\_map\_eco', paths.get('drive\_eff\_map', '')), 'drive\_map\_power': rel('drive\_map\_power', paths.get('drive\_eff\_map', '')), 'regen\_eff\_map': rel('regen\_eff\_map'), 'regen\_map\_eco': rel('regen\_map\_eco', paths.get('regen\_eff\_map', '')), 'regen\_map\_power': rel('regen\_map\_power', paths.get('regen\_eff\_map', '')), 'rint\_map': rel('rint\_map'), 'panel\_eff\_map': rel('panel\_eff\_map'), 'mppt\_eff\_map': rel('mppt\_eff\_map'), 'ocv\_soc\_map': rel('ocv\_soc\_map')\} / resolve\_relative(base\_dir, raw)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item base\_dir に profile\_yaml.parent の結果を代入する。
+\item paths に profile\_cfg.get('paths', \{\}) or \{\} の結果を代入する。
+\item 関数 rel を定義する。
+\item \{'drive\_eff\_map': rel('drive\_eff\_map'), 'drive\_map\_eco': rel('drive\_map\_eco', paths.get('drive\_eff\_map', '')), 'drive\_map\_power': rel('drive\_map\_power', paths.get('drive\_eff\_map', '')), 'regen\_eff\_map': rel('regen\_eff\_map'), 'regen\_map\_eco': rel('regen\_map\_eco', paths.get('regen\_eff\_map', '')), 'regen\_map\_power': rel('regen\_map\_power', paths.get('regen\_eff\_map', '')), 'rint\_map': rel('rint\_map'), 'panel\_eff\_map': rel('panel\_eff\_map'), 'mppt\_eff\_map': rel('mppt\_eff\_map'), 'ocv\_soc\_map': rel('ocv\_soc\_map')\} を返す。
+            \end{enumerate}
+
+\subsection*{L821 関数 \path|apply_actual_event_annotations|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|apply_actual_event_annotations(work, payload)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Timestamp, \_append\_reason\_column, any, astype, bool, copy, fillna, get, hasattr, isinstance, str, strip
+              \item 戻り値の要点: out / work / work
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not isinstance(payload, dict) を判定し、真なら内部処理を行う。
+\item events に payload.get('events', payload) の結果を代入する。
+\item 条件 not isinstance(events, list) or not events を判定し、真なら内部処理を行う。
+\item out に work.copy() の結果を代入する。
+\item ('exclude\_power\_fit', 'exclude\_voltage\_fit', 'exclude\_weather\_fit') を順に走査し、各要素を key に入れて処理する。
+\item 条件 'exclude\_reason' not in out.columns を判定し、真なら内部処理を行う。
+\item time\_utc に pd.to\_datetime(out['time\_utc'], format='mixed', utc=True, errors='coerce') の結果を代入する。
+\item events を順に走査し、各要素を event に入れて処理する。
+\item out を返す。
+            \end{enumerate}
+
+\subsection*{L863 関数 \path|truncate_at_retire_event|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|truncate_at_retire_event(work, payload)|
+              \item docstring: End historical replay at the first authoritative retirement timestamp.
+              \item このブロックが直接呼ぶ主な関数・メソッド: Timestamp, ValueError, append, copy, get, isinstance, isoformat, lower, min, reset\_index, str, strip
+              \item 戻り値の要点: retained.reset\_index(drop=True) / work / work / work
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not isinstance(payload, dict) を判定し、真なら内部処理を行う。
+\item events に payload.get('events', payload) の結果を代入する。
+\item 条件 not isinstance(events, list) を判定し、真なら内部処理を行う。
+\item cutoffs に [] を代入する。
+\item events を順に走査し、各要素を event に入れて処理する。
+\item 条件 not cutoffs を判定し、真なら内部処理を行う。
+\item cutoff に min(cutoffs) の結果を代入する。
+\item time\_utc に pd.to\_datetime(work['time\_utc'], format='mixed', utc=True, errors='coerce') の結果を代入する。
+\item retained に work.loc[time\_utc <= cutoff].copy() の結果を代入する。
+\item 条件 retained.empty を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L892 関数 \path|normalize_generic_log|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|normalize_generic_log(log_csv, actual_event_payload, base_model, options)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, apply\_actual\_event\_annotations, apply\_sensor\_quality\_annotations, astype, clip, copy, diff, dropna, extend, fillna, float, items
+              \item 戻り値の要点: work
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item df に pd.read\_csv(log\_csv, low\_memory=False) の結果を代入する。
+\item 条件 'time\_utc' not in df.columns を判定し、真なら内部処理を行う。
+\item work に df.copy() の結果を代入する。
+\item work['time\_utc'] に pd.to\_datetime(work['time\_utc'], format='mixed', utc=True) の結果を代入する。
+\item work に work.sort\_values('time\_utc').reset\_index(drop=True) の結果を代入する。
+\item required\_defaults に \{'s\_km': np.nan, 'speed\_kmh': 0.0, 'slope\_pct': 0.0, 'route\_heading\_deg': 0.0, 'headwind\_archive\_ms': 0.0, 'GHI\_archive': 0.0, 'Tamb\_archive\_C': 25.0, 'solar\_power\_w\_obs': 0.0, 'battery\_power\_w\_obs': 0.0, 'battery\_current\_a': 0.0, 'battery\_voltage\_v': np.nan, 'lat': np.nan, 'lon': np.nan, 'alt\_m': 0.0\} の結果を代入する。
+\item required\_defaults.items() を順に走査し、各要素を (key, value) に入れて処理する。
+\item 条件 'dt\_sec' not in work.columns を判定し、真なら内部処理を行う。
+\item 条件 'time\_local' not in work.columns を判定し、真なら内部処理を行う。
+\item 条件 'day' not in work.columns を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L994 関数 \path|build_terminal_anchor|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|build_terminal_anchor(log_df, ocv_df, base_model, anchor_km)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, asarray, astype, copy, fillna, float, infer\_soc\_from\_loaded\_state, int, isfinite, itertuples, len, median
+              \item 戻り値の要点: \{'count': int(len(window)), 's\_km': float(window['s\_km'].median()), 'time\_utc': pd.to\_datetime(window['time\_utc'].iloc[-1], utc=True).strftime('\%Y-\%m-\%dT\%H:\%M:\%SZ'), 'voltage\_v': float(window['battery\_voltage\_v'].median()), 'current\_a': float(window['battery\_current\_a'].median()), 'temp\_c': float(window['Tamb\_archive\_C'].median()), 'soc\_target': float(np.nanmedian(np.asarray(soc\_targets, dtype=float)))\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item valid に np.isfinite(log\_df['battery\_voltage\_v']) \& np.isfinite(log\_df['battery\_current\_a']) \& np.isfinite(log\_df['Tamb\_archive\_C']) \& np.isfinite(log\_df['s\_km']) \& (log\_df['battery\_voltage\_v'] >= INVALID\_PACK\_VOLTAGE\_MIN\_V) \& \textasciitilde{}log\_df['exclude\_voltage\_fit'].fillna(False).astype(bool) の結果を代入する。
+\item window に log\_df.loc[valid \& (np.abs(log\_df['s\_km'] - float(anchor\_km)) <= 1.5)].copy() の結果を代入する。
+\item 条件 window.empty を判定し、真なら内部処理を行う。
+\item soc\_targets に [infer\_soc\_from\_loaded\_state(float(row.battery\_voltage\_v), float(row.battery\_current\_a), float(row.Tamb\_archive\_C), ocv\_df, base\_model) for row in window.itertuples(index=False)] の結果を代入する。
+\item \{'count': int(len(window)), 's\_km': float(window['s\_km'].median()), 'time\_utc': pd.to\_datetime(window['time\_utc'].iloc[-1], utc=True).strftime('\%Y-\%m-\%dT\%H:\%M:\%SZ'), 'voltage\_v': float(window['battery\_voltage\_v'].median()), 'current\_a': float(window['battery\_current\_a'].median()), 'temp\_c': float(window['Tamb\_archive\_C'].median()), 'soc\_target': float(np.nanmedian(np.asarray(soc\_targets, dtype=float)))\} を返す。
+            \end{enumerate}
+
+\subsection*{L1029 関数 \path|terminal_metrics|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|terminal_metrics(replay_df, ocv_df, base_model, batt, anchor_km, terminal_anchor)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, asarray, astype, copy, fillna, float, get, infer\_soc\_from\_loaded\_state, isfinite, isinstance, itertuples, len
+              \item 戻り値の要点: \{'retire\_anchor\_s\_km': float(window['s\_km'].median()), 'retire\_anchor\_voltage\_obs\_v': float(window['battery\_voltage\_v\_obs'].median()), 'retire\_anchor\_voltage\_pred\_v': float(window['battery\_voltage\_v\_pred'].median()), 'retire\_anchor\_soc\_obs': soc\_obs\_value, 'retire\_anchor\_soc\_pred': float(window['soc\_pred'].median()), 'retire\_anchor\_soc\_error': float(window['soc\_pred'].median() - soc\_obs\_value)\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item valid に np.isfinite(replay\_df['battery\_voltage\_v\_obs']) \& np.isfinite(replay\_df['battery\_current\_a\_obs']) \& np.isfinite(replay\_df['Tamb\_C']) \& np.isfinite(replay\_df['s\_km']) \& (replay\_df['battery\_voltage\_v\_obs'] >= INVALID\_PACK\_VOLTAGE\_MIN\_V) \& \textasciitilde{}replay\_df['exclude\_voltage\_fit'].fillna(False).astype(bool) の結果を代入する。
+\item window に replay\_df.loc[valid \& (np.abs(replay\_df['s\_km'] - float(anchor\_km)) <= 1.5)].copy() の結果を代入する。
+\item 条件 window.empty を判定し、真なら内部処理を行う。
+\item terminal\_anchor に terminal\_anchor if isinstance(terminal\_anchor, dict) else \{\} の結果を代入する。
+\item 条件 'soc\_target' in terminal\_anchor and terminal\_anchor.get('soc\_target') not in (None, '') を判定し、真なら内部処理を行う。
+\item \{'retire\_anchor\_s\_km': float(window['s\_km'].median()), 'retire\_anchor\_voltage\_obs\_v': float(window['battery\_voltage\_v\_obs'].median()), 'retire\_anchor\_voltage\_pred\_v': float(window['battery\_voltage\_v\_pred'].median()), 'retire\_anchor\_soc\_obs': soc\_obs\_value, 'retire\_anchor\_soc\_pred': float(window['soc\_pred'].median()), 'retire\_anchor\_soc\_error': float(window['soc\_pred'].median() - soc\_obs\_value)\} を返す。
+            \end{enumerate}
+
+\subsection*{L1078 関数 \path|replay_day_metrics|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|replay_day_metrics(replay_df)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, astype, fillna, float, groupby, int, len, max, mean, notna, sqrt, sum
+              \item 戻り値の要点: rows
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rows に [] を代入する。
+\item replay\_df.groupby('day', dropna=False) を順に走査し、各要素を (day, group) に入れて処理する。
+\item rows を返す。
+            \end{enumerate}
+
+\subsection*{L1099 関数 \path|identification_selection_score|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|identification_selection_score(metrics)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, float, get
+              \item 戻り値の要点: power\_term + energy\_term + independent\_pv\_term + vehicle\_voltage\_term + battery\_voltage\_term + battery\_terminal\_term + vehicle\_terminal\_term + end\_to\_end\_terminal\_term + fit\_window\_term
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item power\_rmse に float(metrics.get('power\_rmse\_clean\_w', float('inf'))) の結果を代入する。
+\item robust\_power\_rmse に float(metrics.get('power\_residual\_mean\_120s\_rmse\_w', power\_rmse)) の結果を代入する。
+\item energy\_rmse\_25km に float(metrics.get('energy\_error\_25km\_rmse\_wh', float('inf'))) の結果を代入する。
+\item power\_term に 0.6 * power\_rmse + 0.4 * robust\_power\_rmse の結果を代入する。
+\item energy\_term に 0.5 * energy\_rmse\_25km の結果を代入する。
+\item independent\_pv\_term に 0.25 * float(metrics.get('end\_to\_end\_moving\_pv\_rmse\_w', float('inf'))) の結果を代入する。
+\item vehicle\_voltage\_term に 8.0 * float(metrics.get('voltage\_rmse\_clean\_v', float('inf'))) の結果を代入する。
+\item battery\_voltage\_term に 4.0 * float(metrics.get('battery\_conditional\_voltage\_rmse\_clean\_v', float('inf'))) の結果を代入する。
+\item battery\_terminal\_term に 80.0 * abs(float(metrics.get('battery\_conditional\_retire\_anchor\_soc\_error', float('inf')))) の結果を代入する。
+\item vehicle\_terminal\_term に 1000.0 * abs(float(metrics.get('retire\_anchor\_soc\_error', float('inf')))) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L1135 関数 \path|condition_vehicle_fit_on_measured_pv|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|condition_vehicle_fit_on_measured_pv(frame)|
+              \item docstring: Use measured array power when identifying vehicle-side coefficients.
+
+Forecast/PV-map error is validated separately.  Feeding predicted PV into the
+vehicle fit otherwise lets a cloudy-day irradiance error masquerade as CdA,
+rolling resistance, or drivetrain-efficiency error.
+              \item このブロックが直接呼ぶ主な関数・メソッド: clip, copy, get, notna, to\_numeric, where
+              \item 戻り値の要点: out / out
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item out に frame.copy() の結果を代入する。
+\item predicted に pd.to\_numeric(out.get('solar\_power\_w\_model'), errors='coerce') の結果を代入する。
+\item measured に pd.to\_numeric(out.get('solar\_power\_w\_obs'), errors='coerce') の結果を代入する。
+\item 条件 predicted is None or measured is None を判定し、真なら内部処理を行う。
+\item measured に measured.clip(lower=0.0) の結果を代入する。
+\item usable に measured.notna() の結果を代入する。
+\item out['solar\_power\_w\_forecast\_model'] に predicted の結果を代入する。
+\item out['solar\_power\_w\_model'] に predicted.where(\textasciitilde{}usable, measured) の結果を代入する。
+\item out['vehicle\_fit\_solar\_source'] に np.where(usable, 'measured', 'forecast\_fallback') の結果を代入する。
+\item out を返す。
+            \end{enumerate}
+
+\subsection*{L1155 関数 \path|calibrate_solar_measurement_to_pack|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|calibrate_solar_measurement_to_pack(frame, known_aux_power_w, stopped_speed_kmh, minimum_solar_power_w, minimum_samples, gain_bounds)|
+              \item docstring: Calibrate the ZP solar channel from stationary DC-bus power balance.
+
+At zero wheel speed, the independently measured channels satisfy
+``P\_batt = P\_aux - gain * P\_solar\_raw``.  The known 21 W auxiliary load
+anchors the intercept, so the fitted gain cannot absorb vehicle drag or
+forecast irradiance error.
+              \item このブロックが直接呼ぶ主な関数・メソッド: Series, abs, array, asarray, astype, bool, copy, fillna, float, get, groupby, int
+              \item 戻り値の要点: (out, result)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item out に frame.copy() の結果を代入する。
+\item raw\_column に 'solar\_power\_w\_obs\_raw' if 'solar\_power\_w\_obs\_raw' in out.columns else 'solar\_power\_w\_obs' の結果を代入する。
+\item raw に pd.to\_numeric(out.get(raw\_column), errors='coerce') の結果を代入する。
+\item battery に pd.to\_numeric(out.get('battery\_power\_w\_obs'), errors='coerce') の結果を代入する。
+\item speed に pd.to\_numeric(out.get('speed\_kmh'), errors='coerce') の結果を代入する。
+\item excluded に pd.Series(False, index=out.index) の結果を代入する。
+\item 条件 'exclude\_power\_fit' in out.columns を判定し、真なら内部処理を行う。
+\item mask に \textasciitilde{}excluded \& raw.notna() \& battery.notna() \& speed.notna() \& (speed <= float(stopped\_speed\_kmh)) \& (raw >= float(minimum\_solar\_power\_w)) の結果を代入する。
+\item x に raw.loc[mask].to\_numpy(dtype=float) の結果を代入する。
+\item y に battery.loc[mask].to\_numpy(dtype=float) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L1271 関数 \path|_shift_acceleration_within_segments|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_shift_acceleration_within_segments(frame, sample_shift, acceleration)|
+              \item docstring: Shift a derived acceleration trace without leaking across race days or log gaps.
+              \item このブロックが直接呼ぶ主な関数・メソッド: Series, cumsum, groupby, int, replay\_segment\_start\_mask, shift, to\_numeric
+              \item 戻り値の要点: acceleration.groupby(segment\_id).shift(int(sample\_shift))
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 acceleration is None を判定し、真なら内部処理を行う。
+\item segment\_id に pd.Series(replay\_segment\_start\_mask(frame), index=frame.index).cumsum() の結果を代入する。
+\item acceleration.groupby(segment\_id).shift(int(sample\_shift)) を返す。
+            \end{enumerate}
+
+\subsection*{L1283 関数 \path|_acceleration_trace_from_speed|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_acceleration_trace_from_speed(frame, method, window_samples)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Series, ValueError, clip, cumsum, diff, fillna, get, groupby, int, len, lower, max
+              \item 戻り値の要点: smoothed.fillna(0.0).clip(lower=-1.5, upper=1.5)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item speed\_ms に pd.to\_numeric(frame['speed\_kmh'], errors='coerce').fillna(0.0) / 3.6 の結果を代入する。
+\item dt\_sec に pd.to\_numeric(frame.get('dt\_sec'), errors='coerce').replace(0.0, np.nan) の結果を代入する。
+\item raw に speed\_ms.diff() / dt\_sec の結果を代入する。
+\item segment\_start に pd.Series(replay\_segment\_start\_mask(frame), index=frame.index) の結果を代入する。
+\item raw.loc[segment\_start] に 0.0 の結果を代入する。
+\item raw に raw.replace([np.inf, -np.inf], np.nan).fillna(0.0) の結果を代入する。
+\item segment\_id に segment\_start.cumsum() の結果を代入する。
+\item window に max(1, int(window\_samples)) の結果を代入する。
+\item 条件 window \% 2 == 0 を判定し、真なら内部処理を行う。
+\item smoothed に pd.Series(index=frame.index, dtype=float) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L1321 関数 \path|_bilinear_interp_array|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_bilinear_interp_array(x_grid, y_grid, values, x, y)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: asarray, clip, divide, len, searchsorted, zeros\_like
+              \item 戻り値の要点: (1.0 - wx) * (1.0 - wy) * values[ix, iy] + wx * (1.0 - wy) * values[ix + 1, iy] + (1.0 - wx) * wy * values[ix, iy + 1] + wx * wy * values[ix + 1, iy + 1]
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item x\_grid に np.asarray(x\_grid, dtype=float) の結果を代入する。
+\item y\_grid に np.asarray(y\_grid, dtype=float) の結果を代入する。
+\item values に np.asarray(values, dtype=float) の結果を代入する。
+\item x に np.clip(np.asarray(x, dtype=float), x\_grid[0], x\_grid[-1]) の結果を代入する。
+\item y に np.clip(np.asarray(y, dtype=float), y\_grid[0], y\_grid[-1]) の結果を代入する。
+\item ix に np.clip(np.searchsorted(x\_grid, x) - 1, 0, len(x\_grid) - 2) の結果を代入する。
+\item iy に np.clip(np.searchsorted(y\_grid, y) - 1, 0, len(y\_grid) - 2) の結果を代入する。
+\item (x0, x1) に (x\_grid[ix], x\_grid[ix + 1]) の結果を代入する。
+\item (y0, y1) に (y\_grid[iy], y\_grid[iy + 1]) の結果を代入する。
+\item wx に np.divide(x - x0, x1 - x0, out=np.zeros\_like(x), where=x1 != x0) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L1341 関数 \path|_map_efficiency_array|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_map_efficiency_array(base_model, maps, speed_ms, torque_nm, regen)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_bilinear\_interp\_array, clip, empty, float, full, get, len, lower, str
+              \item 戻り値の要点: np.clip(result, 0.4 if regen else 0.55, 0.95 if regen else 0.99)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item mode に str(base\_model.drive\_mode or 'default').lower() の結果を代入する。
+\item 条件 mode in \{'eco', 'power'\} を判定し、真なら内部処理を行う。
+\item result に np.empty(len(speed\_ms), dtype=float) の結果を代入する。
+\item (False, True) を順に走査し、各要素を use\_power に入れて処理する。
+\item np.clip(result, 0.4 if regen else 0.55, 0.95 if regen else 0.99) を返す。
+            \end{enumerate}
+
+\subsection*{L1364 関数 \path|_motion_predictions_for_acceleration|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_motion_predictions_for_acceleration(frame, acceleration, base_model, mot)|
+              \item docstring: Vectorized equivalent of motion\_power\_prediction for filter/lag search.
+              \item このブロックが直接呼ぶ主な関数・メソッド: Series, \_map\_efficiency\_array, abs, arctan, clip, cos, empty, fillna, float, full, len, lower
+              \item 戻り値の要点: electrical + float(mot.p\_aux\_w) - solar
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item speed\_ms に pd.to\_numeric(frame['speed\_kmh'], errors='coerce').fillna(0.0).to\_numpy() / 3.6 の結果を代入する。
+\item slope に pd.to\_numeric(frame['slope\_pct'], errors='coerce').fillna(0.0).to\_numpy() の結果を代入する。
+\item headwind に pd.to\_numeric(frame['headwind\_archive\_ms'], errors='coerce').fillna(0.0).to\_numpy() * float(mot.headwind\_gain) の結果を代入する。
+\item solar に pd.to\_numeric(frame['solar\_power\_w\_obs'], errors='coerce').fillna(0.0).to\_numpy() の結果を代入する。
+\item theta に np.arctan(slope * float(mot.grade\_scale) / 100.0) の結果を代入する。
+\item relative\_speed に np.maximum(0.0, speed\_ms + headwind) の結果を代入する。
+\item ambient\_source に frame['Tamb\_archive\_C'] if 'Tamb\_archive\_C' in frame else pd.Series(25.0, index=frame.index) の結果を代入する。
+\item elevation\_source に frame['alt\_m'] if 'alt\_m' in frame else pd.Series(0.0, index=frame.index) の結果を代入する。
+\item ambient に pd.to\_numeric(ambient\_source, errors='coerce').fillna(25.0).to\_numpy() の結果を代入する。
+\item elevation に pd.to\_numeric(elevation\_source, errors='coerce').fillna(0.0).to\_numpy() の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L1431 関数 \path|fit_acceleration_timestamp_alignment|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|fit_acceleration_timestamp_alignment(frame, base_model, mot, options)|
+              \item docstring: Identify the filter and timestamp offset of GPS-derived acceleration.
+
+Vehicle mass remains fixed. Candidate observation filters and offsets are
+fitted on all but the last race day and adopted only when the held-out last
+day does not regress. This models quantized/asynchronous GNSS observations;
+it is not a tunable vehicle force or a live-command filter.
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_acceleration\_trace\_from\_speed, \_motion\_predictions\_for\_acceleration, \_shift\_acceleration\_within\_segments, abs, any, append, astype, bool, clip, copy, fillna, float
+              \item 戻り値の要点: (out, \{'enabled': True, 'adopted': adopted, 'method': 'fixed-mass GNSS acceleration filter/lag selection with last-race-day holdout', 'sample\_period\_sec': sample\_period\_sec, 'selected\_filter\_method': selected\_method, 'selected\_filter\_window\_samples': selected\_window, 'selected\_filter\_window\_sec': selected\_window * sample\_period\_sec, 'selected\_lag\_sec': selected\_lag, 'lag\_search\_min\_sec': lag\_search\_min, 'lag\_search\_max\_sec': lag\_search\_max, 'lag\_search\_boundary\_hit': lag\_boundary\_hit, 'holdout\_day': holdout\_day, 'training\_sample\_count': int(train\_mask.sum()), 'validation\_sample\_count': int(validation\_mask.sum()), 'baseline\_training\_rmse\_w': float(baseline['training\_rmse\_w']), 'selected\_training\_rmse\_w': float(selected['training\_rmse\_w']), 'baseline\_validation\_rmse\_w': float(baseline['validation\_rmse\_w']), 'selected\_validation\_rmse\_w': float(selected['validation\_rmse\_w']), 'training\_improvement\_w': float(float(baseline['training\_rmse\_w']) - float(selected['training\_rmse\_w'])), 'validation\_rmse\_ratio': validation\_ratio if adopted else 1.0, 'candidates': records\}) / (frame.copy(), \{'enabled': enabled, 'adopted': False, 'reason': 'disabled\_or\_missing\_columns'\}) / (out, \{'enabled': True, 'adopted': False, 'reason': 'insufficient\_training\_samples', 'training\_sample\_count': int(train\_mask.sum()), 'validation\_sample\_count': int(validation\_mask.sum())\}) / float(np.sqrt(np.mean(np.square(observed[use] - predicted[use])))) if use.any() else float('nan')
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item cfg に options if isinstance(options, dict) else \{\} の結果を代入する。
+\item enabled に bool(cfg.get('enabled', True)) の結果を代入する。
+\item required に \{'time\_utc', 'day', 'speed\_kmh', 'slope\_pct', 'headwind\_archive\_ms', 'solar\_power\_w\_obs', 'battery\_power\_w\_obs', 'exclude\_power\_fit', 'accel\_ms2'\} の結果を代入する。
+\item 条件 not enabled or not required.issubset(frame.columns) を判定し、真なら内部処理を行う。
+\item out に frame.copy() の結果を代入する。
+\item out['accel\_ms2\_previous'] に pd.to\_numeric(out['accel\_ms2'], errors='coerce') の結果を代入する。
+\item out['accel\_ms2\_raw'] に \_acceleration\_trace\_from\_speed(out, method='median', window\_samples=1) の結果を代入する。
+\item dt\_sec に pd.to\_numeric(out.get('dt\_sec'), errors='coerce') の結果を代入する。
+\item usable\_dt に dt\_sec[np.isfinite(dt\_sec) \& (dt\_sec > 0.0) \& (dt\_sec <= 60.0)] の結果を代入する。
+\item sample\_period\_sec に float(np.median(usable\_dt)) if len(usable\_dt) else 5.0 の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L1631 関数 \path|_grade_from_smoothed_elevation|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_grade_from_smoothed_elevation(distance_km, elevation_m, smoothing_window_km)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: diff, float, gradient, int, len, max, median, min, round, savgol\_filter
+              \item 戻り値の要点: np.gradient(smoothed, distance\_km) * 0.1 / np.gradient(elevation\_m, distance\_km) * 0.1
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item spacing に float(np.median(np.diff(distance\_km))) の結果を代入する。
+\item samples に max(3, int(round(float(smoothing\_window\_km) / max(spacing, 1e-09)))) の結果を代入する。
+\item 条件 samples \% 2 == 0 を判定し、真なら内部処理を行う。
+\item samples に min(samples, len(elevation\_m) if len(elevation\_m) \% 2 else len(elevation\_m) - 1) の結果を代入する。
+\item 条件 samples < 3 を判定し、真なら内部処理を行う。
+\item smoothed に savgol\_filter(elevation\_m, samples, min(2, samples - 1), mode='interp') の結果を代入する。
+\item np.gradient(smoothed, distance\_km) * 0.1 を返す。
+            \end{enumerate}
+
+\subsection*{L1653 関数 \path|fit_grade_observation_alignment|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|fit_grade_observation_alignment(frame, route_profile_csv, output_csv, base_model, mot, options)|
+              \item docstring: Cross-validate a DEM smoothing length and distance alignment.
+
+This stage calibrates the route observation, not vehicle mass or resistance.
+The selected route stores the unscaled DEM grade. ``grade\_scale`` remains a
+separately fitted model coefficient in the following motion fit.
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, MotionFitResult, \_grade\_from\_smoothed\_elevation, \_motion\_predictions\_for\_acceleration, all, append, arange, astype, bool, copy, diff, difference
+              \item 戻り値の要点: (out, \{'enabled': True, 'adopted': True, 'reason': 'training\_improvement\_and\_last\_day\_holdout\_passed', 'method': 'Savitzky-Golay DEM elevation differentiation with last-day holdout', 'source\_route\_profile\_csv': str(route\_profile\_csv), 'adopted\_route\_profile\_csv': str(output\_csv), 'holdout\_day': holdout\_day, 'training\_sample\_count': int(train\_mask.sum()), 'validation\_sample\_count': int(validation\_mask.sum()), 'selected\_smoothing\_window\_km': selected\_window, 'smoothing\_search\_max\_km': smoothing\_search\_max, 'smoothing\_search\_boundary\_hit': smoothing\_boundary\_hit, 'selected\_distance\_offset\_km': selected\_offset, 'selected\_provisional\_grade\_scale': float(best['provisional\_grade\_scale']), 'baseline\_training\_rmse\_w': baseline\_training\_rmse, 'selected\_training\_rmse\_w': float(best['training\_rmse\_w']), 'training\_improvement\_w': training\_improvement, 'baseline\_validation\_rmse\_w': baseline\_validation\_rmse, 'selected\_validation\_rmse\_w': float(best['validation\_rmse\_w']), 'validation\_rmse\_ratio': validation\_ratio, 'candidate\_count': len(records), 'top\_candidates': top\_candidates\}, output\_csv) / (frame.copy(), \{'enabled': bool(cfg.get('enabled', True)), 'adopted': False, 'reason': 'disabled\_or\_route\_profile\_missing'\}, None) / (frame.copy(), \{'enabled': True, 'adopted': False, 'reason': 'route\_profile\_requires\_distance\_and\_elevation', 'route\_profile\_csv': str(route\_profile\_csv)\}, None) / (frame.copy(), \{'enabled': True, 'adopted': False, 'reason': 'insufficient\_monotonic\_route\_elevation\_samples', 'sample\_count': int(len(source))\}, None)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item cfg に options if isinstance(options, dict) else \{\} の結果を代入する。
+\item 条件 not bool(cfg.get('enabled', True)) or not route\_profile\_csv.is\_file() を判定し、真なら内部処理を行う。
+\item route に pd.read\_csv(route\_profile\_csv) の結果を代入する。
+\item distance\_column に next((key for key in ('dist\_km', 's\_km', 'distance\_km') if key in route.columns), None) の結果を代入する。
+\item elevation\_column に next((key for key in ('elev\_m', 'elev\_dem\_m', 'alt\_m', 'altitude\_m') if key in route.columns), None) の結果を代入する。
+\item 条件 distance\_column is None or elevation\_column is None を判定し、真なら内部処理を行う。
+\item source に pd.DataFrame(\{'dist\_km': pd.to\_numeric(route[distance\_column], errors='coerce'), 'elev\_m': pd.to\_numeric(route[elevation\_column], errors='coerce')\}).dropna() の結果を代入する。
+\item source に source.groupby('dist\_km', as\_index=False).mean().sort\_values('dist\_km') の結果を代入する。
+\item 条件 len(source) < 21 or not np.all(np.diff(source['dist\_km'].to\_numpy()) > 0.0) を判定し、真なら内部処理を行う。
+\item required に \{'day', 's\_km', 'speed\_kmh', 'accel\_ms2', 'headwind\_archive\_ms', 'solar\_power\_w\_obs', 'battery\_power\_w\_obs', 'exclude\_power\_fit', 'slope\_pct'\} の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L1886 関数 \path|pv_leave_one_day_out_validation|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|pv_leave_one_day_out_validation(frame, model, panel_deployment_options)|
+              \item docstring: Validate the PV chain on days excluded from all PV-scalar fitting.
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, asarray, astype, attach\_archive\_pv\_model, copy, dict, difference, drop, drop\_duplicates, dropna, extend, fillna
+              \item 戻り値の要点: \{'pv\_lodo\_fold\_count': int(fold\_count), 'pv\_lodo\_moving\_rmse\_w': rmse(moving\_residuals), 'pv\_lodo\_moving\_sample\_count': int(len(moving\_residuals)), 'pv\_lodo\_deployed\_stop\_rmse\_w': rmse(deployed\_residuals), 'pv\_lodo\_deployed\_stop\_sample\_count': int(len(deployed\_residuals))\} / float(np.sqrt(np.mean(np.square(array)))) if array.size else float('nan')
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item required に \{'time\_utc', 'speed\_kmh', 'GHI\_archive', 'DNI\_archive', 'DHI\_archive', 'Tamb\_archive\_C', 'solar\_power\_w\_obs', 'exclude\_weather\_fit'\} の結果を代入する。
+\item missing に sorted(required.difference(frame.columns)) の結果を代入する。
+\item 条件 missing を判定し、真なら内部処理を行う。
+\item keep に sorted(required.union(\{'day', 's\_km'\}).intersection(frame.columns)) の結果を代入する。
+\item work に frame.loc[:, keep].copy() の結果を代入する。
+\item 条件 'day' in work.columns を判定し、真なら内部処理を行う。
+\item deployment に dict(panel\_deployment\_options or \{\}) の結果を代入する。
+\item moving\_residuals に [] の結果を代入する。
+\item deployed\_residuals に [] の結果を代入する。
+\item fold\_count に 0 の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L1964 関数 \path|add_end_to_end_metrics|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|add_end_to_end_metrics(primary, end_to_end)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: dict, items
+              \item 戻り値の要点: out
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item out に dict(primary) の結果を代入する。
+\item end\_to\_end.items() を順に走査し、各要素を (key, value) に入れて処理する。
+\item out['vehicle\_fit\_solar\_source'] に 'measured\_when\_available' の結果を代入する。
+\item out['end\_to\_end\_solar\_source'] に 'weather\_and\_pv\_model' の結果を代入する。
+\item out を返す。
+            \end{enumerate}
+
+\subsection*{L1973 関数 \path|add_battery_conditional_metrics|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|add_battery_conditional_metrics(primary, conditional)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: dict, items
+              \item 戻り値の要点: out
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item out に dict(primary) の結果を代入する。
+\item conditional.items() を順に走査し、各要素を (key, value) に入れて処理する。
+\item out['battery\_conditional\_source'] に 'observed\_pack\_power\_and\_current' の結果を代入する。
+\item out を返す。
+            \end{enumerate}
+
+\subsection*{L1981 関数 \path|write_replay_csv|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|write_replay_csv(frame, output_path, chunk_rows)|
+              \item docstring: Write large replay tables without materializing a full string copy.
+              \item このブロックが直接呼ぶ主な関数・メソッド: copy, ensure\_dir, int, len, max, range, strftime, to\_csv, to\_datetime
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item ensure\_dir(...) を実行する。
+\item rows に max(1, int(chunk\_rows)) の結果を代入する。
+\item range(0, len(frame), rows) を順に走査し、各要素を start に入れて処理する。
+            \end{enumerate}
+
+\subsection*{L1998 関数 \path|apply_fit_to_cfg|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|apply_fit_to_cfg(cfg, package_dir, map_assets, pv, batt, mot, observed_log_csv, battery_dynamic_fit, solar_measurement_calibration, sync_sim_soc0)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, ValueError, clip, dropna, float, get, items, max, min, read\_csv, relpath, replace
+              \item 戻り値の要点: cfg
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item cfg.setdefault(...) を実行する。
+\item map\_assets.items() を順に走査し、各要素を (key, path) に入れて処理する。
+\item cfg['paths']['progress\_reference\_csv'] に os.path.relpath(observed\_log\_csv, package\_dir).replace('\textbackslash{}\textbackslash{}', '/') の結果を代入する。
+\item model に cfg.setdefault('model', \{\}) の結果を代入する。
+\item model['CdA'] に round(float(mot.cda), 6) の結果を代入する。
+\item model['Crr'] に round(float(mot.crr), 6) の結果を代入する。
+\item model['P\_aux'] に round(float(mot.p\_aux\_w), 3) の結果を代入する。
+\item model['P\_aux\_stopped'] に round(float(mot.p\_aux\_w), 3) の結果を代入する。
+\item model['P\_aux\_night'] に 0.0 の結果を代入する。
+\item model.setdefault(...) を実行する。
+            \end{enumerate}
+
+\subsection*{L2113 関数 \path|update_profile|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|update_profile(profile_yaml, cfg, map_assets, pv, batt, mot, observed_log_csv, battery_dynamic_fit, solar_measurement_calibration, route_profile_asset, package_dir)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, apply\_fit\_to\_cfg, exists, get, is\_absolute, items, list, open, relpath\_from, resolve, safe\_dump, setdefault
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item package\_dir に profile\_yaml.parent if package\_dir is None else Path(package\_dir) の結果を代入する。
+\item cfg に apply\_fit\_to\_cfg(cfg, package\_dir=package\_dir, map\_assets=map\_assets, pv=pv, batt=batt, mot=mot, battery\_dynamic\_fit=battery\_dynamic\_fit, solar\_measurement\_calibration=solar\_measurement\_calibration, observed\_log\_csv=observed\_log\_csv, sync\_sim\_soc0=False) の結果を代入する。
+\item 条件 route\_profile\_asset is not None を判定し、真なら内部処理を行う。
+\item 条件 profile\_yaml.parent.resolve() != package\_dir.resolve() を判定し、真なら内部処理を行う。
+\item with 文で profile\_yaml.open('w', encoding='utf-8', newline='\textbackslash{}n') を管理しながら処理する。
+            \end{enumerate}
+
+\subsection*{L2157 関数 \path|update_profile_artifact_references|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|update_profile_artifact_references(profile_yaml, package_dir, fit_summary_yaml, terminal_consistency_yaml)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: is\_file, pop, read\_text, relpath\_from, safe\_dump, safe\_load, setdefault, write\_text
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item cfg に yaml.safe\_load(profile\_yaml.read\_text(encoding='utf-8')) or \{\} の結果を代入する。
+\item identification に cfg.setdefault('identification', \{\}) の結果を代入する。
+\item identification['fit\_summary\_yaml'] に relpath\_from(profile\_yaml.parent, fit\_summary\_yaml) の結果を代入する。
+\item 条件 terminal\_consistency\_yaml is not None and terminal\_consistency\_yaml.is\_file() を判定し、真なら内部処理を行う。
+\item profile\_yaml.write\_text(...) を実行する。
+            \end{enumerate}
+
+\subsection*{L2180 関数 \path|write_terminal_consistency_from_anchor|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|write_terminal_consistency_from_anchor(output_path, terminal_anchor, max_spread, validation_metrics, replay_soc_error_max, replay_voltage_error_max_v, vehicle_soc_error_max, vehicle_voltage_error_max_v, end_to_end_soc_error_max, end_to_end_voltage_error_max_v)|
+              \item docstring: Always materialize the independent terminal-evidence gate.
+
+Detailed channel reconstruction may later enrich this file, but profile
+adoption must never silently drop the gate merely because a separate
+reporting command was not run.
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, bool, float, get, isfinite, list, max, min, mkdir, safe\_dump, write\_text
+              \item 戻り値の要点: output\_path
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item lo に float(terminal\_anchor.get('soc\_evidence\_min', float('nan'))) の結果を代入する。
+\item hi に float(terminal\_anchor.get('soc\_evidence\_max', float('nan'))) の結果を代入する。
+\item target に float(terminal\_anchor.get('soc\_target', float('nan'))) の結果を代入する。
+\item sigma に float(terminal\_anchor.get('soc\_sigma', float('nan'))) の結果を代入する。
+\item spread に hi - lo if np.isfinite(lo) and np.isfinite(hi) else float('nan') の結果を代入する。
+\item metrics に validation\_metrics or \{\} の結果を代入する。
+\item replay\_soc\_error に abs(float(metrics.get('battery\_conditional\_retire\_anchor\_soc\_error', float('nan')))) の結果を代入する。
+\item replay\_voltage\_observed に float(metrics.get('battery\_conditional\_retire\_anchor\_voltage\_obs\_v', float('nan'))) の結果を代入する。
+\item replay\_voltage\_predicted に float(metrics.get('battery\_conditional\_retire\_anchor\_voltage\_pred\_v', float('nan'))) の結果を代入する。
+\item replay\_voltage\_error に abs(replay\_voltage\_predicted - replay\_voltage\_observed) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L2318 関数 \path|sync_canonical_fullsim_profile|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|sync_canonical_fullsim_profile(package_dir, map_assets, pv, batt, mot, observed_log_csv, battery_dynamic_fit, solar_measurement_calibration)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, apply\_fit\_to\_cfg, exists, isinstance, open, safe\_dump, safe\_load
+              \item 戻り値の要点: fullsim\_yaml / None
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item fullsim\_yaml に package\_dir / 'profile\_fullsim\_selflearned.yaml' の結果を代入する。
+\item 条件 not fullsim\_yaml.exists() を判定し、真なら内部処理を行う。
+\item with 文で fullsim\_yaml.open('r', encoding='utf-8') を管理しながら処理する。
+\item 条件 not isinstance(cfg, dict) を判定し、真なら内部処理を行う。
+\item cfg に apply\_fit\_to\_cfg(cfg, package\_dir=package\_dir, map\_assets=map\_assets, pv=pv, batt=batt, mot=mot, battery\_dynamic\_fit=battery\_dynamic\_fit, solar\_measurement\_calibration=solar\_measurement\_calibration, observed\_log\_csv=observed\_log\_csv, sync\_sim\_soc0=False) の結果を代入する。
+\item with 文で fullsim\_yaml.open('w', encoding='utf-8', newline='\textbackslash{}n') を管理しながら処理する。
+\item fullsim\_yaml を返す。
+            \end{enumerate}
+
+\subsection*{L2353 関数 \path|write_generic_summary|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|write_generic_summary(package_dir, manifest_path, profile_yaml, map_assets, pv, batt, mot, metrics, terminal_anchor, stage_anchors, map_shape_fit, post_refine, day_metrics, battery_dynamic_fit, fit_plan, manifest_context, output_dir, replay_csv, battery_conditioned_replay_csv, end_to_end_replay_csv)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: dict, ensure\_dir, get, items, list, open, relpath, relpath\_from, replace, safe\_dump
+              \item 戻り値の要点: out\_path
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item output\_dir に output\_dir or package\_dir / 'outputs' / 'identification' の結果を代入する。
+\item out\_path に output\_dir / f'\{package\_dir.name\}\_generic\_fit\_summary.yaml' の結果を代入する。
+\item ensure\_dir(...) を実行する。
+\item payload に \{'builder': 'generic\_replay\_mle', 'manifest\_yaml': os.path.relpath(manifest\_path, package\_dir).replace('\textbackslash{}\textbackslash{}', '/'), 'profile\_yaml': os.path.relpath(profile\_yaml, package\_dir).replace('\textbackslash{}\textbackslash{}', '/'), 'active\_maps': \{key: os.path.relpath(path, package\_dir).replace('\textbackslash{}\textbackslash{}', '/') for key, path in map\_assets.items()\}, 'pv\_fit': pv.\_\_dict\_\_, 'battery\_fit': batt.\_\_dict\_\_, 'battery\_dynamic\_fit': dict(battery\_dynamic\_fit or \{\}), 'motion\_fit': mot.\_\_dict\_\_, 'validation\_metrics': metrics, 'validation\_protocol': \{'vehicle\_conditional\_replay\_csv': relpath\_from(package\_dir, replay\_csv), 'battery\_conditioned\_replay\_csv': relpath\_from(package\_dir, battery\_conditioned\_replay\_csv), 'end\_to\_end\_replay\_csv': relpath\_from(package\_dir, end\_to\_end\_replay\_csv), 'vehicle\_fit\_solar\_source': 'measured\_when\_available', 'battery\_conditioned\_source': 'observed\_pack\_power\_and\_current', 'end\_to\_end\_solar\_source': 'independent\_GHI\_archive\_and\_moving\_PV\_model', 'restart\_soc\_anchor': 'median\_of\_valid\_stationary\_window'\}, 'terminal\_anchor': terminal\_anchor, 'stage\_anchors': stage\_anchors, 'day\_metrics': day\_metrics, 'map\_shape\_fit': map\_shape\_fit, 'post\_refine': post\_refine.\_\_dict\_\_, 'fit\_plan': dict(fit\_plan or \{\}), 'evidence\_bundle': \{'actual\_event\_yaml': relpath\_from(package\_dir, (manifest\_context or \{\}).get('actual\_event\_path')), 'counterfactual\_event\_yaml': relpath\_from(package\_dir, (manifest\_context or \{\}).get('counterfactual\_event\_path')), 'terminal\_anchor\_yaml': relpath\_from(package\_dir, (manifest\_context or \{\}).get('terminal\_anchor\_path')), 'grounded\_map\_summary\_yaml': relpath\_from(package\_dir, (manifest\_context or \{\}).get('grounded\_summary\_path')), 'source\_inventory\_json': relpath\_from(package\_dir, (manifest\_context or \{\}).get('source\_inventory\_path')), 'notes\_markdown': relpath\_from(package\_dir, (manifest\_context or \{\}).get('notes\_markdown\_path')), 'explicit\_grounded\_assets': \{key: relpath\_from(package\_dir, path) for key, path in ((manifest\_context or \{\}).get('explicit\_grounded\_assets') or \{\}).items()\}, 'external\_documents': list((manifest\_context or \{\}).get('external\_documents', []))\}\} の結果を代入する。
+\item with 文で out\_path.open('w', encoding='utf-8', newline='\textbackslash{}n') を管理しながら処理する。
+\item out\_path を返す。
+            \end{enumerate}
+
+\subsection*{L2422 関数 \path|write_generic_report|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|write_generic_report(package_dir, profile_yaml, manifest_path, summary_yaml, observed_log_csv, pv, batt, mot, metrics, post_refine, map_assets, terminal_anchor, stage_anchors, day_metrics, battery_dynamic_fit, fit_plan, grounded_map_summary, manifest_context, terminal_consistency, report_dir, current_maps_path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: bool, compile\_tex, dedent, ensure\_dir, enumerate, float, get, int, items, join, len, read\_text
+              \item 戻り値の要点: (md\_path, pdf\_path)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item report\_dir に report\_dir or package\_dir / 'outputs' / 'reports' の結果を代入する。
+\item ensure\_dir(...) を実行する。
+\item md\_path に report\_dir / f'\{package\_dir.name\}\_generic\_identification\_report.md' の結果を代入する。
+\item tex\_path に report\_dir / f'\{package\_dir.name\}\_generic\_identification\_report.tex' の結果を代入する。
+\item pdf\_path に tex\_path.with\_suffix('.pdf') の結果を代入する。
+\item rel\_maps に \{key: os.path.relpath(path, package\_dir).replace('\textbackslash{}\textbackslash{}', '/') for key, path in map\_assets.items()\} の結果を代入する。
+\item terminal\_anchor に terminal\_anchor or \{\} の結果を代入する。
+\item stage\_anchors に stage\_anchors or [] の結果を代入する。
+\item day\_metrics に day\_metrics or [] の結果を代入する。
+\item battery\_dynamic\_fit に battery\_dynamic\_fit or \{\} の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L3075 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ArgumentParser, Path, PostRefineResult, R\_int, ValueError, add\_argument, add\_battery\_conditional\_metrics, add\_end\_to\_end\_metrics, apply\_battery\_polarization, attach\_archive\_pv\_model, bool, build\_grounded\_map\_assets
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item ap に argparse.ArgumentParser() の結果を代入する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+            \end{enumerate}
+
+
+
+
+
+
+
+        \subsection*{CLI 引数}
+            \begin{longtable}{p{0.07\linewidth} p{0.78\linewidth}}
+            \toprule
+            行 & 引数 \\
+            \midrule
+            3077 & \path|--profile| \\
+3078 & \path|--manifest| \\
+3079 & \path|--quality| \\
+3085 & \path|--output-tag| \\
+3086 & \path|--adopt-profile| \\
+3091 & \path|--allow-map-shape-fit| \\
+3092 & \path|--skip-map-shape-fit| \\
+3093 & \path|--rebuild-grounded-base-maps| \\
+3098 & \path|--manifest-only| \\
+            \bottomrule
+            \end{longtable}
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item CLI 引数を解釈し、main() から処理を起動する。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|scripts/run_vehicle_identification.py| を
+        \textbf{identification}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

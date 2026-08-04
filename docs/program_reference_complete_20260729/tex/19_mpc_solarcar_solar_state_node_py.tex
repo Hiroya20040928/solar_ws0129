@@ -1,0 +1,999 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={sim 用 車体状態 publisher},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{19. sim 用 車体状態 publisher}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/solar_state_node.py| \\
+        ソースSHA-256 & \path|d9c72bcecf7b5d6f0594d4c9029ba3837a9f3b0222e47e693729d581d99e4024| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & sim モードで planner 指令速度から速度、距離、電池、PV、altitude を模擬 publish する。 \\
+        起動文脈 & simulation launch における擬似車両。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        sim モードで planner 指令速度から速度、距離、電池、PV、altitude を模擬 publish する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item SolarCarModel を直接生成する。
+\item /planner/speed\_cmd を受けて /vehicle/* を出す。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|launch/solarcar_sim.launch.py|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/model.py|
+\item \path|mpc_solarcar/mpc_node.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/model.py|
+\item \path|mpc_solarcar/path_utils.py|
+\item \path|mpc_solarcar/route_utils.py|
+\item \path|mpc_solarcar/schedule_utils.py|
+\item \path|mpc_solarcar/signal_utils.py|
+\item \path|mpc_solarcar/solar_profile.py|
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from .solar_profile import get_path, get_section, load_profile, require_csv_data_rows
+
+
+class SolarStateNode(Node):
+    def __init__(self) -> None:
+        super().__init__("solar_state_node")
+        self.declare_parameter("profile_yaml", "")
+        self.declare_parameter("forecast_csv", "inputs/forecast_10min.csv")
+        self.declare_parameter("route_profile_csv", "")
+        self.declare_parameter("drive_schedule_yaml", "")
+        self.declare_parameter("drive_eff_map", "")
+        self.declare_parameter("regen_eff_map", "")
+        self.declare_parameter("rint_map", "")
+        self.declare_parameter("panel_eff_map", "")
+        self.declare_parameter("mppt_eff_map", "")
+        self.declare_parameter("drive_map_eco", "")
+        self.declare_parameter("drive_map_power", "")
+        self.declare_parameter("regen_map_eco", "")
+        self.declare_parameter("regen_map_power", "")
+        self.declare_parameter("ocv_soc_map", "")
+        self.declare_parameter("params_yaml", "")
+        self.declare_parameter("forecast_time_mode", "auto")
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要クラスは SolarStateNode。 主要関数は main。 ROS パラメータ宣言は 26 件。 ROS I/O は publisher 8 件、subscription 1 件。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            22 & class & \path|SolarStateNode| & bases: Node \\
+23 & function & \path|__init__| & args: self \\
+180 & function & \path|_on_speed_cmd| & args: self, msg \\
+183 & function & \path|_forecast_row| & args: self, now\_utc \\
+191 & function & \path|_route_value| & args: self, field, default \\
+199 & function & \path|_step| & args: self \\
+265 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            22 & クラス SolarStateNode を定義する。 \\
+265 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|import math| & Python標準のスカラー数値関数と定数を使うため。実際に参照する名前と行は使用位置欄で確認する。 このファイル内での使用位置は少ないか、間接利用である。 \\
+4 & \path|import time| & wall/monotonic time に基づく周期制御や freshness 判定を行うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+5 & \path|from datetime import datetime, timedelta, timezone| & UTC 時刻や相対時間を扱うため。 このファイル内での主な使用位置は L118, L122, L183, L209。 \\
+7 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L185, L186, L188, L240。 \\
+8 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L99, L105, L107。 \\
+9 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L59, L60, L61, L62, L63, L64, L65, L66, ...。 \\
+10 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L22。 \\
+12 & \path|from std_msgs.msg import Float32| & Float32、Bool、Stringなどの標準ROS messageで値をpublishまたはsubscribeするため。 このファイル内での主な使用位置は L168, L169, L170, L171, L172, L173, L174, L175, ...。 \\
+14 & \path|from .model import Params, SolarCarModel| & 車体物理・電気モデル本体 から Params, SolarCarModel を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/model.py。 このファイル内での主な使用位置は L128, L132。 \\
+15 & \path|from .path_utils import resolve_path| & ROS share / 相対パス解決 から resolve\_path を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/path\_utils.py。 このファイル内での主な使用位置は L87, L95, L103, L129, L130, L131, L133, L134, ...。 \\
+16 & \path|from .route_utils import interpolate_profile| & route\_utils.py から interpolate\_profile を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/route\_utils.py。 このファイル内での主な使用位置は L195。 \\
+17 & \path|from .schedule_utils import DriveSchedule| & schedule\_utils.py から DriveSchedule を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/schedule\_utils.py。 このファイル内での主な使用位置は L103。 \\
+18 & \path|from .signal_utils import SmoothRateLimiter| & signal\_utils.py から SmoothRateLimiter を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/signal\_utils.py。 このファイル内での主な使用位置は L158。 \\
+19 & \path|from .solar_profile import get_path, get_section, load_profile, require_csv_data_rows| & profile YAML 読込と検証 から get\_path, get\_section, load\_profile, require\_csv\_data\_rows を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_profile.py。 このファイル内での主な使用位置は L54, L55, L56, L59, L60, L61, L62, L63, ...。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{class、独自クラス、インスタンス、self、継承}
+クラスは、保持するデータと、そのデータを扱う関数を一つの型としてまとめる設計単位である。「独自クラス」とはPythonやROS 2が最初から用意した型ではなく、このプロジェクトが目的に合わせて定義した新しい型を指す。
+
+
+`class MPCNode(Node)`は、rclpyのNodeを基底クラスとして継承し、Nodeが持つpublisher、subscription、timer、parameterなどの機能にMPC固有機能を追加する。丸括弧内は関数引数ではなく基底クラス指定である。
+
+
+`MPCNode()`はクラスオブジェクトを呼び出して新しいインスタンスを作る。Pythonは新しい実体を用意し、その実体を第1引数selfとして`\_\_init\_\_`へ渡す。`self`は予約語ではなく慣習的な名前だが、この慣習を守ることでコードの意味が共有される。
+
+
+\begin{lstlisting}[language=python]
+class Counter:
+    def __init__(self):
+        self.value = 0
+
+    def increment(self):
+        self.value += 1
+
+counter = Counter()
+counter.increment()
+\end{lstlisting}
+
+
+`super().\_\_init\_\_(...)`は継承元の初期化処理を呼ぶ。MPCNodeではこれを省くとROSノードとして必要な内部実体が作られず、`create\_publisher`などを正しく使えない。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{先頭アンダースコア、\_\_init\_\_、名前付けの作法}
+`self.\_step\_solar`の先頭1個のアンダースコアは「クラス内部で使う実装詳細」という慣習であり、アクセスを強制禁止する機構ではない。外部コードから呼べるが、公開APIとして依存しない意思表示である。
+
+
+`\_\_init\_\_`の前後2個のアンダースコアはPythonが定めた特殊メソッド名である。クラス生成時に自動で呼ばれる。任意の名前に前後2個を付けて独自仕様を作ることは避ける。
+
+
+`\_`で始まるローカル変数は、未使用または外部へ見せない意図を示す場合がある。例えば`\_base\_csv`は戻り値として受け取る必要はあるが、その後の処理では使わないことを読者へ示す。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{list、dict、deque、NumPy配列、pandas DataFrame}
+listは順序付き可変列、tupleは順序付きで通常変更しない列、dictはキーから値を引く対応表、dequeは両端追加・削除が効率的なキューである。どの構造を選ぶかはアクセス方法と更新方法で決まる。
+
+
+NumPy配列は同種数値を連続的に扱い、要素ごとの演算、clip、補間、線形代数を簡潔に書く。shapeは各次元の要素数であり、速度系列なら通常`(N,)`、候補集団なら`(population, N)`となる。
+
+
+pandas DataFrameは列名を持つ表である。CSV読込後は列型、欠損、単位、timezone、並び順、重複を明示的に処理しなければ、数値計算が動いても意味が誤る。
+
+
+
+\subsection{rclpy、rcl、rmw、DDS/RTPSの層}
+rclpyはPython利用者向けROS 2 client libraryである。利用者のNode、publisher、subscriptionなどをPython APIとして提供し、その下で共通C層のrclを利用する。
+
+
+\begin{lstlisting}
+本プロジェクトのPythonコード -> rclpy -> rcl -> rmw -> DDS/RTPS実装 -> ネットワークまたは同一PC内通信
+\end{lstlisting}
+
+
+rclは言語に依存しない共通ROS機能を提供するC API、rmwはROS 2と具体的middleware実装の境界である。DDS/RTPS側が探索、serialize、publish/subscribe、request/replyなどを担う。executorの実行モデルはrclだけで完結せずclient library側にも実装される。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Concepts/About-Internal-Interfaces.html}{ROS 2 Humble公式: Internal ROS 2 interfaces}
+\end{itemize}
+
+\subsection{ROS graph、Node、topic、service、action、parameter}
+ROS graphは、実行中Nodeと、それらが持つpublisher、subscription、service、actionなどの接続関係である。Pythonクラス、プロセス、ROS graph上のNode名は関連するが同一物ではない。
+
+
+topicは継続データ向けの非同期一方向publish/subscribe、serviceは短いrequest/response、actionは時間のかかる目標へfeedback、cancel、resultを持たせる。parameterはNodeごとの設定値である。
+
+
+publisherが送った時点とsubscription callbackが実行される時点は同じとは限らない。通信遅延、QoS queue、executor待ちを挟むため、センサ値にはtimestampとfreshness判定が必要になる。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/Interfaces-Topics-Services-Actions.html}{ROS 2 Humble公式: Topics, Services, Actions}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/About-Parameters.html}{ROS 2 Humble公式: Parameters}
+\end{itemize}
+
+\subsection{callback、timer、Executor、spin、Callback Group}
+callbackは、メッセージ受信、timer満了、service requestなどのイベントが成立した後でExecutorから呼ばれる関数である。登録時に`self.\_on\_speed`と括弧なしで渡すのは、今実行せず後で呼ぶ関数オブジェクトを渡すためである。
+
+
+Executorは実行可能になったcallbackを見つけ、Callback Groupの条件を確認して実行する。`spin()`は終了要求まで待機・dispatchを続けるため、通常運転中はmainの次の行へ戻らない。
+
+
+MutuallyExclusiveCallbackGroupは同じgroup内のcallbackを同時実行させない。別group間はMultiThreadedExecutorで並行実行し得る。groupを分けただけでは共有属性への完全な排他にはならないため、複数groupが同じ状態を読む・書く場合は設計確認が必要である。
+
+
+\begin{lstlisting}
+DDS受信またはtimer満了 -> wait setでready -> Executorが選択 -> Callback Groupが許可 -> worker threadがcallback実行 -> 終了後Executorへ戻る
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Executors.html}{ROS 2公式: Executors}
+\item \href{https://docs.ros.org/en/humble/Concepts/About-Internal-Interfaces.html}{ROS 2 Humble公式: Internal ROS 2 interfaces}
+\end{itemize}
+
+\subsection{rqt\_graph、ros2 CLI、rosbag2をいつ使うか}
+rqt\_graphは接続関係を見る道具であり、数値の正しさや更新周期までは保証しない。起動直後、topic名変更後、publisherが複数存在する疑いがある時に使う。
+
+
+\begin{lstlisting}[language=bash]
+ros2 node list
+ros2 node info /mpc_node
+ros2 topic list -t
+ros2 topic info -v /planner/speed_cmd
+ros2 topic hz /planner/speed_cmd
+ros2 topic echo /planner/status
+rqt_graph
+\end{lstlisting}
+
+
+rosbag2はtopicメッセージを時系列のまま記録・再生する。通信不具合、freshness、再計画trigger、実車とSILSの差を再現可能にするため、本番前試験では制御入力だけでなく原因となる全telemetry、status、parameter情報を記録する。
+
+
+\begin{lstlisting}[language=bash]
+ros2 bag record -o outputs/bags/preflight \
+  /vehicle/s_km /vehicle/speed_kmh /vehicle/batt_soc \
+  /vehicle/batt_temp_c /vehicle/batt_current_a /vehicle/batt_voltage_v \
+  /planner/upper_speed_cmd /planner/speed_cmd /planner/status
+
+ros2 bag info outputs/bags/preflight
+ros2 bag play outputs/bags/preflight --clock
+\end{lstlisting}
+
+
+bag再生時はQoS互換性、simulation time、外部publisherとの二重入力に注意する。実車Nodeを同時に動かす場合はnamespaceまたはremappingで入力源を明確に分離する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/ros2_packages/humble/api/rqt_graph/index.html}{ROS 2 Humble公式: rqt\_graph}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html}{ROS 2 Humble公式: Recording and playing back data}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{車両力学、電力収支、効率map}
+\[
+F_{\mathrm{aero}}=\frac{1}{2}\rho C_dA(v+v_{\mathrm{wind}})^2,\quad F_{\mathrm{roll}}\approx mgC_{rr}\cos\theta,\quad F_{\mathrm{grade}}=mg\sin\theta
+\]
+
+車輪機械powerは概ね`P\_mech = F\_total * v + P\_inertia`で、駆動時と回生時で異なる効率mapを通してDC側powerへ変換する。mapは速度・torqueなどを軸にした実測または同定tableであり、範囲外の補間・clip規則もモデルの一部である。
+
+
+\[
+P_{\mathrm{pack}}=P_{\mathrm{drive,dc}}-P_{\mathrm{regen,dc}}+P_{\mathrm{aux}}-P_{\mathrm{pv}}
+\]
+
+符号規約は必ずコードで確認する。本プロジェクトでは正のpack powerを放電側としてSoCを減らす処理が中心であり、発電と回生はpack負荷を下げる方向に働く。
+
+
+
+\subsection{SoC、内部抵抗、端子電圧、温度、MHE}
+\[
+V=V_{\mathrm{oc}}(z,T)-IR_{\mathrm{total}}(z,T,I),\qquad z_{k+1}=z_k-\frac{\eta(I,T)I\Delta t}{Q_{\mathrm{eff}}}
+\]
+
+SoCは直接完全には観測できないため、電流積算、OCV、端子電圧、温度、容量、効率を組み合わせる。内部抵抗はSoC、温度、電流方向で変わり、発熱と電圧制約の両方へ影響する。
+
+
+MHEは有限時間窓の状態と観測誤差をまとめて最適化し、SoCや温度を推定する。古い測定や欠損値を同じ重みで使うと推定が壊れるため、timestamp freshnessと観測可用性を入口で確認する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+\subsection{天候、route、補間、時刻、単位}
+予報は時刻だけの系列か、時刻とroute距離の2次元gridになり得る。現在時刻tと距離sがgrid点の間なら、周囲の値から補間して日射、温度、風を求める。
+
+
+UTC、現地timezone、naive datetimeを混ぜると数時間のずれが発生する。入力でtimezoneを確定し、内部比較はUTC、表示は現地時刻という役割分担が安全である。
+
+
+route距離のkm、速度のkm/hとm/s、時間の秒、energyのWhとJを跨ぐため、変換係数3.6、3600、1000の意味を各式で確認する。
+
+
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L22 クラス SolarStateNode}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L22--L262
+              \item 所属: module直下
+              \item 定義: \path|SolarStateNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_on\_speed\_cmd を定義する。
+\item 関数 \_forecast\_row を定義する。
+\item 関数 \_route\_value を定義する。
+\item 関数 \_step を定義する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class SolarStateNode(Node):
+    def __init__(self) -> None:
+        super().__init__("solar_state_node")
+        self.declare_parameter("profile_yaml", "")
+        self.declare_parameter("forecast_csv", "inputs/forecast_10min.csv")
+        self.declare_parameter("route_profile_csv", "")
+        self.declare_parameter("drive_schedule_yaml", "")
+        self.declare_parameter("drive_eff_map", "")
+        self.declare_parameter("regen_eff_map", "")
+        self.declare_parameter("rint_map", "")
+        self.declare_parameter("panel_eff_map", "")
+        self.declare_parameter("mppt_eff_map", "")
+        self.declare_parameter("drive_map_eco", "")
+        self.declare_parameter("drive_map_power", "")
+        self.declare_parameter("regen_map_eco", "")
+        self.declare_parameter("regen_map_power", "")
+        self.declare_parameter("ocv_soc_map", "")
+        self.declare_parameter("params_yaml", "")
+        self.declare_parameter("forecast_time_mode", "auto")
+        self.declare_parameter("forecast_time_tz", "UTC")
+        self.declare_parameter("forecast_start_time_utc", "")
+        self.declare_parameter("publish_rate_hz", 2.0)
+        self.declare_parameter("init_speed_kmh", 45.0)
+        self.declare_parameter("soc0", 0.95)
+        self.declare_parameter("Tb0", 30.0)
+        self.declare_parameter("s0_km", 0.0)
+        self.declare_parameter("filter_tau_sec", 1.0)
+        self.declare_parameter("accel_limit_kmhps", 1.2)
+        self.declare_parameter("decel_limit_kmhps", 3.5)
+
+        profile_yaml = str(self.get_parameter("profile_yaml").value or "").strip()
+        if profile_yaml:
+            profile_path, cfg = load_profile(profile_yaml)
+            sim_cfg = get_section(cfg, "simulation")
+            runtime_cfg = get_section(cfg, "runtime")
+...
+\end{lstlisting}
+
+\subsection{L23 関数 SolarStateNode.\_\_init\_\_}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L23--L178
+              \item 所属: \path|SolarStateNode|
+              \item 定義: \path|__init__(self) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Parameter, Params, SmoothRateLimiter, SolarCarModel, \_\_init\_\_, astimezone, create\_publisher, create\_subscription, create\_timer, declare\_parameter, float, from\_yaml
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: \_profile\_path, cfg, drive\_schedule\_yaml, key, model\_cfg, params\_yaml, profile\_path, profile\_yaml, raw\_start, route\_profile\_csv, route\_profile\_path, runtime\_cfg, sim\_cfg, t, tzname, value
+              \item 読み取る主なインスタンス属性: self.\_on\_speed\_cmd, self.\_step, self.create\_publisher, self.create\_subscription, self.create\_timer, self.declare\_parameter, self.df, self.forecast\_csv, self.get\_logger, self.get\_parameter, self.limiter, self.model, self.publish\_rate\_hz, self.set\_parameters, self.v\_exec\_kmh
+              \item 更新する主なインスタンス属性: self.Tb, self.df, self.drive\_schedule, self.exec\_time\_sec, self.forecast\_csv, self.last\_step, self.limiter, self.model, self.pub\_alt, self.pub\_i, self.pub\_s, self.pub\_soc, self.pub\_solar, self.pub\_speed, self.pub\_tb, self.pub\_v, self.publish\_rate\_hz, self.route\_profile, self.s\_km, self.start\_time\_utc, self.timer, self.v\_cmd\_kmh, self.v\_exec\_kmh, self.z
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 8、ループ 1、try 2
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item super().\_\_init\_\_(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item profile\_yaml に str(self.get\_parameter('profile\_yaml').value or '').strip() の結果を代入する。
+\item 条件 profile\_yaml を判定し、真なら内部処理を行う。
+\item   (profile\_path, cfg) に load\_profile(profile\_yaml) の結果を代入する。
+\item   sim\_cfg に get\_section(cfg, 'simulation') の結果を代入する。
+\item   runtime\_cfg に get\_section(cfg, 'runtime') の結果を代入する。
+\item   self.set\_parameters(...) を実行する。
+\item self.publish\_rate\_hz に max(0.2, float(self.get\_parameter('publish\_rate\_hz').value)) の結果を代入する。
+\item self.forecast\_csv に str(require\_csv\_data\_rows(resolve\_path(str(self.get\_parameter('forecast\_csv').value), 'inputs'), label='forecast', required\_columns=('GHI',))) の結果を代入する。
+\item route\_profile\_csv に str(self.get\_parameter('route\_profile\_csv').value or '').strip() の結果を代入する。
+\item 条件 route\_profile\_csv を判定し、真なら内部処理を行う。
+\item   route\_profile\_path に require\_csv\_data\_rows(resolve\_path(route\_profile\_csv, 'inputs'), label='route profile', required\_columns=('dist\_km',)) の結果を代入する。
+\item   self.route\_profile に pd.read\_csv(route\_profile\_path) の結果を代入する。
+\item   上の条件が偽の場合:
+\item   self.route\_profile に None の結果を代入する。
+\item drive\_schedule\_yaml に str(self.get\_parameter('drive\_schedule\_yaml').value or '').strip() の結果を代入する。
+\item self.drive\_schedule に DriveSchedule.from\_yaml(resolve\_path(drive\_schedule\_yaml, 'inputs')) if drive\_schedule\_yaml else None の結果を代入する。
+\item self.df に pd.read\_csv(self.forecast\_csv) の結果を代入する。
+\item 条件 'time' in self.df.columns を判定し、真なら内部処理を行う。
+\item   t に pd.to\_datetime(self.df['time'], format='mixed', errors='coerce') の結果を代入する。
+\item   tzname に str(self.get\_parameter('forecast\_time\_tz').value or 'UTC') の結果を代入する。
+\item   条件 t.dt.tz is None を判定し、真なら内部処理を行う。
+\item     条件 tzname.upper() == 'UTC' を判定し、真なら内部処理を行う。
+\item       t に t.dt.tz\_localize('UTC') の結果を代入する。
+\item       上の条件が偽の場合:
+\item       t に t.dt.tz\_localize(tzname, ambiguous='NaT', nonexistent='NaT').dt.tz\_convert('UTC') の結果を代入する。
+\item     上の条件が偽の場合:
+\item     t に t.dt.tz\_convert('UTC') の結果を代入する。
+\item   self.df['time'] に t の結果を代入する。
+\item self.start\_time\_utc に datetime.now(timezone.utc) の結果を代入する。
+\item raw\_start に str(self.get\_parameter('forecast\_start\_time\_utc').value or '').strip() の結果を代入する。
+\item 条件 raw\_start を判定し、真なら内部処理を行う。
+\item   例外処理を伴う try ブロックを実行する。
+\item     self.start\_time\_utc に datetime.fromisoformat(raw\_start.replace('Z', '+00:00')).astimezone(timezone.utc) の結果を代入する。
+\item     ValueErrorを捕捉した場合:
+\item     self.get\_logger().warning(...) を実行する。
+\item self.model に SolarCarModel(resolve\_path(str(self.get\_parameter('drive\_eff\_map').value), 'maps'), resolve\_path(str(self.get\_parameter('regen\_eff\_map').value), 'maps'), resolve\_path(str(self.get\_parameter('rint\_map').value), 'maps'), params=Params(dt=1.0 / self.publish\_rate\_hz), panel\_eff\_map\_path=resolve\_path(str(self.get\_parameter('panel\_eff\_map').value), 'maps') if str(self.get\_parameter('panel\_eff\_map').value) else None, mppt\_eff\_map\_path=resolve\_path(str(self.get\_parameter('mppt\_eff\_map').value), 'maps') if str(self.get\_parameter('mppt\_eff\_map').value) else None, drive\_map\_eco\_path=resolve\_path(str(self.get\_parameter('drive\_map\_eco').value), 'maps') if str(self.get\_parameter('drive\_map\_eco').value) else None, drive\_map\_power\_path=resolve\_path(str(self.get\_parameter('drive\_map\_power').value), 'maps') if str(self.get\_parameter('drive\_map\_power').value) else None, regen\_map\_eco\_path=resolve\_path(str(self.get\_parameter('regen\_map\_eco').value), 'maps') if str(self.get\_parameter('regen\_map\_eco').value) else None, regen\_map\_power\_path=resolve\_path(str(self.get\_parameter('regen\_map\_power').value), 'maps') if str(self.get\_parameter('regen\_map\_power').value) else None, ocv\_soc\_map\_path=resolve\_path(str(self.get\_parameter('ocv\_soc\_map').value), 'maps') if str(self.get\_parameter('ocv\_soc\_map').value) else None) の結果を代入する。
+\item params\_yaml に str(self.get\_parameter('params\_yaml').value or '').strip() の結果を代入する。
+\item 条件 params\_yaml を判定し、真なら内部処理を行う。
+\item   (\_profile\_path, cfg) に load\_profile(params\_yaml) の結果を代入する。
+\item   model\_cfg に get\_section(cfg, 'model') の結果を代入する。
+\item   model\_cfg.items() を順に走査し、各要素を (key, value) に入れて処理する。
+\item     条件 hasattr(self.model.p, key) を判定し、真なら内部処理を行う。
+\item       例外処理を伴う try ブロックを実行する。
+\item self.v\_cmd\_kmh に float(self.get\_parameter('init\_speed\_kmh').value) の結果を代入する。
+\item self.v\_exec\_kmh に float(self.get\_parameter('init\_speed\_kmh').value) の結果を代入する。
+\item self.s\_km に float(self.get\_parameter('s0\_km').value) の結果を代入する。
+\item self.z に float(self.get\_parameter('soc0').value) の結果を代入する。
+\item self.Tb に float(self.get\_parameter('Tb0').value) の結果を代入する。
+\item self.last\_step に None の結果を代入する。
+\item self.exec\_time\_sec に 0.0 の結果を代入する。
+\item self.limiter に SmoothRateLimiter(min\_value=0.0, max\_value=140.0, tau\_sec=float(self.get\_parameter('filter\_tau\_sec').value), rise\_rate=float(self.get\_parameter('accel\_limit\_kmhps').value), fall\_rate=float(self.get\_parameter('decel\_limit\_kmhps').value), initial\_value=self.v\_exec\_kmh) の結果を代入する。
+\item self.limiter.reset(...) を実行する。
+\item self.pub\_speed に self.create\_publisher(Float32, '/vehicle/speed\_kmh', 10) の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def __init__(self) -> None:
+        super().__init__("solar_state_node")
+        self.declare_parameter("profile_yaml", "")
+        self.declare_parameter("forecast_csv", "inputs/forecast_10min.csv")
+        self.declare_parameter("route_profile_csv", "")
+        self.declare_parameter("drive_schedule_yaml", "")
+        self.declare_parameter("drive_eff_map", "")
+        self.declare_parameter("regen_eff_map", "")
+        self.declare_parameter("rint_map", "")
+        self.declare_parameter("panel_eff_map", "")
+        self.declare_parameter("mppt_eff_map", "")
+        self.declare_parameter("drive_map_eco", "")
+        self.declare_parameter("drive_map_power", "")
+        self.declare_parameter("regen_map_eco", "")
+        self.declare_parameter("regen_map_power", "")
+        self.declare_parameter("ocv_soc_map", "")
+        self.declare_parameter("params_yaml", "")
+        self.declare_parameter("forecast_time_mode", "auto")
+        self.declare_parameter("forecast_time_tz", "UTC")
+        self.declare_parameter("forecast_start_time_utc", "")
+        self.declare_parameter("publish_rate_hz", 2.0)
+        self.declare_parameter("init_speed_kmh", 45.0)
+        self.declare_parameter("soc0", 0.95)
+        self.declare_parameter("Tb0", 30.0)
+        self.declare_parameter("s0_km", 0.0)
+        self.declare_parameter("filter_tau_sec", 1.0)
+        self.declare_parameter("accel_limit_kmhps", 1.2)
+        self.declare_parameter("decel_limit_kmhps", 3.5)
+
+        profile_yaml = str(self.get_parameter("profile_yaml").value or "").strip()
+        if profile_yaml:
+            profile_path, cfg = load_profile(profile_yaml)
+            sim_cfg = get_section(cfg, "simulation")
+            runtime_cfg = get_section(cfg, "runtime")
+            self.set_parameters(
+...
+\end{lstlisting}
+
+\subsection{L180 関数 SolarStateNode.\_on\_speed\_cmd}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L180--L181
+              \item 所属: \path|SolarStateNode|
+              \item 定義: \path|_on_speed_cmd(self, msg: Float32) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: self.v\_cmd\_kmh
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.v\_cmd\_kmh に float(msg.data) の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _on_speed_cmd(self, msg: Float32) -> None:
+        self.v_cmd_kmh = float(msg.data)
+\end{lstlisting}
+
+\subsection{L183 関数 SolarStateNode.\_forecast\_row}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L183--L189
+              \item 所属: \path|SolarStateNode|
+              \item 定義: \path|_forecast_row(self, now_utc: datetime)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: any, clip, datetime64, int, len, max, notna, searchsorted
+              \item 戻り値の要点: self.df.iloc[idx] / self.df.iloc[idx]
+              \item 主なローカル代入名: idx
+              \item 読み取る主なインスタンス属性: self.df, self.exec\_time\_sec, self.publish\_rate\_hz
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 'time' in self.df.columns and self.df['time'].notna().any() を判定し、真なら内部処理を行う。
+\item   idx に int(np.searchsorted(self.df['time'].values, np.datetime64(now\_utc)) - 1) の結果を代入する。
+\item   idx に int(np.clip(idx, 0, len(self.df) - 1)) の結果を代入する。
+\item   self.df.iloc[idx] を返す。
+\item idx に int(np.clip(int(self.exec\_time\_sec / max(1.0, 3600.0 / self.publish\_rate\_hz)), 0, len(self.df) - 1)) の結果を代入する。
+\item self.df.iloc[idx] を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _forecast_row(self, now_utc: datetime):
+        if "time" in self.df.columns and self.df["time"].notna().any():
+            idx = int(np.searchsorted(self.df["time"].values, np.datetime64(now_utc)) - 1)
+            idx = int(np.clip(idx, 0, len(self.df) - 1))
+            return self.df.iloc[idx]
+        idx = int(np.clip(int(self.exec_time_sec / max(1.0, 3600.0 / self.publish_rate_hz)), 0, len(self.df) - 1))
+        return self.df.iloc[idx]
+\end{lstlisting}
+
+\subsection{L191 関数 SolarStateNode.\_route\_value}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L191--L197
+              \item 所属: \path|SolarStateNode|
+              \item 定義: \path|_route_value(self, field: str, default: float) -> float|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, interpolate\_profile
+              \item 戻り値の要点: float(default) / float(interpolate\_profile(self.route\_profile, self.s\_km, field, default)) / float(default)
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.route\_profile, self.s\_km
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 self.route\_profile is None を判定し、真なら内部処理を行う。
+\item   float(default) を返す。
+\item 例外処理を伴う try ブロックを実行する。
+\item   float(interpolate\_profile(self.route\_profile, self.s\_km, field, default)) を返す。
+\item   Exceptionを捕捉した場合:
+\item   float(default) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _route_value(self, field: str, default: float) -> float:
+        if self.route_profile is None:
+            return float(default)
+        try:
+            return float(interpolate_profile(self.route_profile, self.s_km, field, default))
+        except Exception:
+            return float(default)
+\end{lstlisting}
+
+\subsection{L199 関数 SolarStateNode.\_step}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L199--L262
+              \item 所属: \path|SolarStateNode|
+              \item 定義: \path|_step(self) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, \_forecast\_row, \_route\_value, abs, clip, electrical\_balance, float, get, get\_clock, is\_drive\_time, max, now
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: alt\_m, aux\_power\_w, current\_a, drive\_now, dt, ghi, headwind, heat\_gain, now\_sec, now\_utc, out, p\_pack, row, slope\_pct, solar\_w, tamb, tcell, voltage\_v
+              \item 読み取る主なインスタンス属性: self.Tb, self.\_forecast\_row, self.\_route\_value, self.drive\_schedule, self.exec\_time\_sec, self.get\_clock, self.last\_step, self.limiter, self.model, self.pub\_alt, self.pub\_i, self.pub\_s, self.pub\_soc, self.pub\_solar, self.pub\_speed, self.pub\_tb, self.pub\_v, self.publish\_rate\_hz, self.s\_km, self.start\_time\_utc, self.v\_cmd\_kmh, self.v\_exec\_kmh, self.z
+              \item 更新する主なインスタンス属性: self.Tb, self.exec\_time\_sec, self.last\_step, self.s\_km, self.v\_exec\_kmh, self.z
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item now\_sec に self.get\_clock().now().nanoseconds / 1000000000.0 の結果を代入する。
+\item 条件 self.last\_step is None を判定し、真なら内部処理を行う。
+\item   self.last\_step に now\_sec の結果を代入する。
+\item dt に max(1.0 / self.publish\_rate\_hz, now\_sec - self.last\_step) の結果を代入する。
+\item self.last\_step に now\_sec の結果を代入する。
+\item self.exec\_time\_sec を Add で更新する。
+\item self.v\_exec\_kmh に float(self.limiter.update(self.v\_cmd\_kmh, now=self.exec\_time\_sec)) の結果を代入する。
+\item self.s\_km を Add で更新する。
+\item now\_utc に self.start\_time\_utc + timedelta(seconds=self.exec\_time\_sec) の結果を代入する。
+\item row に self.\_forecast\_row(now\_utc) の結果を代入する。
+\item ghi に float(row.get('GHI', 0.0)) の結果を代入する。
+\item tcell に float(row.get('Tcell\_C', 40.0)) の結果を代入する。
+\item tamb に float(row.get('Tamb\_C', 30.0)) の結果を代入する。
+\item headwind に float(row.get('headwind\_ms', self.\_route\_value('headwind\_ms', 0.0))) の結果を代入する。
+\item slope\_pct に self.\_route\_value('slope\_pct', float(row.get('slope\_pct', 0.0))) の結果を代入する。
+\item alt\_m に self.\_route\_value('alt\_m', self.\_route\_value('altitude\_m', 0.0)) の結果を代入する。
+\item drive\_now に self.drive\_schedule.is\_drive\_time(now\_utc) if self.drive\_schedule is not None else True の結果を代入する。
+\item aux\_power\_w に self.model.scheduled\_auxiliary\_power(is\_driving=drive\_now, irradiance\_wm2=ghi) の結果を代入する。
+\item out に self.model.electrical\_balance(self.v\_exec\_kmh / 3.6, slope\_pct, self.z, self.Tb, ghi, tcell, headwind\_ms=headwind, aux\_power\_w=aux\_power\_w, ambient\_temp\_c=tamb, elevation\_m=alt\_m) の結果を代入する。
+\item p\_pack に float(out['P\_pack']) の結果を代入する。
+\item current\_a に float(out['I']) の結果を代入する。
+\item voltage\_v に float(out['V']) の結果を代入する。
+\item solar\_w に float(out['P\_pv']) の結果を代入する。
+\item self.z に float(np.clip(self.model.soc\_step(self.z, p\_pack, dt, current\_a=current\_a, Tbat\_C=self.Tb), self.model.p.soc\_min, self.model.p.soc\_max)) の結果を代入する。
+\item heat\_gain に 0.015 * abs(current\_a) + 0.002 * max(0.0, p\_pack / 100.0) の結果を代入する。
+\item self.Tb を Add で更新する。
+\item self.pub\_speed.publish(...) を実行する。
+\item self.pub\_s.publish(...) を実行する。
+\item self.pub\_soc.publish(...) を実行する。
+\item self.pub\_tb.publish(...) を実行する。
+\item self.pub\_i.publish(...) を実行する。
+\item self.pub\_v.publish(...) を実行する。
+\item self.pub\_solar.publish(...) を実行する。
+\item self.pub\_alt.publish(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _step(self) -> None:
+        now_sec = self.get_clock().now().nanoseconds / 1e9
+        if self.last_step is None:
+            self.last_step = now_sec
+        dt = max(1.0 / self.publish_rate_hz, now_sec - self.last_step)
+        self.last_step = now_sec
+        self.exec_time_sec += dt
+        self.v_exec_kmh = float(self.limiter.update(self.v_cmd_kmh, now=self.exec_time_sec))
+        self.s_km += self.v_exec_kmh * (dt / 3600.0)
+
+        now_utc = self.start_time_utc + timedelta(seconds=self.exec_time_sec)
+        row = self._forecast_row(now_utc)
+        ghi = float(row.get("GHI", 0.0))
+        tcell = float(row.get("Tcell_C", 40.0))
+        tamb = float(row.get("Tamb_C", 30.0))
+        headwind = float(row.get("headwind_ms", self._route_value("headwind_ms", 0.0)))
+        slope_pct = self._route_value("slope_pct", float(row.get("slope_pct", 0.0)))
+        alt_m = self._route_value("alt_m", self._route_value("altitude_m", 0.0))
+
+        drive_now = self.drive_schedule.is_drive_time(now_utc) if self.drive_schedule is not None else True
+        aux_power_w = self.model.scheduled_auxiliary_power(
+            is_driving=drive_now,
+            irradiance_wm2=ghi,
+        )
+        out = self.model.electrical_balance(
+            self.v_exec_kmh / 3.6,
+            slope_pct,
+            self.z,
+            self.Tb,
+            ghi,
+            tcell,
+            headwind_ms=headwind,
+            aux_power_w=aux_power_w,
+            ambient_temp_c=tamb,
+            elevation_m=alt_m,
+...
+\end{lstlisting}
+
+\subsection{L265 関数 main}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L265--L270
+              \item 所属: module直下
+              \item 定義: \path|main() -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: SolarStateNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: node
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に SolarStateNode() の結果を代入する。
+\item rclpy.spin(...) を実行する。
+\item node.destroy\_node(...) を実行する。
+\item rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def main() -> None:
+    rclpy.init()
+    node = SolarStateNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+\end{lstlisting}
+
+        \subsection{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            25 & \path|profile_yaml| &  \\
+26 & \path|forecast_csv| & inputs/forecast\_10min.csv \\
+27 & \path|route_profile_csv| &  \\
+28 & \path|drive_schedule_yaml| &  \\
+29 & \path|drive_eff_map| &  \\
+30 & \path|regen_eff_map| &  \\
+31 & \path|rint_map| &  \\
+32 & \path|panel_eff_map| &  \\
+33 & \path|mppt_eff_map| &  \\
+34 & \path|drive_map_eco| &  \\
+35 & \path|drive_map_power| &  \\
+36 & \path|regen_map_eco| &  \\
+37 & \path|regen_map_power| &  \\
+38 & \path|ocv_soc_map| &  \\
+39 & \path|params_yaml| &  \\
+40 & \path|forecast_time_mode| & auto \\
+41 & \path|forecast_time_tz| & UTC \\
+42 & \path|forecast_start_time_utc| &  \\
+43 & \path|publish_rate_hz| & 2.0 \\
+44 & \path|init_speed_kmh| & 45.0 \\
+45 & \path|soc0| & 0.95 \\
+46 & \path|Tb0| & 30.0 \\
+47 & \path|s0_km| & 0.0 \\
+48 & \path|filter_tau_sec| & 1.0 \\
+49 & \path|accel_limit_kmhps| & 1.2 \\
+50 & \path|decel_limit_kmhps| & 3.5 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            168 & publisher & \path|/vehicle/speed_kmh| & publisher \\
+169 & publisher & \path|/vehicle/s_km| & publisher \\
+170 & publisher & \path|/vehicle/batt_soc| & publisher \\
+171 & publisher & \path|/vehicle/batt_temp_c| & publisher \\
+172 & publisher & \path|/vehicle/batt_current_a| & publisher \\
+173 & publisher & \path|/vehicle/batt_voltage_v| & publisher \\
+174 & publisher & \path|/vehicle/solar_power_w| & publisher \\
+175 & publisher & \path|/vehicle/altitude_m| & publisher \\
+176 & subscription & \path|/planner/speed_cmd| & self.\_on\_speed\_cmd \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/solar_state_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

@@ -1,0 +1,107 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=16mm,bottom=20mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={Program reference index},
+          pdfauthor={Codex}
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{ソーラーカーパッケージ主要プログラム\\個別解説PDF一覧}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象と方針}
+        本資料群は、以前列挙した主要プログラムを対象に、
+        \begin{itemize}[leftmargin=1.6em]
+          \item プログラム、プロセス、メモリ、関数、クラス、self、decoratorなどの前提
+          \item ファイルの役割
+          \item どこから呼ばれ、何へ繋がるか
+          \item import 群の意味
+          \item クラス内メソッドと関数内関数を含む全定義
+          \item 引数、戻り値、self属性の読み書き、分岐、ループ、例外、副作用
+          \item ROS I/O、CLI引数、実行の流れ、診断方法
+          \item MPC、CEM、warm start、車両・電池モデルの数式と実装対応
+        \end{itemize}
+        を日本語で個別PDF化したものである。ソースから確定する事実と一般仕様を分け、
+        各冊に生成対象ソースのSHA-256を記録する。
+
+        \section*{生成物一覧}
+        \begin{longtable}{p{0.06\linewidth} p{0.26\linewidth} p{0.38\linewidth} p{0.22\linewidth}}
+        \toprule
+        No. & タイトル & ソース & PDF ファイル \\
+        \midrule
+        00 & 基礎知識総論 & Python / OS / ROS 2 / MPC / 数値最適化 & \path|00_foundations.pdf| \\
+01 & Windows入口 PowerShell ルータ & \path|SolarSim.ps1| & \path|01_SolarSim_ps1.pdf| \\
+02 & WSL側 実行ルータ & \path|scripts/solar_control.sh| & \path|02_scripts_solar_control_sh.pdf| \\
+03 & live\_wifi ROS2 launch 入口 & \path|launch/solar_race_live_wifi.launch.py| & \path|03_launch_solar_race_live_wifi_launch_py.pdf| \\
+04 & live ROS2 launch 入口 & \path|launch/solar_race_live.launch.py| & \path|04_launch_solar_race_live_launch_py.pdf| \\
+05 & sim ROS2 launch 入口 & \path|launch/solarcar_sim.launch.py| & \path|05_launch_solarcar_sim_launch_py.pdf| \\
+06 & measure ROS2 launch 入口 & \path|launch/solar_measurement.launch.py| & \path|06_launch_solar_measurement_launch_py.pdf| \\
+07 & live系 node 構成ビルダ & \path|mpc_solarcar/live_launch.py| & \path|07_mpc_solarcar_live_launch_py.pdf| \\
+08 & profile YAML 読込と検証 & \path|mpc_solarcar/solar_profile.py| & \path|08_mpc_solarcar_solar_profile_py.pdf| \\
+09 & ROS share / 相対パス解決 & \path|mpc_solarcar/path_utils.py| & \path|09_mpc_solarcar_path_utils_py.pdf| \\
+10 & offline フルレース simulation 本体 & \path|scripts/solar_sim.py| & \path|10_scripts_solar_sim_py.pdf| \\
+11 & live / sim 共通 MPC 本体 & \path|mpc_solarcar/mpc_node.py| & \path|11_mpc_solarcar_mpc_node_py.pdf| \\
+12 & 車体物理・電気モデル本体 & \path|mpc_solarcar/model.py| & \path|12_mpc_solarcar_model_py.pdf| \\
+13 & 効率マップ・抵抗マップ読込補間 & \path|mpc_solarcar/utils_maps.py| & \path|13_mpc_solarcar_utils_maps_py.pdf| \\
+14 & 上位MPC 距離メッシュ生成 & \path|mpc_solarcar/upper_horizon.py| & \path|14_mpc_solarcar_upper_horizon_py.pdf| \\
+15 & 上位速度計画の補間と warm start & \path|mpc_solarcar/upper_policy.py| & \path|15_mpc_solarcar_upper_policy_py.pdf| \\
+16 & 上位MPC 目的関数 & \path|mpc_solarcar/upper_cost.py| & \path|16_mpc_solarcar_upper_cost_py.pdf| \\
+17 & 上位探索ソルバ & \path|mpc_solarcar/upper_solver.py| & \path|17_mpc_solarcar_upper_solver_py.pdf| \\
+18 & Battery MHE & \path|mpc_solarcar/estimator.py| & \path|18_mpc_solarcar_estimator_py.pdf| \\
+19 & sim 用 車体状態 publisher & \path|mpc_solarcar/solar_state_node.py| & \path|19_mpc_solarcar_solar_state_node_py.pdf| \\
+20 & WiFi 文字列テレメトリ bridge & \path|mpc_solarcar/telemetry_text_bridge_node.py| & \path|20_mpc_solarcar_telemetry_text_bridge_node_py.pdf| \\
+21 & 速度積分距離ノード & \path|mpc_solarcar/distance_node.py| & \path|21_mpc_solarcar_distance_node_py.pdf| \\
+22 & live forecast 取得ノード & \path|mpc_solarcar/weather_fetch_node.py| & \path|22_mpc_solarcar_weather_fetch_node_py.pdf| \\
+23 & live 風補正ノード & \path|mpc_solarcar/wind_correction_node.py| & \path|23_mpc_solarcar_wind_correction_node_py.pdf| \\
+24 & live 自動校正ノード & \path|mpc_solarcar/solar_autocal_node.py| & \path|24_mpc_solarcar_solar_autocal_node_py.pdf| \\
+25 & 自動校正ロジック関数群 & \path|mpc_solarcar/solar_autocal_logic.py| & \path|25_mpc_solarcar_solar_autocal_logic_py.pdf| \\
+26 & planner 指令の安全橋渡し & \path|mpc_solarcar/speed_command_bridge_node.py| & \path|26_mpc_solarcar_speed_command_bridge_node_py.pdf| \\
+27 & live 計測鮮度監視 & \path|mpc_solarcar/solar_preflight_node.py| & \path|27_mpc_solarcar_solar_preflight_node_py.pdf| \\
+28 & preflight 判定ロジック & \path|mpc_solarcar/solar_preflight_logic.py| & \path|28_mpc_solarcar_solar_preflight_logic_py.pdf| \\
+29 & solar 運用 CSV logger & \path|mpc_solarcar/solar_logger_node.py| & \path|29_mpc_solarcar_solar_logger_node_py.pdf| \\
+30 & dashboard + HTTP API & \path|mpc_solarcar/dashboard_node.py| & \path|30_mpc_solarcar_dashboard_node_py.pdf| \\
+31 & sim GPS 軌跡ノード & \path|mpc_solarcar/gps_sim_node.py| & \path|31_mpc_solarcar_gps_sim_node_py.pdf| \\
+32 & 実測勾配推定ノード & \path|mpc_solarcar/grade_node.py| & \path|32_mpc_solarcar_grade_node_py.pdf| \\
+33 & offline forecast 取得 CLI & \path|scripts/fetch_weather_forecast.py| & \path|33_scripts_fetch_weather_forecast_py.pdf| \\
+34 & テンプレ識別パイプライン入口 & \path|scripts/run_identification_pipeline.py| & \path|34_scripts_run_identification_pipeline_py.pdf| \\
+35 & フル MLE 同定本体 & \path|scripts/run_vehicle_identification.py| & \path|35_scripts_run_vehicle_identification_py.pdf| \\
+36 & 目的関数重み CEM 学習 & \path|scripts/tune_upper_planner_weights.py| & \path|36_scripts_tune_upper_planner_weights_py.pdf| \\
+37 & GPU 上位速度列探索 & \path|scripts/gpu_upper_policy_search.py| & \path|37_scripts_gpu_upper_policy_search_py.pdf| \\
+38 & upper mesh 収束確認 & \path|scripts/run_upper_mesh_convergence.py| & \path|38_scripts_run_upper_mesh_convergence_py.pdf| \\
+39 & GPU 候補の厳密検証 & \path|scripts/validate_gpu_upper_policy_candidates.py| & \path|39_scripts_validate_gpu_upper_policy_candidates_py.pdf| \\
+40 & 同定後 fullsim レポート生成 & \path|scripts/generate_fit_fullsim_report.py| & \path|40_scripts_generate_fit_fullsim_report_py.pdf| \\
+        \bottomrule
+        \end{longtable}
+
+        \section*{推奨読書順}
+        \begin{enumerate}[leftmargin=1.8em]
+          \item 00 基礎知識総論
+          \item 入口: SolarSim.ps1, solar\_control.sh
+          \item launch: live\_wifi, live, sim, measure, live\_launch
+          \item config: solar\_profile, path\_utils
+          \item 数理コア: solar\_sim, mpc\_node, model, upper\_*
+          \item runtime node: telemetry, weather, bridge, logger, dashboard
+          \item offline pipeline: forecast, identification, learn, GPU search, validation
+        \end{enumerate}
+
+        \end{document}

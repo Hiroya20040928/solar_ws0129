@@ -1,0 +1,26 @@
+\contentsline {section}{\numberline {1}対象}{2}{section.1}%
+\contentsline {section}{\numberline {2}このファイルを読む理由}{2}{section.2}%
+\contentsline {section}{\numberline {3}呼び出し関係}{2}{section.3}%
+\contentsline {subsection}{\numberline {3.1}どこから呼ばれるか}{2}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}次に読むと理解が進むファイル}{2}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}同一リポジトリ内の主要依存}{2}{subsection.3.3}%
+\contentsline {section}{\numberline {4}ソース冒頭の把握}{2}{section.4}%
+\contentsline {subsection}{\numberline {4.1}代表コード断片}{2}{subsection.4.1}%
+\contentsline {section}{\numberline {5}主要構造の読み取り}{4}{section.5}%
+\contentsline {subsection}{\numberline {5.1}ファイルを上から読んだときの定義順}{4}{subsection.5.1}%
+\contentsline {section}{\numberline {6}このファイルを読む前に必要な基礎知識}{5}{section.6}%
+\contentsline {subsection}{\numberline {6.1}プログラム、プロセス、メモリ、オブジェクトを区別する}{5}{subsection.6.1}%
+\contentsline {paragraph}{根拠資料}{5}{section*.2}%
+\contentsline {subsection}{\numberline {6.2}CLI、PowerShell、Bash、環境変数、終了コード}{5}{subsection.6.2}%
+\contentsline {paragraph}{根拠資料}{6}{section*.3}%
+\contentsline {subsection}{\numberline {6.3}例外、try/finally、with、資源解放}{6}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}天候、route、補間、時刻、単位}{6}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}freshness、filter、guard、fallback、fail-safe}{6}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}launch Action、Node Action、実行可能名、remapping}{6}{subsection.6.6}%
+\contentsline {paragraph}{根拠資料}{6}{section*.4}%
+\contentsline {subsection}{\numberline {6.7}単体試験、SILS、replay、観測可能性}{7}{subsection.6.7}%
+\contentsline {paragraph}{根拠資料}{7}{section*.5}%
+\contentsline {section}{\numberline {7}関数・クラスを上から順に解説}{7}{section.7}%
+\contentsline {subsection}{\numberline {7.1}shell 分岐と外部コマンド}{7}{subsection.7.1}%
+\contentsline {section}{\numberline {8}処理の流れ}{8}{section.8}%
+\contentsline {section}{\numberline {9}このファイルの位置づけ}{8}{section.9}%

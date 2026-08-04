@@ -1,0 +1,734 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[top=16mm,bottom=20mm,left=16mm,right=16mm]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setmainfont{Times New Roman}
+\setCJKmainfont{Yu Gothic}
+\setmonofont{Consolas}
+\setCJKmonofont{Yu Gothic}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{xstring}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
+\usepackage{xcolor}
+\usepackage[unicode]{hyperref}
+\hypersetup{
+  hidelinks,
+  pdftitle={Solar package flow workbook},
+  pdfauthor={Codex}
+}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{1em}
+\renewcommand{\arraystretch}{1.2}
+\newif\ifanswers
+\answerstrue
+\newcommand{\fillin}[2]{\ifanswers{\color{black}\textbf{#1}}\else\underline{\hspace{#2}}\fi}
+\newcommand{\flowbox}[1]{\fcolorbox{black}{white}{\parbox{0.95\linewidth}{#1}}}
+\newcommand{\stagebox}[1]{\begin{center}\fcolorbox{black}{white}{\parbox{0.82\linewidth}{\centering #1}}\end{center}}
+% Keep source names readable and allow line breaks at underscores.
+\newcommand{\sourcepath}[1]{%
+  \begingroup
+  \StrSubstitute{#1}{\_}{\allowbreak\_}[\cleanpath]%
+  {\ttfamily\cleanpath}%
+  \endgroup
+}
+\title{改良版ソーラーカーパッケージ\\処理フロー体験ワークシート}
+\author{solar\_ws0129-main}
+\date{2026-07-16}
+
+\begin{document}
+\maketitle
+
+\section*{使い方}
+本書は、現在の改良版ソーラーカーパッケージについて、
+\begin{itemize}[leftmargin=1.5em]
+  \item PowerShell で何を叩くと、
+  \item どの launch / script / node が動き、
+  \item どの topic / CSV / dashboard / planner 更新へ流れるか
+\end{itemize}
+を、添付の ``MPC 処理フロー体験'' と同じく、手を動かして追える形でまとめたワークシートである。
+
+PASSO 系列は本書では扱わない。対象はソーラーカー系の各モード、
+\sourcepath{sim}、\sourcepath{measure}、\sourcepath{live}、\sourcepath{live\_wifi}、
+\sourcepath{forecast}、\sourcepath{identify} である。
+
+\begin{itemize}[leftmargin=1.5em]
+  \item デフォルトは回答表示ありである。
+  \item 穴埋めだけにしたい場合は、プリアンブルの \verb|\answerstrue| を \verb|\answersfalse| に変更する。
+  \item 本書は 2026-07-16 時点のワークツリー、\sourcepath{SolarSim.ps1}、install 側の
+  \sourcepath{scripts/solar\_control.sh}、\sourcepath{export\_rqt\_graph.py}、および現在確認できる core node 実装を根拠にしている。
+\end{itemize}
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{まず最初に押さえるべき事実}
+\subsection{入口は 1 つではなく 3 層ある}
+現行の操作系は、大きく次の 3 層に分かれる。
+
+\stagebox{Windows 側入口: \sourcepath{SolarSim.ps1}}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{WSL 側ルータ: \sourcepath{scripts/solar\_control.sh}}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{\sourcepath{ros2 launch} または \sourcepath{python scripts/...}}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{ROS 2 node 群と成果物: planner / logger / dashboard / bridge / CSV / JSON}
+
+\subsection{入口と実装本体は source 側で対応している}
+\flowbox{
+  \textbf{2026-07-16 の監査結果:} \sourcepath{SolarSim.ps1} と \sourcepath{scripts/solar\_control.sh} が使う
+  \sourcepath{solar\_measurement.launch.py}、\sourcepath{solar\_race\_live.launch.py}、
+  \sourcepath{solar\_race\_live\_wifi.launch.py} は、いずれも \sourcepath{launch/} に存在する。
+  telemetry / command / wind / state bridge も \sourcepath{mpc\_solarcar/} に実装され、
+  \sourcepath{setup.py} の entry point と一致する。本書では、
+  \begin{itemize}[leftmargin=1.5em]
+    \item \textbf{PowerShell 入口から launch まで}
+    \item \textbf{各 node の topic、数式、保存成果物}
+  \end{itemize}
+  を同じ source tree に基づいて追跡する。
+}
+
+\subsection{本書の根拠ファイル}
+\begin{longtable}{p{0.30\linewidth}p{0.64\linewidth}}
+\toprule
+根拠ファイル & 本書での役割 \\
+\midrule
+\endhead
+\sourcepath{SolarSim.ps1} & Windows から叩く最上位入口。action / mode / profile を WSL に渡す。 \\
+\sourcepath{scripts/solar\_control.sh} & ROS起動、sim、forecast、identify、fit、learn、auditを振り分ける本体。 \\
+\sourcepath{launch/*.launch.py} & sim / measure / live / live\_wifi の node 構成を定義する直接根拠。 \\
+\sourcepath{scripts/solar\_sim.py} & オフライン大会全体 simulation。CSV、detail CSV、upper plan CSV、HTML、JSON を出力。 \\
+\sourcepath{project\_packages/bwsc2027\_template/profile.yaml} & 改良版 profile 構造の代表例。各 mode がどのパラメータ群を使うかの根拠。 \\
+\sourcepath{mpc\_solarcar/mpc\_node.py} & 上位・下位 planner の中心。通常1時間の上位再計画と 1 Hz lower command の根拠。 \\
+\sourcepath{mpc\_solarcar/dashboard\_node.py} & dashboard が何を受け取り、何を API として見せるかの根拠。 \\
+\sourcepath{mpc\_solarcar/distance\_node.py} & \sourcepath{/vehicle/speed\_kmh} から \sourcepath{/vehicle/s\_km} を積分する根拠。 \\
+\sourcepath{mpc\_solarcar/grade\_node.py} & GPS / altitude / distance から勾配を出す根拠。 \\
+\sourcepath{mpc\_solarcar/solar\_logger\_node.py} & 太陽車ログ CSV の列と topic 対応の根拠。 \\
+\sourcepath{mpc\_solarcar/solar\_preflight\_node.py} & solar telemetry / planner freshness から system state / diag / health を作る。 \\
+\sourcepath{scripts/export\_rqt\_graph.py} & mode 別 core node 群の graph export。 \\
+\sourcepath{scripts/fetch\_weather\_forecast.py} & forecast action が何をするかの根拠。 \\
+\sourcepath{scripts/run\_identification\_pipeline.py} & identify action の軽量 pipeline の根拠。 \\
+\sourcepath{scripts/run\_vehicle\_identification.py} & 改良版 generic replay MLE identification の根拠。 \\
+\bottomrule
+\end{longtable}
+
+\section{全体フローの骨格}
+\subsection{PowerShell から見た action と mode}
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.16\linewidth} >{\raggedright\arraybackslash}p{0.16\linewidth} X}
+\toprule
+action & mode & 到達先 \\
+\midrule
+\sourcepath{up} & \sourcepath{sim / measure / live / live\_wifi} & \sourcepath{build -> stop -> start}。最終的に \sourcepath{ros2 launch mpc\_solarcar <launch\_file>}。 \\
+\sourcepath{start} & 同上 & 既存 build を前提に、その mode の launch だけ起動。 \\
+\sourcepath{graph} & 同上 & \sourcepath{export\_rqt\_graph.py --mode <mode>}。graph exporter が想定 node 群を待って画像化。 \\
+\sourcepath{simulate} & \sourcepath{sim} を主対象 & \sourcepath{python scripts/solar\_sim.py --profile\_yaml ...}。ROS2 launch ではなくオフライン実行。 \\
+\sourcepath{forecast} & 主に \sourcepath{live / live\_wifi} 前準備 & \sourcepath{python fetch\_weather\_forecast.py --profile\_yaml ...}。Open-Meteo 取得。 \\
+\sourcepath{identify} & profile ベース & \sourcepath{python run\_identification\_pipeline.py --profile\_yaml ...}。軽量な同定 pipeline。 \\
+\sourcepath{fit} & profile ベース & 実ログを用いる高品質 segmented MLE と map shape fit。 \\
+\sourcepath{learn} & profile ベース & CEMで上位目的重みを探索し、検証profileとTensorBoard logを保存。 \\
+\sourcepath{audit} & 全体 & inventory、static contract audit、pytestを連続実行。 \\
+\sourcepath{package / blank} & Windows直接 & 検証済みsolar-only版 / 同機能の空版を再生成。 \\
+\sourcepath{log} & 任意 & \sourcepath{.run/solar\_<mode>.log} を tail。 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{WSL 側ルータでの mode -> launch 対応}
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+mode & launch file（\sourcepath{solar\_control.sh} が期待する名前） \\
+\midrule
+\sourcepath{sim} & \sourcepath{solarcar\_sim.launch.py} \\
+\sourcepath{measure} & \sourcepath{solar\_measurement.launch.py} \\
+\sourcepath{live} & \sourcepath{solar\_race\_live.launch.py} \\
+\sourcepath{live\_wifi} & \sourcepath{solar\_race\_live\_wifi.launch.py} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{graph exporter が mode ごとに期待する core node}
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.14\linewidth} X}
+\toprule
+mode & 期待 core node \\
+\midrule
+\sourcepath{sim} & \sourcepath{gps\_sim\_node}, \sourcepath{mpc\_node}, \sourcepath{solar\_state\_node}, \sourcepath{dashboard\_node} \\
+\sourcepath{measure} & \sourcepath{dashboard\_node}, \sourcepath{solar\_logger\_node}, \sourcepath{distance\_node}, \sourcepath{grade\_node} \\
+\sourcepath{live} & \sourcepath{mpc\_node}, \sourcepath{dashboard\_node}, \sourcepath{solar\_logger\_node}, \sourcepath{speed\_command\_bridge\_node} \\
+\sourcepath{live\_wifi} & \sourcepath{mpc\_node}, \sourcepath{dashboard\_node}, \sourcepath{solar\_logger\_node}, \sourcepath{speed\_command\_bridge\_node}, \sourcepath{telemetry\_text\_bridge\_node}, \sourcepath{wind\_correction\_node} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{問題 1: 入口の穴埋め}
+\begin{enumerate}[leftmargin=1.5em]
+  \item Windows 側で最初に叩く入口は \fillin{\sourcepath{SolarSim.ps1}}{32mm} である。
+  \item WSL 側で action / mode を解釈する本体は \fillin{\sourcepath{scripts/solar\_control.sh}}{48mm} である。
+  \item \sourcepath{simulate} action は \fillin{\sourcepath{ros2 launch}}{22mm} ではなく、\fillin{\sourcepath{python scripts/solar\_sim.py}}{42mm} を直接呼ぶ。
+  \item \sourcepath{live\_wifi} の graph exporter が追加で期待する bridge 系 node は
+  \fillin{\sourcepath{telemetry\_text\_bridge\_node}}{44mm} と
+  \fillin{\sourcepath{wind\_correction\_node}}{34mm} である。
+\end{enumerate}
+
+\section{profile.yaml の読み方}
+\subsection{改良版 profile のトップレベル構造}
+改良版 profile の代表例 \sourcepath{project\_packages/bwsc2027\_template/profile.yaml} では、
+次のブロックが入口になる。
+
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+\toprule
+ブロック & 主な役割 \\
+\midrule
+\sourcepath{meta} & package 名、目的、注意事項。 \\
+\sourcepath{paths} & route / weather / schedule / maps の実ファイル。多くの script がここを入口にする。 \\
+\sourcepath{runtime} & dashboard host/port、forecast 時間解釈の基準。 \\
+\sourcepath{logging} & 共通 log 置き場と rate。 \\
+\sourcepath{simulation} & start 時刻、初期 SoC、出力先、prerace 実行条件。 \\
+\sourcepath{measurement} & \sourcepath{distance\_node} と \sourcepath{grade\_node} の使い方。 \\
+\sourcepath{identification} & 同定 input / output ディレクトリ。 \\
+\sourcepath{live} & 実運用用。weather / autocal / command bridge / WiFi / wind model を束ねる。 \\
+\sourcepath{model} & 車体質量、CdA、Crr、PV、battery 定数。 \\
+\sourcepath{mpc} & 上位 / 下位 MPC の地平、重み、制約、再計画周期。 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{mode ごとに読む profile ブロック}
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.14\linewidth} X}
+\toprule
+mode & 強く効くブロック \\
+\midrule
+\sourcepath{sim} & \sourcepath{paths}、\sourcepath{simulation}、\sourcepath{model}、\sourcepath{mpc}、\sourcepath{runtime} \\
+\sourcepath{measure} & \sourcepath{measurement}、\sourcepath{logging}、必要なら \sourcepath{runtime} \\
+\sourcepath{live} & \sourcepath{live.weather}、\sourcepath{live.autocal}、\sourcepath{live.command\_bridge}、\sourcepath{model}、\sourcepath{mpc} \\
+\sourcepath{live\_wifi} & \sourcepath{live.wifi\_bridge}、\sourcepath{live.wind\_model}、\sourcepath{live.command\_bridge}、\sourcepath{live.weather}、\sourcepath{model}、\sourcepath{mpc} \\
+\sourcepath{forecast} & \sourcepath{paths.route\_waypoints\_csv}、\sourcepath{paths.forecast\_csv}、\sourcepath{live.weather}、\sourcepath{runtime} \\
+\sourcepath{identify} & \sourcepath{identification}、\sourcepath{paths}、\sourcepath{model} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{問題 2: profile の対応づけ}
+\begin{enumerate}[leftmargin=1.5em]
+  \item dashboard の host / port は主に \fillin{\sourcepath{runtime}}{18mm} ブロックで決まる。
+  \item offline sim の初期 SoC、開始時刻、出力先は主に \fillin{\sourcepath{simulation}}{20mm} ブロックで決まる。
+  \item 実運用の command smoothing や accel 制限は
+  \fillin{\sourcepath{live.command\_bridge}}{38mm} に置く。
+  \item WiFi 受送信先 IP / port は \fillin{\sourcepath{live.wifi\_bridge}}{34mm} に置く。
+\end{enumerate}
+
+\newpage
+\section{sim モード}
+\subsection{sim モードには 2 種類ある}
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{launch 型 sim}: \sourcepath{SolarSim.ps1 -Mode sim -Action up} で起動する ROS2 runtime。
+  \item \textbf{offline 型 sim}: \sourcepath{SolarSim.ps1 -Mode sim -Action simulate} で実行する
+  \sourcepath{scripts/solar\_sim.py}。
+\end{enumerate}
+
+この 2 つは同じ profile を参照するが、役割が違う。
+\begin{itemize}[leftmargin=1.5em]
+  \item launch 型 sim は topic を流し、planner と dashboard を起動する。
+  \item offline 型 sim は大会全体 replay / planning 用の CSV、HTML、JSON を出力する。
+\end{itemize}
+
+\subsection{launch 型 sim の流れ}
+\stagebox{\sourcepath{SolarSim.ps1 -Action up -Mode sim}
+$\rightarrow$ \sourcepath{solarcar\_sim.launch.py}}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{\sourcepath{gps\_sim\_node} / \sourcepath{solar\_state\_node}
+$\leftrightarrow$ \sourcepath{mpc\_node}（次周期へ speed command feedback）}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{\sourcepath{/sim/gps}、\sourcepath{/vehicle/*}、\sourcepath{/planner/*}
+$\rightarrow$ \sourcepath{dashboard\_node}}
+
+\subsection{launch 型 sim で直接確認できる node}
+\sourcepath{launch/solarcar\_sim.launch.py} で確認できるのは次の 3 node である。
+\begin{enumerate}[leftmargin=1.5em]
+  \item \sourcepath{gps\_sim\_node}:
+  \sourcepath{inputs/route\_waypoints.csv} と \sourcepath{/planner/speed\_cmd} を使って \sourcepath{/sim/gps} を publish する。
+  \item \sourcepath{mpc\_node}:
+  forecast CSV、route profile、speed profile、drive schedule、maps、params を読み、
+  \sourcepath{/planner/speed\_cmd}、\sourcepath{/planner/upper\_plan}、
+  \sourcepath{/planner/lower\_plan}、\sourcepath{/planner/status} などを publish する。
+  \item \sourcepath{dashboard\_node}: \sourcepath{/api/state} を持つ HTTP サーバで、planner と vehicle の主要状態を可視化する。
+\end{enumerate}
+
+\subsection{offline 型 sim の流れ}
+\sourcepath{scripts/solar\_sim.py} は ROS2 launch を通らず、profile を読んで大会全体をロールアウトする。
+
+\stagebox{\sourcepath{profile.yaml}: route / weather / maps / schedule / model / MPC}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{\sourcepath{scripts/solar\_sim.py}: full-course optimization と execution replay}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{summary CSV / detail CSV / upper plan CSV / HTML / manifest JSON / resolved YAML}
+
+\subsection{offline 型 sim で出る主成果物}
+\begin{longtable}{p{0.28\linewidth}p{0.65\linewidth}}
+\toprule
+成果物 & 内容 \\
+\midrule
+\endhead
+\sourcepath{out\_csv} & 時刻、距離、speed command、実行速度、SoC、battery 温度、G\_poa、外気温、向かい風。 \\
+\sourcepath{out\_detail\_csv} & 電流、電圧、PV 出力、P\_pack、各抵抗力、drive / regen 効率など、再現確認用の詳細系列。 \\
+\sourcepath{out\_plan\_csv} & 上位プランナが各再計画時刻で採用した segment 列。 \\
+\sourcepath{report\_html} & 人間がブラウザで見る概要レポート。 \\
+\sourcepath{summary\_json} & finish 到達、final distance、final SoC、CPU 時間などの要約。 \\
+\sourcepath{resolved\_yaml} & override を織り込んだ実行時 profile の写し。 \\
+\sourcepath{latest\_simulation\_run.json} & 最新 run の所在を追跡する manifest。 \\
+\bottomrule
+\end{longtable}
+
+\subsection{sim で最重要な topic}
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.26\linewidth} >{\raggedright\arraybackslash}p{0.17\linewidth} X}
+\toprule
+topic & 主 publisher & 意味 \\
+\midrule
+\sourcepath{/planner/speed\_cmd} & \sourcepath{mpc\_node} & planner が今出した速度指令。 \\
+\sourcepath{/planner/upper\_speed\_cmd} & \sourcepath{mpc\_node} & 上位 planner 出力の代表値。 \\
+\sourcepath{/planner/upper\_plan} & \sourcepath{mpc\_node} & 上位 plan の配列。dashboard に渡る。 \\
+\sourcepath{/planner/lower\_plan} & \sourcepath{mpc\_node} & 下位 plan の配列。 \\
+\sourcepath{/planner/status} & \sourcepath{mpc\_node} & 状態の数値サマリ。 \\
+\sourcepath{/planner/env} & \sourcepath{mpc\_node} & planner が見ている環境量。 \\
+\sourcepath{/planner/metrics} & \sourcepath{mpc\_node} & 電力・制約関連メトリクス。 \\
+\sourcepath{/sim/gps} & \sourcepath{gps\_sim\_node} & route 上を進む模擬 GPS。 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{問題 3: sim フロー追跡}
+\begin{enumerate}[leftmargin=1.5em]
+  \item launch 型 sim で \sourcepath{/planner/speed\_cmd} を受けて route 上を進める node は
+  \fillin{\sourcepath{gps\_sim\_node}}{28mm} である。
+  \item offline 型 sim で大会全体の詳細な P\_pack、I、V まで出るのは
+  \fillin{\sourcepath{out\_detail\_csv}}{26mm} である。
+  \item 通常1時間の上位再計画と 1 Hz lower command の本体は \fillin{\sourcepath{mpc\_node}}{22mm} にある。
+  \item dashboard の HTTP API endpoint は \fillin{\sourcepath{/api/state}}{20mm} である。
+\end{enumerate}
+
+\section{measure モード}
+\subsection{measure モードの位置づけ}
+measure は、実車や試験系から来る測定を
+\begin{itemize}[leftmargin=1.5em]
+  \item 距離に積分し、
+  \item 勾配に変換し、
+  \item ログに残し、
+  \item dashboard で見えるようにする
+\end{itemize}
+ための mode である。
+
+\flowbox{
+  \textbf{実装根拠:} measurement launch が
+  \sourcepath{dashboard\_node}、\sourcepath{solar\_logger\_node}、
+  \sourcepath{distance\_node}、\sourcepath{grade\_node} を
+  profile の \sourcepath{measurement} ブロックで起動する。
+  本節は推測ではなく、launch と各 node source を直接追跡した処理である。
+}
+
+\subsection{measure の想定 runtime}
+\stagebox{実車計測: \sourcepath{/vehicle/speed\_kmh} / GPS / altitude / battery}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{\sourcepath{distance\_node}: \sourcepath{/vehicle/s\_km}
+\quad+\quad \sourcepath{grade\_node}: \sourcepath{/vehicle/grade}}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{\sourcepath{solar\_logger\_node}: CSV 記録
+\quad+\quad \sourcepath{dashboard\_node}: 一画面表示}
+
+\subsection{distance\_node がしていること}
+\sourcepath{mpc\_solarcar/distance\_node.py} は、\sourcepath{/vehicle/speed\_kmh} を受け、
+台形則に近い形で
+\[
+  s_{k+1} = s_k + \frac{v_k + v_{k+1}}{2}\frac{\Delta t}{3600}
+\]
+を積分し、\sourcepath{/vehicle/s\_km} を publish する。
+
+したがって measure や live で距離が必要なら、\sourcepath{/vehicle/s\_km} を外から直接入れるか、
+あるいは \sourcepath{distance\_node} を必ず併走させる。
+
+\subsection{grade\_node がしていること}
+\sourcepath{mpc\_solarcar/grade\_node.py} は、
+\begin{itemize}[leftmargin=1.5em]
+  \item \sourcepath{/vehicle/s\_km}
+  \item \sourcepath{/vehicle/speed\_kmh}
+  \item \sourcepath{/vehicle/altitude\_m} または GPS altitude
+\end{itemize}
+を受ける。標高は EMA で平滑化し、距離差が十分たまったときに勾配を更新して
+\sourcepath{/vehicle/grade} を出す。
+
+\subsection{solar\_logger\_node が残す列}
+\sourcepath{solar\_logger\_node} は、少なくとも次を記録する。
+\begin{itemize}[leftmargin=1.5em]
+  \item ROS 時刻、UTC 壁時計、車速、距離、標高、勾配
+  \item battery SoC / 温度 / 電流 / 電圧、PV 電力
+  \item 実測・補正向かい風、風速・風向・進行方位、planner environment
+  \item 上位 / 下位 speed command、drive mode、model metrics、online 校正値
+  \item WiFi solar / chase 生文字列、system health / state / diag、各 node status
+\end{itemize}
+
+\subsection{問題 4: measure の要点}
+\begin{enumerate}[leftmargin=1.5em]
+  \item \sourcepath{/vehicle/s\_km} を生成する node は \fillin{\sourcepath{distance\_node}}{28mm} である。
+  \item \sourcepath{/vehicle/grade} を出す node は \fillin{\sourcepath{grade\_node}}{24mm} である。
+  \item CSV を残す node は \fillin{\sourcepath{solar\_logger\_node}}{30mm} である。
+  \item measure mode の expected core node は
+  \\[1mm]\fillin{\sourcepath{dashboard\_node, solar\_logger\_node, distance\_node, grade\_node}}{80mm} である。
+\end{enumerate}
+
+\section{live モード}
+\subsection{live モードの位置づけ}
+live は、実走中に planner を回し続け、測定を受けて速度指令を出す mode である。
+改良版 profile では \sourcepath{live} ブロックの下に、
+\begin{itemize}[leftmargin=1.5em]
+  \item \sourcepath{weather}
+  \item \sourcepath{autocal}
+  \item \sourcepath{command\_bridge}
+  \item \sourcepath{wind\_model}
+\end{itemize}
+がある。
+
+\flowbox{
+  \textbf{実装根拠:} live launch は
+  weather、MPC、自動校正、指令 bridge、logger、dashboard を profile から構成する。
+  \sourcepath{mpc\_node.py} の publish / subscribe と合わせ、
+  実走時の経路を source で確認できる。
+}
+
+\subsection{live の想定流れ}
+\stagebox{実測 topic: speed / distance / SoC / temperature / current / voltage}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{\sourcepath{mpc\_node}: remaining-race upper MPC と 1 Hz lower MPC}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{\sourcepath{speed\_command\_bridge\_node}: timeout / filter / rate limit / quantize}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{実車 command。logger と dashboard は各段の同一 timestamp topic を並行購読}
+
+\subsection{mpc\_node が live で受ける実測}
+\sourcepath{mpc\_node} の solar mode では、少なくとも次の実測を subscribe する。
+\begin{itemize}[leftmargin=1.5em]
+  \item \sourcepath{/vehicle/s\_km}
+  \item \sourcepath{/vehicle/speed\_kmh}
+  \item \sourcepath{/vehicle/batt\_soc}
+  \item \sourcepath{/vehicle/batt\_temp\_c}
+  \item \sourcepath{/vehicle/batt\_current\_a}
+  \item \sourcepath{/vehicle/batt\_voltage\_v}
+\end{itemize}
+上位 timer は 1 Hz で再計画条件を監視するが、重い上位最適化は
+\sourcepath{upper\_replan\_sec}（通常3600秒）を満たした時に行う。
+階層型が有効なら lower timer が \sourcepath{lower\_rate\_hz}（通常1 Hz）で指令を更新する。
+
+\subsection{command bridge に期待される役割}
+profile の \sourcepath{live.command\_bridge} には、
+\begin{itemize}[leftmargin=1.5em]
+  \item \sourcepath{publish\_rate\_hz}
+  \item \sourcepath{input\_timeout\_sec}
+  \item \sourcepath{safe\_speed\_kmh}
+  \item \sourcepath{startup\_hold\_sec}
+  \item \sourcepath{filter\_tau\_sec}
+  \item \sourcepath{accel\_limit\_kmhps}
+  \item \sourcepath{decel\_limit\_kmhps}
+  \item \sourcepath{speed\_deadband\_kmh}
+  \item \sourcepath{speed\_quantize\_step\_kmh}
+  \item \sourcepath{max\_output\_speed\_kmh}
+  \item \sourcepath{drive\_mode\_min\_hold\_sec}
+\end{itemize}
+があり、実運用時に ``出力が暴れない'' ようにする層である。
+
+\subsection{weather / autocal / wind model の役割}
+\begin{itemize}[leftmargin=1.5em]
+  \item \sourcepath{live.weather}: 実走中の位置または fallback 緯度経度を使い、一定周期で予報を取得する想定。
+  \item \sourcepath{live.autocal}: 走行中 / 停止中 / 昼夜条件に応じて、solar gain、drive power gain、補機電力推定をじわっと更新する想定。
+  \item \sourcepath{live.wind\_model}: 風予報の分散成長、相関距離、planning quantile を使い、補正 forecast を planner に供給する想定。
+\end{itemize}
+
+\subsection{問題 5: live の穴埋め}
+\begin{enumerate}[leftmargin=1.5em]
+  \item live で \sourcepath{mpc\_node} が通常 1 Hz で指令更新するのは \fillin{下位 planner}{24mm} である。
+  \item 実測の SoC は \fillin{\sourcepath{/vehicle/batt\_soc}}{30mm} topic で入る。
+  \item 速度指令の平滑化や accel 制限は主に \fillin{\sourcepath{live.command\_bridge}}{38mm} が担う。
+  \item live モードの graph exporter 期待 core node には
+  \fillin{\sourcepath{speed\_command\_bridge\_node}}{44mm} が含まれる。
+\end{enumerate}
+
+\newpage
+\section{live\_wifi モード}
+\subsection{live\_wifi は live に WiFi 受送信層を足したもの}
+live\_wifi では、live の planner / logger / dashboard に加え、
+\begin{itemize}[leftmargin=1.5em]
+  \item text telemetry bridge
+  \item outbound command bridge
+  \item wind correction
+\end{itemize}
+が追加される想定である。
+
+\subsection{profile 上での主役}
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.24\linewidth} X}
+\toprule
+ブロック & 役割 \\
+\midrule
+\sourcepath{live.wifi\_bridge} & 受信 bind host/port、送信先 host/port、送受信有効化、speed / distance / battery / wind のフィルタ時定数。 \\
+\sourcepath{live.command\_bridge} & planner 出力を実車へ渡す直前の平滑化・安全化。 \\
+\sourcepath{live.weather} & chase 側 GPS などから予報取得位置を決める。 \\
+\sourcepath{live.wind\_model} & corrected forecast CSV を作る想定。 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{live\_wifi の設計フロー}
+\stagebox{solar car + chase car: UTC timestamp 付き UTF-8 UDP JSON}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{\sourcepath{telemetry\_text\_bridge\_node}: parse / UTC age-order gate / range gate / filter / ROS topic}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{distance / grade / weather / wind correction
+$\rightarrow$ \sourcepath{mpc\_node}}
+\begin{center}$\Downarrow$\end{center}
+\stagebox{command bridge $\rightarrow$ UDP command。
+dashboard / logger は inbound、planner、outbound を並行記録}
+
+\subsection{WiFi bridge の source と責務}
+\flowbox{
+  \textbf{実装済み:}
+  \sourcepath{telemetry\_text\_bridge\_node.py}、
+  \sourcepath{speed\_command\_bridge\_node.py}、
+  \sourcepath{wind\_correction\_node.py}、
+  \sourcepath{solar\_state\_node.py} は \sourcepath{mpc\_solarcar/} に存在する。
+  \sourcepath{launch/solar\_race\_live\_wifi.launch.py} と \sourcepath{setup.py} の entry point も一致する。
+  WiFi UTF-8 文字列受信から検証・filter、ROS topic、planner、指令平滑化、UDP 送信まで source で追跡できる。
+  送信側 Raspberry Pi は NTP / chrony で UTC 同期し、毎 packet に
+  \sourcepath{timestamp\_utc} または \sourcepath{ts\_unix} を付ける。
+  既定では 5 秒超の遅延、2 秒超の未来時刻、重複・順序逆転を topic 更新前に拒否する。
+}
+
+\subsection{live\_wifi で追うべき代表 topic / データ}
+\begin{itemize}[leftmargin=1.5em]
+  \item inbound 側: speed、distance、battery、風、chase GPS
+  \item 時刻監査: \sourcepath{/telemetry/solar\_source\_ts\_unix}、\sourcepath{/telemetry/chase\_source\_ts\_unix}、受信 UTC
+  \item planner 内部: \sourcepath{/planner/speed\_cmd}、\sourcepath{/planner/upper\_plan}、\sourcepath{/planner/status}
+  \item outbound 側: \sourcepath{output\_speed\_topic}、\sourcepath{output\_drive\_mode\_topic} または UDP / 文字列
+  \item artifact 側: \sourcepath{live\_forecast\_raw.csv}、\sourcepath{live\_forecast\_corrected.csv}、runtime logs
+\end{itemize}
+
+\subsection{問題 6: live\_wifi の要点}
+\begin{enumerate}[leftmargin=1.5em]
+  \item WiFi の bind host / port を置くのは \fillin{\sourcepath{live.wifi\_bridge}}{34mm} である。
+  \item corrected forecast CSV の出力先を持つのは
+  \fillin{\sourcepath{live.wind\_model}}{30mm} である。
+  \item live\_wifi の graph exporter 期待 core node は live に加えて、次の2 nodeを持つ。\\
+  \fillin{telemetry\_text\_bridge\_node と wind\_correction\_node}{68mm}
+\end{enumerate}
+
+\section{forecast action}
+\subsection{forecast は launch ではなく utility 実行}
+\sourcepath{SolarSim.ps1 -Action forecast} は、最終的に
+\sourcepath{scripts/fetch\_weather\_forecast.py --profile\_yaml ...}
+を呼ぶ。
+
+\subsection{何をしているか}
+\begin{enumerate}[leftmargin=1.5em]
+  \item profile を開く。
+  \item \sourcepath{live.weather} と \sourcepath{runtime} から、forecast days、step minutes、timezone、tcell gain を決める。
+  \item route waypoint CSV があれば先頭点の緯度経度を使う。
+  \item 無ければ fallback 緯度経度を使う。
+  \item Open-Meteo forecast を取得する。
+  \item \sourcepath{paths.forecast\_csv} へ保存する。
+\end{enumerate}
+
+\subsection{forecast で触る代表パラメータ}
+\begin{itemize}[leftmargin=1.5em]
+  \item \sourcepath{forecast\_days}
+  \item \sourcepath{step\_minutes}
+  \item \sourcepath{timezone\_name}
+  \item \sourcepath{fallback\_latitude / fallback\_longitude}
+  \item \sourcepath{tcell\_gain}
+\end{itemize}
+
+\subsection{問題 7: forecast の穴埋め}
+\begin{enumerate}[leftmargin=1.5em]
+  \item forecast action は \fillin{\sourcepath{ros2 launch}}{22mm} ではなく \fillin{\sourcepath{fetch\_weather\_forecast.py}}{40mm} を呼ぶ。
+  \item route waypoint CSV が存在しないときに使う緯度経度は
+  \fillin{fallback 緯度経度}{30mm} である。
+\end{enumerate}
+
+\section{identify action と改良版 vehicle identification}
+\subsection{identify action の軽量 pipeline}
+\sourcepath{SolarSim.ps1 -Action identify} は、install 側の
+\sourcepath{run\_identification\_pipeline.py} を呼ぶ。
+これは入力ディレクトリ内のファイル有無に応じて、次を順に回す軽量 pipeline である。
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \sourcepath{gps\_track.csv} があれば route / profile 同定
+  \item \sourcepath{battery\_rest.csv} があれば OCV curve 構築
+  \item \sourcepath{battery\_pulse.csv} があれば Rint map 構築
+  \item \sourcepath{panel\_sweep.csv} があれば panel / MPPT map 構築
+  \item \sourcepath{drive\_timeseries.csv} があれば vehicle parameter fit
+\end{enumerate}
+
+\subsection{改良版 vehicle identification の主戦力}
+現在の改良版では、generic replay MLE を扱う
+\sourcepath{scripts/run\_vehicle\_identification.py} の方が重要である。
+これは次を入口にする。
+\begin{itemize}[leftmargin=1.5em]
+  \item package 内 \sourcepath{data/identification/identification\_manifest.yaml}
+  \item \sourcepath{normalized\_replay\_log\_csv}
+  \item 既存または理論根拠のある \sourcepath{maps/*.csv}
+\end{itemize}
+
+\subsection{template と入力雛形}
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.56\linewidth} X}
+\toprule
+template & 用途 \\
+\midrule
+\sourcepath{templates/identification\_manifest\_template.yaml} & generic replay MLE の入口 manifest。 \\
+\sourcepath{templates/identification/observed\_replay\_log\_template.csv} & 時刻、距離、速度、気象、battery 観測を揃えた replay 入力。 \\
+\sourcepath{templates/identification/battery\_pulse\_template.csv} & Rint 系の pulse 測定。 \\
+\sourcepath{templates/identification/battery\_rest\_template.csv} & OCV 休止測定。 \\
+\sourcepath{templates/identification/drive\_timeseries\_template.csv} & 駆動系時系列。 \\
+\sourcepath{templates/identification/gps\_track\_template.csv} & route / profile 作成用 GPS。 \\
+\sourcepath{templates/identification/panel\_sweep\_template.csv} & panel / MPPT map 作成用掃引。 \\
+\sourcepath{templates/identification/source\_map\_catalog\_template.csv} & 既知 map の根拠整理。 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{問題 8: identification}
+\begin{enumerate}[leftmargin=1.5em]
+  \item 軽量 pipeline の入口 script は
+  \fillin{\sourcepath{run\_identification\_pipeline.py}}{40mm} である。
+  \item 改良版 generic replay MLE の入口 script は
+  \fillin{\sourcepath{run\_vehicle\_identification.py}}{38mm} である。
+  \item replay ベースで最初に揃えるべき雛形 CSV は
+  \fillin{\sourcepath{observed\_replay\_log\_template.csv}}{46mm} である。
+\end{enumerate}
+
+\newpage
+\section{dashboard と logger の見方}
+\subsection{dashboard\_node が受けるもの}
+\sourcepath{dashboard\_node} は少なくとも次を subscribe する。
+\begin{itemize}[leftmargin=1.5em]
+  \item planner: speed command、upper speed command、throttle command、drive mode、status、env、metrics、upper plan、lower plan
+  \item vehicle: speed、SoC、battery 温度、battery 電流、battery 電圧、distance
+  \item system: state、diag、MPC state、health
+  \item location: \sourcepath{/sim/gps}
+  \item trajectory: \sourcepath{/planner/trajectory}
+\end{itemize}
+
+つまり dashboard は、``planner が何を考えているか'' と ``実測がどうなっているか'' の両方を見せる。
+
+\subsection{solar\_logger\_node が担うこと}
+logger は、「後から再現・同定・異常解析できること」が役割である。
+したがって、dashboard に見えているだけではなく、
+\begin{itemize}[leftmargin=1.5em]
+  \item speed command
+  \item throttle command
+  \item measured speed / distance
+  \item battery channels
+  \item system state / diag / health
+\end{itemize}
+を CSV として固定化する。
+
+\subsection{問題 9: dashboard / logger}
+\begin{enumerate}[leftmargin=1.5em]
+  \item dashboard の HTTP API は \fillin{\sourcepath{/api/state}}{20mm} である。
+  \item planner の配列 plan を dashboard に渡す topic は
+  \fillin{\sourcepath{/planner/upper\_plan}}{34mm} と
+  \fillin{\sourcepath{/planner/lower\_plan}}{34mm} である。
+  \item 後解析用 CSV の主担当は \fillin{\sourcepath{solar\_logger\_node}}{30mm} である。
+\end{enumerate}
+
+\section{source ファイルと役割の対応表}
+\begin{longtable}{p{0.31\linewidth}p{0.62\linewidth}}
+\toprule
+ファイル & 読むと何が分かるか \\
+\midrule
+\endhead
+\sourcepath{SolarSim.ps1} & ユーザ操作の入口、WSL distro 解決、引数の受け渡し。 \\
+\sourcepath{scripts/solar\_control.sh} & action と mode の最終分岐。 \\
+\sourcepath{launch/solarcar\_sim.launch.py} & 現物として確認できる sim launch 構成。 \\
+\sourcepath{scripts/solar\_sim.py} & 大会全体 simulation の処理順、出力ファイル、実行モデル。 \\
+\sourcepath{mpc\_solarcar/mpc\_node.py} & planner の入出力 topic、上位 replan / 1 Hz lower、hierarchical 構成。 \\
+\sourcepath{mpc\_solarcar/model.py} & 物理モデル。 \\
+\sourcepath{mpc\_solarcar/dashboard\_node.py} & どの値が dashboard に乗るか。 \\
+\sourcepath{mpc\_solarcar/distance\_node.py} & speed -> distance 積分。 \\
+\sourcepath{mpc\_solarcar/grade\_node.py} & GPS / altitude -> grade。 \\
+\sourcepath{mpc\_solarcar/solar\_logger\_node.py} & 太陽車ログ CSV の列定義。 \\
+\sourcepath{mpc\_solarcar/solar\_preflight\_node.py} & solar telemetry と planner の鮮度から system state を作る。 \\
+\sourcepath{scripts/fetch\_weather\_forecast.py} & 予報取得のロジック。 \\
+\sourcepath{scripts/run\_identification\_pipeline.py} & 軽量同定 pipeline。 \\
+\sourcepath{scripts/run\_vehicle\_identification.py} & replay MLE 同定と report 生成。 \\
+\bottomrule
+\end{longtable}
+
+\section{実装監査結果と読むべき姿勢}
+\flowbox{
+  \textbf{重要な結論:}
+  現在の package は、planner、offline sim、profile、logger / dashboard / distance / grade に加え、
+  次の runtime source もワークツリー直下に揃っている。
+  \begin{itemize}[leftmargin=1.5em]
+    \item \sourcepath{solar\_measurement.launch.py}
+    \item \sourcepath{solar\_race\_live.launch.py}
+    \item \sourcepath{solar\_race\_live\_wifi.launch.py}
+    \item \sourcepath{speed\_command\_bridge\_node.py}
+    \item \sourcepath{telemetry\_text\_bridge\_node.py}
+    \item \sourcepath{wind\_correction\_node.py}
+    \item \sourcepath{solar\_state\_node.py}
+    \item \sourcepath{solar\_profile.py}, \sourcepath{weather\_utils.py}
+  \end{itemize}
+  今チームが使うときは
+  \begin{enumerate}[leftmargin=1.5em]
+    \item \textbf{PowerShell 入口と profile 構造を理解する}
+    \item \textbf{launch と node source で topic / parameter を追う}
+    \item \textbf{source inventory の hash と配布 manifest で版を照合する}
+  \end{enumerate}
+  という 3 段で読むのが正しい。未確認の install 側バイナリを前提にする必要はない。
+}
+
+\section{総合問題}
+\subsection*{問題 10: mode 横断追跡}
+次の空欄を埋めよ。
+\begin{enumerate}[leftmargin=1.5em]
+  \item 大会全体の detail CSV と upper plan CSV を出す主役 script は
+  \fillin{\sourcepath{scripts/solar\_sim.py}}{40mm} である。
+  \item 実測車速から距離へ変換する node は \fillin{\sourcepath{distance\_node}}{28mm} である。
+  \item 実走中の上位再計画と 1 Hz lower command の中核 node は \fillin{\sourcepath{mpc\_node}}{22mm} である。
+  \item WiFi 受送信を束ねる設定ブロックは \fillin{\sourcepath{live.wifi\_bridge}}{34mm} である。
+  \item Open-Meteo 予報取得 utility は
+  \fillin{\sourcepath{fetch\_weather\_forecast.py}}{38mm} である。
+  \item 改良版 replay MLE 同定は
+  \fillin{\sourcepath{run\_vehicle\_identification.py}}{38mm} を読む。
+\end{enumerate}
+
+\subsection*{問題 11: フローを文章で説明せよ}
+次の 2 つを、自分の言葉で説明できれば、本 package の入口理解はかなり進んでいる。
+\begin{enumerate}[leftmargin=1.5em]
+  \item \sourcepath{SolarSim.ps1 -Action up -Mode sim} を叩いた直後から、dashboard に値が出るまでの流れ。
+  \item \sourcepath{SolarSim.ps1 -Action simulate} を叩いた直後から、summary CSV / detail CSV / upper plan CSV / HTML が保存されるまでの流れ。
+\end{enumerate}
+
+\section{最後に}
+本 package を運用する上で重要なのは、``MPC の数式'' だけではない。
+実際には、
+\begin{itemize}[leftmargin=1.5em]
+  \item どの mode を叩いたか
+  \item その mode がどの profile ブロックを読むか
+  \item topic がどこから入り、どこへ出るか
+  \item 最後にどの CSV / dashboard / command へ着地するか
+\end{itemize}
+を一続きで追えることが、運用の強さになる。
+
+本書はその全体地図である。数値を代入して全サイクルを解く問題・解答・解答用紙は、
+\sourcepath{docs/complete\_flow\_workbook/} に分冊して収録する。
+
+\end{document}

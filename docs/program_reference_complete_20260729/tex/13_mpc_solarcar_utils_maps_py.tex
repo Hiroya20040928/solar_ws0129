@@ -1,0 +1,492 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={効率マップ・抵抗マップ読込補間},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{13. 効率マップ・抵抗マップ読込補間}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/utils_maps.py| \\
+        ソースSHA-256 & \path|8f20256838a7d95f7822b415af3cfe2af3433813af7bf760eb9f84d9f8e9f9d3| \\
+        種別 & Python \\
+        区分 & model helper \\
+        役割 & CSV で持つ drive/regen efficiency、Rint、OCV などを読み、補間可能な配列へ変換する。 \\
+        起動文脈 & SolarCarModel の map backend。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        CSV で持つ drive/regen efficiency、Rint、OCV などを読み、補間可能な配列へ変換する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item read\_eff\_map、read\_Rint\_map、read\_map、read\_1d\_map が入口。
+\item bilinear\_interp が 2D 補間の核。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/model.py|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 特記事項なし。
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+import numpy as np
+import pandas as pd
+def bilinear_interp(xg, yg, Z, x, y):
+    xg = np.asarray(xg); yg=np.asarray(yg); Z=np.asarray(Z)
+    x = np.clip(x, xg[0], xg[-1]); y=np.clip(y, yg[0], yg[-1])
+    i = np.searchsorted(xg, x)-1; i=np.clip(i,0,len(xg)-2)
+    j = np.searchsorted(yg, y)-1; j=np.clip(j,0,len(yg)-2)
+    x0,x1=xg[i],xg[i+1]; y0,y1=yg[j],yg[j+1]
+    Z00=Z[i,j]; Z10=Z[i+1,j]; Z01=Z[i,j+1]; Z11=Z[i+1,j+1]
+    wx=0 if x1==x0 else (x-x0)/(x1-x0)
+    wy=0 if y1==y0 else (y-y0)/(y1-y0)
+    return (1-wx)*(1-wy)*Z00 + wx*(1-wy)*Z10 + (1-wx)*wy*Z01 + wx*wy*Z11
+def read_eff_map(path):
+    df = pd.read_csv(path, index_col=0)
+    return df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)
+def read_Rint_map(path):
+    df = pd.read_csv(path, index_col=0)
+    return df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)
+
+def read_map(path):
+    df = pd.read_csv(path, index_col=0)
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要関数は bilinear\_interp, read\_eff\_map, read\_Rint\_map, read\_map, read\_1d\_map。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            3 & function & \path|bilinear_interp| & args: xg, yg, Z, x, y \\
+13 & function & \path|read_eff_map| & args: path \\
+16 & function & \path|read_Rint_map| & args: path \\
+20 & function & \path|read_map| & args: path \\
+24 & function & \path|read_1d_map| & args: path \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            3 & 関数 bilinear\_interp を定義する。 \\
+13 & 関数 read\_eff\_map を定義する。 \\
+16 & 関数 read\_Rint\_map を定義する。 \\
+20 & 関数 read\_map を定義する。 \\
+24 & 関数 read\_1d\_map を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L4, L5, L6, L7。 \\
+2 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L14, L17, L21, L25, L30。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{list、dict、deque、NumPy配列、pandas DataFrame}
+listは順序付き可変列、tupleは順序付きで通常変更しない列、dictはキーから値を引く対応表、dequeは両端追加・削除が効率的なキューである。どの構造を選ぶかはアクセス方法と更新方法で決まる。
+
+
+NumPy配列は同種数値を連続的に扱い、要素ごとの演算、clip、補間、線形代数を簡潔に書く。shapeは各次元の要素数であり、速度系列なら通常`(N,)`、候補集団なら`(population, N)`となる。
+
+
+pandas DataFrameは列名を持つ表である。CSV読込後は列型、欠損、単位、timezone、並び順、重複を明示的に処理しなければ、数値計算が動いても意味が誤る。
+
+
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L3 関数 bilinear\_interp}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L3--L12
+              \item 所属: module直下
+              \item 定義: \path|bilinear_interp(xg, yg, Z, x, y)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: asarray, clip, len, searchsorted
+              \item 戻り値の要点: (1 - wx) * (1 - wy) * Z00 + wx * (1 - wy) * Z10 + (1 - wx) * wy * Z01 + wx * wy * Z11
+              \item 主なローカル代入名: Z, Z00, Z01, Z10, Z11, i, j, wx, wy, x, x0, x1, xg, y, y0, y1, yg
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item xg に np.asarray(xg) の結果を代入する。
+\item yg に np.asarray(yg) の結果を代入する。
+\item Z に np.asarray(Z) の結果を代入する。
+\item x に np.clip(x, xg[0], xg[-1]) の結果を代入する。
+\item y に np.clip(y, yg[0], yg[-1]) の結果を代入する。
+\item i に np.searchsorted(xg, x) - 1 の結果を代入する。
+\item i に np.clip(i, 0, len(xg) - 2) の結果を代入する。
+\item j に np.searchsorted(yg, y) - 1 の結果を代入する。
+\item j に np.clip(j, 0, len(yg) - 2) の結果を代入する。
+\item (x0, x1) に (xg[i], xg[i + 1]) の結果を代入する。
+\item (y0, y1) に (yg[j], yg[j + 1]) の結果を代入する。
+\item Z00 に Z[i, j] の結果を代入する。
+\item Z10 に Z[i + 1, j] の結果を代入する。
+\item Z01 に Z[i, j + 1] の結果を代入する。
+\item Z11 に Z[i + 1, j + 1] の結果を代入する。
+\item wx に 0 if x1 == x0 else (x - x0) / (x1 - x0) の結果を代入する。
+\item wy に 0 if y1 == y0 else (y - y0) / (y1 - y0) の結果を代入する。
+\item (1 - wx) * (1 - wy) * Z00 + wx * (1 - wy) * Z10 + (1 - wx) * wy * Z01 + wx * wy * Z11 を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def bilinear_interp(xg, yg, Z, x, y):
+    xg = np.asarray(xg); yg=np.asarray(yg); Z=np.asarray(Z)
+    x = np.clip(x, xg[0], xg[-1]); y=np.clip(y, yg[0], yg[-1])
+    i = np.searchsorted(xg, x)-1; i=np.clip(i,0,len(xg)-2)
+    j = np.searchsorted(yg, y)-1; j=np.clip(j,0,len(yg)-2)
+    x0,x1=xg[i],xg[i+1]; y0,y1=yg[j],yg[j+1]
+    Z00=Z[i,j]; Z10=Z[i+1,j]; Z01=Z[i,j+1]; Z11=Z[i+1,j+1]
+    wx=0 if x1==x0 else (x-x0)/(x1-x0)
+    wy=0 if y1==y0 else (y-y0)/(y1-y0)
+    return (1-wx)*(1-wy)*Z00 + wx*(1-wy)*Z10 + (1-wx)*wy*Z01 + wx*wy*Z11
+\end{lstlisting}
+
+\subsection{L13 関数 read\_eff\_map}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L13--L15
+              \item 所属: module直下
+              \item 定義: \path|read_eff_map(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: astype, read\_csv
+              \item 戻り値の要点: (df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float))
+              \item 主なローカル代入名: df
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item df に pd.read\_csv(path, index\_col=0) の結果を代入する。
+\item (df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def read_eff_map(path):
+    df = pd.read_csv(path, index_col=0)
+    return df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)
+\end{lstlisting}
+
+\subsection{L16 関数 read\_Rint\_map}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L16--L18
+              \item 所属: module直下
+              \item 定義: \path|read_Rint_map(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: astype, read\_csv
+              \item 戻り値の要点: (df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float))
+              \item 主なローカル代入名: df
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item df に pd.read\_csv(path, index\_col=0) の結果を代入する。
+\item (df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def read_Rint_map(path):
+    df = pd.read_csv(path, index_col=0)
+    return df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)
+\end{lstlisting}
+
+\subsection{L20 関数 read\_map}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L20--L22
+              \item 所属: module直下
+              \item 定義: \path|read_map(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: astype, read\_csv
+              \item 戻り値の要点: (df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float))
+              \item 主なローカル代入名: df
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item df に pd.read\_csv(path, index\_col=0) の結果を代入する。
+\item (df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def read_map(path):
+    df = pd.read_csv(path, index_col=0)
+    return df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)
+\end{lstlisting}
+
+\subsection{L24 関数 read\_1d\_map}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L24--L33
+              \item 所属: module直下
+              \item 定義: \path|read_1d_map(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: astype, read\_csv
+              \item 戻り値の要点: (x, y) / (x, y)
+              \item 主なローカル代入名: df, x, y
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item df に pd.read\_csv(path) の結果を代入する。
+\item 条件 df.shape[1] >= 2 を判定し、真なら内部処理を行う。
+\item   x に df.iloc[:, 0].values.astype(float) の結果を代入する。
+\item   y に df.iloc[:, 1].values.astype(float) の結果を代入する。
+\item   (x, y) を返す。
+\item df に pd.read\_csv(path, index\_col=0) の結果を代入する。
+\item x に df.index.values.astype(float) の結果を代入する。
+\item y に df.iloc[:, 0].values.astype(float) の結果を代入する。
+\item (x, y) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def read_1d_map(path):
+    df = pd.read_csv(path)
+    if df.shape[1] >= 2:
+        x = df.iloc[:, 0].values.astype(float)
+        y = df.iloc[:, 1].values.astype(float)
+        return x, y
+    df = pd.read_csv(path, index_col=0)
+    x = df.index.values.astype(float)
+    y = df.iloc[:, 0].values.astype(float)
+    return x, y
+\end{lstlisting}
+
+
+
+
+
+
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/utils_maps.py| を
+        \textbf{model helper}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

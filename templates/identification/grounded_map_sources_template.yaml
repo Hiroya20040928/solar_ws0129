@@ -1,0 +1,35 @@
+maps:
+  drive_eff_map:
+    base_csv: maps/drive_eff_map.csv
+    source_documents: []
+    derivation: Replace with the measured or theory-grounded drive-efficiency source.
+  regen_eff_map:
+    base_csv: maps/regen_eff_map.csv
+    source_documents: []
+    derivation: Replace with the measured or theory-grounded regen-efficiency source.
+  rint_map:
+    base_csv: maps/rint_map.csv
+    source_documents: []
+    derivation: Pack-level R0,total from independently referenced rested sub-second pulse tests. Fixed per-cell resistance is forbidden.
+  r1_map:
+    base_csv: maps/r1_map.csv
+    source_documents: []
+    derivation: Positive 1-RC polarization resistance surface from the same pulse tests.
+  tau_map:
+    base_csv: maps/tau_map.csv
+    source_documents: []
+    derivation: Positive 1-RC polarization time-constant surface from the same pulse tests.
+  ocv_soc_map:
+    base_csv: maps/ocv_soc_curve.csv
+    source_documents: []
+    derivation: Replace with the SoC-voltage source and method.
+  panel_eff_map:
+    base_csv: maps/panel_eff_map.csv
+    source_documents: []
+    derivation: Replace with the panel source and method.
+  mppt_eff_map:
+    base_csv: maps/mppt_eff_map.csv
+    source_documents: []
+    derivation: Replace with the MPPT source and method.
+notes:
+  - Keep this file as the provenance record for the grounded base maps used by run_vehicle_identification.py.

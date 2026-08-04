@@ -1,0 +1,727 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={上位MPC 距離メッシュ生成},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{14. 上位MPC 距離メッシュ生成}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/upper_horizon.py| \\
+        ソースSHA-256 & \path|1565f2a9907d31550fd0ee8a54d65bfc840b33c804a95b2c0d24ca9d232baa01| \\
+        種別 & Python \\
+        区分 & planner helper \\
+        役割 & 固定または適応距離メッシュを作り、現在地点から先の control point と segment を決める。 \\
+        起動文脈 & distance-domain upper planner の最初の一歩。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        固定または適応距離メッシュを作り、現在地点から先の control point と segment を決める。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item build\_upper\_distance\_horizon が中心。
+\item plan\_segment\_index が現在位置から有効速度区間を引く。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_node.py|
+\item \path|scripts/solar_sim.py|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/upper_policy.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+@dataclass
+class UpperDistanceHorizon:
+    ds_seq_km: np.ndarray
+    seg_s_km: np.ndarray
+    ctrl_s_km: np.ndarray
+
+    @property
+    def total_km(self) -> float:
+        return float(np.sum(self.ds_seq_km)) if len(self.ds_seq_km) else 0.0
+
+
+def _weighted_extra(count: int, growth: float) -> np.ndarray:
+    if count <= 1:
+        return np.ones(max(1, count), dtype=float)
+    growth = max(1.0, float(growth))
+    if abs(growth - 1.0) <= 1.0e-9:
+        return np.ones(count, dtype=float)
+    return np.power(growth, np.arange(count, dtype=float))
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要クラスは UpperDistanceHorizon。 主要関数は total\_km, build\_upper\_distance\_horizon, plan\_segment\_index。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            14 & class & \path|UpperDistanceHorizon| &  \\
+20 & function & \path|total_km| & args: self \\
+24 & function & \path|_weighted_extra| & args: count, growth \\
+33 & function & \path|_adaptive_ds_sequence| & args: target\_km \\
+82 & function & \path|build_upper_distance_horizon| &  \\
+136 & function & \path|plan_segment_index| & args: plan\_segments, s\_km \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            10 & MIN\_DISTANCE\_STEP\_KM に 1e-06 の結果を代入する。 \\
+14 & クラス UpperDistanceHorizon を定義する。 \\
+24 & 関数 \_weighted\_extra を定義する。 \\
+33 & 関数 \_adaptive\_ds\_sequence を定義する。 \\
+82 & 関数 build\_upper\_distance\_horizon を定義する。 \\
+136 & 関数 plan\_segment\_index を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|import math| & Python標準のスカラー数値関数と定数を使うため。実際に参照する名前と行は使用位置欄で確認する。 このファイル内での主な使用位置は L48, L112。 \\
+4 & \path|from dataclasses import dataclass| & dataclasses から dataclass を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L13。 \\
+5 & \path|from typing import Iterable, List| & typing から Iterable, List を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L136, L137。 \\
+7 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L15, L16, L17, L21, L24, L26, L29, L30, ...。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{class、独自クラス、インスタンス、self、継承}
+クラスは、保持するデータと、そのデータを扱う関数を一つの型としてまとめる設計単位である。「独自クラス」とはPythonやROS 2が最初から用意した型ではなく、このプロジェクトが目的に合わせて定義した新しい型を指す。
+
+
+`class MPCNode(Node)`は、rclpyのNodeを基底クラスとして継承し、Nodeが持つpublisher、subscription、timer、parameterなどの機能にMPC固有機能を追加する。丸括弧内は関数引数ではなく基底クラス指定である。
+
+
+`MPCNode()`はクラスオブジェクトを呼び出して新しいインスタンスを作る。Pythonは新しい実体を用意し、その実体を第1引数selfとして`\_\_init\_\_`へ渡す。`self`は予約語ではなく慣習的な名前だが、この慣習を守ることでコードの意味が共有される。
+
+
+\begin{lstlisting}[language=python]
+class Counter:
+    def __init__(self):
+        self.value = 0
+
+    def increment(self):
+        self.value += 1
+
+counter = Counter()
+counter.increment()
+\end{lstlisting}
+
+
+`super().\_\_init\_\_(...)`は継承元の初期化処理を呼ぶ。MPCNodeではこれを省くとROSノードとして必要な内部実体が作られず、`create\_publisher`などを正しく使えない。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{先頭アンダースコア、\_\_init\_\_、名前付けの作法}
+`self.\_step\_solar`の先頭1個のアンダースコアは「クラス内部で使う実装詳細」という慣習であり、アクセスを強制禁止する機構ではない。外部コードから呼べるが、公開APIとして依存しない意思表示である。
+
+
+`\_\_init\_\_`の前後2個のアンダースコアはPythonが定めた特殊メソッド名である。クラス生成時に自動で呼ばれる。任意の名前に前後2個を付けて独自仕様を作ることは避ける。
+
+
+`\_`で始まるローカル変数は、未使用または外部へ見せない意図を示す場合がある。例えば`\_base\_csv`は戻り値として受け取る必要はあるが、その後の処理では使わないことを読者へ示す。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{デコレータと@dataclass}
+`@名前`は、直後に定義した関数またはクラスを別の関数へ渡し、その結果で定義名を置き換えるデコレータ構文である。`@Class`という一般構文があるのではなく、`@dataclass`など実際のデコレータ名を書く。
+
+
+`@dataclass`は型注釈付きフィールドから`\_\_init\_\_`、`\_\_repr\_\_`、比較処理などを自動生成する。物理パラメータや解析結果のように、名前付きデータを一まとまりで運ぶ用途に向く。
+
+
+\begin{lstlisting}[language=python]
+from dataclasses import dataclass
+
+@dataclass
+class State:
+    soc: float
+    temperature_c: float
+
+state = State(soc=0.8, temperature_c=30.0)
+\end{lstlisting}
+
+
+自動生成は検証を自動で保証しない。単位、許容範囲、相互依存制約は`\_\_post\_init\_\_`や別の検証関数で確認する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/library/dataclasses.html}{Python公式ライブラリ: dataclasses}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{list、dict、deque、NumPy配列、pandas DataFrame}
+listは順序付き可変列、tupleは順序付きで通常変更しない列、dictはキーから値を引く対応表、dequeは両端追加・削除が効率的なキューである。どの構造を選ぶかはアクセス方法と更新方法で決まる。
+
+
+NumPy配列は同種数値を連続的に扱い、要素ごとの演算、clip、補間、線形代数を簡潔に書く。shapeは各次元の要素数であり、速度系列なら通常`(N,)`、候補集団なら`(population, N)`となる。
+
+
+pandas DataFrameは列名を持つ表である。CSV読込後は列型、欠損、単位、timezone、並び順、重複を明示的に処理しなければ、数値計算が動いても意味が誤る。
+
+
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+\subsection{天候、route、補間、時刻、単位}
+予報は時刻だけの系列か、時刻とroute距離の2次元gridになり得る。現在時刻tと距離sがgrid点の間なら、周囲の値から補間して日射、温度、風を求める。
+
+
+UTC、現地timezone、naive datetimeを混ぜると数時間のずれが発生する。入力でtimezoneを確定し、内部比較はUTC、表示は現地時刻という役割分担が安全である。
+
+
+route距離のkm、速度のkm/hとm/s、時間の秒、energyのWhとJを跨ぐため、変換係数3.6、3600、1000の意味を各式で確認する。
+
+
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L14 クラス UpperDistanceHorizon}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L14--L21
+              \item 所属: module直下
+              \item 定義: \path|UpperDistanceHorizon(bases=none)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+\item @で始まる行は、定義したクラスを加工するdecoratorである。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item ds\_seq\_km に  を代入する。
+\item seg\_s\_km に  を代入する。
+\item ctrl\_s\_km に  を代入する。
+\item 関数 total\_km を定義する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class UpperDistanceHorizon:
+    ds_seq_km: np.ndarray
+    seg_s_km: np.ndarray
+    ctrl_s_km: np.ndarray
+
+    @property
+    def total_km(self) -> float:
+        return float(np.sum(self.ds_seq_km)) if len(self.ds_seq_km) else 0.0
+\end{lstlisting}
+
+\subsection{L20 関数 UpperDistanceHorizon.total\_km}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L20--L21
+              \item 所属: \path|UpperDistanceHorizon|
+              \item 定義: \path|total_km(self) -> float|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, len, sum
+              \item 戻り値の要点: float(np.sum(self.ds\_seq\_km)) if len(self.ds\_seq\_km) else 0.0
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.ds\_seq\_km
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item @で始まる行は、定義した関数を別の関数へ渡して加工するdecoratorである。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item float(np.sum(self.ds\_seq\_km)) if len(self.ds\_seq\_km) else 0.0 を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def total_km(self) -> float:
+        return float(np.sum(self.ds_seq_km)) if len(self.ds_seq_km) else 0.0
+\end{lstlisting}
+
+\subsection{L24 関数 \_weighted\_extra}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L24--L30
+              \item 所属: module直下
+              \item 定義: \path|_weighted_extra(count: int, growth: float) -> np.ndarray|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: abs, arange, float, max, ones, power
+              \item 戻り値の要点: np.power(growth, np.arange(count, dtype=float)) / np.ones(max(1, count), dtype=float) / np.ones(count, dtype=float)
+              \item 主なローカル代入名: growth
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 count <= 1 を判定し、真なら内部処理を行う。
+\item   np.ones(max(1, count), dtype=float) を返す。
+\item growth に max(1.0, float(growth)) の結果を代入する。
+\item 条件 abs(growth - 1.0) <= 1e-09 を判定し、真なら内部処理を行う。
+\item   np.ones(count, dtype=float) を返す。
+\item np.power(growth, np.arange(count, dtype=float)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def _weighted_extra(count: int, growth: float) -> np.ndarray:
+    if count <= 1:
+        return np.ones(max(1, count), dtype=float)
+    growth = max(1.0, float(growth))
+    if abs(growth - 1.0) <= 1.0e-9:
+        return np.ones(count, dtype=float)
+    return np.power(growth, np.arange(count, dtype=float))
+\end{lstlisting}
+
+\subsection{L33 関数 \_adaptive\_ds\_sequence}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L33--L79
+              \item 所属: module直下
+              \item 定義: \path|_adaptive_ds_sequence(target_km: float, *, max_steps: int, min_ds_km: float, max_ds_km: float, growth: float) -> np.ndarray|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_weighted\_extra, any, array, ceil, copy, enumerate, flatnonzero, float, full, int, max, maximum
+              \item 戻り値の要点: ds / np.array([target\_km], dtype=float) / np.array([target\_km], dtype=float) / np.full(step\_count, target\_km / step\_count, dtype=float)
+              \item 主なローカル代入名: active, active\_idx, alloc\_weights, base, base\_sum, cap\_value, caps, ds, extra\_remaining, idx, j, min\_ds\_km, proposal, step\_count, take, target\_km, used, weights
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 5、ループ 2、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item target\_km に max(MIN\_DISTANCE\_STEP\_KM, float(target\_km)) の結果を代入する。
+\item min\_ds\_km に max(MIN\_DISTANCE\_STEP\_KM, float(min\_ds\_km)) の結果を代入する。
+\item 条件 max\_steps <= 1 を判定し、真なら内部処理を行う。
+\item   np.array([target\_km], dtype=float) を返す。
+\item 条件 target\_km <= min\_ds\_km を判定し、真なら内部処理を行う。
+\item   np.array([target\_km], dtype=float) を返す。
+\item step\_count に int(min(max\_steps, max(1, math.ceil(target\_km / min\_ds\_km)))) の結果を代入する。
+\item base に np.full(step\_count, min\_ds\_km, dtype=float) の結果を代入する。
+\item base\_sum に float(base.sum()) の結果を代入する。
+\item 条件 target\_km <= base\_sum + 1e-09 を判定し、真なら内部処理を行う。
+\item   np.full(step\_count, target\_km / step\_count, dtype=float) を返す。
+\item weights に \_weighted\_extra(step\_count, growth) の結果を代入する。
+\item weights に weights / max(float(weights.sum()), 1e-09) の結果を代入する。
+\item ds に base.copy() の結果を代入する。
+\item extra\_remaining に float(target\_km - base\_sum) の結果を代入する。
+\item cap\_value に max(float(max\_ds\_km), float(min\_ds\_km)) の結果を代入する。
+\item caps に np.maximum(0.0, cap\_value - ds) の結果を代入する。
+\item active に caps > 1e-09 の結果を代入する。
+\item 条件 extra\_remaining > 1e-09 and np.any(active) が成り立つ間くり返す。
+\item   active\_idx に np.flatnonzero(active) の結果を代入する。
+\item   alloc\_weights に weights[active\_idx] の結果を代入する。
+\item   alloc\_weights に alloc\_weights / max(float(alloc\_weights.sum()), 1e-09) の結果を代入する。
+\item   proposal に extra\_remaining * alloc\_weights の結果を代入する。
+\item   used に 0.0 の結果を代入する。
+\item   enumerate(active\_idx) を順に走査し、各要素を (j, idx) に入れて処理する。
+\item     take に min(float(proposal[j]), float(caps[idx])) の結果を代入する。
+\item     ds[idx] を Add で更新する。
+\item     caps[idx] を Sub で更新する。
+\item     used を Add で更新する。
+\item   extra\_remaining を Sub で更新する。
+\item   active に caps > 1e-09 の結果を代入する。
+\item   条件 used <= 1e-09 を判定し、真なら内部処理を行う。
+\item     Break 文を実行する。
+\item 条件 extra\_remaining > 1e-09 を判定し、真なら内部処理を行う。
+\item   ds[-1] を Add で更新する。
+\item ds を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def _adaptive_ds_sequence(
+    target_km: float,
+    *,
+    max_steps: int,
+    min_ds_km: float,
+    max_ds_km: float,
+    growth: float,
+) -> np.ndarray:
+    target_km = max(MIN_DISTANCE_STEP_KM, float(target_km))
+    min_ds_km = max(MIN_DISTANCE_STEP_KM, float(min_ds_km))
+    if max_steps <= 1:
+        return np.array([target_km], dtype=float)
+    if target_km <= min_ds_km:
+        return np.array([target_km], dtype=float)
+
+    step_count = int(min(max_steps, max(1, math.ceil(target_km / min_ds_km))))
+    base = np.full(step_count, min_ds_km, dtype=float)
+    base_sum = float(base.sum())
+    if target_km <= base_sum + 1.0e-9:
+        return np.full(step_count, target_km / step_count, dtype=float)
+
+    weights = _weighted_extra(step_count, growth)
+    weights = weights / max(float(weights.sum()), 1.0e-9)
+    ds = base.copy()
+    extra_remaining = float(target_km - base_sum)
+    cap_value = max(float(max_ds_km), float(min_ds_km))
+    caps = np.maximum(0.0, cap_value - ds)
+    active = caps > 1.0e-9
+    while extra_remaining > 1.0e-9 and np.any(active):
+        active_idx = np.flatnonzero(active)
+        alloc_weights = weights[active_idx]
+        alloc_weights = alloc_weights / max(float(alloc_weights.sum()), 1.0e-9)
+        proposal = extra_remaining * alloc_weights
+        used = 0.0
+        for j, idx in enumerate(active_idx):
+...
+\end{lstlisting}
+
+\subsection{L82 関数 build\_upper\_distance\_horizon}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L82--L133
+              \item 所属: module直下
+              \item 定義: \path|build_upper_distance_horizon(*, mode: str, s0_km: float, race_km: float, ds_km: float, horizon_km: float, max_steps: int, ctrl_km: float, adaptive_min_ds_km: float, adaptive_max_ds_km: float, adaptive_growth: float) -> UpperDistanceHorizon|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: UpperDistanceHorizon, \_adaptive\_ds\_sequence, append, arange, array, ceil, concatenate, cumsum, float, full, int, len
+              \item 戻り値の要点: UpperDistanceHorizon(ds\_seq\_km=ds\_seq, seg\_s\_km=seg\_s, ctrl\_s\_km=ctrl\_s)
+              \item 主なローカル代入名: control\_end\_km, covered\_before\_last, ctrl\_s, ctrl\_step\_km, ds\_km, ds\_seq, horizon\_km, max\_steps, mode, remaining\_km, seg\_s, step\_count, target\_km, total\_km
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 4、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item ds\_km に max(MIN\_DISTANCE\_STEP\_KM, float(ds\_km)) の結果を代入する。
+\item horizon\_km に max(ds\_km, float(horizon\_km)) の結果を代入する。
+\item remaining\_km に max(0.0, float(race\_km) - float(s0\_km)) の結果を代入する。
+\item max\_steps に max(1, int(max\_steps)) の結果を代入する。
+\item mode に str(mode or 'fixed').strip().lower() の結果を代入する。
+\item 条件 mode in \{'adaptive\_full\_race', 'remaining\_race', 'full\_race'\} を判定し、真なら内部処理を行う。
+\item   target\_km に max(ds\_km, remaining\_km if remaining\_km > 0.0 else horizon\_km) の結果を代入する。
+\item   ds\_seq に \_adaptive\_ds\_sequence(target\_km, max\_steps=max\_steps, min\_ds\_km=max(ds\_km, float(adaptive\_min\_ds\_km)), max\_ds\_km=max(float(adaptive\_max\_ds\_km), max(ds\_km, float(adaptive\_min\_ds\_km))), growth=float(adaptive\_growth)) の結果を代入する。
+\item   上の条件が偽の場合:
+\item   target\_km に max(ds\_km, min(horizon\_km, remaining\_km if remaining\_km > 0.0 else horizon\_km)) の結果を代入する。
+\item   step\_count に int(max(1, math.ceil(target\_km / ds\_km))) の結果を代入する。
+\item   step\_count に min(step\_count, max\_steps) の結果を代入する。
+\item   ds\_seq に np.full(step\_count, ds\_km, dtype=float) の結果を代入する。
+\item   covered\_before\_last に float(ds\_km * max(0, step\_count - 1)) の結果を代入する。
+\item   ds\_seq[-1] に max(MIN\_DISTANCE\_STEP\_KM, target\_km - covered\_before\_last) の結果を代入する。
+\item seg\_s に np.concatenate(([0.0], np.cumsum(ds\_seq[:-1], dtype=float))) の結果を代入する。
+\item total\_km に float(np.sum(ds\_seq)) の結果を代入する。
+\item control\_end\_km に float(seg\_s[-1]) if len(seg\_s) else 0.0 の結果を代入する。
+\item ctrl\_step\_km に float(ctrl\_km) if ctrl\_km and ctrl\_km > 0.0 else float(ds\_seq[0]) の結果を代入する。
+\item ctrl\_step\_km に max(MIN\_DISTANCE\_STEP\_KM, min(ctrl\_step\_km, max(control\_end\_km, MIN\_DISTANCE\_STEP\_KM))) の結果を代入する。
+\item ctrl\_s に np.arange(0.0, control\_end\_km + 1e-09, ctrl\_step\_km, dtype=float) の結果を代入する。
+\item 条件 len(ctrl\_s) == 0 を判定し、真なら内部処理を行う。
+\item   ctrl\_s に np.array([0.0], dtype=float) の結果を代入する。
+\item 条件 len(ctrl\_s) > len(ds\_seq) を判定し、真なら内部処理を行う。
+\item   ctrl\_s に np.array(seg\_s, dtype=float) の結果を代入する。
+\item 条件 ctrl\_s[-1] < control\_end\_km - 1e-09 を判定し、真なら内部処理を行う。
+\item   ctrl\_s に np.append(ctrl\_s, control\_end\_km) の結果を代入する。
+\item UpperDistanceHorizon(ds\_seq\_km=ds\_seq, seg\_s\_km=seg\_s, ctrl\_s\_km=ctrl\_s) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def build_upper_distance_horizon(
+    *,
+    mode: str,
+    s0_km: float,
+    race_km: float,
+    ds_km: float,
+    horizon_km: float,
+    max_steps: int,
+    ctrl_km: float,
+    adaptive_min_ds_km: float,
+    adaptive_max_ds_km: float,
+    adaptive_growth: float,
+) -> UpperDistanceHorizon:
+    ds_km = max(MIN_DISTANCE_STEP_KM, float(ds_km))
+    horizon_km = max(ds_km, float(horizon_km))
+    remaining_km = max(0.0, float(race_km) - float(s0_km))
+    max_steps = max(1, int(max_steps))
+    mode = str(mode or "fixed").strip().lower()
+
+    if mode in {"adaptive_full_race", "remaining_race", "full_race"}:
+        target_km = max(ds_km, remaining_km if remaining_km > 0.0 else horizon_km)
+        ds_seq = _adaptive_ds_sequence(
+            target_km,
+            max_steps=max_steps,
+            min_ds_km=max(ds_km, float(adaptive_min_ds_km)),
+            max_ds_km=max(float(adaptive_max_ds_km), max(ds_km, float(adaptive_min_ds_km))),
+            growth=float(adaptive_growth),
+        )
+    else:
+        target_km = max(ds_km, min(horizon_km, remaining_km if remaining_km > 0.0 else horizon_km))
+        step_count = int(max(1, math.ceil(target_km / ds_km)))
+        step_count = min(step_count, max_steps)
+        ds_seq = np.full(step_count, ds_km, dtype=float)
+        covered_before_last = float(ds_km * max(0, step_count - 1))
+        ds_seq[-1] = max(MIN_DISTANCE_STEP_KM, target_km - covered_before_last)
+...
+\end{lstlisting}
+
+\subsection{L136 関数 plan\_segment\_index}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L136--L145
+              \item 所属: module直下
+              \item 定義: \path|plan_segment_index(plan_segments: Iterable[dict], s_km: float) -> int|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: enumerate, float, get, len, list
+              \item 戻り値の要点: len(segments) - 1 / -1 / idx
+              \item 主なローカル代入名: idx, s\_end\_km, s\_km, seg, segments
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item segments に list(plan\_segments) を代入する。
+\item 条件 not segments を判定し、真なら内部処理を行う。
+\item   -1 を返す。
+\item s\_km に float(s\_km) の結果を代入する。
+\item enumerate(segments) を順に走査し、各要素を (idx, seg) に入れて処理する。
+\item   s\_end\_km に float(seg.get('s\_end\_km', seg.get('s\_start\_km', 0.0))) の結果を代入する。
+\item   条件 s\_km < s\_end\_km - 1e-09 を判定し、真なら内部処理を行う。
+\item     idx を返す。
+\item len(segments) - 1 を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def plan_segment_index(plan_segments: Iterable[dict], s_km: float) -> int:
+    segments: List[dict] = list(plan_segments)
+    if not segments:
+        return -1
+    s_km = float(s_km)
+    for idx, seg in enumerate(segments):
+        s_end_km = float(seg.get("s_end_km", seg.get("s_start_km", 0.0)))
+        if s_km < s_end_km - 1.0e-9:
+            return idx
+    return len(segments) - 1
+\end{lstlisting}
+
+
+
+
+
+
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/upper_horizon.py| を
+        \textbf{planner helper}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

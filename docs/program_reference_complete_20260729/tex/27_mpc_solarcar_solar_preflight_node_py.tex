@@ -1,0 +1,797 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={live 計測鮮度監視},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{27. live 計測鮮度監視}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/solar_preflight_node.py| \\
+        ソースSHA-256 & \path|d1c39ce9b2c8e60006ec42892c09b8ede984748d44555a5f330607b92aa5a4d9| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & speed、distance、battery、planner status の鮮度を見て system/state と health を publish する。 \\
+        起動文脈 & 起動可否と運用中の健全性の監視役。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        speed、distance、battery、planner status の鮮度を見て system/state と health を publish する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item planner 自体は止めずに、system/state と health を出す。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/live_launch.py|
+\item \path|launch/solar_measurement.launch.py|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_preflight_logic.py|
+\item \path|mpc_solarcar/speed_command_bridge_node.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_preflight_logic.py|
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from .solar_preflight_logic import evaluate_freshness
+
+
+class SolarPreflightNode(Node):
+    """Preflight monitor based only on solar-car telemetry freshness."""
+
+    def __init__(self):
+        super().__init__("solar_preflight_node")
+        self.declare_parameter("startup_grace_sec", 10.0)
+        self.declare_parameter("measurement_timeout_sec", 3.0)
+        self.declare_parameter("require_speed", True)
+        self.declare_parameter("require_distance", True)
+        self.declare_parameter("require_battery", True)
+        self.declare_parameter("require_planner", True)
+
+        self.start_mono = time.monotonic()
+        self.last_seen: dict[str, float] = {}
+
+        self.pub_state = self.create_publisher(String, "/system/state", 10)
+        self.pub_health = self.create_publisher(Float32, "/system/health", 10)
+        self.pub_diag = self.create_publisher(String, "/system/diag", 10)
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要クラスは SolarPreflightNode。 主要関数は callback, main。 ROS パラメータ宣言は 6 件。 ROS I/O は publisher 3 件、subscription 6 件。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            12 & class & \path|SolarPreflightNode| & bases: Node \\
+15 & function & \path|__init__| & args: self \\
+41 & function & \path|_seen| & args: self, key \\
+42 & function & \path|callback| & args: \_msg \\
+47 & function & \path|_required| & args: self \\
+59 & function & \path|_step| & args: self \\
+78 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            12 & クラス SolarPreflightNode を定義する。 \\
+78 & 関数 main を定義する。 \\
+88 & 条件 \_\_name\_\_ == '\_\_main\_\_' を判定し、真なら内部処理を行う。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|import time| & wall/monotonic time に基づく周期制御や freshness 判定を行うため。 このファイル内での主な使用位置は L24, L43, L60。 \\
+5 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L79, L82, L85。 \\
+6 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L12。 \\
+7 & \path|from std_msgs.msg import Float32, Float32MultiArray, String| & Float32、Bool、Stringなどの標準ROS messageで値をpublishまたはsubscribeするため。 このファイル内での主な使用位置は L27, L28, L29, L31, L32, L33, L34, L35, ...。 \\
+9 & \path|from .solar_preflight_logic import evaluate_freshness| & preflight 判定ロジック から evaluate\_freshness を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_preflight\_logic.py。 このファイル内での主な使用位置は L66。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{class、独自クラス、インスタンス、self、継承}
+クラスは、保持するデータと、そのデータを扱う関数を一つの型としてまとめる設計単位である。「独自クラス」とはPythonやROS 2が最初から用意した型ではなく、このプロジェクトが目的に合わせて定義した新しい型を指す。
+
+
+`class MPCNode(Node)`は、rclpyのNodeを基底クラスとして継承し、Nodeが持つpublisher、subscription、timer、parameterなどの機能にMPC固有機能を追加する。丸括弧内は関数引数ではなく基底クラス指定である。
+
+
+`MPCNode()`はクラスオブジェクトを呼び出して新しいインスタンスを作る。Pythonは新しい実体を用意し、その実体を第1引数selfとして`\_\_init\_\_`へ渡す。`self`は予約語ではなく慣習的な名前だが、この慣習を守ることでコードの意味が共有される。
+
+
+\begin{lstlisting}[language=python]
+class Counter:
+    def __init__(self):
+        self.value = 0
+
+    def increment(self):
+        self.value += 1
+
+counter = Counter()
+counter.increment()
+\end{lstlisting}
+
+
+`super().\_\_init\_\_(...)`は継承元の初期化処理を呼ぶ。MPCNodeではこれを省くとROSノードとして必要な内部実体が作られず、`create\_publisher`などを正しく使えない。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{先頭アンダースコア、\_\_init\_\_、名前付けの作法}
+`self.\_step\_solar`の先頭1個のアンダースコアは「クラス内部で使う実装詳細」という慣習であり、アクセスを強制禁止する機構ではない。外部コードから呼べるが、公開APIとして依存しない意思表示である。
+
+
+`\_\_init\_\_`の前後2個のアンダースコアはPythonが定めた特殊メソッド名である。クラス生成時に自動で呼ばれる。任意の名前に前後2個を付けて独自仕様を作ることは避ける。
+
+
+`\_`で始まるローカル変数は、未使用または外部へ見せない意図を示す場合がある。例えば`\_base\_csv`は戻り値として受け取る必要はあるが、その後の処理では使わないことを読者へ示す。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{rclpy、rcl、rmw、DDS/RTPSの層}
+rclpyはPython利用者向けROS 2 client libraryである。利用者のNode、publisher、subscriptionなどをPython APIとして提供し、その下で共通C層のrclを利用する。
+
+
+\begin{lstlisting}
+本プロジェクトのPythonコード -> rclpy -> rcl -> rmw -> DDS/RTPS実装 -> ネットワークまたは同一PC内通信
+\end{lstlisting}
+
+
+rclは言語に依存しない共通ROS機能を提供するC API、rmwはROS 2と具体的middleware実装の境界である。DDS/RTPS側が探索、serialize、publish/subscribe、request/replyなどを担う。executorの実行モデルはrclだけで完結せずclient library側にも実装される。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Concepts/About-Internal-Interfaces.html}{ROS 2 Humble公式: Internal ROS 2 interfaces}
+\end{itemize}
+
+\subsection{ROS graph、Node、topic、service、action、parameter}
+ROS graphは、実行中Nodeと、それらが持つpublisher、subscription、service、actionなどの接続関係である。Pythonクラス、プロセス、ROS graph上のNode名は関連するが同一物ではない。
+
+
+topicは継続データ向けの非同期一方向publish/subscribe、serviceは短いrequest/response、actionは時間のかかる目標へfeedback、cancel、resultを持たせる。parameterはNodeごとの設定値である。
+
+
+publisherが送った時点とsubscription callbackが実行される時点は同じとは限らない。通信遅延、QoS queue、executor待ちを挟むため、センサ値にはtimestampとfreshness判定が必要になる。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/Interfaces-Topics-Services-Actions.html}{ROS 2 Humble公式: Topics, Services, Actions}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/About-Parameters.html}{ROS 2 Humble公式: Parameters}
+\end{itemize}
+
+\subsection{callback、timer、Executor、spin、Callback Group}
+callbackは、メッセージ受信、timer満了、service requestなどのイベントが成立した後でExecutorから呼ばれる関数である。登録時に`self.\_on\_speed`と括弧なしで渡すのは、今実行せず後で呼ぶ関数オブジェクトを渡すためである。
+
+
+Executorは実行可能になったcallbackを見つけ、Callback Groupの条件を確認して実行する。`spin()`は終了要求まで待機・dispatchを続けるため、通常運転中はmainの次の行へ戻らない。
+
+
+MutuallyExclusiveCallbackGroupは同じgroup内のcallbackを同時実行させない。別group間はMultiThreadedExecutorで並行実行し得る。groupを分けただけでは共有属性への完全な排他にはならないため、複数groupが同じ状態を読む・書く場合は設計確認が必要である。
+
+
+\begin{lstlisting}
+DDS受信またはtimer満了 -> wait setでready -> Executorが選択 -> Callback Groupが許可 -> worker threadがcallback実行 -> 終了後Executorへ戻る
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Executors.html}{ROS 2公式: Executors}
+\item \href{https://docs.ros.org/en/humble/Concepts/About-Internal-Interfaces.html}{ROS 2 Humble公式: Internal ROS 2 interfaces}
+\end{itemize}
+
+\subsection{rqt\_graph、ros2 CLI、rosbag2をいつ使うか}
+rqt\_graphは接続関係を見る道具であり、数値の正しさや更新周期までは保証しない。起動直後、topic名変更後、publisherが複数存在する疑いがある時に使う。
+
+
+\begin{lstlisting}[language=bash]
+ros2 node list
+ros2 node info /mpc_node
+ros2 topic list -t
+ros2 topic info -v /planner/speed_cmd
+ros2 topic hz /planner/speed_cmd
+ros2 topic echo /planner/status
+rqt_graph
+\end{lstlisting}
+
+
+rosbag2はtopicメッセージを時系列のまま記録・再生する。通信不具合、freshness、再計画trigger、実車とSILSの差を再現可能にするため、本番前試験では制御入力だけでなく原因となる全telemetry、status、parameter情報を記録する。
+
+
+\begin{lstlisting}[language=bash]
+ros2 bag record -o outputs/bags/preflight \
+  /vehicle/s_km /vehicle/speed_kmh /vehicle/batt_soc \
+  /vehicle/batt_temp_c /vehicle/batt_current_a /vehicle/batt_voltage_v \
+  /planner/upper_speed_cmd /planner/speed_cmd /planner/status
+
+ros2 bag info outputs/bags/preflight
+ros2 bag play outputs/bags/preflight --clock
+\end{lstlisting}
+
+
+bag再生時はQoS互換性、simulation time、外部publisherとの二重入力に注意する。実車Nodeを同時に動かす場合はnamespaceまたはremappingで入力源を明確に分離する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/ros2_packages/humble/api/rqt_graph/index.html}{ROS 2 Humble公式: rqt\_graph}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html}{ROS 2 Humble公式: Recording and playing back data}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L12 クラス SolarPreflightNode}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L12--L75
+              \item 所属: module直下
+              \item 定義: \path|SolarPreflightNode(bases=Node)|
+              \item docstring: Preflight monitor based only on solar-car telemetry freshness.
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item docstring または説明文字列を置く。
+\item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_seen を定義する。
+\item 関数 \_required を定義する。
+\item 関数 \_step を定義する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class SolarPreflightNode(Node):
+    """Preflight monitor based only on solar-car telemetry freshness."""
+
+    def __init__(self):
+        super().__init__("solar_preflight_node")
+        self.declare_parameter("startup_grace_sec", 10.0)
+        self.declare_parameter("measurement_timeout_sec", 3.0)
+        self.declare_parameter("require_speed", True)
+        self.declare_parameter("require_distance", True)
+        self.declare_parameter("require_battery", True)
+        self.declare_parameter("require_planner", True)
+
+        self.start_mono = time.monotonic()
+        self.last_seen: dict[str, float] = {}
+
+        self.pub_state = self.create_publisher(String, "/system/state", 10)
+        self.pub_health = self.create_publisher(Float32, "/system/health", 10)
+        self.pub_diag = self.create_publisher(String, "/system/diag", 10)
+
+        self.create_subscription(Float32, "/vehicle/speed_kmh", self._seen("speed"), 10)
+        self.create_subscription(Float32, "/vehicle/s_km", self._seen("distance"), 10)
+        self.create_subscription(Float32, "/vehicle/batt_soc", self._seen("batt_soc"), 10)
+        self.create_subscription(Float32, "/vehicle/batt_voltage_v", self._seen("batt_voltage"), 10)
+        self.create_subscription(Float32, "/vehicle/batt_current_a", self._seen("batt_current"), 10)
+        self.create_subscription(Float32MultiArray, "/planner/status", self._seen("planner"), 10)
+
+        self.timer = self.create_timer(1.0, self._step)
+        self.get_logger().info("SolarPreflightNode started.")
+
+    def _seen(self, key: str):
+        def callback(_msg):
+            self.last_seen[key] = time.monotonic()
+
+        return callback
+
+...
+\end{lstlisting}
+
+\subsection{L15 関数 SolarPreflightNode.\_\_init\_\_}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L15--L39
+              \item 所属: \path|SolarPreflightNode|
+              \item 定義: \path|__init__(self)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_\_init\_\_, \_seen, create\_publisher, create\_subscription, create\_timer, declare\_parameter, get\_logger, info, monotonic, super
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.\_seen, self.\_step, self.create\_publisher, self.create\_subscription, self.create\_timer, self.declare\_parameter, self.get\_logger
+              \item 更新する主なインスタンス属性: self.last\_seen, self.pub\_diag, self.pub\_health, self.pub\_state, self.start\_mono, self.timer
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item super().\_\_init\_\_(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.start\_mono に time.monotonic() の結果を代入する。
+\item self.last\_seen に \{\} を代入する。
+\item self.pub\_state に self.create\_publisher(String, '/system/state', 10) の結果を代入する。
+\item self.pub\_health に self.create\_publisher(Float32, '/system/health', 10) の結果を代入する。
+\item self.pub\_diag に self.create\_publisher(String, '/system/diag', 10) の結果を代入する。
+\item self.create\_subscription(...) を実行する。
+\item self.create\_subscription(...) を実行する。
+\item self.create\_subscription(...) を実行する。
+\item self.create\_subscription(...) を実行する。
+\item self.create\_subscription(...) を実行する。
+\item self.create\_subscription(...) を実行する。
+\item self.timer に self.create\_timer(1.0, self.\_step) の結果を代入する。
+\item self.get\_logger().info(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def __init__(self):
+        super().__init__("solar_preflight_node")
+        self.declare_parameter("startup_grace_sec", 10.0)
+        self.declare_parameter("measurement_timeout_sec", 3.0)
+        self.declare_parameter("require_speed", True)
+        self.declare_parameter("require_distance", True)
+        self.declare_parameter("require_battery", True)
+        self.declare_parameter("require_planner", True)
+
+        self.start_mono = time.monotonic()
+        self.last_seen: dict[str, float] = {}
+
+        self.pub_state = self.create_publisher(String, "/system/state", 10)
+        self.pub_health = self.create_publisher(Float32, "/system/health", 10)
+        self.pub_diag = self.create_publisher(String, "/system/diag", 10)
+
+        self.create_subscription(Float32, "/vehicle/speed_kmh", self._seen("speed"), 10)
+        self.create_subscription(Float32, "/vehicle/s_km", self._seen("distance"), 10)
+        self.create_subscription(Float32, "/vehicle/batt_soc", self._seen("batt_soc"), 10)
+        self.create_subscription(Float32, "/vehicle/batt_voltage_v", self._seen("batt_voltage"), 10)
+        self.create_subscription(Float32, "/vehicle/batt_current_a", self._seen("batt_current"), 10)
+        self.create_subscription(Float32MultiArray, "/planner/status", self._seen("planner"), 10)
+
+        self.timer = self.create_timer(1.0, self._step)
+        self.get_logger().info("SolarPreflightNode started.")
+\end{lstlisting}
+
+\subsection{L41 関数 SolarPreflightNode.\_seen}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L41--L45
+              \item 所属: \path|SolarPreflightNode|
+              \item 定義: \path|_seen(self, key: str)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: monotonic
+              \item 戻り値の要点: callback
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.last\_seen
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 callback を定義する。
+\item callback を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _seen(self, key: str):
+        def callback(_msg):
+            self.last_seen[key] = time.monotonic()
+
+        return callback
+\end{lstlisting}
+
+\subsection{L42 関数 SolarPreflightNode.\_seen.callback}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L42--L43
+              \item 所属: \path|SolarPreflightNode._seen|
+              \item 定義: \path|callback(_msg)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: monotonic
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.last\_seen
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.last\_seen[key] に time.monotonic() の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+        def callback(_msg):
+            self.last_seen[key] = time.monotonic()
+\end{lstlisting}
+
+\subsection{L47 関数 SolarPreflightNode.\_required}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L47--L57
+              \item 所属: \path|SolarPreflightNode|
+              \item 定義: \path|_required(self) -> tuple[str, ...]|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, bool, extend, get\_parameter, tuple
+              \item 戻り値の要点: tuple(required)
+              \item 主なローカル代入名: required
+              \item 読み取る主なインスタンス属性: self.get\_parameter
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 4、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item required に [] を代入する。
+\item 条件 bool(self.get\_parameter('require\_speed').value) を判定し、真なら内部処理を行う。
+\item   required.append(...) を実行する。
+\item 条件 bool(self.get\_parameter('require\_distance').value) を判定し、真なら内部処理を行う。
+\item   required.append(...) を実行する。
+\item 条件 bool(self.get\_parameter('require\_battery').value) を判定し、真なら内部処理を行う。
+\item   required.extend(...) を実行する。
+\item 条件 bool(self.get\_parameter('require\_planner').value) を判定し、真なら内部処理を行う。
+\item   required.append(...) を実行する。
+\item tuple(required) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _required(self) -> tuple[str, ...]:
+        required: list[str] = []
+        if bool(self.get_parameter("require_speed").value):
+            required.append("speed")
+        if bool(self.get_parameter("require_distance").value):
+            required.append("distance")
+        if bool(self.get_parameter("require_battery").value):
+            required.extend(("batt_soc", "batt_voltage", "batt_current"))
+        if bool(self.get_parameter("require_planner").value):
+            required.append("planner")
+        return tuple(required)
+\end{lstlisting}
+
+\subsection{L59 関数 SolarPreflightNode.\_step}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L59--L75
+              \item 所属: \path|SolarPreflightNode|
+              \item 定義: \path|_step(self)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, String, \_required, evaluate\_freshness, float, get\_parameter, monotonic, publish
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: ages, key, now, required, result
+              \item 読み取る主なインスタンス属性: self.\_required, self.get\_parameter, self.last\_seen, self.pub\_diag, self.pub\_health, self.pub\_state, self.start\_mono
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item now に time.monotonic() の結果を代入する。
+\item required に self.\_required() の結果を代入する。
+\item ages に \{key: now - self.last\_seen[key] if key in self.last\_seen else None for key in required\} の結果を代入する。
+\item result に evaluate\_freshness(elapsed\_sec=now - self.start\_mono, ages\_sec=ages, required=required, timeout\_sec=float(self.get\_parameter('measurement\_timeout\_sec').value), startup\_grace\_sec=float(self.get\_parameter('startup\_grace\_sec').value)) の結果を代入する。
+\item self.pub\_state.publish(...) を実行する。
+\item self.pub\_health.publish(...) を実行する。
+\item self.pub\_diag.publish(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _step(self):
+        now = time.monotonic()
+        required = self._required()
+        ages = {
+            key: (now - self.last_seen[key]) if key in self.last_seen else None
+            for key in required
+        }
+        result = evaluate_freshness(
+            elapsed_sec=now - self.start_mono,
+            ages_sec=ages,
+            required=required,
+            timeout_sec=float(self.get_parameter("measurement_timeout_sec").value),
+            startup_grace_sec=float(self.get_parameter("startup_grace_sec").value),
+        )
+        self.pub_state.publish(String(data=result.state))
+        self.pub_health.publish(Float32(data=float(result.health)))
+        self.pub_diag.publish(String(data=result.diagnostic))
+\end{lstlisting}
+
+\subsection{L78 関数 main}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L78--L85
+              \item 所属: module直下
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: SolarPreflightNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: node
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に SolarPreflightNode() の結果を代入する。
+\item 例外処理を伴う try ブロックを実行する。
+\item   rclpy.spin(...) を実行する。
+\item   成否にかかわらずfinallyで:
+\item   node.destroy\_node(...) を実行する。
+\item   rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def main():
+    rclpy.init()
+    node = SolarPreflightNode()
+    try:
+        rclpy.spin(node)
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+\end{lstlisting}
+
+        \subsection{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            17 & \path|startup_grace_sec| & 10.0 \\
+18 & \path|measurement_timeout_sec| & 3.0 \\
+19 & \path|require_speed| & True \\
+20 & \path|require_distance| & True \\
+21 & \path|require_battery| & True \\
+22 & \path|require_planner| & True \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            27 & publisher & \path|/system/state| & publisher \\
+28 & publisher & \path|/system/health| & publisher \\
+29 & publisher & \path|/system/diag| & publisher \\
+31 & subscription & \path|/vehicle/speed_kmh| & self.\_seen('speed') \\
+32 & subscription & \path|/vehicle/s_km| & self.\_seen('distance') \\
+33 & subscription & \path|/vehicle/batt_soc| & self.\_seen('batt\_soc') \\
+34 & subscription & \path|/vehicle/batt_voltage_v| & self.\_seen('batt\_voltage') \\
+35 & subscription & \path|/vehicle/batt_current_a| & self.\_seen('batt\_current') \\
+36 & subscription & \path|/planner/status| & self.\_seen('planner') \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/solar_preflight_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

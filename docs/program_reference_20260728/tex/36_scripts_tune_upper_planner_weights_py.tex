@@ -1,0 +1,751 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={目的関数重み CEM 学習},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{36. 目的関数重み CEM 学習}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|scripts/tune_upper_planner_weights.py| \\
+        種別 & Python \\
+        区分 & planning research \\
+        役割 & 複数シナリオで upper planner の cost weight を探索し、risk-aware な candidate を評価する。 \\
+        起動文脈 & learn action の中心。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        複数シナリオで upper planner の cost weight を探索し、risk-aware な candidate を評価する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item multi-scenario、CVaR、chance gate を扱う。
+\item operational release ではなく exact validation 前段の性格が強い。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/solar_control.sh|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/upper_cost.py|
+\item \path|scripts/solar_sim.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/risk_utils.py|
+\item \path|mpc_solarcar/schedule_utils.py|
+\item \path|mpc_solarcar/upper_cost.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+@dataclass
+class TermSpec:
+    name: str
+    lo: float
+    hi: float
+    init_log10: float
+    threshold: float = 1.0e-4
+
+
+@dataclass
+class ScenarioSpec:
+    name: str
+    cfg_overrides: Dict[str, object]
+    cli_overrides: Dict[str, object]
+    weight: float
+
+
+def read_yaml(path: Path) -> dict:
+    with path.open("r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは TermSpec, ScenarioSpec。 主要関数は read\_yaml, write\_yaml, ensure\_dir, log\_trial\_to\_tensorboard, repo\_relative, failed\_scenario\_result, compile\_tex, latex\_escape。 CLI 引数宣言は 19 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            83 & class & \path|TermSpec| &  \\
+92 & class & \path|ScenarioSpec| &  \\
+99 & function & \path|read_yaml| & args: path \\
+104 & function & \path|write_yaml| & args: path, payload \\
+110 & function & \path|ensure_dir| & args: path \\
+114 & function & \path|log_trial_to_tensorboard| & args: writer, prefix, result, step \\
+147 & function & \path|repo_relative| & args: path\_like \\
+159 & function & \path|failed_scenario_result| & args: scenario\_name, scenario\_weight, upper\_cost \\
+217 & function & \path|compile_tex| & args: tex\_path \\
+234 & function & \path|latex_escape| & args: text \\
+253 & function & \path|format_override_value| & args: value \\
+265 & function & \path|canonical_runtime_weights| & args: weights \\
+270 & function & \path|set_nested_value| & args: cfg, dotted\_key, value \\
+283 & function & \path|speed_series| & args: df \\
+291 & function & \path|upper_cost_specs| & args: cfg \\
+336 & function & \path|vector_to_weights| & args: specs, vec, base\_cfg \\
+347 & function & \path|mirror_legacy_weights| & args: cfg, upper\_cost \\
+360 & function & \path|build_reference_free_profile| & args: profile\_yaml, output\_dir \\
+397 & function & \path|default_scenarios| & args: profile\_yaml \\
+482 & function & \path|run_single_scenario| & args: profile\_yaml, output\_dir, candidate\_name, scenario, upper\_cost, cfg\_overrides, cli\_overrides \\
+613 & function & \path|evaluate_simulation| & args: profile\_yaml, summary, sim\_df, detail\_df, upper\_cost \\
+759 & function & \path|aggregate_candidate| & args: candidate, scenario\_results, weights, risk\_config \\
+820 & function & \path|run_candidate| & args: profile\_yaml, output\_dir, candidate\_name, upper\_cost, cfg\_overrides, cli\_overrides, scenarios, risk\_config \\
+858 & function & \path|save_trial_checkpoint| & args: output\_dir, trials, best\_result \\
+868 & function & \path|csv_row_count| & args: path \\
+873 & function & \path|summarize_path| & args: path \\
+896 & function & \path|dataframe_to_markdown| & args: df \\
+910 & function & \path|flatten_scalars| & args: prefix, payload, rows \\
+920 & function & \path|build_current_asset_manifests| & args: profile\_yaml, fit\_summary, output\_dir \\
+986 & function & \path|render_report| & args: output\_dir, source\_profile\_yaml, eval\_profile\_yaml, fit\_summary, baseline\_result, tuned\_result, trials\_df, best\_weights, manifest\_paths, removed\_reference, specs, search\_cfg, tensorboard\_dir \\
+1138 & function & \path|tex_path_rel| & args: path \\
+1504 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            19 & matplotlib.use(...) を実行する。 \\
+25 & 例外処理を伴う try ブロックを実行する。 \\
+30 & ROOT に Path(\_\_file\_\_).resolve().parents[1] の結果を代入する。 \\
+31 & 条件 str(ROOT) not in sys.path を判定し、真なら内部処理を行う。 \\
+39 & DEFAULT\_PROFILE に ROOT / 'project\_packages' / 'bwsc2025\_fitted\_mle4' / 'profile.yaml' の結果を代入する。 \\
+42 & LITERATURE に [\{'label': 'de Boer et al. (2005)', 'title': 'A Tutorial on the Cross-Entropy Method', 'url': 'https://doi.org/10.1007/s10479-005-5724-z', 'note': 'CEM is a generic derivative-free method for hard optimization problems.'\}, \{'label': 'Gros and Zanon (2019/2020)', 'title': 'Data-driven Economic NMPC using Reinforcement Learning', 'url': 'https://arxiv.org/pdf/1904.04152', 'note': 'RL can tune stage cost, terminal cost, and constraints of MPC/Economic MPC.'\}, \{'label': 'Zarrouki et al. (2024)', 'title': 'A Safe Reinforcement Learning driven Weights-varying Model Predictive Controller', 'url': 'https://arxiv.org/pdf/2402.02624', 'note': 'Safe RL can adapt MPC weights within a restricted safe search space.'\}, \{'label': 'Howlett et al. (1997)', 'title': 'Optimal driving strategy for a solar car on a level road', 'url': 'https://doi.org/10.1093/imaman/8.1.59', 'note': 'Solar-race strategy is governed by a tight energy-speed trade-off.'\}, \{'label': 'Pudney and Howlett (2002)', 'title': 'Critical Speed Control of a Solar Car', 'url': 'https://link.springer.com/article/10.1023/A\%3A1020907101234', 'note': 'Large unnecessary speed deviations are undesirable in solar-race operation.'\}, \{'label': 'Byrd et al. (1995)', 'title': 'A Limited Memory Algorithm for Bound Constrained Optimization', 'url': 'https://doi.org/10.1137/0916069', 'note': 'L-BFGS-B provides bounded local refinement after global candidate search.'\}] の結果を代入する。 \\
+83 & クラス TermSpec を定義する。 \\
+92 & クラス ScenarioSpec を定義する。 \\
+99 & 関数 read\_yaml を定義する。 \\
+104 & 関数 write\_yaml を定義する。 \\
+110 & 関数 ensure\_dir を定義する。 \\
+114 & 関数 log\_trial\_to\_tensorboard を定義する。 \\
+147 & 関数 repo\_relative を定義する。 \\
+159 & 関数 failed\_scenario\_result を定義する。 \\
+217 & 関数 compile\_tex を定義する。 \\
+234 & 関数 latex\_escape を定義する。 \\
+253 & 関数 format\_override\_value を定義する。 \\
+265 & 関数 canonical\_runtime\_weights を定義する。 \\
+270 & 関数 set\_nested\_value を定義する。 \\
+283 & 関数 speed\_series を定義する。 \\
+291 & 関数 upper\_cost\_specs を定義する。 \\
+336 & 関数 vector\_to\_weights を定義する。 \\
+347 & 関数 mirror\_legacy\_weights を定義する。 \\
+360 & 関数 build\_reference\_free\_profile を定義する。 \\
+397 & 関数 default\_scenarios を定義する。 \\
+482 & 関数 run\_single\_scenario を定義する。 \\
+613 & 関数 evaluate\_simulation を定義する。 \\
+759 & 関数 aggregate\_candidate を定義する。 \\
+820 & 関数 run\_candidate を定義する。 \\
+858 & 関数 save\_trial\_checkpoint を定義する。 \\
+868 & 関数 csv\_row\_count を定義する。 \\
+873 & 関数 summarize\_path を定義する。 \\
+896 & 関数 dataframe\_to\_markdown を定義する。 \\
+910 & 関数 flatten\_scalars を定義する。 \\
+920 & 関数 build\_current\_asset\_manifests を定義する。 \\
+986 & 関数 render\_report を定義する。 \\
+1504 & 関数 main を定義する。 \\
+1940 & 条件 \_\_name\_\_ == '\_\_main\_\_' を判定し、真なら内部処理を行う。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            2 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+4 & \path|import argparse| & CLI 引数を宣言し、実行時パラメータを外から受け取るため。 このファイル内での主な使用位置は L1505。 \\
+5 & \path|import json| & manifest、checkpoint、UDP payload をやり取りするため。 このファイル内での主な使用位置は L571, L607, L852, L1936, L1937。 \\
+6 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L259, L299, L300, L301, L302, L303, L304, L305, ...。 \\
+7 & \path|import os| & パス、環境変数、プロセス外部状態を扱うため。 このファイル内での主な使用位置は L154, L205, L206, L207, L208, L209, L210, L211, ...。 \\
+8 & \path|import shutil| & shutil モジュールを利用するため。 このファイル内での主な使用位置は L1862。 \\
+9 & \path|import subprocess| & git 情報取得や外部コマンド実行を行うため。 このファイル内での主な使用位置は L220, L224, L225, L228, L545, L550。 \\
+10 & \path|import sys| & sys モジュールを利用するため。 このファイル内での主な使用位置は L31, L32, L504。 \\
+11 & \path|import textwrap| & textwrap モジュールを利用するため。 このファイル内での主な使用位置は L1444。 \\
+12 & \path|from dataclasses import dataclass| & dataclasses から dataclass を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L82, L91。 \\
+13 & \path|from datetime import datetime| & UTC 時刻や相対時間を扱うため。 このファイル内での主な使用位置は L965, L1163, L1563。 \\
+14 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L30, L99, L104, L110, L151, L167, L168, L169, ...。 \\
+15 & \path|from typing import Dict, Iterable, List| & typing から Dict, Iterable, List を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L94, L95, L114, L162, L165, L166, L174, L265, ...。 \\
+17 & \path|import matplotlib| & matplotlib モジュールを利用するため。 このファイル内での主な使用位置は L19。 \\
+20 & \path|import matplotlib.pyplot as plt| & matplotlib.pyplot モジュールを利用するため。 このファイル内での主な使用位置は L1037, L1038, L1039, L1040, L1041, L1042, L1043, L1044, ...。 \\
+21 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L288, L336, L339, L627, L637, L639, L643, L653, ...。 \\
+22 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L283, L288, L572, L573, L616, L617, L623, L626, ...。 \\
+23 & \path|import yaml| & profile、stop、schedule、summary YAML を読み書きするため。 このファイル内での主な使用位置は L101, L107。 \\
+26 & \path|from torch.utils.tensorboard import SummaryWriter| & torch.utils.tensorboard から SummaryWriter を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L28, L1567。 \\
+34 & \path|from mpc_solarcar.schedule_utils import DriveSchedule| & schedule\_utils.py から DriveSchedule を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/schedule\_utils.py。 このファイル内での主な使用位置は L635。 \\
+35 & \path|from mpc_solarcar.risk_utils import ScenarioRiskConfig, aggregate_scenario_scores| & risk\_utils.py から ScenarioRiskConfig, aggregate\_scenario\_scores を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/risk\_utils.py。 このファイル内での主な使用位置は L763, L775, L828, L1536。 \\
+36 & \path|from mpc_solarcar.upper_cost import UpperCostConfig, active_upper_cost_terms, load_upper_cost_config| & 上位MPC 目的関数 から UpperCostConfig, active\_upper\_cost\_terms, load\_upper\_cost\_config を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/upper\_cost.py。 このファイル内での主な使用位置は L175, L292, L336, L684, L1135, L1534, L1552。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L83 クラス \path|TermSpec|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|TermSpec(bases=なし)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item name に  を代入する。
+\item lo に  を代入する。
+\item hi に  を代入する。
+\item init\_log10 に  を代入する。
+\item threshold に 0.0001 を代入する。
+            \end{enumerate}
+
+\subsection*{L92 クラス \path|ScenarioSpec|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|ScenarioSpec(bases=なし)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item name に  を代入する。
+\item cfg\_overrides に  を代入する。
+\item cli\_overrides に  を代入する。
+\item weight に  を代入する。
+            \end{enumerate}
+
+\subsection*{L99 関数 \path|read_yaml|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|read_yaml(path)|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: open, safe\_load
+  \item 戻り値の要点: yaml.safe\_load(f) or \{\}
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item with 文で path.open('r', encoding='utf-8') を管理しながら処理する。
+\end{enumerate}
+
+\subsection*{L104 関数 \path|write_yaml|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|write_yaml(path, payload)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: mkdir, open, safe\_dump
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item path.parent.mkdir(...) を実行する。
+\item with 文で path.open('w', encoding='utf-8', newline='\textbackslash{}n') を管理しながら処理する。
+            \end{enumerate}
+
+\subsection*{L110 関数 \path|ensure_dir|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|ensure_dir(path)|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: mkdir
+  \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item path.mkdir(...) を実行する。
+\end{enumerate}
+
+\subsection*{L114 関数 \path|log_trial_to_tensorboard|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|log_trial_to_tensorboard(writer, prefix, result, step)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: add\_scalar, float
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 writer is None を判定し、真なら内部処理を行う。
+\item scalar\_keys に ['score', 'score\_mean', 'score\_worst', 'score\_variance', 'loss\_cvar', 'scenario\_failure\_probability', 'chance\_constraint\_pass', 'final\_distance\_km', 'final\_distance\_worst\_km', 'avg\_speed\_kmh', 'min\_soc', 'final\_soc', 'oscillation\_mean\_abs\_dv\_kmh', 'oscillation\_p95\_abs\_dv\_kmh', 'current\_rms\_a', 'pack\_slew\_rms\_kw', 'daylight\_stop\_h', 'daylight\_full\_soc\_h', 'unused\_finish\_soc', 'cpu\_sec', 'active\_term\_count'] の結果を代入する。
+\item scalar\_keys を順に走査し、各要素を key に入れて処理する。
+            \end{enumerate}
+
+\subsection*{L147 関数 \path|repo_relative|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|repo_relative(path_like)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, fspath, is\_absolute, relative\_to, replace, resolve, str, strip
+              \item 戻り値の要点: '' / os.fspath(resolved.relative\_to(ROOT)).replace('\textbackslash{}\textbackslash{}', '/') / raw.replace('\textbackslash{}\textbackslash{}', '/')
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item raw に str(path\_like or '').strip() の結果を代入する。
+\item 条件 not raw を判定し、真なら内部処理を行う。
+\item path に Path(raw) の結果を代入する。
+\item 例外処理を伴う try ブロックを実行する。
+            \end{enumerate}
+
+\subsection*{L159 関数 \path|failed_scenario_result|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|failed_scenario_result(scenario_name, scenario_weight, upper_cost, error, cfg_overrides, cli_overrides, summary_json, out_csv, detail_csv, plan_csv, report_html, resolved_yaml, sim_log_path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: UpperCostConfig, active\_upper\_cost\_terms, float, fspath, int, len
+              \item 戻り値の要点: \{'score': -1000000000.0, 'final\_distance\_km': 0.0, 'avg\_speed\_kmh': 0.0, 'min\_soc': 0.0, 'final\_soc': 0.0, 'elapsed\_hours': 0.0, 'cpu\_sec': 0.0, 'finish\_reached': False, 'model\_validation\_gate\_pass': False, 'scenario\_feasible': False, 'scenario\_feasibility\_checks': \{'simulation\_completed': False\}, 'scenario\_infeasibility\_reasons': [error], 'oscillation\_mean\_abs\_dv\_kmh': 1000000.0, 'oscillation\_p95\_abs\_dv\_kmh': 1000000.0, 'current\_rms\_a': 1000000.0, 'pack\_slew\_rms\_kw': 1000000.0, 'high\_speed\_h': 1000000.0, 'daylight\_stop\_h': 1000000.0, 'daylight\_full\_soc\_h': 1000000.0, 'unused\_finish\_soc': 1.0, 'finish\_soc\_target': 0.0, 'terminal\_soc\_error': 1.0, 'active\_term\_count': int(len(active\_terms)), 'active\_terms': active\_terms, 'scenario': scenario\_name, 'scenario\_weight': float(scenario\_weight), 'cfg\_overrides': cfg\_overrides, 'cli\_overrides': cli\_overrides, 'summary\_json': os.fspath(summary\_json), 'out\_csv': os.fspath(out\_csv), 'detail\_csv': os.fspath(detail\_csv), 'plan\_csv': os.fspath(plan\_csv), 'report\_html': os.fspath(report\_html), 'resolved\_yaml': os.fspath(resolved\_yaml), 'simulation\_log': os.fspath(sim\_log\_path), 'failed': True, 'error': error\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item active\_terms に active\_upper\_cost\_terms(UpperCostConfig(**upper\_cost), threshold=0.0001) の結果を代入する。
+\item \{'score': -1000000000.0, 'final\_distance\_km': 0.0, 'avg\_speed\_kmh': 0.0, 'min\_soc': 0.0, 'final\_soc': 0.0, 'elapsed\_hours': 0.0, 'cpu\_sec': 0.0, 'finish\_reached': False, 'model\_validation\_gate\_pass': False, 'scenario\_feasible': False, 'scenario\_feasibility\_checks': \{'simulation\_completed': False\}, 'scenario\_infeasibility\_reasons': [error], 'oscillation\_mean\_abs\_dv\_kmh': 1000000.0, 'oscillation\_p95\_abs\_dv\_kmh': 1000000.0, 'current\_rms\_a': 1000000.0, 'pack\_slew\_rms\_kw': 1000000.0, 'high\_speed\_h': 1000000.0, 'daylight\_stop\_h': 1000000.0, 'daylight\_full\_soc\_h': 1000000.0, 'unused\_finish\_soc': 1.0, 'finish\_soc\_target': 0.0, 'terminal\_soc\_error': 1.0, 'active\_term\_count': int(len(active\_terms)), 'active\_terms': active\_terms, 'scenario': scenario\_name, 'scenario\_weight': float(scenario\_weight), 'cfg\_overrides': cfg\_overrides, 'cli\_overrides': cli\_overrides, 'summary\_json': os.fspath(summary\_json), 'out\_csv': os.fspath(out\_csv), 'detail\_csv': os.fspath(detail\_csv), 'plan\_csv': os.fspath(plan\_csv), 'report\_html': os.fspath(report\_html), 'resolved\_yaml': os.fspath(resolved\_yaml), 'simulation\_log': os.fspath(sim\_log\_path), 'failed': True, 'error': error\} を返す。
+            \end{enumerate}
+
+\subsection*{L217 関数 \path|compile_tex|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|compile_tex(tex_path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: CalledProcessError, FileNotFoundError, exists, range, run, with\_suffix
+              \item 戻り値の要点: pdf\_path
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item pdf\_path に tex\_path.with\_suffix('.pdf') の結果を代入する。
+\item range(2) を順に走査し、各要素を \_ に入れて処理する。
+\item 条件 not pdf\_path.exists() を判定し、真なら内部処理を行う。
+\item pdf\_path を返す。
+            \end{enumerate}
+
+\subsection*{L234 関数 \path|latex_escape|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|latex_escape(text)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: items, replace, str
+              \item 戻り値の要点: out
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item repl に \{'\textbackslash{}\textbackslash{}': '\textbackslash{}\textbackslash{}textbackslash\{\}', '\&': '\textbackslash{}\textbackslash{}\&', '\%': '\textbackslash{}\textbackslash{}\%', '\$': '\textbackslash{}\textbackslash{}\$', '\#': '\textbackslash{}\textbackslash{}\#', '\_': '\textbackslash{}\textbackslash{}\_', '\{': '\textbackslash{}\textbackslash{}\{', '\}': '\textbackslash{}\textbackslash{}\}', '\textasciitilde{}': '\textbackslash{}\textbackslash{}textasciitilde\{\}', '\textasciicircum{}': '\textbackslash{}\textbackslash{}textasciicircum\{\}'\} の結果を代入する。
+\item out に str(text) の結果を代入する。
+\item repl.items() を順に走査し、各要素を (src, dst) に入れて処理する。
+\item out を返す。
+            \end{enumerate}
+
+\subsection*{L253 関数 \path|format_override_value|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|format_override_value(value)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: isfinite, isinstance, str
+              \item 戻り値の要点: str(value) / 'true' if value else 'false' / str(value) / '0'
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 isinstance(value, bool) を判定し、真なら内部処理を行う。
+\item 条件 isinstance(value, int) を判定し、真なら内部処理を行う。
+\item 条件 isinstance(value, float) を判定し、真なら内部処理を行う。
+\item str(value) を返す。
+            \end{enumerate}
+
+\subsection*{L265 関数 \path|canonical_runtime_weights|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|canonical_runtime_weights(weights)|
+  \item docstring: Return the exact numeric values serialized into solar\_sim overrides.
+  \item このブロックが直接呼ぶ主な関数・メソッド: float, format\_override\_value, items, str
+  \item 戻り値の要点: \{str(key): float(format\_override\_value(float(value))) for key, value in weights.items()\}
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item \{str(key): float(format\_override\_value(float(value))) for key, value in weights.items()\} を返す。
+\end{enumerate}
+
+\subsection*{L270 関数 \path|set_nested_value|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|set_nested_value(cfg, dotted_key, value)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: get, isinstance, split, str
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item target に cfg の結果を代入する。
+\item parts に [part for part in str(dotted\_key).split('.') if part] の結果を代入する。
+\item parts[:-1] を順に走査し、各要素を part に入れて処理する。
+\item 条件 parts を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L283 関数 \path|speed_series|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|speed_series(df)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Series, astype, len, zeros
+              \item 戻り値の要点: pd.Series(np.zeros(len(df), dtype=float)) / df['v\_exec\_kmh'].astype(float) / df['v\_cmd\_kmh'].astype(float)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 'v\_exec\_kmh' in df.columns を判定し、真なら内部処理を行う。
+\item 条件 'v\_cmd\_kmh' in df.columns を判定し、真なら内部処理を行う。
+\item pd.Series(np.zeros(len(df), dtype=float)) を返す。
+            \end{enumerate}
+
+\subsection*{L291 関数 \path|upper_cost_specs|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|upper_cost_specs(cfg, include_progress_terms, include_uncertainty_term, include_terminal_term)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: TermSpec, append, extend, log10, max
+              \item 戻り値の要点: specs
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item specs に [TermSpec('w\_speed\_smooth', -2.0, 3.0, math.log10(max(cfg.w\_speed\_smooth, 1e-06))), TermSpec('w\_speed\_limit', -2.0, 3.0, math.log10(max(cfg.w\_speed\_limit, 1e-06))), TermSpec('w\_current\_sq', -5.0, 1.0, math.log10(max(cfg.w\_current\_sq, 1e-06))), TermSpec('w\_pack\_energy', -5.0, 2.0, math.log10(max(cfg.w\_pack\_energy, 1e-06))), TermSpec('w\_joule\_loss', -5.0, 2.0, math.log10(max(cfg.w\_joule\_loss, 1e-06))), TermSpec('w\_aero\_energy', -5.0, 2.0, math.log10(max(cfg.w\_aero\_energy, 1e-06))), TermSpec('w\_mech\_energy', -5.0, 2.0, math.log10(max(cfg.w\_mech\_energy, 1e-06))), TermSpec('w\_kinetic\_pos', -5.0, 2.0, math.log10(max(cfg.w\_kinetic\_pos, 1e-06))), TermSpec('w\_pack\_power\_slew', -4.0, 4.0, math.log10(max(cfg.w\_pack\_power\_slew, 1e-06))), TermSpec('w\_speed\_quartic', -6.0, 2.0, math.log10(max(cfg.w\_speed\_quartic, 1e-06))), TermSpec('w\_solar\_headroom', -2.0, 7.0, max(2.0, math.log10(max(cfg.w\_solar\_headroom, 1e-06)))), TermSpec('w\_soc\_floor\_barrier', -6.0, 4.0, math.log10(max(cfg.w\_soc\_floor\_barrier, 1e-06))), TermSpec('w\_terminal\_soc\_min', -1.0, 4.0, math.log10(max(cfg.w\_terminal\_soc\_min, 1e-06))), TermSpec('w\_day\_end\_soc\_min', 2.0, 6.0, math.log10(max(cfg.w\_day\_end\_soc\_min, 1e-06)))] の結果を代入する。
+\item 条件 include\_uncertainty\_term を判定し、真なら内部処理を行う。
+\item 条件 include\_terminal\_term を判定し、真なら内部処理を行う。
+\item 条件 include\_progress\_terms を判定し、真なら内部処理を行う。
+\item specs を返す。
+            \end{enumerate}
+
+\subsection*{L336 関数 \path|vector_to_weights|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|vector_to_weights(specs, vec, base_cfg)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: clip, float, to\_dict, zip
+              \item 戻り値の要点: weights
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item weights に base\_cfg.to\_dict() の結果を代入する。
+\item zip(specs, vec) を順に走査し、各要素を (spec, raw) に入れて処理する。
+\item weights を返す。
+            \end{enumerate}
+
+\subsection*{L347 関数 \path|mirror_legacy_weights|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|mirror_legacy_weights(cfg, upper_cost)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, get, setdefault
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item mpc に cfg.setdefault('mpc', \{\}) の結果を代入する。
+\item mpc['upper\_cost'] に upper\_cost の結果を代入する。
+\item mpc['w\_dv'] に float(upper\_cost.get('w\_speed\_smooth', mpc.get('w\_dv', 30.0))) の結果を代入する。
+\item mpc['w\_dv\_limit'] に float(upper\_cost.get('w\_dv\_limit', mpc.get('w\_dv\_limit', 2.0))) の結果を代入する。
+\item mpc['w\_speed\_limit'] に float(upper\_cost.get('w\_speed\_limit', mpc.get('w\_speed\_limit', 50.0))) の結果を代入する。
+\item mpc['w\_current'] に float(upper\_cost.get('w\_current\_sq', mpc.get('w\_current', 0.01))) の結果を代入する。
+\item mpc['w\_T'] に float(upper\_cost.get('w\_temp', mpc.get('w\_T', 5.0))) の結果を代入する。
+\item mpc['w\_soc\_day\_max'] に float(upper\_cost.get('w\_soc\_day\_max', mpc.get('w\_soc\_day\_max', 10000.0))) の結果を代入する。
+\item mpc['w\_soc\_day\_track'] に float(upper\_cost.get('w\_soc\_day\_track', mpc.get('w\_soc\_day\_track', 0.0))) の結果を代入する。
+\item mpc['w\_soc\_terminal'] に float(upper\_cost.get('w\_soc\_terminal', mpc.get('w\_soc\_terminal', 0.0))) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L360 関数 \path|build_reference_free_profile|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|build_reference_free_profile(profile_yaml, output_dir, disable_uncertainty_reserve)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, append, fspath, is\_absolute, isinstance, items, list, pop, read\_yaml, resolve, setdefault, str
+              \item 戻り値の要点: (out\_path, removed\_reference)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item cfg に read\_yaml(profile\_yaml) の結果を代入する。
+\item removed\_reference に '' の結果を代入する。
+\item paths に cfg.setdefault('paths', \{\}) の結果を代入する。
+\item 条件 isinstance(paths, dict) を判定し、真なら内部処理を行う。
+\item meta に cfg.setdefault('meta', \{\}) の結果を代入する。
+\item notes に meta.setdefault('notes', []) の結果を代入する。
+\item 条件 isinstance(notes, list) を判定し、真なら内部処理を行う。
+\item mpc に cfg.setdefault('mpc', \{\}) の結果を代入する。
+\item ref\_cfg に mpc.setdefault('reference\_speed\_tracking', \{\}) の結果を代入する。
+\item 条件 isinstance(ref\_cfg, dict) を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L397 関数 \path|default_scenarios|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|default_scenarios(profile_yaml, mode)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ScenarioSpec, float, get, isinstance, lower, max, min, read\_yaml, str, strip
+              \item 戻り値の要点: [ScenarioSpec('nominal', cfg\_overrides=\{\}, cli\_overrides=\{\}, weight=0.3), ScenarioSpec('low\_solar\_high\_load', cfg\_overrides=\{'model.P\_aux': max(20.0, base\_aux + 20.0), 'model.CdA': max(base\_cda * 1.1, base\_cda + 0.005), 'model.Crr': max(base\_crr * 1.05, base\_crr + 0.0002)\}, cli\_overrides=\{'solar\_gain': 0.9, 'poa\_gain\_drive': 0.94, 'poa\_gain\_stop': 0.92\}, weight=0.2), ScenarioSpec('drag\_bias', cfg\_overrides=\{'model.P\_aux': max(10.0, base\_aux + 10.0), 'model.CdA': max(base\_cda * 1.2, base\_cda + 0.01), 'model.Crr': max(base\_crr * 1.08, base\_crr + 0.0004)\}, cli\_overrides=\{'solar\_gain': 0.97, 'poa\_gain\_drive': 0.98, 'poa\_gain\_stop': 0.98\}, weight=0.1), ScenarioSpec('low\_initial\_soc', cfg\_overrides=\{\}, cli\_overrides=\{'soc0': max(soc\_min + 0.04, base\_soc - 0.15)\}, weight=0.15), ScenarioSpec('hot\_battery', cfg\_overrides=\{\}, cli\_overrides=\{'Tb0': min(temp\_max\_c - 2.0, base\_tb\_c + 12.0)\}, weight=0.1), ScenarioSpec('driver\_lag', cfg\_overrides=\{\}, cli\_overrides=\{'exec\_tau\_sec': 4.0, 'exec\_reaction\_delay\_sec': 3.0, 'exec\_accel\_limit\_kmhps': 0.7, 'exec\_decel\_limit\_kmhps': 2.0\}, weight=0.1), ScenarioSpec('favorable\_weather', cfg\_overrides=\{'model.P\_aux': max(0.0, base\_aux - 10.0)\}, cli\_overrides=\{'solar\_gain': 1.08, 'poa\_gain\_drive': 1.04, 'poa\_gain\_stop': 1.04\}, weight=0.05)] / [ScenarioSpec('nominal', cfg\_overrides=\{\}, cli\_overrides=\{\}, weight=1.0)]
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 str(mode).strip().lower() == 'nominal' を判定し、真なら内部処理を行う。
+\item cfg に read\_yaml(profile\_yaml) の結果を代入する。
+\item model に cfg.get('model', \{\}) if isinstance(cfg, dict) else \{\} の結果を代入する。
+\item base\_cda に float(model.get('CdA', 0.08)) の結果を代入する。
+\item base\_crr に float(model.get('Crr', 0.008)) の結果を代入する。
+\item base\_aux に float(model.get('P\_aux', 0.0)) の結果を代入する。
+\item simulation に cfg.get('simulation', \{\}) if isinstance(cfg, dict) else \{\} の結果を代入する。
+\item base\_soc に float(simulation.get('soc0', 0.99)) の結果を代入する。
+\item base\_tb\_c に float(simulation.get('Tb0', 30.0)) の結果を代入する。
+\item soc\_min に float(model.get('soc\_min', 0.05)) の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L482 関数 \path|run_single_scenario|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|run_single_scenario(profile_yaml, output_dir, candidate_name, scenario, upper_cost, cfg_overrides, cli_overrides)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, Path, dict, dumps, ensure\_dir, evaluate\_simulation, exists, extend, failed\_scenario\_result, float, format\_override\_value, fspath
+              \item 戻り値の要点: result
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item scenario\_dir に output\_dir / 'candidates' / candidate\_name / scenario.name の結果を代入する。
+\item ensure\_dir(...) を実行する。
+\item out\_csv に scenario\_dir / 'simulation.csv' の結果を代入する。
+\item detail\_csv に scenario\_dir / 'simulation\_detail.csv' の結果を代入する。
+\item plan\_csv に scenario\_dir / 'upper\_plan.csv' の結果を代入する。
+\item report\_html に scenario\_dir / 'simulation\_report.html' の結果を代入する。
+\item summary\_json に scenario\_dir / 'summary.json' の結果を代入する。
+\item resolved\_yaml に scenario\_dir / 'resolved.yaml' の結果を代入する。
+\item latest\_manifest\_json に scenario\_dir / 'latest\_manifest.json' の結果を代入する。
+\item sim\_log\_path に scenario\_dir / 'solar\_sim\_console.log' の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L613 関数 \path|evaluate_simulation|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|evaluate_simulation(profile_yaml, summary, sim_df, detail_df, upper_cost)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Series, UpperCostConfig, abs, active\_upper\_cost\_terms, astype, bool, diff, exists, fillna, float, from\_yaml, fspath
+              \item 戻り値の要点: \{'score': float(score), 'final\_distance\_km': float(summary['final\_distance\_km']), 'avg\_speed\_kmh': float(summary.get('avg\_speed\_kmh', 0.0)), 'min\_soc': min\_soc, 'final\_soc': final\_soc, 'elapsed\_hours': elapsed\_hours, 'cpu\_sec': float(summary.get('cpu\_sec', 0.0)), 'finish\_reached': finish\_reached, 'scenario\_feasible': not infeasibility\_reasons, 'scenario\_feasibility\_checks': feasibility\_checks, 'scenario\_infeasibility\_reasons': infeasibility\_reasons, 'oscillation\_mean\_abs\_dv\_kmh': osc, 'oscillation\_p95\_abs\_dv\_kmh': osc\_p95, 'current\_rms\_a': current\_rms\_a, 'pack\_slew\_rms\_kw': pack\_slew\_rms\_kw, 'high\_speed\_h': high\_speed\_h, 'daylight\_stop\_h': daylight\_stop\_h, 'daylight\_full\_soc\_h': daylight\_full\_soc\_h, 'unused\_finish\_soc': unused\_finish\_soc, 'finish\_soc\_target': finish\_soc\_target, 'terminal\_soc\_error': terminal\_soc\_error, 'active\_term\_count': int(len(active\_terms)), 'active\_terms': active\_terms\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item speed\_vals に speed\_series(sim\_df).to\_numpy(dtype=float) の結果を代入する。
+\item 条件 'time\_utc' in sim\_df.columns and len(sim\_df) >= 2 を判定し、真なら内部処理を行う。
+\item profile\_cfg に read\_yaml(profile\_yaml) の結果を代入する。
+\item schedule に None の結果を代入する。
+\item schedule\_rel に ((profile\_cfg.get('paths', \{\}) if isinstance(profile\_cfg, dict) else \{\}) or \{\}).get('drive\_schedule\_yaml') の結果を代入する。
+\item 条件 schedule\_rel を判定し、真なら内部処理を行う。
+\item daylight\_mask に sim\_df.get('G\_poa', pd.Series(np.zeros(len(sim\_df), dtype=float))).astype(float) >= 250.0 の結果を代入する。
+\item stopped\_mask に speed\_series(sim\_df) <= 1.0 の結果を代入する。
+\item soc\_mask に sim\_df.get('soc', pd.Series(np.zeros(len(sim\_df), dtype=float))).astype(float) >= 0.95 の結果を代入する。
+\item 条件 schedule is not None and len(t\_series) == len(sim\_df) を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L759 関数 \path|aggregate_candidate|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|aggregate_candidate(candidate, scenario_results, weights, risk_config)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ValueError, aggregate\_scenario\_scores, all, array, asarray, bool, dot, float, get, int, isfinite, len
+              \item 戻り値の要点: result
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not scenario\_results を判定し、真なら内部処理を行う。
+\item scenario\_weights に np.array([max(0.0, float(row.get('scenario\_weight', 0.0))) for row in scenario\_results], dtype=float) の結果を代入する。
+\item 条件 not np.isfinite(scenario\_weights).all() or scenario\_weights.sum() <= 0.0 を判定し、真なら内部処理を行う。
+\item scenario\_scores に np.array([float(row['score']) for row in scenario\_results], dtype=float) の結果を代入する。
+\item scenario\_feasible に np.array([bool(row.get('scenario\_feasible', False)) for row in scenario\_results], dtype=bool) の結果を代入する。
+\item risk に aggregate\_scenario\_scores(scenario\_scores, scenario\_weights, scenario\_feasible, config=risk\_config) の結果を代入する。
+\item scenario\_weights に np.asarray(risk['normalized\_scenario\_weights'], dtype=float) の結果を代入する。
+\item nominal に next((row for row in scenario\_results if row.get('scenario') == 'nominal'), scenario\_results[0]) の結果を代入する。
+\item result に \{'candidate': candidate, **risk, 'final\_distance\_km': float(np.dot(scenario\_weights, np.array([float(row['final\_distance\_km']) for row in scenario\_results]))), 'final\_distance\_worst\_km': float(min((float(row['final\_distance\_km']) for row in scenario\_results))), 'avg\_speed\_kmh': float(np.dot(scenario\_weights, np.array([float(row['avg\_speed\_kmh']) for row in scenario\_results]))), 'min\_soc': float(min((float(row['min\_soc']) for row in scenario\_results))), 'final\_soc': float(np.dot(scenario\_weights, np.array([float(row['final\_soc']) for row in scenario\_results]))), 'finish\_reached': bool(all((bool(row['finish\_reached']) for row in scenario\_results))), 'model\_validation\_gate\_pass\_all': bool(all((bool(row.get('model\_validation\_gate\_pass', False)) for row in scenario\_results))), 'oscillation\_mean\_abs\_dv\_kmh': float(np.dot(scenario\_weights, np.array([float(row['oscillation\_mean\_abs\_dv\_kmh']) for row in scenario\_results]))), 'oscillation\_p95\_abs\_dv\_kmh': float(np.dot(scenario\_weights, np.array([float(row['oscillation\_p95\_abs\_dv\_kmh']) for row in scenario\_results]))), 'current\_rms\_a': float(np.dot(scenario\_weights, np.array([float(row['current\_rms\_a']) for row in scenario\_results]))), 'pack\_slew\_rms\_kw': float(np.dot(scenario\_weights, np.array([float(row['pack\_slew\_rms\_kw']) for row in scenario\_results]))), 'high\_speed\_h': float(np.dot(scenario\_weights, np.array([float(row['high\_speed\_h']) for row in scenario\_results]))), 'daylight\_stop\_h': float(np.dot(scenario\_weights, np.array([float(row['daylight\_stop\_h']) for row in scenario\_results]))), 'daylight\_full\_soc\_h': float(np.dot(scenario\_weights, np.array([float(row['daylight\_full\_soc\_h']) for row in scenario\_results]))), 'unused\_finish\_soc': float(np.dot(scenario\_weights, np.array([float(row['unused\_finish\_soc']) for row in scenario\_results]))), 'finish\_soc\_target': float(np.dot(scenario\_weights, np.array([float(row['finish\_soc\_target']) for row in scenario\_results]))), 'terminal\_soc\_error': float(np.dot(scenario\_weights, np.array([float(row['terminal\_soc\_error']) for row in scenario\_results]))), 'elapsed\_hours': float(np.dot(scenario\_weights, np.array([float(row['elapsed\_hours']) for row in scenario\_results]))), 'cpu\_sec': float(sum((float(row['cpu\_sec']) for row in scenario\_results))), 'active\_term\_count': int(round(np.dot(scenario\_weights, np.array([float(row['active\_term\_count']) for row in scenario\_results])))), 'weights': weights, 'scenario\_results': scenario\_results, 'nominal\_out\_csv': nominal.get('out\_csv', ''), 'nominal\_detail\_csv': nominal.get('detail\_csv', '')\} の結果を代入する。
+\item result を返す。
+            \end{enumerate}
+
+\subsection*{L820 関数 \path|run_candidate|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|run_candidate(profile_yaml, output_dir, candidate_name, upper_cost, cfg_overrides, cli_overrides, scenarios, risk_config)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: aggregate\_candidate, canonical\_runtime\_weights, dumps, ensure\_dir, run\_single\_scenario, write\_text
+              \item 戻り値の要点: result
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item runtime\_upper\_cost に canonical\_runtime\_weights(upper\_cost) の結果を代入する。
+\item scenario\_results に [run\_single\_scenario(profile\_yaml, output\_dir, candidate\_name, scenario, runtime\_upper\_cost, cfg\_overrides, cli\_overrides) for scenario in scenarios] の結果を代入する。
+\item result に aggregate\_candidate(candidate\_name, scenario\_results, runtime\_upper\_cost, risk\_config=risk\_config) の結果を代入する。
+\item cand\_dir に output\_dir / 'candidates' / candidate\_name の結果を代入する。
+\item ensure\_dir(...) を実行する。
+\item (cand\_dir / 'aggregate\_metrics.json').write\_text(...) を実行する。
+\item result を返す。
+            \end{enumerate}
+
+\subsection*{L858 関数 \path|save_trial_checkpoint|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|save_trial_checkpoint(output_dir, trials, best_result)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, float, get, to\_csv, write\_yaml
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 trials を判定し、真なら内部処理を行う。
+\item 条件 best\_result is not None を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L868 関数 \path|csv_row_count|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|csv_row_count(path)|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: max, open, sum
+  \item 戻り値の要点: max(0, sum((1 for \_ in f)) - 1)
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item with 文で path.open('r', encoding='utf-8', errors='ignore') を管理しながら処理する。
+\end{enumerate}
+
+\subsection*{L873 関数 \path|summarize_path|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|summarize_path(path)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: csv\_row\_count, exists, fspath, join, len, lower, lstrip, read\_csv, str
+              \item 戻り値の要点: summary / summary
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item suffix に path.suffix.lower() の結果を代入する。
+\item summary に \{'path': os.fspath(path), 'exists': path.exists(), 'kind': suffix.lstrip('.'), 'rows': '', 'columns': '', 'column\_names': ''\} の結果を代入する。
+\item 条件 not path.exists() を判定し、真なら内部処理を行う。
+\item 条件 suffix == '.csv' を判定し、真なら内部処理を行う。
+\item summary を返す。
+            \end{enumerate}
+
+\subsection*{L896 関数 \path|dataframe_to_markdown|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|dataframe_to_markdown(df)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, iterrows, join, len, replace, str
+              \item 戻り値の要点: '\textbackslash{}n'.join(lines) / '(none)'
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 df.empty を判定し、真なら内部処理を行う。
+\item cols に [str(col) for col in df.columns] の結果を代入する。
+\item lines に ['| ' + ' | '.join(cols) + ' |', '| ' + ' | '.join(['---'] * len(cols)) + ' |'] の結果を代入する。
+\item df.iterrows() を順に走査し、各要素を (\_, row) に入れて処理する。
+\item '\textbackslash{}n'.join(lines) を返す。
+            \end{enumerate}
+
+\subsection*{L910 関数 \path|flatten_scalars|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|flatten_scalars(prefix, payload, rows)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, flatten\_scalars, isinstance, items, str
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 isinstance(payload, dict) を判定し、真なら内部処理を行う。
+\item 条件 isinstance(payload, (int, float, bool, str)) を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L920 関数 \path|build_current_asset_manifests|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|build_current_asset_manifests(profile_yaml, fit_summary, output_dir)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, append, dataframe\_to\_markdown, flatten\_scalars, get, isinstance, isoformat, items, join, now, read\_yaml, repo\_relative
+              \item 戻り値の要点: \{'files\_csv': files\_csv, 'scalars\_csv': scalars\_csv, 'markdown': md\_path\}
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item profile\_cfg に read\_yaml(profile\_yaml) の結果を代入する。
+\item paths\_cfg に profile\_cfg.get('paths', \{\}) if isinstance(profile\_cfg, dict) else \{\} の結果を代入する。
+\item file\_rows に [] の結果を代入する。
+\item sorted(paths\_cfg.items()) を順に走査し、各要素を (role, rel\_path) に入れて処理する。
+\item files\_df に pd.DataFrame(file\_rows) の結果を代入する。
+\item files\_csv に output\_dir / 'current\_active\_files.csv' の結果を代入する。
+\item files\_df.to\_csv(...) を実行する。
+\item scalar\_rows に [] を代入する。
+\item ('model', 'mpc', 'runtime', 'simulation', 'live', 'measurement') を順に走査し、各要素を section\_name に入れて処理する。
+\item local\_fit\_rows に [] を代入する。
+            \end{enumerate}
+
+\subsection*{L986 関数 \path|render_report|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|render_report(output_dir, source_profile_yaml, eval_profile_yaml, fit_summary, baseline_result, tuned_result, trials_df, best_weights, manifest_paths, removed_reference, specs, search_cfg, tensorboard_dir)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, Path, Series, UpperCostConfig, abs, active\_upper\_cost\_terms, append, arange, as\_posix, bar, close, compile\_tex
+              \item 戻り値の要点: (tex\_path, md\_path) / latex\_escape(os.path.relpath(path, report\_dir)).replace('\%', '\textbackslash{}\textbackslash{}\%')
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item score\_label に 'robust score' if str(search\_cfg.get('scenario\_mode', 'nominal')) == 'robust' else 'aggregate score' の結果を代入する。
+\item report\_dir に output\_dir / 'report' の結果を代入する。
+\item ensure\_dir(...) を実行する。
+\item source\_profile\_label に repo\_relative(source\_profile\_yaml) の結果を代入する。
+\item eval\_profile\_label に repo\_relative(eval\_profile\_yaml) の結果を代入する。
+\item removed\_reference\_label に repo\_relative(removed\_reference) or '(none)' の結果を代入する。
+\item files\_csv\_label に repo\_relative(manifest\_paths['files\_csv']) の結果を代入する。
+\item scalars\_csv\_label に repo\_relative(manifest\_paths['scalars\_csv']) の結果を代入する。
+\item markdown\_label に repo\_relative(manifest\_paths['markdown']) の結果を代入する。
+\item best\_weights\_csv\_label に repo\_relative(output\_dir / 'best\_upper\_cost.csv') の結果を代入する。
+            \end{enumerate}
+
+\subsection*{L1504 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ArgumentParser, DataFrame, Path, RuntimeError, ScenarioRiskConfig, SummaryWriter, UpperCostConfig, add\_argument, append, array, bool, build\_current\_asset\_manifests
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item ap に argparse.ArgumentParser() の結果を代入する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+            \end{enumerate}
+
+
+
+
+
+
+
+        \subsection*{CLI 引数}
+            \begin{longtable}{p{0.07\linewidth} p{0.78\linewidth}}
+            \toprule
+            行 & 引数 \\
+            \midrule
+            1506 & \path|--profile_yaml| \\
+1507 & \path|--output_profile_yaml| \\
+1508 & \path|--generations| \\
+1509 & \path|--population| \\
+1510 & \path|--elite_count| \\
+1511 & \path|--validation_top_k| \\
+1512 & \path|--elite_medium_top_k| \\
+1513 & \path|--seed| \\
+1514 & \path|--include_progress_terms| \\
+1515 & \path|--scenario-mode| \\
+1516 & \path|--coarse-upper-max-iter| \\
+1517 & \path|--elite-medium-upper-max-iter| \\
+1518 & \path|--validation-upper-max-iter| \\
+1519 & \path|--risk-cvar-alpha| \\
+1520 & \path|--risk-cvar-weight| \\
+1521 & \path|--risk-variance-weight| \\
+1522 & \path|--max-scenario-failure-probability| \\
+1523 & \path|--infeasible-score| \\
+1524 & \path|--fidelity-mode| \\
+            \bottomrule
+            \end{longtable}
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item CLI 引数を解釈し、main() から処理を起動する。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|scripts/tune_upper_planner_weights.py| を
+        \textbf{planning research}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

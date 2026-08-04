@@ -1,0 +1,222 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={速度積分距離ノード},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{21. 速度積分距離ノード}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/distance_node.py| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & vehicle speed を積分して /vehicle/s\_km を生成する最小ノード。 \\
+        起動文脈 & measure/live 系で direct distance が無い場合の距離供給。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        vehicle speed を積分して /vehicle/s\_km を生成する最小ノード。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item reset\_odometry service も持つ。
+\item 入力は /vehicle/speed\_kmh だけ。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|launch/solar_measurement.launch.py|
+\item \path|mpc_solarcar/live_launch.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 特記事項なし。
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from std_srvs.srv import Trigger
+
+
+class DistanceNode(Node):
+    def __init__(self):
+        super().__init__('distance_node')
+        self.declare_parameter('max_dt_sec', 2.5)
+        self.declare_parameter('publish_rate_hz', 1.0)
+
+        self.max_dt_sec = float(self.get_parameter('max_dt_sec').value)
+        publish_rate_hz = float(self.get_parameter('publish_rate_hz').value)
+
+        self.s_km = 0.0
+        self.last_time = None
+        self.last_speed = math.nan
+
+        self.sub_speed = self.create_subscription(Float32, '/vehicle/speed_kmh', self._on_speed, 10)
+        self.pub_s = self.create_publisher(Float32, '/vehicle/s_km', 10)
+        self.srv_reset = self.create_service(Trigger, '/vehicle/reset_odometry', self._on_reset)
+
+        self.timer = self.create_timer(1.0 / publish_rate_hz, self._publish)
+        self.get_logger().info('DistanceNode started.')
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは DistanceNode。 主要関数は main。 ROS パラメータ宣言は 2 件。 ROS I/O は publisher 1 件、subscription 1 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            9 & class & \path|DistanceNode| & bases: Node \\
+10 & function & \path|__init__| & args: self \\
+29 & function & \path|_on_speed| & args: self, msg \\
+40 & function & \path|_on_reset| & args: self, request, response \\
+48 & function & \path|_publish| & args: self \\
+54 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            9 & クラス DistanceNode を定義する。 \\
+54 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L20, L32, L43。 \\
+3 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L55, L57, L59。 \\
+4 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L9。 \\
+5 & \path|from std_msgs.msg import Float32| & Float32 や String など軽量メッセージで planner / vehicle 値を publish するため。 このファイル内での主な使用位置は L22, L23, L29, L49。 \\
+6 & \path|from std_srvs.srv import Trigger| & std\_srvs.srv から Trigger を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L24。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L9 クラス \path|DistanceNode|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|DistanceNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, \_\_init\_\_, create\_publisher, create\_service, create\_subscription, create\_timer, declare\_parameter, float, get\_clock, get\_logger, get\_parameter, info
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_on\_speed を定義する。
+\item 関数 \_on\_reset を定義する。
+\item 関数 \_publish を定義する。
+            \end{enumerate}
+
+\subsection*{L54 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: DistanceNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に DistanceNode() の結果を代入する。
+\item rclpy.spin(...) を実行する。
+\item node.destroy\_node(...) を実行する。
+\item rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+
+        \subsection*{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            12 & \path|max_dt_sec| & 2.5 \\
+13 & \path|publish_rate_hz| & 1.0 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            23 & publisher & \path|/vehicle/s_km| & publisher \\
+22 & subscription & \path|/vehicle/speed_kmh| & self.\_on\_speed \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/distance_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

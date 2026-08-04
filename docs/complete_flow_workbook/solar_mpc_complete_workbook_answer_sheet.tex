@@ -1,0 +1,61 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[top=14mm,bottom=16mm,left=15mm,right=15mm]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setmainfont{Times New Roman}
+\setCJKmainfont{Yu Gothic}
+\usepackage{array,tabularx}
+\setlength{\parindent}{0pt}
+\newcommand{\answerrow}[2]{%
+\textbf{#1}\quad #2\\[-1mm]
+\fbox{\parbox[t][34mm][t]{0.96\linewidth}{\hspace{1mm}}}\par\vspace{3mm}}
+\begin{document}
+\begin{center}
+{\LARGE\bfseries ソーラーカーMPC-EMS 完全処理フロー体験書}\\[2mm]
+{\Large 解答用紙}\\[5mm]
+\begin{tabularx}{\linewidth}{|p{25mm}|X|p{28mm}|}
+\hline
+氏名 & & 採点\\ \hline
+実施日 & & 確認者\\ \hline
+\end{tabularx}
+\end{center}
+\vspace{4mm}
+\answerrow{Q1}{夜間補機}
+\answerrow{Q2}{起動}
+\answerrow{Q3}{UTC}
+\answerrow{Q4}{filter}
+\answerrow{Q5}{距離・勾配}
+\answerrow{Q6}{nominal/risk}
+\answerrow{Q7}{補機の電気側加算}
+\answerrow{Q8}{pack・SoC}
+\answerrow{Q9}{夜間pack}
+\answerrow{Q10}{CEM / L-BFGS-B}
+\answerrow{Q11}{replan}
+\answerrow{Q12}{rate limit}
+\answerrow{Q13}{再現性}
+\answerrow{Q14}{timeout}
+\answerrow{Q15}{MLE検証}
+\answerrow{Q16}{全周期}
+\answerrow{Q17}{満充電張り付き}
+\answerrow{Q18}{3026.9 km}
+\answerrow{Q19}{配布同期}
+\answerrow{Q20}{release gate}
+\answerrow{Q21}{control展開・区間時間}
+\answerrow{Q22}{空力・転がり・勾配・車輪出力}
+\answerrow{Q23}{drive map二線形補間}
+\answerrow{Q24}{DC・pack・IV完全計算}
+\answerrow{Q25}{6段SoC表・終端使用可能Wh}
+\answerrow{Q26}{終端SoC許容帯}
+\answerrow{Q27}{有限差分勾配・一反復}
+\answerrow{Q28}{L-BFGS二ループ}
+\answerrow{Q29}{有限格子全列挙証明}
+\answerrow{Q30}{CEMと数学的証明の違い}
+\answerrow{Q31}{detail CSV収支不整合の調査}
+\answerrow{Q32}{日射APIの時刻定義}
+\answerrow{Q33}{時刻・距離の双線形補間}
+\answerrow{Q34}{70 km/h車両総負荷}
+\answerrow{Q35}{冬季PVと電池電力}
+\answerrow{Q36}{外側端数と1 Hz detail}
+\answerrow{Q37}{回生効率と回生利用率}
+\answerrow{Q38}{同期RMSEと区間energy}
+\end{document}

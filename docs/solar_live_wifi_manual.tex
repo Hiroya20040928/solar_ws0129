@@ -1,0 +1,381 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[top=20mm,bottom=24mm,left=18mm,right=18mm]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setmainfont{Times New Roman}
+\setCJKmainfont{Yu Gothic}
+\setmonofont{Consolas}
+\setCJKmonofont{Yu Gothic}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage[unicode]{hyperref}
+\usepackage{fancyvrb}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  pdftitle={Solar Live WiFi Manual},
+  pdfauthor={Codex}
+}
+
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{1em}
+\renewcommand{\arraystretch}{1.2}
+\Urlmuskip=0mu plus 2mu
+
+\title{Solar Live WiFi Manual}
+\author{solar\_ws0129-main}
+\date{2026-06-17}
+
+\begin{document}
+\maketitle
+
+\section{目的}
+
+\path{live_wifi} モードは、同一 WiFi 上の Raspberry Pi / マイコンから UTF-8 JSON を UDP で送受信しつつ、
+本番ライブ運用を 1 本で回すためのモードである。
+
+\begin{itemize}
+  \item ソーラーカー状態受信
+  \item 伴走車状態受信
+  \item 予報 API 自動取得
+  \item 風予報のオンライン補正
+  \item 上位プランナ 1 時間更新
+  \item 下位プランナ 1 Hz 速度司令
+  \item ソーラーカー側と伴走車側への司令再送
+  \item ダッシュボード表示
+  \item ログ保存
+\end{itemize}
+
+起動入口は次である。
+
+\begin{Verbatim}[fontsize=\small]
+.\SolarSim.ps1 -Mode live_wifi -Action up
+\end{Verbatim}
+
+\section{構成}
+
+\begin{Verbatim}[fontsize=\small]
+Solar car Raspberry Pi ----\
+                            > UDP JSON -> telemetry_text_bridge_node -> ROS topics
+Chase car Raspberry Pi ----/
+
+Open-Meteo API -> weather_fetch_node -> raw forecast CSV
+raw forecast CSV + route + live observation -> wind_correction_node -> corrected forecast CSV
+corrected forecast CSV -> mpc_node -> planner commands
+planner commands -> telemetry_text_bridge_node -> UDP JSON -> solar / chase
+planner topics -> dashboard_node -> http://localhost:8080
+planner and telemetry -> logger_node -> outputs/logs/*.csv
+\end{Verbatim}
+
+主 launch は \path{launch/solar_race_live_wifi.launch.py} である。
+
+\section{風速予測補正}
+
+添付資料 \texttt{風速予測補正方法.pdf} の考え方は
+\path{mpc_solarcar/wind_correction_node.py} に実装している。
+
+\subsection{観測値}
+
+\begin{itemize}
+  \item 最優先観測は \path{headwind_ms}
+  \item それが無い場合は \path{wind_speed_ms}, \path{wind_dir_deg}, \path{course_deg} から進行方向成分へ変換
+  \item \path{course_deg} も無い場合は route waypoint から方位を補間
+\end{itemize}
+
+成分化は次で行う。
+
+\[
+\mathrm{headwind} = \mathrm{wind\_speed\_ms} \cdot \cos(\mathrm{wind\_from\_deg} - \mathrm{heading\_deg})
+\]
+
+\subsection{現在時刻の補正}
+
+予報平均 $\mu_{\mathrm{fcst}}$ と観測 $y_{\mathrm{obs}}$ を、
+予報分散 $\sigma_{\mathrm{fcst}}^2$ と観測分散 $\sigma_{\mathrm{obs}}^2$ で融合する。
+
+\[
+\mu_{\mathrm{post}} =
+\frac{\mu_{\mathrm{fcst}} / \sigma_{\mathrm{fcst}}^2 + y_{\mathrm{obs}} / \sigma_{\mathrm{obs}}^2}
+{1 / \sigma_{\mathrm{fcst}}^2 + 1 / \sigma_{\mathrm{obs}}^2}
+\]
+
+\[
+\sigma_{\mathrm{post}}^2 =
+\frac{1}{1 / \sigma_{\mathrm{fcst}}^2 + 1 / \sigma_{\mathrm{obs}}^2}
+\]
+
+\subsection{将来時刻への伝播}
+
+現在の補正量 $\Delta = \mu_{\mathrm{post}} - \mu_{\mathrm{fcst}}$ を、
+距離減衰付きで将来へ伝播する。
+
+\[
+w(s) = \exp(-ds_{\mathrm{km}} / L_c)
+\]
+
+\[
+\mu_{\mathrm{corr}} = \mu_{\mathrm{fcst,future}} + w \Delta
+\]
+
+\path{use_exp_distance_decay=false} の場合は時間減衰へ切り替える。
+
+\subsection{不確かさの増加}
+
+CSV に標準偏差列が無いときは次で予報標準偏差を作る。
+
+\[
+\sigma_{\mathrm{fcst}}^2(t) =
+\sigma_0^2 + \alpha \cdot \mathrm{lead\_h}
+\]
+
+ここで $\sigma_0$ は \path{forecast_sigma0_ms}、$\alpha$ は
+\path{forecast_variance_growth_per_hour} である。
+
+\subsection{MPC に渡す値}
+
+\path{planning_quantile} を使って \path{headwind_ms} を決める。
+
+\begin{itemize}
+  \item 0.5: 中央値
+  \item 0.84: 約 $+1\sigma$
+  \item 0.975: 約 $+2\sigma$
+\end{itemize}
+
+\section{YAML 項目}
+
+編集入口は \path{config/solar/bwsc_2027_demo.yaml} である。
+
+\subsection{必須に近い項目}
+
+\begin{itemize}
+  \item \path{paths.route_waypoints_csv}
+  \item \path{paths.route_profile_csv}
+  \item \path{live.weather.raw_forecast_csv}
+  \item \path{live.wind_model.corrected_forecast_csv}
+  \item \path{live.wifi_bridge.bind_host}
+  \item \path{live.wifi_bridge.bind_port}
+  \item \path{live.wifi_bridge.solar_remote_host}
+  \item \path{live.wifi_bridge.solar_remote_port}
+  \item \path{live.wifi_bridge.chase_remote_host}
+  \item \path{live.wifi_bridge.chase_remote_port}
+\end{itemize}
+
+\subsection{風補正パラメータ}
+
+\begin{longtable}{p{0.42\linewidth}p{0.46\linewidth}}
+\toprule
+YAML & 意味 \\
+\midrule
+\endhead
+\path{live.wind_model.measurement_sigma_ms} & 風観測ノイズ \\
+\path{live.wind_model.correlation_distance_km} & 観測補正が効く距離 \\
+\path{live.wind_model.fallback_correlation_time_h} & 時間減衰時の時定数 \\
+\path{live.wind_model.forecast_sigma0_ms} & 予報初期標準偏差 \\
+\path{live.wind_model.forecast_variance_growth_per_hour} & 先読み時間ごとの分散増加 \\
+\path{live.wind_model.planning_quantile} & MPC に入れる風の分位点 \\
+\path{live.wind_model.confidence_z} & 表示用信頼区間係数 \\
+\path{live.wind_model.min_sigma_ms} & 標準偏差の下限 \\
+\path{live.wind_model.preferred_source} & \path{auto}, \path{vehicle}, \path{chase} \\
+\path{live.wind_model.use_exp_distance_decay} & 距離減衰を使うか \\
+\bottomrule
+\end{longtable}
+
+\subsection{WiFi ブリッジ}
+
+\begin{longtable}{p{0.42\linewidth}p{0.46\linewidth}}
+\toprule
+YAML & 意味 \\
+\midrule
+\endhead
+\path{live.wifi_bridge.enabled} & 全体有効化 \\
+\path{live.wifi_bridge.enable_inbound} & 受信有効化 \\
+\path{live.wifi_bridge.enable_outbound} & 送信有効化 \\
+\path{live.wifi_bridge.bind_host} & 受信 bind \\
+\path{live.wifi_bridge.bind_port} & 受信 port \\
+\path{live.wifi_bridge.publish_period_sec} & 送信周期 \\
+\path{live.wifi_bridge.send_to_solar} & ソーラーカー送信有効化 \\
+\path{live.wifi_bridge.send_to_chase} & 伴走車送信有効化 \\
+\bottomrule
+\end{longtable}
+
+\section{推奨ネットワーク設定}
+
+\begin{longtable}{p{0.28\linewidth}p{0.22\linewidth}p{0.36\linewidth}}
+\toprule
+機器 & 推奨 IP & 用途 \\
+\midrule
+\endhead
+プランナ PC & \path{192.168.50.10} & 受信サーバ、ダッシュボード \\
+ソーラーカー Raspberry Pi & \path{192.168.50.21} & 車両送信、司令受信 \\
+伴走車 Raspberry Pi & \path{192.168.50.22} & 伴走車送信、司令受信 \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{p{0.16\linewidth}p{0.28\linewidth}p{0.42\linewidth}}
+\toprule
+Port & 向き & 用途 \\
+\midrule
+\endhead
+\path{52001} & vehicle/chase $\rightarrow$ planner & 状態送信 \\
+\path{52002} & planner $\rightarrow$ solar & 速度司令受信 \\
+\path{52003} & planner $\rightarrow$ chase & 伴走車表示・記録用受信 \\
+\bottomrule
+\end{longtable}
+
+送受信ルールは次とする。
+
+\begin{itemize}
+  \item 1 datagram = 1 JSON object
+  \item UTF-8
+  \item 改行不要
+  \item 基本周期 1 Hz
+  \item 単位は \path{km/h}, \path{m/s}, \path{deg}, \path{km}, \path{V}, \path{A}, \path{degC}
+\end{itemize}
+
+\section{Planner が受ける JSON}
+
+\subsection{vehicle\_state}
+
+\begin{Verbatim}[fontsize=\scriptsize]
+{
+  "type": "vehicle_state",
+  "ts_unix": 1781700000.0,
+  "speed_kmh": 72.4,
+  "soc": 0.83,
+  "batt_temp_c": 34.1,
+  "batt_current_a": 8.6,
+  "batt_voltage_v": 97.8,
+  "s_km": 412.6,
+  "lat": -19.13542,
+  "lon": 146.81235,
+  "alt_m": 18.4,
+  "wind_speed_ms": 6.8,
+  "wind_dir_deg": 118.0,
+  "course_deg": 176.5
+}
+\end{Verbatim}
+
+風は \path{headwind_ms} を直接送るか、
+\path{wind_speed_ms}, \path{wind_dir_deg}, \path{course_deg} を送る。
+
+\subsection{chase\_state}
+
+\begin{Verbatim}[fontsize=\scriptsize]
+{
+  "type": "chase_state",
+  "ts_unix": 1781700000.0,
+  "speed_kmh": 74.0,
+  "lat": -19.13580,
+  "lon": 146.81210,
+  "alt_m": 18.1,
+  "wind_speed_ms": 6.5,
+  "wind_dir_deg": 121.0,
+  "course_deg": 176.0
+}
+\end{Verbatim}
+
+\section{Planner から送る JSON}
+
+\begin{Verbatim}[fontsize=\scriptsize]
+{
+  "type": "planner_command",
+  "schema": "solar_v1",
+  "ts_unix": 1781700000.0,
+  "planner": {
+    "speed_cmd_kmh": 71.0,
+    "upper_speed_cmd_kmh": 73.5,
+    "drive_mode": "eco"
+  },
+  "summary": {
+    "race_progress_pct": 13.6,
+    "next_stop_dist_km": 58.2,
+    "next_stop_eta_min": 47.0,
+    "finish_dist_km": 2622.9,
+    "finish_eta_h": 41.5,
+    "avg_plan_speed_kmh": 72.1
+  },
+  "wind": {
+    "plan_headwind_ms": 4.8,
+    "mean_headwind_ms": 4.2,
+    "std_headwind_ms": 1.1,
+    "lo95_headwind_ms": 2.0,
+    "hi95_headwind_ms": 6.4
+  }
+}
+\end{Verbatim}
+
+マイコン側の最低限の使い方は次である。
+
+\begin{itemize}
+  \item \path{planner.speed_cmd_kmh}: 実速度司令
+  \item \path{planner.upper_speed_cmd_kmh}: 参考表示
+  \item \path{planner.drive_mode}: ローカル map 切替
+  \item \path{summary.*}: ナビ表示
+  \item \path{wind.*}: 状況表示と記録
+\end{itemize}
+
+watchdog は 3 秒を推奨する。
+
+\section{送信側と受信側の参考実装}
+
+\begin{itemize}
+  \item \path{scripts/wifi_vehicle_sender_example.py}
+  \item \path{scripts/wifi_chase_sender_example.py}
+  \item \path{scripts/wifi_planner_receiver_example.py}
+  \item \path{templates/network/vehicle_sender.service.example}
+  \item \path{templates/network/chase_sender.service.example}
+  \item \path{templates/network/esp32_planner_receiver_example.ino}
+\end{itemize}
+
+動作確認例:
+
+\begin{Verbatim}[fontsize=\small]
+python scripts/wifi_vehicle_sender_example.py --host 192.168.50.10 --port 52001
+python scripts/wifi_chase_sender_example.py --host 192.168.50.10 --port 52001
+python scripts/wifi_planner_receiver_example.py --bind_port 52002
+\end{Verbatim}
+
+\section{ダッシュボード}
+
+ダッシュボードは 1 画面の数値ボックス主体へ変更している。
+主表示は次である。
+
+\begin{itemize}
+  \item 指令速度、上位速度、実測速度
+  \item SOC、電池温度、電圧、電流、電力
+  \item 太陽電力、勾配
+  \item 風の観測、予報、補正平均、標準偏差、95\% 区間、計画値
+  \item 進捗率、次 stop、finish 距離、ETA
+  \item vehicle / chase GPS
+  \item forecast status, wind model status, network status
+\end{itemize}
+
+\section{起動手順}
+
+\begin{enumerate}
+  \item \path{config/solar/bwsc_2027_demo.yaml} の IP / port / route / weather path を合わせる
+  \item Raspberry Pi 側送信プログラムを配置する
+  \item \path{.\SolarSim.ps1 -Mode live_wifi -Action up} を実行する
+  \item 必要なら \path{.\SolarSim.ps1 -Mode live_wifi -Action graph} を実行する
+  \item 終了時は \path{.\SolarSim.ps1 -Mode live_wifi -Action stop}
+\end{enumerate}
+
+\section{確認項目}
+
+\begin{itemize}
+  \item \path{network status} が更新される
+  \item \path{wind model status} に \path{source=vehicle} または \path{source=chase} が出る
+  \item \path{outputs/runtime/live_forecast_raw.csv} が更新される
+  \item \path{outputs/runtime/live_forecast_corrected.csv} が更新される
+  \item \path{outputs/logs/solar_live_*.csv} が増える
+  \item \path{rqt_graph_solar_live_wifi.png} が保存できる
+\end{itemize}
+
+\end{document}

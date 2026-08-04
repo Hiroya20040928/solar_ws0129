@@ -1,0 +1,264 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={上位探索ソルバ},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{17. 上位探索ソルバ}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/upper_solver.py| \\
+        種別 & Python \\
+        区分 & planner helper \\
+        役割 & bounded global candidate search、CEM、SHGO、L-BFGS-B を束ねて upper policy を最適化する。 \\
+        起動文脈 & upper planner の数値最適化 backend。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        bounded global candidate search、CEM、SHGO、L-BFGS-B を束ねて upper policy を最適化する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item hybrid\_bounded\_minimize が中心。
+\item global 探索と local refine の接着層である。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_node.py|
+\item \path|scripts/solar_sim.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 特記事項なし。
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+_FORK_COST_FN: Callable[[np.ndarray], float] | None = None
+
+
+def _fork_finite_cost(vec: np.ndarray) -> float:
+    if _FORK_COST_FN is None:
+        return float("inf")
+    return finite_cost(_FORK_COST_FN, vec)
+
+
+def clip_to_bounds(vec: np.ndarray, bounds: Bounds) -> np.ndarray:
+    out = np.asarray(vec, dtype=float).copy()
+    for idx, (lo, hi) in enumerate(bounds):
+        out[idx] = float(np.clip(out[idx], lo, hi))
+    return out
+
+
+def finite_cost(cost_fn: Callable[[np.ndarray], float], vec: np.ndarray) -> float:
+    try:
+        value = float(cost_fn(np.asarray(vec, dtype=float)))
+    except Exception:
+        return float("inf")
+    if not np.isfinite(value):
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要関数は clip\_to\_bounds, finite\_cost, default\_seed\_library, hybrid\_bounded\_minimize, add\_candidate, local\_refine\_rows, emit\_progress, record\_grid\_candidate。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            19 & function & \path|_fork_finite_cost| & args: vec \\
+25 & function & \path|clip_to_bounds| & args: vec, bounds \\
+32 & function & \path|finite_cost| & args: cost\_fn, vec \\
+42 & function & \path|default_seed_library| & args: x0, bounds \\
+57 & function & \path|hybrid_bounded_minimize| & args: cost\_fn, x0, bounds \\
+91 & function & \path|add_candidate| & args: label, vec \\
+143 & function & \path|local_refine_rows| & args: pool \\
+201 & function & \path|emit_progress| & args: payload \\
+225 & function & \path|record_grid_candidate| & args: idx, candidate\_x, candidate\_fun \\
+369 & function & \path|should_run_cem_from_seed_consensus| & args: rows \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            13 & Bounds に Sequence[Tuple[float, float]] の結果を代入する。 \\
+16 & \_FORK\_COST\_FN に None を代入する。 \\
+19 & 関数 \_fork\_finite\_cost を定義する。 \\
+25 & 関数 clip\_to\_bounds を定義する。 \\
+32 & 関数 finite\_cost を定義する。 \\
+42 & 関数 default\_seed\_library を定義する。 \\
+57 & 関数 hybrid\_bounded\_minimize を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor| & concurrent.futures から ProcessPoolExecutor, ThreadPoolExecutor を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L273, L280。 \\
+4 & \path|from itertools import product| & itertools から product を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L260。 \\
+5 & \path|import multiprocessing as mp| & multiprocessing モジュールを利用するため。 このファイル内での主な使用位置は L275。 \\
+6 & \path|import os| & パス、環境変数、プロセス外部状態を扱うため。 このファイル内での主な使用位置は L270。 \\
+7 & \path|from typing import Callable, Iterable, List, Sequence, Tuple| & typing から Callable, Iterable, List, Sequence, Tuple を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L13, L16, L32, L42, L47, L58, L63, L75, ...。 \\
+9 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L16, L19, L25, L26, L28, L32, L34, L37, ...。 \\
+10 & \path|from scipy.optimize import minimize, shgo| & scipy.optimize から minimize, shgo を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L148, L311。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L19 関数 \path|_fork_finite_cost|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_fork_finite_cost(vec)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: finite\_cost, float
+              \item 戻り値の要点: finite\_cost(\_FORK\_COST\_FN, vec) / float('inf')
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 \_FORK\_COST\_FN is None を判定し、真なら内部処理を行う。
+\item finite\_cost(\_FORK\_COST\_FN, vec) を返す。
+            \end{enumerate}
+
+\subsection*{L25 関数 \path|clip_to_bounds|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|clip_to_bounds(vec, bounds)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: asarray, clip, copy, enumerate, float
+              \item 戻り値の要点: out
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item out に np.asarray(vec, dtype=float).copy() の結果を代入する。
+\item enumerate(bounds) を順に走査し、各要素を (idx, (lo, hi)) に入れて処理する。
+\item out を返す。
+            \end{enumerate}
+
+\subsection*{L32 関数 \path|finite_cost|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|finite_cost(cost_fn, vec)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: asarray, cost\_fn, float, isfinite
+              \item 戻り値の要点: value / float('inf') / float('inf')
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 例外処理を伴う try ブロックを実行する。
+\item 条件 not np.isfinite(value) を判定し、真なら内部処理を行う。
+\item value を返す。
+            \end{enumerate}
+
+\subsection*{L42 関数 \path|default_seed_library|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|default_seed_library(x0, bounds)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, array, asarray, clip\_to\_bounds, float, len, linspace, maximum
+              \item 戻り値の要点: seeds
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item x0 に np.asarray(x0, dtype=float) の結果を代入する。
+\item lo に np.array([float(lo\_i) for lo\_i, \_ in bounds], dtype=float) の結果を代入する。
+\item hi に np.array([float(hi\_i) for \_, hi\_i in bounds], dtype=float) の結果を代入する。
+\item span に np.maximum(hi - lo, 1e-06) の結果を代入する。
+\item seeds に [('warm\_start', clip\_to\_bounds(x0, bounds))] を代入する。
+\item (0.25, 0.4, 0.55, 0.7, 0.85) を順に走査し、各要素を frac に入れて処理する。
+\item seeds.append(...) を実行する。
+\item seeds.append(...) を実行する。
+\item seeds を返す。
+            \end{enumerate}
+
+\subsection*{L57 関数 \path|hybrid_bounded_minimize|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|hybrid_bounded_minimize(cost_fn, x0, bounds, maxiter, structured_seeds, cem_enabled, cem_mode, cem_generations, cem_population, cem_elite, local_refine_topk, seed_library_mode, rng_seed, shgo_samples, shgo_iters, cert_grid_levels, cert_grid_values, cert_max_evaluations, cert_workers, progress_callback, cert_progress_interval)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ProcessPoolExecutor, ThreadPoolExecutor, abs, add, add\_candidate, all, append, array, asarray, bool, clip, clip\_to\_bounds
+              \item 戻り値の要点: (np.asarray(best['x'], dtype=float), \{'success': bool(best.get('success', True)), 'fun': float(best['fun']), 'label': str(best.get('label', 'best')), 'nit': int(best.get('nit', 0) or 0), 'method': str(best.get('source', 'seed')), 'message': str(best.get('message', '')), 'candidates\_evaluated': int(len(evaluated) + discrete\_grid\_candidates + shgo\_nfev), 'cem\_mode': cem\_mode\_norm, 'cem\_used': cem\_used, 'seed\_consensus\_spread': consensus\_spread, 'shgo\_used': shgo\_used, 'shgo\_nfev': shgo\_nfev, 'shgo\_local\_minima': shgo\_local\_minima, 'discrete\_global\_proof': discrete\_global\_proof, 'discrete\_grid\_levels': discrete\_grid\_levels, 'discrete\_grid\_values': grid\_values.tolist() if grid\_values.size else [], 'discrete\_grid\_candidates': discrete\_grid\_candidates, 'discrete\_grid\_nonfinite': discrete\_grid\_nonfinite, 'discrete\_grid\_best\_fun': discrete\_grid\_best\_fun, 'discrete\_grid\_best\_x': discrete\_grid\_best\_x, 'deterministic\_seed\_candidates': deterministic\_seed\_candidates, 'deterministic\_seed\_nonfinite': deterministic\_seed\_nonfinite, 'finite\_library\_candidates': int(deterministic\_seed\_candidates + discrete\_grid\_candidates), 'seed\_library\_mode': seed\_library\_mode\_norm, 'selected\_x': np.asarray(best['x'], dtype=float).tolist(), 'selected\_no\_worse\_than\_grid': selected\_no\_worse\_than\_grid, 'finite\_library\_global\_proof': finite\_library\_global\_proof, 'continuous\_global\_proof': False, 'certificate\_scope': certificate\_scope\}) / (clip\_to\_bounds(x0, bounds), \{'success': False, 'fun': float('inf'), 'label': 'fallback\_warm\_start', 'nit': 0, 'method': 'fallback', 'candidates\_evaluated': int(len(evaluated)), 'cem\_used': False\}) / refined / (run, spread)
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item x0 に np.asarray(x0, dtype=float) の結果を代入する。
+\item bounds に list(bounds) の結果を代入する。
+\item lo に np.array([float(lo\_i) for lo\_i, \_ in bounds], dtype=float) の結果を代入する。
+\item hi に np.array([float(hi\_i) for \_, hi\_i in bounds], dtype=float) の結果を代入する。
+\item span に np.maximum(hi - lo, 1e-06) の結果を代入する。
+\item rng に np.random.default\_rng(int(rng\_seed)) の結果を代入する。
+\item evaluated に [] を代入する。
+\item seen に set() を代入する。
+\item 関数 add\_candidate を定義する。
+\item base\_seeds に list(structured\_seeds or []) の結果を代入する。
+            \end{enumerate}
+
+
+
+
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/upper_solver.py| を
+        \textbf{planner helper}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

@@ -1,0 +1,224 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={measure ROS2 launch 入口},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{06. measure ROS2 launch 入口}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|launch/solar_measurement.launch.py| \\
+        種別 & ROS 2 launch Python \\
+        区分 & launch \\
+        役割 & 実測収集用に preflight、distance、grade、logger、dashboard を起動する launch。 \\
+        起動文脈 & measure モード起動時に ros2 launch される。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        実測収集用に preflight、distance、grade、logger、dashboard を起動する launch。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item planner を起動せず、計測系だけを立てる。
+\item distance/grade は profile の measurement 設定で可否が決まる。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/solar_control.sh|
+\item \path|SolarSim.ps1|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/distance_node.py|
+\item \path|mpc_solarcar/grade_node.py|
+\item \path|mpc_solarcar/solar_logger_node.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_profile.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+grade_cfg = get_section(measurement_cfg, "grade")
+    meas_logging_cfg = get_section(measurement_cfg, "logging")
+
+    nodes = [
+        Node(
+            package="mpc_solarcar",
+            executable="solar_preflight_node",
+            name="solar_preflight_node",
+            parameters=[
+                {
+                    "require_speed": True,
+                    "require_distance": bool(measurement_cfg.get("use_distance_node", True)),
+                    "require_battery": False,
+                    "require_planner": False,
+                }
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要関数は generate\_launch\_description。 launch から起動する Node action は 5 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            11 & function & \path|_cfg_path| & args: profile\_path, raw \\
+15 & function & \path|_setup| & args: context \\
+97 & function & \path|generate_launch_description| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            11 & 関数 \_cfg\_path を定義する。 \\
+15 & 関数 \_setup を定義する。 \\
+97 & 関数 generate\_launch\_description を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|from launch import LaunchDescription| & launch が実行すべき action 群をまとめるため。 このファイル内での主な使用位置は L98。 \\
+4 & \path|from launch.actions import DeclareLaunchArgument, OpaqueFunction| & DeclareLaunchArgument や OpaqueFunction など launch action を使うため。 このファイル内での主な使用位置は L100, L101。 \\
+5 & \path|from launch.substitutions import LaunchConfiguration| & launch 引数の実行時値を参照するため。 このファイル内での主な使用位置は L16。 \\
+6 & \path|from launch_ros.actions import Node| & ROS 2 ノード起動 action を launch から記述するため。 このファイル内での主な使用位置は L26, L39, L50, L65, L79。 \\
+8 & \path|from mpc_solarcar.solar_profile import get_section, load_profile, resolve_relative_path| & profile YAML 読込と検証 から get\_section, load\_profile, resolve\_relative\_path を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_profile.py。 このファイル内での主な使用位置は L12, L17, L18, L19, L20, L21, L22, L23。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L11 関数 \path|_cfg_path|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|_cfg_path(profile_path, raw)|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: resolve\_relative\_path, str, strip
+  \item 戻り値の要点: resolve\_relative\_path(profile\_path.parent, raw) if str(raw or '').strip() else ''
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item resolve\_relative\_path(profile\_path.parent, raw) if str(raw or '').strip() else '' を返す。
+\end{enumerate}
+
+\subsection*{L15 関数 \path|_setup|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|_setup(context)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: LaunchConfiguration, Node, \_cfg\_path, append, bool, float, get, get\_section, int, load\_profile, perform, str
+              \item 戻り値の要点: nodes
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item profile\_yaml に LaunchConfiguration('profile\_yaml').perform(context) の結果を代入する。
+\item (profile\_path, cfg) に load\_profile(profile\_yaml) の結果を代入する。
+\item runtime\_cfg に get\_section(cfg, 'runtime') の結果を代入する。
+\item logging\_cfg に get\_section(cfg, 'logging') の結果を代入する。
+\item measurement\_cfg に get\_section(cfg, 'measurement') の結果を代入する。
+\item distance\_cfg に get\_section(measurement\_cfg, 'distance') の結果を代入する。
+\item grade\_cfg に get\_section(measurement\_cfg, 'grade') の結果を代入する。
+\item meas\_logging\_cfg に get\_section(measurement\_cfg, 'logging') の結果を代入する。
+\item nodes に [Node(package='mpc\_solarcar', executable='solar\_preflight\_node', name='solar\_preflight\_node', parameters=[\{'require\_speed': True, 'require\_distance': bool(measurement\_cfg.get('use\_distance\_node', True)), 'require\_battery': False, 'require\_planner': False\}]), Node(package='mpc\_solarcar', executable='dashboard\_node', name='dashboard\_node', parameters=[\{'host': str(runtime\_cfg.get('dashboard\_host', '0.0.0.0')), 'port': int(runtime\_cfg.get('dashboard\_port', 8080))\}]), Node(package='mpc\_solarcar', executable='solar\_logger\_node', name='solar\_logger\_node', parameters=[\{'log\_dir': \_cfg\_path(profile\_path, str(logging\_cfg.get('log\_dir', 'outputs/logs'))), 'file\_prefix': str(meas\_logging\_cfg.get('file\_prefix', 'solar\_measurement')), 'log\_rate\_hz': float(logging\_cfg.get('log\_rate\_hz', 2.0))\}])] の結果を代入する。
+\item 条件 bool(measurement\_cfg.get('use\_distance\_node', True)) を判定し、真なら内部処理を行う。
+            \end{enumerate}
+
+\subsection*{L97 関数 \path|generate_launch_description|}
+\begin{itemize}[leftmargin=1.6em]
+  \item 定義: \path|generate_launch_description()|
+  \item docstring: 明示されていない。
+  \item このブロックが直接呼ぶ主な関数・メソッド: DeclareLaunchArgument, LaunchDescription, OpaqueFunction
+  \item 戻り値の要点: LaunchDescription([DeclareLaunchArgument('profile\_yaml', default\_value='config/solar/bwsc\_2027\_demo.yaml'), OpaqueFunction(function=\_setup)])
+\end{itemize}
+\begin{enumerate}[leftmargin=1.8em]
+\item LaunchDescription([DeclareLaunchArgument('profile\_yaml', default\_value='config/solar/bwsc\_2027\_demo.yaml'), OpaqueFunction(function=\_setup)]) を返す。
+\end{enumerate}
+
+
+
+
+
+        \subsection*{launch から起動するノード}
+            \begin{longtable}{p{0.07\linewidth} p{0.30\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & executable & package / name \\
+            \midrule
+            26 & \path|solar_preflight_node| & package=mpc\_solarcar, name=solar\_preflight\_node \\
+39 & \path|dashboard_node| & package=mpc\_solarcar, name=dashboard\_node \\
+50 & \path|solar_logger_node| & package=mpc\_solarcar, name=solar\_logger\_node \\
+65 & \path|distance_node| & package=mpc\_solarcar, name=distance\_node \\
+79 & \path|grade_node| & package=mpc\_solarcar, name=grade\_node \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item launch 引数を受け取り、profile を読み込む。
+\item Node action を動的に組み立てる。
+\item LaunchDescription として ROS 2 launch へ返す。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|launch/solar_measurement.launch.py| を
+        \textbf{launch}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

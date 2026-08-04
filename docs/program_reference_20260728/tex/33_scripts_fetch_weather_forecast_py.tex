@@ -1,0 +1,208 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={offline forecast 取得 CLI},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{33. offline forecast 取得 CLI}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|scripts/fetch_weather_forecast.py| \\
+        種別 & Python \\
+        区分 & offline tool \\
+        役割 & profile に基づき計画用 weather forecast CSV を取得・保存する CLI スクリプト。 \\
+        起動文脈 & forecast action で直接呼ばれる。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        profile に基づき計画用 weather forecast CSV を取得・保存する CLI スクリプト。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item live node 版より単発実行向け。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/solar_control.sh|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/weather_utils.py|
+\item \path|mpc_solarcar/solar_profile.py|
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_profile.py|
+\item \path|mpc_solarcar/weather_utils.py|
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from mpc_solarcar.weather_utils import fetch_openmeteo_forecast, write_forecast_csv
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--profile_yaml', required=True)
+    ap.add_argument('--latitude', type=float, default=None)
+    ap.add_argument('--longitude', type=float, default=None)
+    ap.add_argument('--out_csv', default='')
+    ap.add_argument('--forecast_days', type=int, default=None)
+    ap.add_argument('--step_minutes', type=int, default=None)
+    ap.add_argument('--timezone_name', default=None)
+    ap.add_argument('--tcell_gain', type=float, default=None)
+    args = ap.parse_args()
+
+    profile_path, cfg = load_profile(args.profile_yaml)
+    runtime_cfg = get_section(cfg, 'runtime')
+    live_cfg = get_section(cfg, 'live')
+    weather_cfg = merged_dict({
+        'forecast_days': 3,
+        'step_minutes': 10,
+        'timezone_name': 'Australia/Darwin',
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要関数は main。 CLI 引数宣言は 8 件。
+
+        \subsection*{主要クラス・関数}
+\begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+\toprule
+行 & 種別 & 名前 & 補足 \\
+\midrule
+17 & function & \path|main| &  \\
+\bottomrule
+\end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            9 & ROOT に Path(\_\_file\_\_).resolve().parents[1] の結果を代入する。 \\
+10 & 条件 str(ROOT) not in sys.path を判定し、真なら内部処理を行う。 \\
+17 & 関数 main を定義する。 \\
+82 & 条件 \_\_name\_\_ == '\_\_main\_\_' を判定し、真なら内部処理を行う。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            2 & \path|import argparse| & CLI 引数を宣言し、実行時パラメータを外から受け取るため。 このファイル内での主な使用位置は L18。 \\
+3 & \path|import os| & パス、環境変数、プロセス外部状態を扱うため。 このファイル内での主な使用位置は L54, L77。 \\
+4 & \path|import sys| & sys モジュールを利用するため。 このファイル内での主な使用位置は L10, L11。 \\
+5 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L9。 \\
+7 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L55。 \\
+13 & \path|from mpc_solarcar.solar_profile import get_path, get_section, load_profile, merged_dict| & profile YAML 読込と検証 から get\_path, get\_section, load\_profile, merged\_dict を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_profile.py。 このファイル内での主な使用位置は L29, L30, L31, L32, L39, L51, L52。 \\
+14 & \path|from mpc_solarcar.weather_utils import fetch_openmeteo_forecast, write_forecast_csv| & weather\_utils.py から fetch\_openmeteo\_forecast, write\_forecast\_csv を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/weather\_utils.py。 このファイル内での主な使用位置は L69, L78。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L17 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ArgumentParser, abspath, add\_argument, dirname, exists, fetch\_openmeteo\_forecast, float, get, get\_path, get\_section, int, len
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item ap に argparse.ArgumentParser() の結果を代入する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item args に ap.parse\_args() の結果を代入する。
+            \end{enumerate}
+
+
+
+
+
+
+
+        \subsection*{CLI 引数}
+            \begin{longtable}{p{0.07\linewidth} p{0.78\linewidth}}
+            \toprule
+            行 & 引数 \\
+            \midrule
+            19 & \path|--profile_yaml| \\
+20 & \path|--latitude| \\
+21 & \path|--longitude| \\
+22 & \path|--out_csv| \\
+23 & \path|--forecast_days| \\
+24 & \path|--step_minutes| \\
+25 & \path|--timezone_name| \\
+26 & \path|--tcell_gain| \\
+            \bottomrule
+            \end{longtable}
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item CLI 引数を解釈し、main() から処理を起動する。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|scripts/fetch_weather_forecast.py| を
+        \textbf{offline tool}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

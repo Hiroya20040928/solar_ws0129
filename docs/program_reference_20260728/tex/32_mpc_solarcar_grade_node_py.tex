@@ -1,0 +1,235 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={実測勾配推定ノード},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{32. 実測勾配推定ノード}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+
+        \section*{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/grade_node.py| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & distance と altitude/GPS から grade を推定し /vehicle/grade へ publish する。 \\
+        起動文脈 & measure/live の監視・記録用の grade source。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section*{このファイルを読む理由}
+        distance と altitude/GPS から grade を推定し /vehicle/grade へ publish する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item 現在の solar mpc\_node は route profile 勾配を主に使い、/vehicle/grade を直接は使わない。
+\item ただし logger や補助用途では重要。
+        \end{itemize}
+
+        \section*{呼び出し関係}
+        \subsection*{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|launch/solar_measurement.launch.py|
+\item \path|mpc_solarcar/live_launch.py|
+        \end{itemize}
+
+        \subsection*{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 特記事項なし。
+        \end{itemize}
+
+        \subsection*{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section*{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection*{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from sensor_msgs.msg import NavSatFix
+
+
+class GradeNode(Node):
+    def __init__(self):
+        super().__init__('grade_node')
+        self.declare_parameter('min_speed_kmh', 5.0)
+        self.declare_parameter('altitude_alpha', 0.2)
+        self.declare_parameter('min_delta_s_km', 0.01)
+        self.declare_parameter('gps_topic', '/sim/gps')
+        self.declare_parameter('altitude_topic', '/vehicle/altitude_m')
+
+        self.min_speed_kmh = float(self.get_parameter('min_speed_kmh').value)
+        self.alpha = float(self.get_parameter('altitude_alpha').value)
+        self.min_delta_s_km = float(self.get_parameter('min_delta_s_km').value)
+        self.gps_topic = self.get_parameter('gps_topic').value
+        self.altitude_topic = self.get_parameter('altitude_topic').value
+
+        self.altitude_m = math.nan
+        self.altitude_ema = math.nan
+        self.s_km = math.nan
+        self.speed_kmh = math.nan
+\end{lstlisting}
+
+
+        \section*{主要構造の読み取り}
+        主要クラスは GradeNode。 主要関数は main。 ROS パラメータ宣言は 5 件。 ROS I/O は publisher 1 件、subscription 4 件。
+
+        \subsection*{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            10 & class & \path|GradeNode| & bases: Node \\
+11 & function & \path|__init__| & args: self \\
+43 & function & \path|_on_s_km| & args: self, msg \\
+46 & function & \path|_on_speed| & args: self, msg \\
+49 & function & \path|_on_altitude| & args: self, msg \\
+52 & function & \path|_on_gps| & args: self, msg \\
+56 & function & \path|_update_altitude| & args: self, altitude\_m \\
+63 & function & \path|_step| & args: self \\
+89 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            10 & クラス GradeNode を定義する。 \\
+89 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|import math| & clip、sqrt、sin/cos、有限判定など数値ロジックに使うため。 このファイル内での主な使用位置は L25, L26, L27, L28, L31, L53, L58, L64, ...。 \\
+2 & \path|import time| & wall/monotonic time に基づく周期制御や freshness 判定を行うため。 このファイル内での主な使用位置は L32。 \\
+4 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L90, L92, L94。 \\
+5 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L10。 \\
+6 & \path|from std_msgs.msg import Float32| & Float32 や String など軽量メッセージで planner / vehicle 値を publish するため。 このファイル内での主な使用位置は L34, L35, L36, L39, L43, L46, L49, L65, ...。 \\
+7 & \path|from sensor_msgs.msg import NavSatFix| & GPS 緯度経度高度を ROS topic でやり取りするため。 このファイル内での主な使用位置は L37, L52。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section*{関数・クラスを上から順に解説}
+        \subsection*{L10 クラス \path|GradeNode|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|GradeNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, \_\_init\_\_, \_update\_altitude, create\_publisher, create\_subscription, create\_timer, declare\_parameter, float, get\_logger, get\_parameter, info, isfinite
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_on\_s\_km を定義する。
+\item 関数 \_on\_speed を定義する。
+\item 関数 \_on\_altitude を定義する。
+\item 関数 \_on\_gps を定義する。
+\item 関数 \_update\_altitude を定義する。
+\item 関数 \_step を定義する。
+            \end{enumerate}
+
+\subsection*{L89 関数 \path|main|}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: GradeNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+            \end{itemize}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に GradeNode() の結果を代入する。
+\item rclpy.spin(...) を実行する。
+\item node.destroy\_node(...) を実行する。
+\item rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+
+        \subsection*{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            13 & \path|min_speed_kmh| & 5.0 \\
+14 & \path|altitude_alpha| & 0.2 \\
+15 & \path|min_delta_s_km| & 0.01 \\
+16 & \path|gps_topic| & /sim/gps \\
+17 & \path|altitude_topic| & /vehicle/altitude\_m \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection*{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            39 & publisher & \path|/vehicle/grade| & publisher \\
+34 & subscription & \path|/vehicle/s_km| & self.\_on\_s\_km \\
+35 & subscription & \path|/vehicle/speed_kmh| & self.\_on\_speed \\
+36 & subscription & \path|self.altitude_topic| & self.\_on\_altitude \\
+37 & subscription & \path|self.gps_topic| & self.\_on\_gps \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section*{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section*{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/grade_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

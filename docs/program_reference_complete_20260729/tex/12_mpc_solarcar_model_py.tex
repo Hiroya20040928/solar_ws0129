@@ -1,0 +1,1789 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={車体物理・電気モデル本体},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{12. 車体物理・電気モデル本体}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/model.py| \\
+        ソースSHA-256 & \path|91a29cea04d184a73105566c514d824c8259be3a801df05ddfd82af7e8c863c1| \\
+        種別 & Python \\
+        区分 & model \\
+        役割 & 空力、転がり、坂、PV、MPPT、drive/regen 効率、battery IV、SoC 更新を統合した vehicle model。 \\
+        起動文脈 & planner と simulation の数理コア。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        空力、転がり、坂、PV、MPPT、drive/regen 効率、battery IV、SoC 更新を統合した vehicle model。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item SolarCarModel と Params が中心。
+\item electrical\_balance が planner 側で最も多く呼ばれる。
+\item resistive\_forces、battery\_iv、soc\_step が各所から再利用される。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_node.py|
+\item \path|solar_state_node.py|
+\item \path|scripts/solar_sim.py|
+\item \path|estimator.py|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/utils_maps.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/utils_maps.py|
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+)
+
+@dataclass
+class Params:
+    dt: float=600.0
+    rho: float=1.18
+    air_density_mode: str='constant'
+    air_density_reference_pressure_pa: float=101325.0
+    CdA: float=0.13
+    Crr: float=0.002
+    Crr_per_wheel: float=0.0
+    m: float=250.0
+    g: float=9.80665
+    P_aux: float=60.0
+    P_aux_stopped: float=60.0
+    P_aux_night: float=0.0
+    aux_night_ghi_threshold_wm2: float=20.0
+    gear_eta: float=0.98
+    gear_ratio: float=6.0
+    wheel_radius: float=0.28
+    wheel_count: int=4
+    driven_wheel_count: int=2
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要クラスは Params, SolarCarModel。 主要関数は eff\_drive, eff\_regen, select\_drive\_mode, R\_int, pv\_balance, pv\_power\_mppt, charge\_efficiency, soc\_step。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            17 & class & \path|Params| &  \\
+73 & class & \path|SolarCarModel| &  \\
+10 & function & \path|_is_symbolic| & args: x \\
+74 & function & \path|__init__| & args: self, drive\_map\_path, regen\_map\_path, Rint\_map\_path, params, panel\_eff\_map\_path, mppt\_eff\_map\_path, drive\_map\_eco\_path, drive\_map\_power\_path, regen\_map\_eco\_path, regen\_map\_power\_path, ocv\_soc\_map\_path \\
+124 & function & \path|eff_drive| & args: self, v\_ms, tau\_nm \\
+137 & function & \path|eff_regen| & args: self, v\_ms, tau\_nm \\
+150 & function & \path|_update_mode_limits| & args: self \\
+158 & function & \path|_select_mode| & args: self, v\_ms, tau\_nm \\
+169 & function & \path|select_drive_mode| & args: self, v\_ms, tau\_nm \\
+172 & function & \path|R_int| & args: self, T\_C, z \\
+179 & function & \path|pv_balance| & args: self, G\_poa, T\_cell\_C \\
+222 & function & \path|pv_power_mppt| & args: self, G\_poa, T\_cell\_C \\
+225 & function & \path|_scaled_slope_pct| & args: self, slope\_pct \\
+228 & function & \path|charge_efficiency| & args: self, P\_pack \\
+235 & function & \path|soc_step| & args: self, z, P\_pack, dt\_sec \\
+262 & function & \path|ocv_from_soc| & args: self, z \\
+271 & function & \path|load_ocv_map| & args: self, path \\
+280 & function & \path|air_density| & args: self, ambient\_temp\_c, elevation\_m \\
+297 & function & \path|resistive_forces| & args: self, v\_ms, slope\_pct, headwind\_ms \\
+344 & function & \path|battery_iv| & args: self, P\_pack, z, Tbat\_C \\
+368 & function & \path|mech_power| & args: self, v\_ms, slope\_pct, headwind\_ms, inertial\_power\_w \\
+389 & function & \path|auxiliary_power| & args: self, aux\_power\_w \\
+396 & function & \path|scheduled_auxiliary_power| & args: self \\
+405 & function & \path|torque_from_mech| & args: self, P\_mech, v\_ms, wheel\_radius, ratio \\
+416 & function & \path|electrical_balance| & args: self, v\_ms, slope\_pct, z, Tbat\_C, G\_poa, Tcell\_C, headwind\_ms, aux\_power\_w, inertial\_power\_w, ambient\_temp\_c, elevation\_m \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            3 & 例外処理を伴う try ブロックを実行する。 \\
+10 & 関数 \_is\_symbolic を定義する。 \\
+17 & クラス Params を定義する。 \\
+73 & クラス SolarCarModel を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|import math| & Python標準のスカラー数値関数と定数を使うため。実際に参照する名前と行は使用位置欄で確認する。 このファイル内での主な使用位置は L329, L331, L336, L362。 \\
+2 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L135, L148, L266, L269, L292, L347, L447。 \\
+4 & \path|import casadi as ca| & casadi モジュールを利用するため。 このファイル内での主な使用位置は L6, L11, L12, L126, L128, L130, L139, L143, ...。 \\
+7 & \path|from dataclasses import dataclass| & dataclasses から dataclass を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L16。 \\
+8 & \path|from .utils_maps import read_eff_map, read_Rint_map, read_map, bilinear_interp, read_1d_map| & 効率マップ・抵抗マップ読込補間 から read\_eff\_map, read\_Rint\_map, read\_map, bilinear\_interp, read\_1d\_map を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/utils\_maps.py。 このファイル内での主な使用位置は L81, L82, L93, L95, L97, L99, L101, L106, ...。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{class、独自クラス、インスタンス、self、継承}
+クラスは、保持するデータと、そのデータを扱う関数を一つの型としてまとめる設計単位である。「独自クラス」とはPythonやROS 2が最初から用意した型ではなく、このプロジェクトが目的に合わせて定義した新しい型を指す。
+
+
+`class MPCNode(Node)`は、rclpyのNodeを基底クラスとして継承し、Nodeが持つpublisher、subscription、timer、parameterなどの機能にMPC固有機能を追加する。丸括弧内は関数引数ではなく基底クラス指定である。
+
+
+`MPCNode()`はクラスオブジェクトを呼び出して新しいインスタンスを作る。Pythonは新しい実体を用意し、その実体を第1引数selfとして`\_\_init\_\_`へ渡す。`self`は予約語ではなく慣習的な名前だが、この慣習を守ることでコードの意味が共有される。
+
+
+\begin{lstlisting}[language=python]
+class Counter:
+    def __init__(self):
+        self.value = 0
+
+    def increment(self):
+        self.value += 1
+
+counter = Counter()
+counter.increment()
+\end{lstlisting}
+
+
+`super().\_\_init\_\_(...)`は継承元の初期化処理を呼ぶ。MPCNodeではこれを省くとROSノードとして必要な内部実体が作られず、`create\_publisher`などを正しく使えない。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{先頭アンダースコア、\_\_init\_\_、名前付けの作法}
+`self.\_step\_solar`の先頭1個のアンダースコアは「クラス内部で使う実装詳細」という慣習であり、アクセスを強制禁止する機構ではない。外部コードから呼べるが、公開APIとして依存しない意思表示である。
+
+
+`\_\_init\_\_`の前後2個のアンダースコアはPythonが定めた特殊メソッド名である。クラス生成時に自動で呼ばれる。任意の名前に前後2個を付けて独自仕様を作ることは避ける。
+
+
+`\_`で始まるローカル変数は、未使用または外部へ見せない意図を示す場合がある。例えば`\_base\_csv`は戻り値として受け取る必要はあるが、その後の処理では使わないことを読者へ示す。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{デコレータと@dataclass}
+`@名前`は、直後に定義した関数またはクラスを別の関数へ渡し、その結果で定義名を置き換えるデコレータ構文である。`@Class`という一般構文があるのではなく、`@dataclass`など実際のデコレータ名を書く。
+
+
+`@dataclass`は型注釈付きフィールドから`\_\_init\_\_`、`\_\_repr\_\_`、比較処理などを自動生成する。物理パラメータや解析結果のように、名前付きデータを一まとまりで運ぶ用途に向く。
+
+
+\begin{lstlisting}[language=python]
+from dataclasses import dataclass
+
+@dataclass
+class State:
+    soc: float
+    temperature_c: float
+
+state = State(soc=0.8, temperature_c=30.0)
+\end{lstlisting}
+
+
+自動生成は検証を自動で保証しない。単位、許容範囲、相互依存制約は`\_\_post\_init\_\_`や別の検証関数で確認する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/library/dataclasses.html}{Python公式ライブラリ: dataclasses}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{list、dict、deque、NumPy配列、pandas DataFrame}
+listは順序付き可変列、tupleは順序付きで通常変更しない列、dictはキーから値を引く対応表、dequeは両端追加・削除が効率的なキューである。どの構造を選ぶかはアクセス方法と更新方法で決まる。
+
+
+NumPy配列は同種数値を連続的に扱い、要素ごとの演算、clip、補間、線形代数を簡潔に書く。shapeは各次元の要素数であり、速度系列なら通常`(N,)`、候補集団なら`(population, N)`となる。
+
+
+pandas DataFrameは列名を持つ表である。CSV読込後は列型、欠損、単位、timezone、並び順、重複を明示的に処理しなければ、数値計算が動いても意味が誤る。
+
+
+
+\subsection{車両力学、電力収支、効率map}
+\[
+F_{\mathrm{aero}}=\frac{1}{2}\rho C_dA(v+v_{\mathrm{wind}})^2,\quad F_{\mathrm{roll}}\approx mgC_{rr}\cos\theta,\quad F_{\mathrm{grade}}=mg\sin\theta
+\]
+
+車輪機械powerは概ね`P\_mech = F\_total * v + P\_inertia`で、駆動時と回生時で異なる効率mapを通してDC側powerへ変換する。mapは速度・torqueなどを軸にした実測または同定tableであり、範囲外の補間・clip規則もモデルの一部である。
+
+
+\[
+P_{\mathrm{pack}}=P_{\mathrm{drive,dc}}-P_{\mathrm{regen,dc}}+P_{\mathrm{aux}}-P_{\mathrm{pv}}
+\]
+
+符号規約は必ずコードで確認する。本プロジェクトでは正のpack powerを放電側としてSoCを減らす処理が中心であり、発電と回生はpack負荷を下げる方向に働く。
+
+
+
+\subsection{SoC、内部抵抗、端子電圧、温度、MHE}
+\[
+V=V_{\mathrm{oc}}(z,T)-IR_{\mathrm{total}}(z,T,I),\qquad z_{k+1}=z_k-\frac{\eta(I,T)I\Delta t}{Q_{\mathrm{eff}}}
+\]
+
+SoCは直接完全には観測できないため、電流積算、OCV、端子電圧、温度、容量、効率を組み合わせる。内部抵抗はSoC、温度、電流方向で変わり、発熱と電圧制約の両方へ影響する。
+
+
+MHEは有限時間窓の状態と観測誤差をまとめて最適化し、SoCや温度を推定する。古い測定や欠損値を同じ重みで使うと推定が壊れるため、timestamp freshnessと観測可用性を入口で確認する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+\subsection{freshness、filter、guard、fallback、fail-safe}
+分散システムでは最後に受け取った値が現在も有効とは限らない。受信時刻とtimeoutからfreshnessを判定し、stale値を計画状態へ無条件に同期しない。
+
+
+filterはnoiseと一時的な飛び値を抑えるが、遅れを生む。slew limitは指令変化率を制限する。安全guardはsolverのcost罰則とは別に、現在出力へ強制制約を適用する最後の防波堤である。
+
+
+fallbackは失敗時の代替動作を事前に決める設計である。前回計画保持、物理に基づく決定論的入力、停止、低速制限などから、故障modeごとに選ぶ。fallback発生はstatusとlogへ残し、正常解と区別する。
+
+
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+\subsection{CSV/YAMLのdata contractと検証}
+data contractは列名、型、単位、timezone、欠損可否、並び順、重複、許容範囲、先頭行、encodingを事前に決めた仕様である。単にCSVとして読めることは、モデル入力として正しいことを意味しない。
+
+
+同定用実測、map、route、forecast、stop、scheduleはそれぞれgrainが異なる。生成時にschema validation、物理範囲、時間単調性、route範囲、coverageを検査し、検査結果をartifactとして残す。
+
+
+学習用データと独立検証データを分離し、RMSEだけでなくbias、時系列残差、energy積算誤差、終端SoC、温度・電圧制約、外挿領域を評価する。
+
+
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L10 関数 \_is\_symbolic}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L10--L14
+              \item 所属: module直下
+              \item 定義: \path|_is_symbolic(x)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: hasattr, is\_symbolic, isinstance
+              \item 戻り値の要点: ca is not None and (isinstance(x, (ca.SX, ca.MX)) or (hasattr(x, 'is\_symbolic') and x.is\_symbolic()))
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item ca is not None and (isinstance(x, (ca.SX, ca.MX)) or (hasattr(x, 'is\_symbolic') and x.is\_symbolic())) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def _is_symbolic(x):
+    return ca is not None and (
+        isinstance(x, (ca.SX, ca.MX))
+        or (hasattr(x, 'is_symbolic') and x.is_symbolic())
+    )
+\end{lstlisting}
+
+\subsection{L17 クラス Params}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L17--L71
+              \item 所属: module直下
+              \item 定義: \path|Params(bases=none)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+\item @で始まる行は、定義したクラスを加工するdecoratorである。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item dt に 600.0 を代入する。
+\item rho に 1.18 を代入する。
+\item air\_density\_mode に 'constant' を代入する。
+\item air\_density\_reference\_pressure\_pa に 101325.0 を代入する。
+\item CdA に 0.13 を代入する。
+\item Crr に 0.002 を代入する。
+\item Crr\_per\_wheel に 0.0 を代入する。
+\item m に 250.0 を代入する。
+\item g に 9.80665 を代入する。
+\item P\_aux に 60.0 を代入する。
+\item P\_aux\_stopped に 60.0 を代入する。
+\item P\_aux\_night に 0.0 を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class Params:
+    dt: float=600.0
+    rho: float=1.18
+    air_density_mode: str='constant'
+    air_density_reference_pressure_pa: float=101325.0
+    CdA: float=0.13
+    Crr: float=0.002
+    Crr_per_wheel: float=0.0
+    m: float=250.0
+    g: float=9.80665
+    P_aux: float=60.0
+    P_aux_stopped: float=60.0
+    P_aux_night: float=0.0
+    aux_night_ghi_threshold_wm2: float=20.0
+    gear_eta: float=0.98
+    gear_ratio: float=6.0
+    wheel_radius: float=0.28
+    wheel_count: int=4
+    driven_wheel_count: int=2
+    motor_count: int=1
+    motor_type: str='generic'
+    inverter_eta: float=1.0
+    pv_area: float=4.0
+    pv_eta_ref: float=0.23
+    pv_mu_p: float=-0.0045
+    mppt_eta: float=0.95
+    panel_gain: float=1.0
+    # Calibration from the vehicle telemetry solar-power channel to actual
+    # battery-side solar power. It is applied only at telemetry ingestion.
+    solar_measurement_gain_to_pack: float=1.0
+    # Aggregate battery-side limit of the installed MPPT channels. A value
+    # at or below zero disables clipping for vehicles without declared data.
+    pv_power_limit_w: float=0.0
+    E_nom_Wh: float=3055.0
+    Q_nom_Ah: float=0.0
+...
+\end{lstlisting}
+
+\subsection{L73 クラス SolarCarModel}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L73--L477
+              \item 所属: module直下
+              \item 定義: \path|SolarCarModel(bases=none)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 eff\_drive を定義する。
+\item 関数 eff\_regen を定義する。
+\item 関数 \_update\_mode\_limits を定義する。
+\item 関数 \_select\_mode を定義する。
+\item 関数 select\_drive\_mode を定義する。
+\item 関数 R\_int を定義する。
+\item 関数 pv\_balance を定義する。
+\item 関数 pv\_power\_mppt を定義する。
+\item 関数 \_scaled\_slope\_pct を定義する。
+\item 関数 charge\_efficiency を定義する。
+\item 関数 soc\_step を定義する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class SolarCarModel:
+    def __init__(self, drive_map_path, regen_map_path, Rint_map_path,
+                 params=None, panel_eff_map_path=None, mppt_eff_map_path=None,
+                 drive_map_eco_path=None, drive_map_power_path=None,
+                 regen_map_eco_path=None, regen_map_power_path=None,
+                 ocv_soc_map_path=None):
+        self.p = params or Params()
+        self.aux_power_override_w = None
+        self.v_grid, self.tau_grid, self.Z_drv = read_eff_map(drive_map_path)
+        self.v_gridR, self.tau_gridR, self.Z_reg = read_eff_map(regen_map_path)
+        self.drive_mode = 'auto'
+        self.drive_mode_default = 'eco'
+        self.drive_mode_tau_margin = 0.0
+        self.maps_drive = {
+            'default': (self.v_grid, self.tau_grid, self.Z_drv),
+        }
+        self.maps_regen = {
+            'default': (self.v_gridR, self.tau_gridR, self.Z_reg),
+        }
+        if drive_map_eco_path:
+            self.maps_drive['eco'] = read_eff_map(drive_map_eco_path)
+        if drive_map_power_path:
+            self.maps_drive['power'] = read_eff_map(drive_map_power_path)
+        if regen_map_eco_path:
+            self.maps_regen['eco'] = read_eff_map(regen_map_eco_path)
+        if regen_map_power_path:
+            self.maps_regen['power'] = read_eff_map(regen_map_power_path)
+        self._update_mode_limits()
+        self.Tg, self.zg, self.Rmap = read_Rint_map(Rint_map_path)
+        self.panel_eff_map = None
+        self.mppt_eff_map = None
+        if panel_eff_map_path:
+            try:
+                self.Gg, self.Tcg, self.Z_panel = read_map(panel_eff_map_path)
+                self.panel_eff_map = True
+...
+\end{lstlisting}
+
+\subsection{L74 関数 SolarCarModel.\_\_init\_\_}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L74--L122
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|__init__(self, drive_map_path, regen_map_path, Rint_map_path, params = None, panel_eff_map_path = None, mppt_eff_map_path = None, drive_map_eco_path = None, drive_map_power_path = None, regen_map_eco_path = None, regen_map_power_path = None, ocv_soc_map_path = None)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Params, \_update\_mode\_limits, read\_1d\_map, read\_Rint\_map, read\_eff\_map, read\_map
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.Z\_drv, self.Z\_reg, self.\_update\_mode\_limits, self.maps\_drive, self.maps\_regen, self.tau\_grid, self.tau\_gridR, self.v\_grid, self.v\_gridR
+              \item 更新する主なインスタンス属性: self.Gg, self.Gm, self.Rmap, self.Tcg, self.Tg, self.Tm, self.Z\_drv, self.Z\_mppt, self.Z\_panel, self.Z\_reg, self.aux\_power\_override\_w, self.drive\_mode, self.drive\_mode\_default, self.drive\_mode\_tau\_margin, self.maps\_drive, self.maps\_regen, self.mppt\_eff\_map, self.ocv\_grid, self.ocv\_soc\_map, self.p, self.panel\_eff\_map, self.soc\_grid, self.tau\_grid, self.tau\_gridR
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 7、ループ 0、try 3
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.p に params or Params() の結果を代入する。
+\item self.aux\_power\_override\_w に None の結果を代入する。
+\item (self.v\_grid, self.tau\_grid, self.Z\_drv) に read\_eff\_map(drive\_map\_path) の結果を代入する。
+\item (self.v\_gridR, self.tau\_gridR, self.Z\_reg) に read\_eff\_map(regen\_map\_path) の結果を代入する。
+\item self.drive\_mode に 'auto' の結果を代入する。
+\item self.drive\_mode\_default に 'eco' の結果を代入する。
+\item self.drive\_mode\_tau\_margin に 0.0 の結果を代入する。
+\item self.maps\_drive に \{'default': (self.v\_grid, self.tau\_grid, self.Z\_drv)\} の結果を代入する。
+\item self.maps\_regen に \{'default': (self.v\_gridR, self.tau\_gridR, self.Z\_reg)\} の結果を代入する。
+\item 条件 drive\_map\_eco\_path を判定し、真なら内部処理を行う。
+\item   self.maps\_drive['eco'] に read\_eff\_map(drive\_map\_eco\_path) の結果を代入する。
+\item 条件 drive\_map\_power\_path を判定し、真なら内部処理を行う。
+\item   self.maps\_drive['power'] に read\_eff\_map(drive\_map\_power\_path) の結果を代入する。
+\item 条件 regen\_map\_eco\_path を判定し、真なら内部処理を行う。
+\item   self.maps\_regen['eco'] に read\_eff\_map(regen\_map\_eco\_path) の結果を代入する。
+\item 条件 regen\_map\_power\_path を判定し、真なら内部処理を行う。
+\item   self.maps\_regen['power'] に read\_eff\_map(regen\_map\_power\_path) の結果を代入する。
+\item self.\_update\_mode\_limits(...) を実行する。
+\item (self.Tg, self.zg, self.Rmap) に read\_Rint\_map(Rint\_map\_path) の結果を代入する。
+\item self.panel\_eff\_map に None の結果を代入する。
+\item self.mppt\_eff\_map に None の結果を代入する。
+\item 条件 panel\_eff\_map\_path を判定し、真なら内部処理を行う。
+\item   例外処理を伴う try ブロックを実行する。
+\item     (self.Gg, self.Tcg, self.Z\_panel) に read\_map(panel\_eff\_map\_path) の結果を代入する。
+\item     self.panel\_eff\_map に True の結果を代入する。
+\item     Exceptionを捕捉した場合:
+\item     self.panel\_eff\_map に None の結果を代入する。
+\item 条件 mppt\_eff\_map\_path を判定し、真なら内部処理を行う。
+\item   例外処理を伴う try ブロックを実行する。
+\item     (self.Gm, self.Tm, self.Z\_mppt) に read\_map(mppt\_eff\_map\_path) の結果を代入する。
+\item     self.mppt\_eff\_map に True の結果を代入する。
+\item     Exceptionを捕捉した場合:
+\item     self.mppt\_eff\_map に None の結果を代入する。
+\item self.ocv\_soc\_map に None の結果を代入する。
+\item 条件 ocv\_soc\_map\_path を判定し、真なら内部処理を行う。
+\item   例外処理を伴う try ブロックを実行する。
+\item     (self.soc\_grid, self.ocv\_grid) に read\_1d\_map(ocv\_soc\_map\_path) の結果を代入する。
+\item     self.ocv\_soc\_map に True の結果を代入する。
+\item     Exceptionを捕捉した場合:
+\item     self.ocv\_soc\_map に None の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def __init__(self, drive_map_path, regen_map_path, Rint_map_path,
+                 params=None, panel_eff_map_path=None, mppt_eff_map_path=None,
+                 drive_map_eco_path=None, drive_map_power_path=None,
+                 regen_map_eco_path=None, regen_map_power_path=None,
+                 ocv_soc_map_path=None):
+        self.p = params or Params()
+        self.aux_power_override_w = None
+        self.v_grid, self.tau_grid, self.Z_drv = read_eff_map(drive_map_path)
+        self.v_gridR, self.tau_gridR, self.Z_reg = read_eff_map(regen_map_path)
+        self.drive_mode = 'auto'
+        self.drive_mode_default = 'eco'
+        self.drive_mode_tau_margin = 0.0
+        self.maps_drive = {
+            'default': (self.v_grid, self.tau_grid, self.Z_drv),
+        }
+        self.maps_regen = {
+            'default': (self.v_gridR, self.tau_gridR, self.Z_reg),
+        }
+        if drive_map_eco_path:
+            self.maps_drive['eco'] = read_eff_map(drive_map_eco_path)
+        if drive_map_power_path:
+            self.maps_drive['power'] = read_eff_map(drive_map_power_path)
+        if regen_map_eco_path:
+            self.maps_regen['eco'] = read_eff_map(regen_map_eco_path)
+        if regen_map_power_path:
+            self.maps_regen['power'] = read_eff_map(regen_map_power_path)
+        self._update_mode_limits()
+        self.Tg, self.zg, self.Rmap = read_Rint_map(Rint_map_path)
+        self.panel_eff_map = None
+        self.mppt_eff_map = None
+        if panel_eff_map_path:
+            try:
+                self.Gg, self.Tcg, self.Z_panel = read_map(panel_eff_map_path)
+                self.panel_eff_map = True
+            except Exception:
+...
+\end{lstlisting}
+
+\subsection{L124 関数 SolarCarModel.eff\_drive}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L124--L135
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|eff_drive(self, v_ms, tau_nm)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_is\_symbolic, \_select\_mode, abs, bilinear\_interp, clip, fabs, float, fmax, fmin, get, sqrt
+              \item 戻り値の要点: float(np.clip(eff, 0.55, 0.99)) / ca.fmin(0.99, ca.fmax(0.55, eff))
+              \item 主なローカル代入名: Z, eff, mode, t, tN, t\_grid, v, vN, v\_grid
+              \item 読み取る主なインスタンス属性: self.\_select\_mode, self.maps\_drive, self.p
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 \_is\_symbolic(v\_ms) or \_is\_symbolic(tau\_nm) を判定し、真なら内部処理を行う。
+\item   v に ca.fabs(v\_ms) の結果を代入する。
+\item   t に ca.fabs(tau\_nm) の結果を代入する。
+\item   vN に v / 35.0 の結果を代入する。
+\item   tN に t / 60.0 の結果を代入する。
+\item   eff に 0.92 - 0.08 * vN * vN - 0.06 * ca.sqrt(tN + 1e-09) の結果を代入する。
+\item   eff に eff * float(self.p.drive\_eff\_scale) の結果を代入する。
+\item   ca.fmin(0.99, ca.fmax(0.55, eff)) を返す。
+\item mode に self.\_select\_mode(float(v\_ms), float(abs(tau\_nm))) の結果を代入する。
+\item (v\_grid, t\_grid, Z) に self.maps\_drive.get(mode, self.maps\_drive['default']) の結果を代入する。
+\item eff に float(bilinear\_interp(v\_grid, t\_grid, Z, float(v\_ms), float(abs(tau\_nm)))) の結果を代入する。
+\item eff を Mult で更新する。
+\item float(np.clip(eff, 0.55, 0.99)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def eff_drive(self, v_ms, tau_nm):
+        if _is_symbolic(v_ms) or _is_symbolic(tau_nm):
+            v = ca.fabs(v_ms); t = ca.fabs(tau_nm)
+            vN = v/35.0; tN = t/60.0
+            eff = 0.92 - 0.08*vN*vN - 0.06*ca.sqrt(tN+1e-9)
+            eff = eff * float(self.p.drive_eff_scale)
+            return ca.fmin(0.99, ca.fmax(0.55, eff))
+        mode = self._select_mode(float(v_ms), float(abs(tau_nm)))
+        v_grid, t_grid, Z = self.maps_drive.get(mode, self.maps_drive['default'])
+        eff = float(bilinear_interp(v_grid, t_grid, Z, float(v_ms), float(abs(tau_nm))))
+        eff *= float(self.p.drive_eff_scale)
+        return float(np.clip(eff, 0.55, 0.99))
+\end{lstlisting}
+
+\subsection{L137 関数 SolarCarModel.eff\_regen}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L137--L148
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|eff_regen(self, v_ms, tau_nm)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_is\_symbolic, \_select\_mode, abs, bilinear\_interp, clip, fabs, float, fmax, fmin, get
+              \item 戻り値の要点: float(np.clip(eff, 0.4, 0.95)) / ca.fmin(0.95, ca.fmax(0.4, eff))
+              \item 主なローカル代入名: Z, eff, mode, t, tN, t\_grid, v, vN, v\_grid
+              \item 読み取る主なインスタンス属性: self.\_select\_mode, self.maps\_regen, self.p
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 \_is\_symbolic(v\_ms) or \_is\_symbolic(tau\_nm) を判定し、真なら内部処理を行う。
+\item   v に ca.fabs(v\_ms) の結果を代入する。
+\item   t に ca.fabs(tau\_nm) の結果を代入する。
+\item   vN に v / 35.0 の結果を代入する。
+\item   tN に t / 60.0 の結果を代入する。
+\item   eff に 0.7 + 0.12 * vN - 0.05 * (tN - 0.3) * (tN - 0.3) の結果を代入する。
+\item   eff に eff * float(self.p.regen\_eff\_scale or self.p.drive\_eff\_scale) の結果を代入する。
+\item   ca.fmin(0.95, ca.fmax(0.4, eff)) を返す。
+\item mode に self.\_select\_mode(float(v\_ms), float(abs(tau\_nm))) の結果を代入する。
+\item (v\_grid, t\_grid, Z) に self.maps\_regen.get(mode, self.maps\_regen['default']) の結果を代入する。
+\item eff に float(bilinear\_interp(v\_grid, t\_grid, Z, float(v\_ms), float(abs(tau\_nm)))) の結果を代入する。
+\item eff を Mult で更新する。
+\item float(np.clip(eff, 0.4, 0.95)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def eff_regen(self, v_ms, tau_nm):
+        if _is_symbolic(v_ms) or _is_symbolic(tau_nm):
+            v = ca.fabs(v_ms); t = ca.fabs(tau_nm)
+            vN = v/35.0; tN = t/60.0
+            eff = 0.70 + 0.12*vN - 0.05*(tN-0.3)*(tN-0.3)
+            eff = eff * float(self.p.regen_eff_scale or self.p.drive_eff_scale)
+            return ca.fmin(0.95, ca.fmax(0.40, eff))
+        mode = self._select_mode(float(v_ms), float(abs(tau_nm)))
+        v_grid, t_grid, Z = self.maps_regen.get(mode, self.maps_regen['default'])
+        eff = float(bilinear_interp(v_grid, t_grid, Z, float(v_ms), float(abs(tau_nm))))
+        eff *= float(self.p.regen_eff_scale or self.p.drive_eff_scale)
+        return float(np.clip(eff, 0.40, 0.95))
+\end{lstlisting}
+
+\subsection{L150 関数 SolarCarModel.\_update\_mode\_limits}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L150--L156
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|_update_mode_limits(self)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, items, max
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: \_, k, t\_grid
+              \item 読み取る主なインスタンス属性: self.maps\_drive, self.tau\_max
+              \item 更新する主なインスタンス属性: self.tau\_max
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 1、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.tau\_max に \{\} の結果を代入する。
+\item self.maps\_drive.items() を順に走査し、各要素を (k, (\_, t\_grid, \_)) に入れて処理する。
+\item   例外処理を伴う try ブロックを実行する。
+\item     self.tau\_max[k] に float(max(t\_grid)) の結果を代入する。
+\item     Exceptionを捕捉した場合:
+\item     self.tau\_max[k] に 0.0 の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _update_mode_limits(self):
+        self.tau_max = {}
+        for k, (_, t_grid, _) in self.maps_drive.items():
+            try:
+                self.tau_max[k] = float(max(t_grid))
+            except Exception:
+                self.tau_max[k] = 0.0
+\end{lstlisting}
+
+\subsection{L158 関数 SolarCarModel.\_select\_mode}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L158--L167
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|_select_mode(self, v_ms: float, tau_nm: float) -> str|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, get, lower, str
+              \item 戻り値の要点: 'eco' if 'eco' in self.maps\_drive else 'default' / mode / 'power' if 'power' in self.maps\_drive else 'default'
+              \item 主なローカル代入名: eco\_max, margin, mode
+              \item 読み取る主なインスタンス属性: self.drive\_mode, self.drive\_mode\_tau\_margin, self.maps\_drive, self.tau\_max
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item mode に str(self.drive\_mode or 'default').lower() の結果を代入する。
+\item 条件 mode in ('eco', 'power') を判定し、真なら内部処理を行う。
+\item   mode を返す。
+\item eco\_max に self.tau\_max.get('eco', self.tau\_max.get('default', 0.0)) の結果を代入する。
+\item margin に float(self.drive\_mode\_tau\_margin or 0.0) の結果を代入する。
+\item 条件 tau\_nm > eco\_max + margin を判定し、真なら内部処理を行う。
+\item   'power' if 'power' in self.maps\_drive else 'default' を返す。
+\item 'eco' if 'eco' in self.maps\_drive else 'default' を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _select_mode(self, v_ms: float, tau_nm: float) -> str:
+        mode = str(self.drive_mode or 'default').lower()
+        if mode in ('eco', 'power'):
+            return mode
+        # auto
+        eco_max = self.tau_max.get('eco', self.tau_max.get('default', 0.0))
+        margin = float(self.drive_mode_tau_margin or 0.0)
+        if tau_nm > (eco_max + margin):
+            return 'power' if 'power' in self.maps_drive else 'default'
+        return 'eco' if 'eco' in self.maps_drive else 'default'
+\end{lstlisting}
+
+\subsection{L169 関数 SolarCarModel.select\_drive\_mode}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L169--L170
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|select_drive_mode(self, v_ms: float, tau_nm: float) -> str|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_select\_mode, abs
+              \item 戻り値の要点: self.\_select\_mode(v\_ms, abs(tau\_nm))
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.\_select\_mode
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.\_select\_mode(v\_ms, abs(tau\_nm)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def select_drive_mode(self, v_ms: float, tau_nm: float) -> str:
+        return self._select_mode(v_ms, abs(tau_nm))
+\end{lstlisting}
+
+\subsection{L172 関数 SolarCarModel.R\_int}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L172--L177
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|R_int(self, T_C, z)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_is\_symbolic, bilinear\_interp, float
+              \item 戻り値の要点: (R0 + R\_T + R\_z) * float(self.p.rint\_scale) / float(self.p.rint\_scale) * float(bilinear\_interp(self.Tg, self.zg, self.Rmap, T\_C, z))
+              \item 主なローカル代入名: R0, R\_T, R\_z
+              \item 読み取る主なインスタンス属性: self.Rmap, self.Tg, self.p, self.zg
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 \_is\_symbolic(T\_C) or \_is\_symbolic(z) を判定し、真なら内部処理を行う。
+\item   R0 に 0.015 の結果を代入する。
+\item   R\_T に 0.0002 * (25.0 - T\_C) の結果を代入する。
+\item   R\_z に 0.01 * (1.0 - z) の結果を代入する。
+\item   (R0 + R\_T + R\_z) * float(self.p.rint\_scale) を返す。
+\item   上の条件が偽の場合:
+\item   float(self.p.rint\_scale) * float(bilinear\_interp(self.Tg, self.zg, self.Rmap, T\_C, z)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def R_int(self, T_C, z):
+        if _is_symbolic(T_C) or _is_symbolic(z):
+            R0=0.015; R_T=0.0002*(25.0-T_C); R_z=0.01*(1.0-z)
+            return (R0+R_T+R_z) * float(self.p.rint_scale)
+        else:
+            return float(self.p.rint_scale) * float(bilinear_interp(self.Tg, self.zg, self.Rmap, T_C, z))
+\end{lstlisting}
+
+\subsection{L179 関数 SolarCarModel.pv\_balance}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L179--L220
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|pv_balance(self, G_poa, T_cell_C)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_is\_symbolic, bilinear\_interp, dict, float, fmax, fmin, max, min
+              \item 戻り値の要点: dict(eta\_panel=eta\_panel, eta\_mppt=eta\_mppt, P\_pv\_raw=P\_pv\_raw, P\_pv\_unlimited=P\_pv\_unlimited, P\_pv\_limit\_loss=P\_pv\_unlimited - P\_pv, P\_pv=P\_pv)
+              \item 主なローカル代入名: P\_pv, P\_pv\_raw, P\_pv\_unlimited, eta\_mppt, eta\_panel, power\_limit\_w, symbolic
+              \item 読み取る主なインスタンス属性: self.Gg, self.Gm, self.Tcg, self.Tm, self.Z\_mppt, self.Z\_panel, self.mppt\_eff\_map, self.p, self.panel\_eff\_map
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 6、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item symbolic に \_is\_symbolic(G\_poa) or \_is\_symbolic(T\_cell\_C) の結果を代入する。
+\item 条件 symbolic を判定し、真なら内部処理を行う。
+\item   eta\_panel に self.p.pv\_eta\_ref * (1.0 + self.p.pv\_mu\_p * (T\_cell\_C - 25.0)) の結果を代入する。
+\item   eta\_panel に ca.fmax(0.0, eta\_panel) の結果を代入する。
+\item   上の条件が偽の場合:
+\item   条件 self.panel\_eff\_map を判定し、真なら内部処理を行う。
+\item     eta\_panel に bilinear\_interp(self.Gg, self.Tcg, self.Z\_panel, float(G\_poa), float(T\_cell\_C)) の結果を代入する。
+\item     eta\_panel に max(0.0, float(eta\_panel)) の結果を代入する。
+\item     上の条件が偽の場合:
+\item     eta\_panel に self.p.pv\_eta\_ref * (1.0 + self.p.pv\_mu\_p * (T\_cell\_C - 25.0)) の結果を代入する。
+\item     eta\_panel に max(0.0, float(eta\_panel)) の結果を代入する。
+\item eta\_panel を Mult で更新する。
+\item P\_pv\_raw に eta\_panel * self.p.pv\_area * G\_poa の結果を代入する。
+\item 条件 symbolic を判定し、真なら内部処理を行う。
+\item   eta\_mppt に float(self.p.mppt\_eta) の結果を代入する。
+\item   上の条件が偽の場合:
+\item   条件 self.mppt\_eff\_map を判定し、真なら内部処理を行う。
+\item     eta\_mppt に bilinear\_interp(self.Gm, self.Tm, self.Z\_mppt, float(G\_poa), float(T\_cell\_C)) の結果を代入する。
+\item     eta\_mppt に max(0.0, float(eta\_mppt)) の結果を代入する。
+\item     上の条件が偽の場合:
+\item     eta\_mppt に float(self.p.mppt\_eta) の結果を代入する。
+\item P\_pv\_unlimited に eta\_mppt * P\_pv\_raw の結果を代入する。
+\item power\_limit\_w に max(0.0, float(self.p.pv\_power\_limit\_w)) の結果を代入する。
+\item 条件 power\_limit\_w > 0.0 を判定し、真なら内部処理を行う。
+\item   条件 symbolic を判定し、真なら内部処理を行う。
+\item     P\_pv に ca.fmin(P\_pv\_unlimited, power\_limit\_w) の結果を代入する。
+\item     上の条件が偽の場合:
+\item     P\_pv に min(float(P\_pv\_unlimited), power\_limit\_w) の結果を代入する。
+\item   上の条件が偽の場合:
+\item   P\_pv に P\_pv\_unlimited の結果を代入する。
+\item dict(eta\_panel=eta\_panel, eta\_mppt=eta\_mppt, P\_pv\_raw=P\_pv\_raw, P\_pv\_unlimited=P\_pv\_unlimited, P\_pv\_limit\_loss=P\_pv\_unlimited - P\_pv, P\_pv=P\_pv) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def pv_balance(self, G_poa, T_cell_C):
+        symbolic = _is_symbolic(G_poa) or _is_symbolic(T_cell_C)
+        if symbolic:
+            # Map interpolation is numeric. Keep the symbolic optimization
+            # path differentiable by using the map's calibrated reference
+            # model, as is done for the symbolic drive-efficiency path.
+            eta_panel = self.p.pv_eta_ref * (
+                1.0 + self.p.pv_mu_p * (T_cell_C - 25.0)
+            )
+            eta_panel = ca.fmax(0.0, eta_panel)
+        elif self.panel_eff_map:
+            eta_panel = bilinear_interp(self.Gg, self.Tcg, self.Z_panel, float(G_poa), float(T_cell_C))
+            eta_panel = max(0.0, float(eta_panel))
+        else:
+            eta_panel = self.p.pv_eta_ref*(1.0+self.p.pv_mu_p*(T_cell_C-25.0))
+            eta_panel = max(0.0, float(eta_panel))
+        eta_panel *= float(self.p.panel_gain)
+        P_pv_raw = eta_panel*self.p.pv_area*G_poa
+        if symbolic:
+            eta_mppt = float(self.p.mppt_eta)
+        elif self.mppt_eff_map:
+            eta_mppt = bilinear_interp(self.Gm, self.Tm, self.Z_mppt, float(G_poa), float(T_cell_C))
+            eta_mppt = max(0.0, float(eta_mppt))
+        else:
+            eta_mppt = float(self.p.mppt_eta)
+        P_pv_unlimited = eta_mppt*P_pv_raw
+        power_limit_w = max(0.0, float(self.p.pv_power_limit_w))
+        if power_limit_w > 0.0:
+            if symbolic:
+                P_pv = ca.fmin(P_pv_unlimited, power_limit_w)
+            else:
+                P_pv = min(float(P_pv_unlimited), power_limit_w)
+        else:
+            P_pv = P_pv_unlimited
+        return dict(
+...
+\end{lstlisting}
+
+\subsection{L222 関数 SolarCarModel.pv\_power\_mppt}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L222--L223
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|pv_power_mppt(self, G_poa, T_cell_C)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: pv\_balance
+              \item 戻り値の要点: self.pv\_balance(G\_poa, T\_cell\_C)['P\_pv']
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.pv\_balance
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.pv\_balance(G\_poa, T\_cell\_C)['P\_pv'] を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def pv_power_mppt(self, G_poa, T_cell_C):
+        return self.pv_balance(G_poa, T_cell_C)['P_pv']
+\end{lstlisting}
+
+\subsection{L225 関数 SolarCarModel.\_scaled\_slope\_pct}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L225--L226
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|_scaled_slope_pct(self, slope_pct)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float
+              \item 戻り値の要点: slope\_pct * float(self.p.grade\_scale)
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.p
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item slope\_pct * float(self.p.grade\_scale) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _scaled_slope_pct(self, slope_pct):
+        return slope_pct * float(self.p.grade_scale)
+\end{lstlisting}
+
+\subsection{L228 関数 SolarCarModel.charge\_efficiency}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L228--L233
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|charge_efficiency(self, P_pack) -> float|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float
+              \item 戻り値の要点: float(self.p.eta\_charge) if p\_pack < 0.0 else 1.0 / 1.0
+              \item 主なローカル代入名: p\_pack
+              \item 読み取る主なインスタンス属性: self.p
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 例外処理を伴う try ブロックを実行する。
+\item   p\_pack に float(P\_pack) の結果を代入する。
+\item   Exceptionを捕捉した場合:
+\item   1.0 を返す。
+\item float(self.p.eta\_charge) if p\_pack < 0.0 else 1.0 を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def charge_efficiency(self, P_pack) -> float:
+        try:
+            p_pack = float(P_pack)
+        except Exception:
+            return 1.0
+        return float(self.p.eta_charge) if p_pack < 0.0 else 1.0
+\end{lstlisting}
+
+\subsection{L235 関数 SolarCarModel.soc\_step}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L235--L260
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path!soc_step(self, z: float, P_pack: float, dt_sec: float, *, current_a: float | None = None, Tbat_C: float = 25.0) -> float!
+              \item docstring: Advance SoC using the profile's declared state definition.
+
+A positive ``Q\_nom\_Ah`` selects charge SoC and therefore coulomb
+counting, which is consistent with an OCV-vs-SoC map.  Legacy
+profiles that do not declare pack capacity retain energy integration
+so existing non-solar profiles are not silently reinterpreted.
+              \item このブロックが直接呼ぶ主な関数・メソッド: battery\_iv, charge\_efficiency, float, max
+              \item 戻り値の要点: float(z) - eta * (float(P\_pack) * float(dt\_sec) / 3600.0) / max(float(self.p.E\_nom\_Wh), 1e-06) / float(z) - eta * current * float(dt\_sec) / (3600.0 * q\_nom\_ah)
+              \item 主なローカル代入名: current, eta, q\_nom\_ah
+              \item 読み取る主なインスタンス属性: self.battery\_iv, self.charge\_efficiency, self.p
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item eta に self.charge\_efficiency(P\_pack) の結果を代入する。
+\item q\_nom\_ah に float(self.p.Q\_nom\_Ah) の結果を代入する。
+\item 条件 q\_nom\_ah > 0.0 を判定し、真なら内部処理を行う。
+\item   current に float(current\_a) if current\_a is not None else float(self.battery\_iv(P\_pack, z, Tbat\_C)['I']) の結果を代入する。
+\item   float(z) - eta * current * float(dt\_sec) / (3600.0 * q\_nom\_ah) を返す。
+\item float(z) - eta * (float(P\_pack) * float(dt\_sec) / 3600.0) / max(float(self.p.E\_nom\_Wh), 1e-06) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def soc_step(
+        self,
+        z: float,
+        P_pack: float,
+        dt_sec: float,
+        *,
+        current_a: float | None = None,
+        Tbat_C: float = 25.0,
+    ) -> float:
+        """Advance SoC using the profile's declared state definition.
+
+        A positive ``Q_nom_Ah`` selects charge SoC and therefore coulomb
+        counting, which is consistent with an OCV-vs-SoC map.  Legacy
+        profiles that do not declare pack capacity retain energy integration
+        so existing non-solar profiles are not silently reinterpreted.
+        """
+        eta = self.charge_efficiency(P_pack)
+        q_nom_ah = float(self.p.Q_nom_Ah)
+        if q_nom_ah > 0.0:
+            current = (
+                float(current_a)
+                if current_a is not None
+                else float(self.battery_iv(P_pack, z, Tbat_C)["I"])
+            )
+            return float(z) - eta * current * float(dt_sec) / (3600.0 * q_nom_ah)
+        return float(z) - eta * (float(P_pack) * float(dt_sec) / 3600.0) / max(float(self.p.E_nom_Wh), 1.0e-6)
+\end{lstlisting}
+
+\subsection{L262 関数 SolarCarModel.ocv\_from\_soc}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L262--L269
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|ocv_from_soc(self, z)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_is\_symbolic, clip, float, fmax, fmin, interp
+              \item 戻り値の要点: float(np.interp(zc, self.soc\_grid, self.ocv\_grid)) / self.p.V\_min + (self.p.V\_max - self.p.V\_min) * z\_clamped / self.p.V\_min + (self.p.V\_max - self.p.V\_min) * zc
+              \item 主なローカル代入名: z\_clamped, zc
+              \item 読み取る主なインスタンス属性: self.ocv\_grid, self.ocv\_soc\_map, self.p, self.soc\_grid
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 \_is\_symbolic(z) を判定し、真なら内部処理を行う。
+\item   z\_clamped に ca.fmin(self.p.soc\_max, ca.fmax(self.p.soc\_min, z)) の結果を代入する。
+\item   self.p.V\_min + (self.p.V\_max - self.p.V\_min) * z\_clamped を返す。
+\item zc に float(np.clip(z, self.p.soc\_min, self.p.soc\_max)) の結果を代入する。
+\item 条件 not self.ocv\_soc\_map を判定し、真なら内部処理を行う。
+\item   self.p.V\_min + (self.p.V\_max - self.p.V\_min) * zc を返す。
+\item float(np.interp(zc, self.soc\_grid, self.ocv\_grid)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def ocv_from_soc(self, z):
+        if _is_symbolic(z):
+            z_clamped = ca.fmin(self.p.soc_max, ca.fmax(self.p.soc_min, z))
+            return self.p.V_min + (self.p.V_max - self.p.V_min) * z_clamped
+        zc = float(np.clip(z, self.p.soc_min, self.p.soc_max))
+        if not self.ocv_soc_map:
+            return self.p.V_min + (self.p.V_max - self.p.V_min) * zc
+        return float(np.interp(zc, self.soc_grid, self.ocv_grid))
+\end{lstlisting}
+
+\subsection{L271 関数 SolarCarModel.load\_ocv\_map}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L271--L278
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|load_ocv_map(self, path: str) -> bool|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: read\_1d\_map
+              \item 戻り値の要点: True / False
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: self.ocv\_grid, self.ocv\_soc\_map, self.soc\_grid
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 例外処理を伴う try ブロックを実行する。
+\item   (self.soc\_grid, self.ocv\_grid) に read\_1d\_map(path) の結果を代入する。
+\item   self.ocv\_soc\_map に True の結果を代入する。
+\item   True を返す。
+\item   Exceptionを捕捉した場合:
+\item   self.ocv\_soc\_map に None の結果を代入する。
+\item   False を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def load_ocv_map(self, path: str) -> bool:
+        try:
+            self.soc_grid, self.ocv_grid = read_1d_map(path)
+            self.ocv_soc_map = True
+            return True
+        except Exception:
+            self.ocv_soc_map = None
+            return False
+\end{lstlisting}
+
+\subsection{L280 関数 SolarCarModel.air\_density}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L280--L295
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|air_density(self, ambient_temp_c = None, elevation_m = 0.0)|
+              \item docstring: Return dry-air density from the configured atmosphere model.
+
+The ideal-gas-altitude mode uses the ISA tropospheric pressure law and
+measured ambient temperature. ``rho`` remains the explicit fallback so
+old profiles retain bit-for-bit constant-density behavior.
+              \item このブロックが直接呼ぶ主な関数・メソッド: clip, float, lower, max, str
+              \item 戻り値の要点: float(pressure\_pa / (287.05 * temperature\_k)) / float(self.p.rho) / float(self.p.rho)
+              \item 主なローカル代入名: altitude, pressure\_pa, pressure\_ratio, temperature\_k
+              \item 読み取る主なインスタンス属性: self.p
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 str(self.p.air\_density\_mode or 'constant').lower() != 'ideal\_gas\_altitude' を判定し、真なら内部処理を行う。
+\item   float(self.p.rho) を返す。
+\item 条件 ambient\_temp\_c is None を判定し、真なら内部処理を行う。
+\item   float(self.p.rho) を返す。
+\item temperature\_k に max(180.0, float(ambient\_temp\_c) + 273.15) の結果を代入する。
+\item altitude に float(np.clip(elevation\_m, -500.0, 11000.0)) の結果を代入する。
+\item pressure\_ratio に max(0.05, 1.0 - 0.0065 * altitude / 288.15) ** 5.255877 の結果を代入する。
+\item pressure\_pa に max(1000.0, float(self.p.air\_density\_reference\_pressure\_pa)) * pressure\_ratio の結果を代入する。
+\item float(pressure\_pa / (287.05 * temperature\_k)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def air_density(self, ambient_temp_c=None, elevation_m=0.0):
+        """Return dry-air density from the configured atmosphere model.
+
+        The ideal-gas-altitude mode uses the ISA tropospheric pressure law and
+        measured ambient temperature. ``rho`` remains the explicit fallback so
+        old profiles retain bit-for-bit constant-density behavior.
+        """
+        if str(self.p.air_density_mode or 'constant').lower() != 'ideal_gas_altitude':
+            return float(self.p.rho)
+        if ambient_temp_c is None:
+            return float(self.p.rho)
+        temperature_k = max(180.0, float(ambient_temp_c) + 273.15)
+        altitude = float(np.clip(elevation_m, -500.0, 11000.0))
+        pressure_ratio = max(0.05, 1.0 - 0.0065 * altitude / 288.15) ** 5.255877
+        pressure_pa = max(1000.0, float(self.p.air_density_reference_pressure_pa)) * pressure_ratio
+        return float(pressure_pa / (287.05 * temperature_k))
+\end{lstlisting}
+
+\subsection{L297 関数 SolarCarModel.resistive\_forces}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L297--L342
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|resistive_forces(self, v_ms, slope_pct, headwind_ms = 0.0, *, ambient_temp_c = None, elevation_m = 0.0, air_density_kgm3 = None)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_is\_symbolic, \_scaled\_slope\_pct, air\_density, atan, cos, dict, float, fmax, max, sin
+              \item 戻り値の要点: dict(F\_aero=F\_aero, F\_roll=F\_roll, F\_grade=F\_grade, F\_total=F\_total, theta=theta, v\_rel\_ms=v\_rel, air\_density\_kgm3=float(rho), normal\_force\_n=N, Crr\_eff=Crr\_eff, slope\_scaled\_pct=float(self.\_scaled\_slope\_pct(slope\_pct))) / dict(F\_aero=F\_aero, F\_roll=F\_roll, F\_grade=F\_grade, F\_total=F\_total, theta=theta, v\_rel\_ms=v\_rel, air\_density\_kgm3=rho, normal\_force\_n=N, Crr\_eff=Crr\_eff, slope\_scaled\_pct=self.\_scaled\_slope\_pct(slope\_pct))
+              \item 主なローカル代入名: Crr\_eff, F\_aero, F\_grade, F\_roll, F\_total, N, rho, theta, v\_rel
+              \item 読み取る主なインスタンス属性: self.\_scaled\_slope\_pct, self.air\_density, self.p
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 3、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rho に self.air\_density(ambient\_temp\_c, elevation\_m) if air\_density\_kgm3 is None else air\_density\_kgm3 の結果を代入する。
+\item 条件 \_is\_symbolic(v\_ms) or \_is\_symbolic(slope\_pct) or \_is\_symbolic(headwind\_ms) を判定し、真なら内部処理を行う。
+\item   v\_rel に ca.fmax(0.0, v\_ms + headwind\_ms) の結果を代入する。
+\item   theta に ca.atan(self.\_scaled\_slope\_pct(slope\_pct) / 100.0) の結果を代入する。
+\item   F\_aero に 0.5 * rho * self.p.CdA * v\_rel ** 2 の結果を代入する。
+\item   N に self.p.m * self.p.g * ca.cos(theta) の結果を代入する。
+\item   Crr\_eff に self.p.Crr の結果を代入する。
+\item   条件 self.p.Crr\_per\_wheel and self.p.wheel\_count を判定し、真なら内部処理を行う。
+\item     Crr\_eff に self.p.Crr\_per\_wheel * float(self.p.wheel\_count) の結果を代入する。
+\item   F\_roll に Crr\_eff * N の結果を代入する。
+\item   F\_grade に self.p.m * self.p.g * ca.sin(theta) の結果を代入する。
+\item   F\_total に F\_aero + F\_roll + F\_grade の結果を代入する。
+\item   dict(F\_aero=F\_aero, F\_roll=F\_roll, F\_grade=F\_grade, F\_total=F\_total, theta=theta, v\_rel\_ms=v\_rel, air\_density\_kgm3=rho, normal\_force\_n=N, Crr\_eff=Crr\_eff, slope\_scaled\_pct=self.\_scaled\_slope\_pct(slope\_pct)) を返す。
+\item v\_rel に max(0.0, float(v\_ms) + float(headwind\_ms)) の結果を代入する。
+\item theta に math.atan(float(self.\_scaled\_slope\_pct(slope\_pct)) / 100.0) の結果を代入する。
+\item F\_aero に 0.5 * float(rho) * self.p.CdA * v\_rel ** 2 の結果を代入する。
+\item N に self.p.m * self.p.g * math.cos(theta) の結果を代入する。
+\item Crr\_eff に self.p.Crr の結果を代入する。
+\item 条件 self.p.Crr\_per\_wheel and self.p.wheel\_count を判定し、真なら内部処理を行う。
+\item   Crr\_eff に self.p.Crr\_per\_wheel * float(self.p.wheel\_count) の結果を代入する。
+\item F\_roll に Crr\_eff * N の結果を代入する。
+\item F\_grade に self.p.m * self.p.g * math.sin(theta) の結果を代入する。
+\item F\_total に F\_aero + F\_roll + F\_grade の結果を代入する。
+\item dict(F\_aero=F\_aero, F\_roll=F\_roll, F\_grade=F\_grade, F\_total=F\_total, theta=theta, v\_rel\_ms=v\_rel, air\_density\_kgm3=float(rho), normal\_force\_n=N, Crr\_eff=Crr\_eff, slope\_scaled\_pct=float(self.\_scaled\_slope\_pct(slope\_pct))) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def resistive_forces(
+        self,
+        v_ms,
+        slope_pct,
+        headwind_ms=0.0,
+        *,
+        ambient_temp_c=None,
+        elevation_m=0.0,
+        air_density_kgm3=None,
+    ):
+        rho = (
+            self.air_density(ambient_temp_c, elevation_m)
+            if air_density_kgm3 is None
+            else air_density_kgm3
+        )
+        if _is_symbolic(v_ms) or _is_symbolic(slope_pct) or _is_symbolic(headwind_ms):
+            v_rel = ca.fmax(0.0, v_ms + headwind_ms)
+            theta = ca.atan(self._scaled_slope_pct(slope_pct) / 100.0)
+            F_aero = 0.5 * rho * self.p.CdA * v_rel ** 2
+            N = self.p.m * self.p.g * ca.cos(theta)
+            Crr_eff = self.p.Crr
+            if self.p.Crr_per_wheel and self.p.wheel_count:
+                Crr_eff = self.p.Crr_per_wheel * float(self.p.wheel_count)
+            F_roll = Crr_eff * N
+            F_grade = self.p.m * self.p.g * ca.sin(theta)
+            F_total = F_aero + F_roll + F_grade
+            return dict(F_aero=F_aero, F_roll=F_roll, F_grade=F_grade,
+                        F_total=F_total, theta=theta, v_rel_ms=v_rel,
+                        air_density_kgm3=rho,
+                        normal_force_n=N, Crr_eff=Crr_eff,
+                        slope_scaled_pct=self._scaled_slope_pct(slope_pct))
+        v_rel = max(0.0, float(v_ms) + float(headwind_ms))
+        theta = math.atan(float(self._scaled_slope_pct(slope_pct)) / 100.0)
+        F_aero = 0.5 * float(rho) * self.p.CdA * v_rel ** 2
+        N = self.p.m * self.p.g * math.cos(theta)
+...
+\end{lstlisting}
+
+\subsection{L344 関数 SolarCarModel.battery\_iv}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L344--L366
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|battery_iv(self, P_pack, z, Tbat_C)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: R\_int, \_is\_symbolic, clip, dict, float, fmax, fmin, max, ocv\_from\_soc, sqrt
+              \item 戻り値の要点: dict(I=I, V=V, OCV=OCV, Rint=Rint, Rline=Rline, Rpolarization=Rpolarization, Rtotal=Rtot, iv\_discriminant=disc)
+              \item 主なローカル代入名: I, OCV, Rint, Rline, Rpolarization, Rtot, V, a, b, c, disc, symbolic, z\_rint
+              \item 読み取る主なインスタンス属性: self.R\_int, self.ocv\_from\_soc, self.p
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item OCV に self.ocv\_from\_soc(z) の結果を代入する。
+\item symbolic に \_is\_symbolic(P\_pack) or \_is\_symbolic(z) or \_is\_symbolic(Tbat\_C) の結果を代入する。
+\item z\_rint に ca.fmin(0.95, ca.fmax(0.1, z)) if symbolic else float(np.clip(z, 0.1, 0.95)) の結果を代入する。
+\item Rint に self.R\_int(Tbat\_C, z\_rint) の結果を代入する。
+\item Rline に float(self.p.r\_line\_ohm) の結果を代入する。
+\item Rpolarization に max(0.0, float(self.p.r\_polarization\_ohm)) の結果を代入する。
+\item Rtot に Rint + Rline + Rpolarization の結果を代入する。
+\item a に Rtot の結果を代入する。
+\item b に -OCV の結果を代入する。
+\item c に P\_pack の結果を代入する。
+\item 条件 symbolic を判定し、真なら内部処理を行う。
+\item   disc に ca.fmax(b * b - 4 * a * c, 0.0) の結果を代入する。
+\item   I に (OCV - ca.sqrt(disc)) / (2 * Rtot) の結果を代入する。
+\item   上の条件が偽の場合:
+\item   disc に max(float(b * b - 4 * a * c), 0.0) の結果を代入する。
+\item   I に (float(OCV) - math.sqrt(disc)) / (2 * float(Rtot)) の結果を代入する。
+\item V に OCV - I * Rtot の結果を代入する。
+\item dict(I=I, V=V, OCV=OCV, Rint=Rint, Rline=Rline, Rpolarization=Rpolarization, Rtotal=Rtot, iv\_discriminant=disc) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def battery_iv(self, P_pack, z, Tbat_C):
+        OCV = self.ocv_from_soc(z)
+        symbolic = _is_symbolic(P_pack) or _is_symbolic(z) or _is_symbolic(Tbat_C)
+        z_rint = ca.fmin(0.95, ca.fmax(0.1, z)) if symbolic else float(np.clip(z, 0.1, 0.95))
+        Rint = self.R_int(Tbat_C, z_rint)
+        Rline = float(self.p.r_line_ohm)
+        Rpolarization = max(0.0, float(self.p.r_polarization_ohm))
+        # Planner intervals are much longer than the fitted polarization time
+        # constant, so the stateless MPC model uses its steady-state resistance.
+        Rtot = Rint + Rline + Rpolarization
+        a = Rtot
+        b = -OCV
+        c = P_pack
+        if symbolic:
+            disc = ca.fmax(b * b - 4 * a * c, 0.0)
+            I = (OCV - ca.sqrt(disc)) / (2 * Rtot)
+        else:
+            disc = max(float(b * b - 4 * a * c), 0.0)
+            I = (float(OCV) - math.sqrt(disc)) / (2 * float(Rtot))
+        V = OCV - I * Rtot
+        return dict(I=I, V=V, OCV=OCV, Rint=Rint, Rline=Rline,
+                    Rpolarization=Rpolarization,
+                    Rtotal=Rtot, iv_discriminant=disc)
+\end{lstlisting}
+
+\subsection{L368 関数 SolarCarModel.mech\_power}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L368--L387
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|mech_power(self, v_ms, slope_pct, headwind_ms = 0.0, inertial_power_w = 0.0, *, ambient_temp_c = None, elevation_m = 0.0)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: resistive\_forces
+              \item 戻り値の要点: forces['F\_total'] * v\_ms + inertial\_power\_w
+              \item 主なローカル代入名: forces
+              \item 読み取る主なインスタンス属性: self.resistive\_forces
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item forces に self.resistive\_forces(v\_ms, slope\_pct, headwind\_ms, ambient\_temp\_c=ambient\_temp\_c, elevation\_m=elevation\_m) の結果を代入する。
+\item forces['F\_total'] * v\_ms + inertial\_power\_w を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def mech_power(
+        self,
+        v_ms,
+        slope_pct,
+        headwind_ms=0.0,
+        inertial_power_w=0.0,
+        *,
+        ambient_temp_c=None,
+        elevation_m=0.0,
+    ):
+        forces = self.resistive_forces(
+            v_ms,
+            slope_pct,
+            headwind_ms,
+            ambient_temp_c=ambient_temp_c,
+            elevation_m=elevation_m,
+        )
+        # Aerodynamic force depends on air-relative speed, while wheel work is
+        # force times ground speed. This matches the identification model.
+        return forces['F_total'] * v_ms + inertial_power_w
+\end{lstlisting}
+
+\subsection{L389 関数 SolarCarModel.auxiliary\_power}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L389--L394
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|auxiliary_power(self, aux_power_w = None)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, max
+              \item 戻り値の要点: max(0.0, float(self.p.P\_aux)) / max(0.0, float(aux\_power\_w)) / max(0.0, float(self.aux\_power\_override\_w))
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.aux\_power\_override\_w, self.p
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 aux\_power\_w is not None を判定し、真なら内部処理を行う。
+\item   max(0.0, float(aux\_power\_w)) を返す。
+\item 条件 self.aux\_power\_override\_w is not None を判定し、真なら内部処理を行う。
+\item   max(0.0, float(self.aux\_power\_override\_w)) を返す。
+\item max(0.0, float(self.p.P\_aux)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def auxiliary_power(self, aux_power_w=None):
+        if aux_power_w is not None:
+            return max(0.0, float(aux_power_w))
+        if self.aux_power_override_w is not None:
+            return max(0.0, float(self.aux_power_override_w))
+        return max(0.0, float(self.p.P_aux))
+\end{lstlisting}
+
+\subsection{L396 関数 SolarCarModel.scheduled\_auxiliary\_power}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L396--L403
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|scheduled_auxiliary_power(self, *, is_driving: bool, irradiance_wm2: float) -> float|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: auxiliary\_power, float, max
+              \item 戻り値の要点: max(0.0, float(self.p.P\_aux\_stopped)) / self.auxiliary\_power() / max(0.0, float(self.p.P\_aux\_night)) / self.auxiliary\_power()
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.aux\_power\_override\_w, self.auxiliary\_power, self.p
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 3、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 is\_driving を判定し、真なら内部処理を行う。
+\item   self.auxiliary\_power() を返す。
+\item 条件 float(irradiance\_wm2) <= max(0.0, float(self.p.aux\_night\_ghi\_threshold\_wm2)) を判定し、真なら内部処理を行う。
+\item   max(0.0, float(self.p.P\_aux\_night)) を返す。
+\item 条件 self.aux\_power\_override\_w is not None を判定し、真なら内部処理を行う。
+\item   self.auxiliary\_power() を返す。
+\item max(0.0, float(self.p.P\_aux\_stopped)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def scheduled_auxiliary_power(self, *, is_driving: bool, irradiance_wm2: float) -> float:
+        if is_driving:
+            return self.auxiliary_power()
+        if float(irradiance_wm2) <= max(0.0, float(self.p.aux_night_ghi_threshold_wm2)):
+            return max(0.0, float(self.p.P_aux_night))
+        if self.aux_power_override_w is not None:
+            return self.auxiliary_power()
+        return max(0.0, float(self.p.P_aux_stopped))
+\end{lstlisting}
+
+\subsection{L405 関数 SolarCarModel.torque\_from\_mech}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L405--L414
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|torque_from_mech(self, P_mech, v_ms, wheel_radius = None, ratio = None)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: (T\_m, omega\_w * ratio)
+              \item 主なローカル代入名: T\_m, T\_w, eps, omega\_w, ratio, wheel\_radius
+              \item 読み取る主なインスタンス属性: self.p
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 wheel\_radius is None を判定し、真なら内部処理を行う。
+\item   wheel\_radius に self.p.wheel\_radius の結果を代入する。
+\item 条件 ratio is None を判定し、真なら内部処理を行う。
+\item   ratio に self.p.gear\_ratio の結果を代入する。
+\item eps に 0.001 の結果を代入する。
+\item omega\_w に v\_ms / wheel\_radius の結果を代入する。
+\item T\_w に P\_mech / (omega\_w + eps) の結果を代入する。
+\item T\_m に T\_w / ratio の結果を代入する。
+\item (T\_m, omega\_w * ratio) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def torque_from_mech(self, P_mech, v_ms, wheel_radius=None, ratio=None):
+        if wheel_radius is None:
+            wheel_radius = self.p.wheel_radius
+        if ratio is None:
+            ratio = self.p.gear_ratio
+        eps=1e-3
+        omega_w = v_ms/wheel_radius
+        T_w = P_mech/(omega_w+eps)
+        T_m = T_w/ratio
+        return T_m, omega_w*ratio
+\end{lstlisting}
+
+\subsection{L416 関数 SolarCarModel.electrical\_balance}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L416--L477
+              \item 所属: \path|SolarCarModel|
+              \item 定義: \path|electrical_balance(self, v_ms, slope_pct, z, Tbat_C, G_poa, Tcell_C, headwind_ms = 0.0, aux_power_w = None, inertial_power_w = 0.0, ambient_temp_c = None, elevation_m = 0.0)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_is\_symbolic, auxiliary\_power, battery\_iv, charge\_efficiency, clip, dict, eff\_drive, eff\_regen, float, fmax, max, pv\_balance
+              \item 戻り値の要点: dict(P\_pv=P\_pv, P\_pv\_raw=pv['P\_pv\_raw'], P\_pv\_unlimited=pv['P\_pv\_unlimited'], P\_pv\_limit\_loss=pv['P\_pv\_limit\_loss'], eta\_panel=pv['eta\_panel'], eta\_mppt=pv['eta\_mppt'], P\_mech=P\_mech\_wheel, P\_mech\_wheel=P\_mech\_wheel, P\_road\_load=P\_road\_load, P\_inertia=inertial\_power\_w, P\_aux=P\_aux, P\_pack=P\_pack, I=I, V=V, losses\_line=losses\_line, losses\_int=losses\_int, losses\_rint=losses\_rint, losses\_polarization=losses\_polarization, OCV=OCV, Rint=Rint, Rline=Rline, Rpolarization=Rpolarization, Rtotal=Rtot, iv\_discriminant=disc, eta\_charge=eta\_charge, P\_dc\_to\_drv=P\_dc\_to\_drv, P\_reg\_to\_dc=P\_reg\_to\_dc, eff\_drv=eff\_drv, eff\_reg=eff\_reg, torque\_drive\_nm=Tm\_drv, torque\_regen\_nm=Tm\_reg, omega\_motor\_radps=omega\_m, omega\_wheel\_radps=omega\_m / max(float(self.p.gear\_ratio), 1e-09))
+              \item 主なローカル代入名: I, OCV, P\_aux, P\_dc\_to\_drv, P\_mech\_neg, P\_mech\_pos, P\_mech\_wheel, P\_pack, P\_pv, P\_reg\_to\_dc, P\_road\_load, Rint, Rline, Rpolarization, Rtot, Tm\_drv, Tm\_reg, V, \_, disc
+              \item 読み取る主なインスタンス属性: self.auxiliary\_power, self.battery\_iv, self.charge\_efficiency, self.eff\_drive, self.eff\_regen, self.p, self.pv\_balance, self.resistive\_forces, self.torque\_from\_mech
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item pv に self.pv\_balance(G\_poa, Tcell\_C) の結果を代入する。
+\item P\_pv に pv['P\_pv'] の結果を代入する。
+\item road\_forces に self.resistive\_forces(v\_ms, slope\_pct, headwind\_ms, ambient\_temp\_c=ambient\_temp\_c, elevation\_m=elevation\_m) の結果を代入する。
+\item P\_road\_load に road\_forces['F\_total'] * v\_ms の結果を代入する。
+\item P\_mech\_wheel に P\_road\_load + inertial\_power\_w の結果を代入する。
+\item symbolic に \_is\_symbolic(P\_mech\_wheel) or \_is\_symbolic(z) or \_is\_symbolic(Tbat\_C) or \_is\_symbolic(inertial\_power\_w) の結果を代入する。
+\item 条件 symbolic を判定し、真なら内部処理を行う。
+\item   P\_mech\_pos に ca.fmax(P\_mech\_wheel, 0.0) の結果を代入する。
+\item   P\_mech\_neg に ca.fmax(-P\_mech\_wheel, 0.0) の結果を代入する。
+\item   上の条件が偽の場合:
+\item   P\_mech\_pos に max(float(P\_mech\_wheel), 0.0) の結果を代入する。
+\item   P\_mech\_neg に max(-float(P\_mech\_wheel), 0.0) の結果を代入する。
+\item (Tm\_drv, omega\_m) に self.torque\_from\_mech(P\_mech\_pos, v\_ms) の結果を代入する。
+\item eff\_drv に self.eff\_drive(v\_ms, Tm\_drv) の結果を代入する。
+\item P\_dc\_to\_drv に P\_mech\_pos / (eff\_drv * self.p.gear\_eta * self.p.inverter\_eta) の結果を代入する。
+\item (Tm\_reg, \_) に self.torque\_from\_mech(P\_mech\_neg, v\_ms) の結果を代入する。
+\item eff\_reg に self.eff\_regen(v\_ms, Tm\_reg) の結果を代入する。
+\item regen\_utilization に float(np.clip(self.p.regen\_utilization, 0.0, 1.0)) の結果を代入する。
+\item P\_reg\_to\_dc に regen\_utilization * eff\_reg * self.p.gear\_eta * self.p.inverter\_eta * P\_mech\_neg の結果を代入する。
+\item P\_aux に self.auxiliary\_power(aux\_power\_w) の結果を代入する。
+\item P\_pack に P\_dc\_to\_drv - P\_reg\_to\_dc + P\_aux - P\_pv の結果を代入する。
+\item iv に self.battery\_iv(P\_pack, z, Tbat\_C) の結果を代入する。
+\item OCV に iv['OCV'] の結果を代入する。
+\item Rint に iv['Rint'] の結果を代入する。
+\item Rline に iv['Rline'] の結果を代入する。
+\item Rpolarization に iv['Rpolarization'] の結果を代入する。
+\item Rtot に iv['Rtotal'] の結果を代入する。
+\item disc に iv['iv\_discriminant'] の結果を代入する。
+\item I に iv['I'] の結果を代入する。
+\item V に iv['V'] の結果を代入する。
+\item losses\_line に I * I * Rline の結果を代入する。
+\item losses\_rint に I * I * Rint の結果を代入する。
+\item losses\_polarization に I * I * Rpolarization の結果を代入する。
+\item losses\_int に losses\_rint + losses\_polarization の結果を代入する。
+\item eta\_charge に self.charge\_efficiency(P\_pack) の結果を代入する。
+\item dict(P\_pv=P\_pv, P\_pv\_raw=pv['P\_pv\_raw'], P\_pv\_unlimited=pv['P\_pv\_unlimited'], P\_pv\_limit\_loss=pv['P\_pv\_limit\_loss'], eta\_panel=pv['eta\_panel'], eta\_mppt=pv['eta\_mppt'], P\_mech=P\_mech\_wheel, P\_mech\_wheel=P\_mech\_wheel, P\_road\_load=P\_road\_load, P\_inertia=inertial\_power\_w, P\_aux=P\_aux, P\_pack=P\_pack, I=I, V=V, losses\_line=losses\_line, losses\_int=losses\_int, losses\_rint=losses\_rint, losses\_polarization=losses\_polarization, OCV=OCV, Rint=Rint, Rline=Rline, Rpolarization=Rpolarization, Rtotal=Rtot, iv\_discriminant=disc, eta\_charge=eta\_charge, P\_dc\_to\_drv=P\_dc\_to\_drv, P\_reg\_to\_dc=P\_reg\_to\_dc, eff\_drv=eff\_drv, eff\_reg=eff\_reg, torque\_drive\_nm=Tm\_drv, torque\_regen\_nm=Tm\_reg, omega\_motor\_radps=omega\_m, omega\_wheel\_radps=omega\_m / max(float(self.p.gear\_ratio), 1e-09)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def electrical_balance(self, v_ms, slope_pct, z, Tbat_C, G_poa, Tcell_C,
+                           headwind_ms=0.0, aux_power_w=None, inertial_power_w=0.0,
+                           ambient_temp_c=None, elevation_m=0.0):
+        pv = self.pv_balance(G_poa, Tcell_C)
+        P_pv = pv['P_pv']
+        road_forces = self.resistive_forces(
+            v_ms,
+            slope_pct,
+            headwind_ms,
+            ambient_temp_c=ambient_temp_c,
+            elevation_m=elevation_m,
+        )
+        P_road_load = road_forces['F_total'] * v_ms
+        P_mech_wheel = P_road_load + inertial_power_w
+        symbolic = (
+            _is_symbolic(P_mech_wheel)
+            or _is_symbolic(z)
+            or _is_symbolic(Tbat_C)
+            or _is_symbolic(inertial_power_w)
+        )
+        if symbolic:
+            P_mech_pos = ca.fmax(P_mech_wheel, 0.0)
+            P_mech_neg = ca.fmax(-P_mech_wheel, 0.0)
+        else:
+            P_mech_pos = max(float(P_mech_wheel), 0.0)
+            P_mech_neg = max(-float(P_mech_wheel), 0.0)
+        Tm_drv, omega_m = self.torque_from_mech(P_mech_pos, v_ms)
+        eff_drv = self.eff_drive(v_ms, Tm_drv)
+        P_dc_to_drv = P_mech_pos/(eff_drv*self.p.gear_eta*self.p.inverter_eta)
+        Tm_reg, _ = self.torque_from_mech(P_mech_neg, v_ms)
+        eff_reg = self.eff_regen(v_ms, Tm_reg)
+        regen_utilization = float(np.clip(self.p.regen_utilization, 0.0, 1.0))
+        P_reg_to_dc = regen_utilization*eff_reg*self.p.gear_eta*self.p.inverter_eta*P_mech_neg
+        P_aux = self.auxiliary_power(aux_power_w)
+        P_pack = P_dc_to_drv - P_reg_to_dc + P_aux - P_pv
+...
+\end{lstlisting}
+
+
+
+
+
+
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/model.py| を
+        \textbf{model}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

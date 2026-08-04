@@ -1,0 +1,463 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={テンプレ識別パイプライン入口},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{34. テンプレ識別パイプライン入口}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|scripts/run_identification_pipeline.py| \\
+        ソースSHA-256 & \path|28ea90f2cfb526907c9e1cbe38255e1633eddf96050b196f794e257c942a4bf0| \\
+        種別 & Python \\
+        区分 & identification \\
+        役割 & template package の raw データから地図生成・基礎整備・識別処理を繋ぐ入口。 \\
+        起動文脈 & identify action で呼ばれる。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        template package の raw データから地図生成・基礎整備・識別処理を繋ぐ入口。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item template/package 初期整備向きの高位入口。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/solar_control.sh|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/run_vehicle_identification.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/solar_profile.py|
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+from mpc_solarcar.solar_profile import get_section, load_profile
+
+
+def run(cmd):
+    print('RUN', ' '.join(cmd))
+    subprocess.run(cmd, check=True)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--profile_yaml', required=True)
+    ap.add_argument('--input_dir', default='')
+    ap.add_argument('--output_dir', default='')
+    args = ap.parse_args()
+
+    profile_path, cfg = load_profile(args.profile_yaml)
+    ident_cfg = get_section(cfg, 'identification')
+    input_dir = os.path.abspath(args.input_dir or ident_cfg.get('input_dir', 'data/identification/raw'))
+    output_dir = os.path.abspath(args.output_dir or ident_cfg.get('output_dir', 'outputs/identification'))
+    os.makedirs(output_dir, exist_ok=True)
+
+    python = sys.executable
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要関数は run, main。 CLI 引数宣言は 3 件。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            15 & function & \path|run| & args: cmd \\
+20 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            8 & ROOT に Path(\_\_file\_\_).resolve().parents[1] の結果を代入する。 \\
+9 & 条件 str(ROOT) not in sys.path を判定し、真なら内部処理を行う。 \\
+15 & 関数 run を定義する。 \\
+20 & 関数 main を定義する。 \\
+88 & 条件 \_\_name\_\_ == '\_\_main\_\_' を判定し、真なら内部処理を行う。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            2 & \path|import argparse| & CLI 引数を宣言し、実行時パラメータを外から受け取るため。 このファイル内での主な使用位置は L21。 \\
+3 & \path|import os| & パス、環境変数、プロセス外部状態を扱うため。 このファイル内での主な使用位置は L29, L30, L31, L35, L36, L40, L41, L44, ...。 \\
+4 & \path|import subprocess| & git 情報取得や外部コマンド実行を行うため。 このファイル内での主な使用位置は L17。 \\
+5 & \path|import sys| & sys モジュールを利用するため。 このファイル内での主な使用位置は L9, L10, L33。 \\
+6 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L8。 \\
+12 & \path|from mpc_solarcar.solar_profile import get_section, load_profile| & profile YAML 読込と検証 から get\_section, load\_profile を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/solar\_profile.py。 このファイル内での主な使用位置は L27, L28, L72。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{CLI、PowerShell、Bash、環境変数、終了コード}
+CLIは端末からプログラム名と引数を渡す操作界面である。`argparse`は文字列として届く引数を名前、型、既定値、必須性に従って解析する。
+
+
+PowerShellとBashは別のshellであり、変数記法、改行継続、引用、パス表記が異なる。このプロジェクトではWindows側のSolarSim.ps1がWSL側のsolar\_control.shへ処理を渡す。
+
+
+環境変数は親プロセスから子プロセスへ受け渡される名前付き文字列である。ROS\_DOMAIN\_ID、RMW\_IMPLEMENTATION、Pythonの数値スレッド数などはコード外から動作を変えるため、実行記録へ残す必要がある。
+
+
+終了コード0は一般に成功、0以外は失敗を示す。shellルータは子プロセスの終了コードを握り潰さず上位へ返すことで、自動運用が失敗を検知できる。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\end{itemize}
+
+\subsection{天候、route、補間、時刻、単位}
+予報は時刻だけの系列か、時刻とroute距離の2次元gridになり得る。現在時刻tと距離sがgrid点の間なら、周囲の値から補間して日射、温度、風を求める。
+
+
+UTC、現地timezone、naive datetimeを混ぜると数時間のずれが発生する。入力でtimezoneを確定し、内部比較はUTC、表示は現地時刻という役割分担が安全である。
+
+
+route距離のkm、速度のkm/hとm/s、時間の秒、energyのWhとJを跨ぐため、変換係数3.6、3600、1000の意味を各式で確認する。
+
+
+
+\subsection{CSV/YAMLのdata contractと検証}
+data contractは列名、型、単位、timezone、欠損可否、並び順、重複、許容範囲、先頭行、encodingを事前に決めた仕様である。単にCSVとして読めることは、モデル入力として正しいことを意味しない。
+
+
+同定用実測、map、route、forecast、stop、scheduleはそれぞれgrainが異なる。生成時にschema validation、物理範囲、時間単調性、route範囲、coverageを検査し、検査結果をartifactとして残す。
+
+
+学習用データと独立検証データを分離し、RMSEだけでなくbias、時系列残差、energy積算誤差、終端SoC、温度・電圧制約、外挿領域を評価する。
+
+
+
+\subsection{単体試験、SILS、replay、観測可能性}
+単体試験は関数やモデル項の局所契約、SILSは複数Nodeと時間進行を含む閉ループ、historical replayは実測入力への再現性、本番preflightは実機通信と停止動作を確認する。目的が異なるため一つで代用しない。
+
+
+再現可能な診断には、入力、出力、内部状態、solver成否、候補数、計算時間、fallback、source revision、profile hashを同じrun IDで記録する。
+
+
+非同期不具合は最終値だけでは追えない。topic周期、message age、callback所要時間、queue遅延、Node生存、publisher数を同時に観測する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/ros2_packages/humble/api/rqt_graph/index.html}{ROS 2 Humble公式: rqt\_graph}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html}{ROS 2 Humble公式: Recording and playing back data}
+\item \href{https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Executors.html}{ROS 2公式: Executors}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L15 関数 run}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L15--L17
+              \item 所属: module直下
+              \item 定義: \path|run(cmd)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: join, print, run
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item print(...) を実行する。
+\item subprocess.run(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def run(cmd):
+    print('RUN', ' '.join(cmd))
+    subprocess.run(cmd, check=True)
+\end{lstlisting}
+
+\subsection{L20 関数 main}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L20--L85
+              \item 所属: module直下
+              \item 定義: \path|main()|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ArgumentParser, abspath, add\_argument, exists, get, get\_section, join, load\_profile, makedirs, parse\_args, print, run
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: ap, args, cfg, drive\_csv, gps\_csv, ident\_cfg, input\_dir, model\_cfg, ocv\_csv, output\_dir, panel\_csv, profile\_path, pulse\_csv, python, rest\_csv
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 5、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item ap に argparse.ArgumentParser() の結果を代入する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item ap.add\_argument(...) を実行する。
+\item args に ap.parse\_args() の結果を代入する。
+\item (profile\_path, cfg) に load\_profile(args.profile\_yaml) の結果を代入する。
+\item ident\_cfg に get\_section(cfg, 'identification') の結果を代入する。
+\item input\_dir に os.path.abspath(args.input\_dir or ident\_cfg.get('input\_dir', 'data/identification/raw')) の結果を代入する。
+\item output\_dir に os.path.abspath(args.output\_dir or ident\_cfg.get('output\_dir', 'outputs/identification')) の結果を代入する。
+\item os.makedirs(...) を実行する。
+\item python に sys.executable の結果を代入する。
+\item gps\_csv に os.path.join(input\_dir, 'gps\_track.csv') の結果を代入する。
+\item 条件 os.path.exists(gps\_csv) を判定し、真なら内部処理を行う。
+\item   run(...) を実行する。
+\item rest\_csv に os.path.join(input\_dir, 'battery\_rest.csv') の結果を代入する。
+\item ocv\_csv に os.path.join(output\_dir, 'ocv\_soc\_curve\_identified.csv') の結果を代入する。
+\item 条件 os.path.exists(rest\_csv) を判定し、真なら内部処理を行う。
+\item   run(...) を実行する。
+\item pulse\_csv に os.path.join(input\_dir, 'battery\_pulse.csv') の結果を代入する。
+\item 条件 os.path.exists(pulse\_csv) and os.path.exists(ocv\_csv) を判定し、真なら内部処理を行う。
+\item   run(...) を実行する。
+\item panel\_csv に os.path.join(input\_dir, 'panel\_sweep.csv') の結果を代入する。
+\item 条件 os.path.exists(panel\_csv) を判定し、真なら内部処理を行う。
+\item   run(...) を実行する。
+\item drive\_csv に os.path.join(input\_dir, 'drive\_timeseries.csv') の結果を代入する。
+\item model\_cfg に get\_section(cfg, 'model') の結果を代入する。
+\item 条件 os.path.exists(drive\_csv) を判定し、真なら内部処理を行う。
+\item   run(...) を実行する。
+\item print(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--profile_yaml', required=True)
+    ap.add_argument('--input_dir', default='')
+    ap.add_argument('--output_dir', default='')
+    args = ap.parse_args()
+
+    profile_path, cfg = load_profile(args.profile_yaml)
+    ident_cfg = get_section(cfg, 'identification')
+    input_dir = os.path.abspath(args.input_dir or ident_cfg.get('input_dir', 'data/identification/raw'))
+    output_dir = os.path.abspath(args.output_dir or ident_cfg.get('output_dir', 'outputs/identification'))
+    os.makedirs(output_dir, exist_ok=True)
+
+    python = sys.executable
+
+    gps_csv = os.path.join(input_dir, 'gps_track.csv')
+    if os.path.exists(gps_csv):
+        run([
+            python, 'scripts/build_route_profile_from_gps.py',
+            '--gps_csv', gps_csv,
+            '--out_waypoints_csv', os.path.join(output_dir, 'route_waypoints_identified.csv'),
+            '--out_profile_csv', os.path.join(output_dir, 'route_profile_identified.csv'),
+        ])
+
+    rest_csv = os.path.join(input_dir, 'battery_rest.csv')
+    pulse_csv = os.path.join(input_dir, 'battery_pulse.csv')
+    if os.path.exists(rest_csv) != os.path.exists(pulse_csv):
+        raise ValueError('battery identification requires both rest and pulse evidence')
+    if os.path.exists(rest_csv) and os.path.exists(pulse_csv):
+        run([
+            python, 'scripts/fit_battery_ecm_from_pulses.py',
+            '--rest-csv', rest_csv,
+            '--pulse-csv', pulse_csv,
+            '--output-dir', os.path.join(output_dir, 'battery_ecm'),
+        ])
+...
+\end{lstlisting}
+
+旧版の\path|build_ocv_curve.py|と\path|build_rint_map_from_timeseries.py|による分離処理は廃止された。OCV、R0,total、R1、tauは、独立SoC付き休止試験とsub-second pulse試験を同時に満たす場合だけ一括同定する。
+
+
+
+
+
+
+
+        \subsection{CLI 引数}
+            \begin{longtable}{p{0.07\linewidth} p{0.78\linewidth}}
+            \toprule
+            行 & 引数 \\
+            \midrule
+            22 & \path|--profile_yaml| \\
+23 & \path|--input_dir| \\
+24 & \path|--output_dir| \\
+            \bottomrule
+            \end{longtable}
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item CLI 引数を解釈し、main() から処理を起動する。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|scripts/run_identification_pipeline.py| を
+        \textbf{identification}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

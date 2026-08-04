@@ -1,0 +1,848 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={Battery MHE},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{18. Battery MHE}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/estimator.py| \\
+        ソースSHA-256 & \path|a5b46d1669a9ef838d07a4747d013e8c11bf0c4080cef73f07d0cd4fcadc8d31| \\
+        種別 & Python \\
+        区分 & estimator \\
+        役割 & 観測された I/V/SoC/Tb と model を使って内部 SoC/Tb を短ホライズンで補正する。 \\
+        起動文脈 & mpc\_node 内の状態推定器。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        観測された I/V/SoC/Tb と model を使って内部 SoC/Tb を短ホライズンで補正する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item BatteryMHE が入力列を保持し、最尤に近い初期状態を逆推定する。
+\item planner 本体の物理モデルをそのまま使う。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_node.py|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/model.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item 同一リポジトリ内の明示 import は少ない。
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+@dataclass
+class MheInput:
+    v_ms: float
+    slope_pct: float
+    G_poa: float
+    Tcell_C: float
+    Tamb_C: float
+    headwind_ms: float
+    dt: float
+    inertial_power_w: float = 0.0
+    elevation_m: float = 0.0
+
+
+@dataclass
+class MheMeas:
+    soc: Optional[float] = None
+    Tb: Optional[float] = None
+    I: Optional[float] = None
+    V: Optional[float] = None
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要クラスは MheInput, MheMeas, BatteryMHE。 主要関数は push, estimate, cost。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            11 & class & \path|MheInput| &  \\
+24 & class & \path|MheMeas| &  \\
+31 & class & \path|BatteryMHE| &  \\
+32 & function & \path|__init__| & args: self, model, horizon\_steps, w\_soc, w\_tb, w\_i, w\_v, w\_prior, soc\_bounds, tb\_bounds \\
+54 & function & \path|push| & args: self, u, y \\
+57 & function & \path|_simulate| & args: self, z0, Tb0 \\
+85 & function & \path|estimate| & args: self, z\_init, Tb\_init \\
+89 & function & \path|cost| & args: x \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            11 & クラス MheInput を定義する。 \\
+24 & クラス MheMeas を定義する。 \\
+31 & クラス BatteryMHE を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|import math| & Python標準のスカラー数値関数と定数を使うため。実際に参照する名前と行は使用位置欄で確認する。 このファイル内での主な使用位置は L94, L96, L98, L100。 \\
+2 & \path|from collections import deque| & 固定長の時系列や遅延キューを効率よく保持するため。 このファイル内での主な使用位置は L45。 \\
+3 & \path|from dataclasses import dataclass| & dataclasses から dataclass を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L10, L23。 \\
+4 & \path|from typing import Optional, Tuple| & typing から Optional, Tuple を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L25, L26, L27, L28, L41, L42, L85。 \\
+6 & \path|import numpy as np| & 数値配列、clip、補間、統計計算を行うため。 このファイル内での主な使用位置は L104。 \\
+7 & \path|from scipy.optimize import minimize| & 目的関数と制約・boundsに基づく連続数値最適化を解くため。 このファイル内での主な使用位置は L106。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{class、独自クラス、インスタンス、self、継承}
+クラスは、保持するデータと、そのデータを扱う関数を一つの型としてまとめる設計単位である。「独自クラス」とはPythonやROS 2が最初から用意した型ではなく、このプロジェクトが目的に合わせて定義した新しい型を指す。
+
+
+`class MPCNode(Node)`は、rclpyのNodeを基底クラスとして継承し、Nodeが持つpublisher、subscription、timer、parameterなどの機能にMPC固有機能を追加する。丸括弧内は関数引数ではなく基底クラス指定である。
+
+
+`MPCNode()`はクラスオブジェクトを呼び出して新しいインスタンスを作る。Pythonは新しい実体を用意し、その実体を第1引数selfとして`\_\_init\_\_`へ渡す。`self`は予約語ではなく慣習的な名前だが、この慣習を守ることでコードの意味が共有される。
+
+
+\begin{lstlisting}[language=python]
+class Counter:
+    def __init__(self):
+        self.value = 0
+
+    def increment(self):
+        self.value += 1
+
+counter = Counter()
+counter.increment()
+\end{lstlisting}
+
+
+`super().\_\_init\_\_(...)`は継承元の初期化処理を呼ぶ。MPCNodeではこれを省くとROSノードとして必要な内部実体が作られず、`create\_publisher`などを正しく使えない。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{先頭アンダースコア、\_\_init\_\_、名前付けの作法}
+`self.\_step\_solar`の先頭1個のアンダースコアは「クラス内部で使う実装詳細」という慣習であり、アクセスを強制禁止する機構ではない。外部コードから呼べるが、公開APIとして依存しない意思表示である。
+
+
+`\_\_init\_\_`の前後2個のアンダースコアはPythonが定めた特殊メソッド名である。クラス生成時に自動で呼ばれる。任意の名前に前後2個を付けて独自仕様を作ることは避ける。
+
+
+`\_`で始まるローカル変数は、未使用または外部へ見せない意図を示す場合がある。例えば`\_base\_csv`は戻り値として受け取る必要はあるが、その後の処理では使わないことを読者へ示す。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{デコレータと@dataclass}
+`@名前`は、直後に定義した関数またはクラスを別の関数へ渡し、その結果で定義名を置き換えるデコレータ構文である。`@Class`という一般構文があるのではなく、`@dataclass`など実際のデコレータ名を書く。
+
+
+`@dataclass`は型注釈付きフィールドから`\_\_init\_\_`、`\_\_repr\_\_`、比較処理などを自動生成する。物理パラメータや解析結果のように、名前付きデータを一まとまりで運ぶ用途に向く。
+
+
+\begin{lstlisting}[language=python]
+from dataclasses import dataclass
+
+@dataclass
+class State:
+    soc: float
+    temperature_c: float
+
+state = State(soc=0.8, temperature_c=30.0)
+\end{lstlisting}
+
+
+自動生成は検証を自動で保証しない。単位、許容範囲、相互依存制約は`\_\_post\_init\_\_`や別の検証関数で確認する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/library/dataclasses.html}{Python公式ライブラリ: dataclasses}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{list、dict、deque、NumPy配列、pandas DataFrame}
+listは順序付き可変列、tupleは順序付きで通常変更しない列、dictはキーから値を引く対応表、dequeは両端追加・削除が効率的なキューである。どの構造を選ぶかはアクセス方法と更新方法で決まる。
+
+
+NumPy配列は同種数値を連続的に扱い、要素ごとの演算、clip、補間、線形代数を簡潔に書く。shapeは各次元の要素数であり、速度系列なら通常`(N,)`、候補集団なら`(population, N)`となる。
+
+
+pandas DataFrameは列名を持つ表である。CSV読込後は列型、欠損、単位、timezone、並び順、重複を明示的に処理しなければ、数値計算が動いても意味が誤る。
+
+
+
+\subsection{目的関数、制約、L-BFGS-B、SHGO、有限grid証明}
+数値最適化器は、利用者が与えた目的関数を複数の候補点で評価し、より小さい値を持つ候補を探す。solverが物理を理解するのではなく、物理と運用価値はcost関数へ書かれる。
+
+
+L-BFGS-Bは変数ごとの上下限を扱える局所最適化法である。初期値の近くの谷へ収束し得るため、非凸問題では複数seedや大域探索と組み合わせる。successがFalseでも有限な候補が返る場合があるため、採用条件をコード側で決める。
+
+
+SHGOは定めたsamplingと局所最適化を組み合わせる大域最適化法である。有限Cartesian gridの全列挙は、そのgrid上の最良を証明できるが、連続領域全体の最良を自動的に証明しない。資料ではこの証明範囲を区別する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.shgo.html}{SciPy公式: scipy.optimize.shgo}
+\end{itemize}
+
+\subsection{車両力学、電力収支、効率map}
+\[
+F_{\mathrm{aero}}=\frac{1}{2}\rho C_dA(v+v_{\mathrm{wind}})^2,\quad F_{\mathrm{roll}}\approx mgC_{rr}\cos\theta,\quad F_{\mathrm{grade}}=mg\sin\theta
+\]
+
+車輪機械powerは概ね`P\_mech = F\_total * v + P\_inertia`で、駆動時と回生時で異なる効率mapを通してDC側powerへ変換する。mapは速度・torqueなどを軸にした実測または同定tableであり、範囲外の補間・clip規則もモデルの一部である。
+
+
+\[
+P_{\mathrm{pack}}=P_{\mathrm{drive,dc}}-P_{\mathrm{regen,dc}}+P_{\mathrm{aux}}-P_{\mathrm{pv}}
+\]
+
+符号規約は必ずコードで確認する。本プロジェクトでは正のpack powerを放電側としてSoCを減らす処理が中心であり、発電と回生はpack負荷を下げる方向に働く。
+
+
+
+\subsection{SoC、内部抵抗、端子電圧、温度、MHE}
+\[
+V=V_{\mathrm{oc}}(z,T)-IR_{\mathrm{total}}(z,T,I),\qquad z_{k+1}=z_k-\frac{\eta(I,T)I\Delta t}{Q_{\mathrm{eff}}}
+\]
+
+SoCは直接完全には観測できないため、電流積算、OCV、端子電圧、温度、容量、効率を組み合わせる。内部抵抗はSoC、温度、電流方向で変わり、発熱と電圧制約の両方へ影響する。
+
+
+MHEは有限時間窓の状態と観測誤差をまとめて最適化し、SoCや温度を推定する。古い測定や欠損値を同じ重みで使うと推定が壊れるため、timestamp freshnessと観測可用性を入口で確認する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+\subsection{freshness、filter、guard、fallback、fail-safe}
+分散システムでは最後に受け取った値が現在も有効とは限らない。受信時刻とtimeoutからfreshnessを判定し、stale値を計画状態へ無条件に同期しない。
+
+
+filterはnoiseと一時的な飛び値を抑えるが、遅れを生む。slew limitは指令変化率を制限する。安全guardはsolverのcost罰則とは別に、現在出力へ強制制約を適用する最後の防波堤である。
+
+
+fallbackは失敗時の代替動作を事前に決める設計である。前回計画保持、物理に基づく決定論的入力、停止、低速制限などから、故障modeごとに選ぶ。fallback発生はstatusとlogへ残し、正常解と区別する。
+
+
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L11 クラス MheInput}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L11--L20
+              \item 所属: module直下
+              \item 定義: \path|MheInput(bases=none)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+\item @で始まる行は、定義したクラスを加工するdecoratorである。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item v\_ms に  を代入する。
+\item slope\_pct に  を代入する。
+\item G\_poa に  を代入する。
+\item Tcell\_C に  を代入する。
+\item Tamb\_C に  を代入する。
+\item headwind\_ms に  を代入する。
+\item dt に  を代入する。
+\item inertial\_power\_w に 0.0 を代入する。
+\item elevation\_m に 0.0 を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class MheInput:
+    v_ms: float
+    slope_pct: float
+    G_poa: float
+    Tcell_C: float
+    Tamb_C: float
+    headwind_ms: float
+    dt: float
+    inertial_power_w: float = 0.0
+    elevation_m: float = 0.0
+\end{lstlisting}
+
+\subsection{L24 クラス MheMeas}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L24--L28
+              \item 所属: module直下
+              \item 定義: \path|MheMeas(bases=none)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+\item @で始まる行は、定義したクラスを加工するdecoratorである。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item soc に None を代入する。
+\item Tb に None を代入する。
+\item I に None を代入する。
+\item V に None を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class MheMeas:
+    soc: Optional[float] = None
+    Tb: Optional[float] = None
+    I: Optional[float] = None
+    V: Optional[float] = None
+\end{lstlisting}
+
+\subsection{L31 クラス BatteryMHE}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L31--L111
+              \item 所属: module直下
+              \item 定義: \path|BatteryMHE(bases=none)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 push を定義する。
+\item 関数 \_simulate を定義する。
+\item 関数 estimate を定義する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class BatteryMHE:
+    def __init__(
+        self,
+        model,
+        horizon_steps: int = 12,
+        w_soc: float = 50.0,
+        w_tb: float = 5.0,
+        w_i: float = 1.0,
+        w_v: float = 1.0,
+        w_prior: float = 5.0,
+        soc_bounds: Tuple[float, float] = (0.05, 0.98),
+        tb_bounds: Tuple[float, float] = (-10.0, 65.0),
+    ):
+        self.model = model
+        self.samples = deque(maxlen=max(2, int(horizon_steps)))
+        self.w_soc = float(w_soc)
+        self.w_tb = float(w_tb)
+        self.w_i = float(w_i)
+        self.w_v = float(w_v)
+        self.w_prior = float(w_prior)
+        self.soc_bounds = soc_bounds
+        self.tb_bounds = tb_bounds
+
+    def push(self, u: MheInput, y: MheMeas):
+        self.samples.append((u, y))
+
+    def _simulate(self, z0: float, Tb0: float):
+        z = float(z0)
+        Tb = float(Tb0)
+        outputs = []
+        for (u, _) in self.samples:
+            out = self.model.electrical_balance(
+                u.v_ms,
+                u.slope_pct,
+                z,
+...
+\end{lstlisting}
+
+\subsection{L32 関数 BatteryMHE.\_\_init\_\_}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L32--L52
+              \item 所属: \path|BatteryMHE|
+              \item 定義: \path|__init__(self, model, horizon_steps: int = 12, w_soc: float = 50.0, w_tb: float = 5.0, w_i: float = 1.0, w_v: float = 1.0, w_prior: float = 5.0, soc_bounds: Tuple[float, float] = (0.05, 0.98), tb_bounds: Tuple[float, float] = (-10.0, 65.0))|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: deque, float, int, max
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: self.model, self.samples, self.soc\_bounds, self.tb\_bounds, self.w\_i, self.w\_prior, self.w\_soc, self.w\_tb, self.w\_v
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.model に model の結果を代入する。
+\item self.samples に deque(maxlen=max(2, int(horizon\_steps))) の結果を代入する。
+\item self.w\_soc に float(w\_soc) の結果を代入する。
+\item self.w\_tb に float(w\_tb) の結果を代入する。
+\item self.w\_i に float(w\_i) の結果を代入する。
+\item self.w\_v に float(w\_v) の結果を代入する。
+\item self.w\_prior に float(w\_prior) の結果を代入する。
+\item self.soc\_bounds に soc\_bounds の結果を代入する。
+\item self.tb\_bounds に tb\_bounds の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def __init__(
+        self,
+        model,
+        horizon_steps: int = 12,
+        w_soc: float = 50.0,
+        w_tb: float = 5.0,
+        w_i: float = 1.0,
+        w_v: float = 1.0,
+        w_prior: float = 5.0,
+        soc_bounds: Tuple[float, float] = (0.05, 0.98),
+        tb_bounds: Tuple[float, float] = (-10.0, 65.0),
+    ):
+        self.model = model
+        self.samples = deque(maxlen=max(2, int(horizon_steps)))
+        self.w_soc = float(w_soc)
+        self.w_tb = float(w_tb)
+        self.w_i = float(w_i)
+        self.w_v = float(w_v)
+        self.w_prior = float(w_prior)
+        self.soc_bounds = soc_bounds
+        self.tb_bounds = tb_bounds
+\end{lstlisting}
+
+\subsection{L54 関数 BatteryMHE.push}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L54--L55
+              \item 所属: \path|BatteryMHE|
+              \item 定義: \path|push(self, u: MheInput, y: MheMeas)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: append
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.samples
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.samples.append(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def push(self, u: MheInput, y: MheMeas):
+        self.samples.append((u, y))
+\end{lstlisting}
+
+\subsection{L57 関数 BatteryMHE.\_simulate}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L57--L83
+              \item 所属: \path|BatteryMHE|
+              \item 定義: \path|_simulate(self, z0: float, Tb0: float)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, electrical\_balance, float, soc\_step
+              \item 戻り値の要点: (outputs, z, Tb)
+              \item 主なローカル代入名: I, P\_pack, Tb, Tb\_next, V, \_, dt, loss\_int, out, outputs, u, z, z\_next
+              \item 読み取る主なインスタンス属性: self.model, self.samples
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item z に float(z0) の結果を代入する。
+\item Tb に float(Tb0) の結果を代入する。
+\item outputs に [] の結果を代入する。
+\item self.samples を順に走査し、各要素を (u, \_) に入れて処理する。
+\item   out に self.model.electrical\_balance(u.v\_ms, u.slope\_pct, z, Tb, u.G\_poa, u.Tcell\_C, headwind\_ms=u.headwind\_ms, inertial\_power\_w=u.inertial\_power\_w, ambient\_temp\_c=u.Tamb\_C, elevation\_m=u.elevation\_m) の結果を代入する。
+\item   I に float(out['I']) の結果を代入する。
+\item   V に float(out['V']) の結果を代入する。
+\item   P\_pack に float(out['P\_pack']) の結果を代入する。
+\item   loss\_int に float(out['losses\_int']) の結果を代入する。
+\item   dt に float(u.dt) の結果を代入する。
+\item   z\_next に self.model.soc\_step(z, P\_pack, dt) の結果を代入する。
+\item   Tb\_next に Tb + dt / 1800.0 * (u.Tamb\_C - Tb) + loss\_int * dt / 50000.0 の結果を代入する。
+\item   outputs.append(...) を実行する。
+\item   (z, Tb) に (z\_next, Tb\_next) の結果を代入する。
+\item (outputs, z, Tb) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _simulate(self, z0: float, Tb0: float):
+        z = float(z0)
+        Tb = float(Tb0)
+        outputs = []
+        for (u, _) in self.samples:
+            out = self.model.electrical_balance(
+                u.v_ms,
+                u.slope_pct,
+                z,
+                Tb,
+                u.G_poa,
+                u.Tcell_C,
+                headwind_ms=u.headwind_ms,
+                inertial_power_w=u.inertial_power_w,
+                ambient_temp_c=u.Tamb_C,
+                elevation_m=u.elevation_m,
+            )
+            I = float(out['I'])
+            V = float(out['V'])
+            P_pack = float(out['P_pack'])
+            loss_int = float(out['losses_int'])
+            dt = float(u.dt)
+            z_next = self.model.soc_step(z, P_pack, dt)
+            Tb_next = Tb + (dt / 1800.0) * (u.Tamb_C - Tb) + (loss_int * dt) / 50000.0
+            outputs.append((z_next, Tb_next, I, V))
+            z, Tb = z_next, Tb_next
+        return outputs, z, Tb
+\end{lstlisting}
+
+\subsection{L85 関数 BatteryMHE.estimate}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L85--L111
+              \item 所属: \path|BatteryMHE|
+              \item 定義: \path|estimate(self, z_init: float, Tb_init: float) -> Tuple[float, float]|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_simulate, array, dict, float, isfinite, len, minimize, zip
+              \item 戻り値の要点: (float(zN), float(TbN)) / (z\_init, Tb\_init) / J / (z\_init, Tb\_init)
+              \item 主なローカル代入名: I\_pred, J, Tb0, TbN, Tb\_pred, V\_pred, \_, bounds, meas, outputs, res, x0, z0, zN, z\_pred
+              \item 読み取る主なインスタンス属性: self.\_simulate, self.samples, self.soc\_bounds, self.tb\_bounds, self.w\_i, self.w\_prior, self.w\_soc, self.w\_tb, self.w\_v
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 6、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 len(self.samples) < 2 を判定し、真なら内部処理を行う。
+\item   (z\_init, Tb\_init) を返す。
+\item 関数 cost を定義する。
+\item x0 に np.array([float(z\_init), float(Tb\_init)], dtype=float) の結果を代入する。
+\item bounds に [self.soc\_bounds, self.tb\_bounds] の結果を代入する。
+\item res に minimize(cost, x0, method='L-BFGS-B', bounds=bounds, options=dict(maxiter=80)) の結果を代入する。
+\item 条件 not res.success を判定し、真なら内部処理を行う。
+\item   (z\_init, Tb\_init) を返す。
+\item (z0, Tb0) に (float(res.x[0]), float(res.x[1])) の結果を代入する。
+\item (\_, zN, TbN) に self.\_simulate(z0, Tb0) の結果を代入する。
+\item (float(zN), float(TbN)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def estimate(self, z_init: float, Tb_init: float) -> Tuple[float, float]:
+        if len(self.samples) < 2:
+            return z_init, Tb_init
+
+        def cost(x):
+            z0, Tb0 = float(x[0]), float(x[1])
+            J = self.w_prior * ((z0 - z_init) ** 2 + (Tb0 - Tb_init) ** 2)
+            outputs, _, _ = self._simulate(z0, Tb0)
+            for (_, meas), (z_pred, Tb_pred, I_pred, V_pred) in zip(self.samples, outputs):
+                if meas.soc is not None and math.isfinite(meas.soc):
+                    J += self.w_soc * (z_pred - meas.soc) ** 2
+                if meas.Tb is not None and math.isfinite(meas.Tb):
+                    J += self.w_tb * (Tb_pred - meas.Tb) ** 2
+                if meas.I is not None and math.isfinite(meas.I):
+                    J += self.w_i * (I_pred - meas.I) ** 2
+                if meas.V is not None and math.isfinite(meas.V):
+                    J += self.w_v * (V_pred - meas.V) ** 2
+            return J
+
+        x0 = np.array([float(z_init), float(Tb_init)], dtype=float)
+        bounds = [self.soc_bounds, self.tb_bounds]
+        res = minimize(cost, x0, method='L-BFGS-B', bounds=bounds, options=dict(maxiter=80))
+        if not res.success:
+            return z_init, Tb_init
+        z0, Tb0 = float(res.x[0]), float(res.x[1])
+        _, zN, TbN = self._simulate(z0, Tb0)
+        return float(zN), float(TbN)
+\end{lstlisting}
+
+\subsection{L89 関数 BatteryMHE.estimate.cost}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L89--L102
+              \item 所属: \path|BatteryMHE.estimate|
+              \item 定義: \path|cost(x)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_simulate, float, isfinite, zip
+              \item 戻り値の要点: J
+              \item 主なローカル代入名: I\_pred, J, Tb0, Tb\_pred, V\_pred, \_, meas, outputs, z0, z\_pred
+              \item 読み取る主なインスタンス属性: self.\_simulate, self.samples, self.w\_i, self.w\_prior, self.w\_soc, self.w\_tb, self.w\_v
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 4、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 特別な構文上の補足は少ない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item (z0, Tb0) に (float(x[0]), float(x[1])) の結果を代入する。
+\item J に self.w\_prior * ((z0 - z\_init) ** 2 + (Tb0 - Tb\_init) ** 2) の結果を代入する。
+\item (outputs, \_, \_) に self.\_simulate(z0, Tb0) の結果を代入する。
+\item zip(self.samples, outputs) を順に走査し、各要素を ((\_, meas), (z\_pred, Tb\_pred, I\_pred, V\_pred)) に入れて処理する。
+\item   条件 meas.soc is not None and math.isfinite(meas.soc) を判定し、真なら内部処理を行う。
+\item     J を Add で更新する。
+\item   条件 meas.Tb is not None and math.isfinite(meas.Tb) を判定し、真なら内部処理を行う。
+\item     J を Add で更新する。
+\item   条件 meas.I is not None and math.isfinite(meas.I) を判定し、真なら内部処理を行う。
+\item     J を Add で更新する。
+\item   条件 meas.V is not None and math.isfinite(meas.V) を判定し、真なら内部処理を行う。
+\item     J を Add で更新する。
+\item J を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+        def cost(x):
+            z0, Tb0 = float(x[0]), float(x[1])
+            J = self.w_prior * ((z0 - z_init) ** 2 + (Tb0 - Tb_init) ** 2)
+            outputs, _, _ = self._simulate(z0, Tb0)
+            for (_, meas), (z_pred, Tb_pred, I_pred, V_pred) in zip(self.samples, outputs):
+                if meas.soc is not None and math.isfinite(meas.soc):
+                    J += self.w_soc * (z_pred - meas.soc) ** 2
+                if meas.Tb is not None and math.isfinite(meas.Tb):
+                    J += self.w_tb * (Tb_pred - meas.Tb) ** 2
+                if meas.I is not None and math.isfinite(meas.I):
+                    J += self.w_i * (I_pred - meas.I) ** 2
+                if meas.V is not None and math.isfinite(meas.V):
+                    J += self.w_v * (V_pred - meas.V) ** 2
+            return J
+\end{lstlisting}
+
+
+
+
+
+
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item ソース中の主要関数を通じて処理を進める。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/estimator.py| を
+        \textbf{estimator}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

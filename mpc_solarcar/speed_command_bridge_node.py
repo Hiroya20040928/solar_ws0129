@@ -1,0 +1,157 @@
+import json
+import math
+import socket
+import time
+
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import Float32, String
+
+from .signal_utils import SmoothRateLimiter, finite_float, fresh_enough
+
+
+class SpeedCommandBridgeNode(Node):
+    def __init__(self):
+        super().__init__('speed_command_bridge_node')
+        self.declare_parameter('output_speed_topic', '/vehicle/speed_cmd_kmh')
+        self.declare_parameter('output_drive_mode_topic', '/vehicle/drive_mode_cmd')
+        self.declare_parameter('udp_enabled', False)
+        self.declare_parameter('udp_host', '127.0.0.1')
+        self.declare_parameter('udp_port', 50050)
+        self.declare_parameter('publish_rate_hz', 5.0)
+        self.declare_parameter('input_timeout_sec', 3.0)
+        self.declare_parameter('safe_speed_kmh', 0.0)
+        self.declare_parameter('startup_hold_sec', 2.0)
+        self.declare_parameter('filter_tau_sec', 1.0)
+        self.declare_parameter('accel_limit_kmhps', 1.5)
+        self.declare_parameter('decel_limit_kmhps', 4.0)
+        self.declare_parameter('speed_deadband_kmh', 0.1)
+        self.declare_parameter('speed_quantize_step_kmh', 0.1)
+        self.declare_parameter('max_output_speed_kmh', 130.0)
+        self.declare_parameter('drive_mode_min_hold_sec', 5.0)
+
+        self.output_speed_topic = str(self.get_parameter('output_speed_topic').value)
+        self.output_drive_mode_topic = str(self.get_parameter('output_drive_mode_topic').value)
+        self.udp_enabled = bool(self.get_parameter('udp_enabled').value)
+        self.udp_host = str(self.get_parameter('udp_host').value)
+        self.udp_port = int(self.get_parameter('udp_port').value)
+        self.publish_rate_hz = max(1.0, float(self.get_parameter('publish_rate_hz').value))
+        self.input_timeout_sec = max(0.2, float(self.get_parameter('input_timeout_sec').value))
+        self.safe_speed_kmh = max(0.0, float(self.get_parameter('safe_speed_kmh').value))
+        self.startup_hold_sec = max(0.0, float(self.get_parameter('startup_hold_sec').value))
+        self.max_output_speed_kmh = max(self.safe_speed_kmh, float(self.get_parameter('max_output_speed_kmh').value))
+        self.drive_mode_min_hold_sec = max(0.0, float(self.get_parameter('drive_mode_min_hold_sec').value))
+
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) if self.udp_enabled else None
+        self.start_time = time.monotonic()
+        self.last_speed_target = self.safe_speed_kmh
+        self.last_speed_rx_time = None
+        self.requested_mode = 'auto'
+        self.last_mode_rx_time = None
+        self.output_mode = 'auto'
+        self.last_mode_switch_time = self.start_time
+
+        self.speed_filter = SmoothRateLimiter(
+            min_value=0.0,
+            max_value=self.max_output_speed_kmh,
+            tau_sec=float(self.get_parameter('filter_tau_sec').value),
+            rise_rate=float(self.get_parameter('accel_limit_kmhps').value),
+            fall_rate=float(self.get_parameter('decel_limit_kmhps').value),
+            deadband=float(self.get_parameter('speed_deadband_kmh').value),
+            quantize_step=float(self.get_parameter('speed_quantize_step_kmh').value),
+            initial_value=self.safe_speed_kmh,
+        )
+        self.current_speed = self.safe_speed_kmh
+
+        self.pub_speed = self.create_publisher(Float32, self.output_speed_topic, 10)
+        self.pub_mode = self.create_publisher(String, self.output_drive_mode_topic, 10)
+        self.pub_status = self.create_publisher(String, '/system/command_status', 10)
+
+        self.create_subscription(Float32, '/planner/speed_cmd', self._on_speed, 10)
+        self.create_subscription(String, '/planner/drive_mode', self._on_mode, 10)
+        self.timer = self.create_timer(1.0 / self.publish_rate_hz, self._tick)
+        self.get_logger().info(
+            f'SpeedCommandBridgeNode started: topic={self.output_speed_topic}, rate={self.publish_rate_hz:.1f}Hz, '
+            f'udp={self.udp_enabled}'
+        )
+
+    def _on_speed(self, msg: Float32):
+        value = finite_float(msg.data)
+        if not math.isfinite(value):
+            return
+        self.last_speed_target = max(0.0, min(value, self.max_output_speed_kmh))
+        self.last_speed_rx_time = time.monotonic()
+
+    def _on_mode(self, msg: String):
+        mode = str(msg.data or '').strip()
+        if not mode:
+            return
+        self.requested_mode = mode
+        self.last_mode_rx_time = time.monotonic()
+
+    def _select_mode(self, now_mono: float):
+        requested = self.requested_mode or self.output_mode
+        if requested == self.output_mode:
+            return self.output_mode
+        if (now_mono - self.last_mode_switch_time) < self.drive_mode_min_hold_sec:
+            return self.output_mode
+        self.output_mode = requested
+        self.last_mode_switch_time = now_mono
+        return self.output_mode
+
+    def _target_speed(self, now_mono: float):
+        planner_fresh = fresh_enough(self.last_speed_rx_time, self.input_timeout_sec, now=now_mono)
+        in_startup_hold = (now_mono - self.start_time) < self.startup_hold_sec
+        if in_startup_hold or not planner_fresh:
+            return self.safe_speed_kmh, planner_fresh, in_startup_hold
+        return self.last_speed_target, planner_fresh, in_startup_hold
+
+    def _tick(self):
+        now_mono = time.monotonic()
+        target_speed, planner_fresh, in_startup_hold = self._target_speed(now_mono)
+        self.current_speed = float(self.speed_filter.update(target_speed, now=now_mono))
+        mode = self._select_mode(now_mono)
+
+        self.pub_speed.publish(Float32(data=float(self.current_speed)))
+        self.pub_mode.publish(String(data=str(mode)))
+        self._send_status(planner_fresh=planner_fresh, in_startup_hold=in_startup_hold)
+
+    def _send_status(self, planner_fresh: bool, in_startup_hold: bool):
+        age = math.inf
+        if self.last_speed_rx_time is not None:
+            age = max(0.0, time.monotonic() - self.last_speed_rx_time)
+        rx_age = 'never' if not math.isfinite(age) else f'{age:.1f}s'
+        fallback = 'startup_hold' if in_startup_hold else ('stale_input' if not planner_fresh else 'tracking')
+        status = (
+            f'target={self.last_speed_target:.2f} out={self.current_speed:.2f} km/h '
+            f'rx_age={rx_age} mode={self.output_mode} req_mode={self.requested_mode} state={fallback}'
+        )
+        if self.sock is not None:
+            payload = json.dumps({
+                'speed_kmh': self.current_speed,
+                'drive_mode': self.output_mode,
+                'target_speed_kmh': self.last_speed_target,
+                'state': fallback,
+            }).encode('utf-8')
+            try:
+                self.sock.sendto(payload, (self.udp_host, self.udp_port))
+                status += f' udp={self.udp_host}:{self.udp_port}'
+            except Exception as exc:
+                status += f' udp_error={exc}'
+        self.pub_status.publish(String(data=status))
+
+    def destroy_node(self):
+        try:
+            if self.sock is not None:
+                self.sock.close()
+        except Exception:
+            pass
+        super().destroy_node()
+
+
+def main():
+    rclpy.init()
+    node = SpeedCommandBridgeNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()

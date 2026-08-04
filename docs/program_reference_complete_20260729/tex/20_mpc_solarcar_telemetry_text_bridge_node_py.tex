@@ -1,0 +1,1437 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={WiFi 文字列テレメトリ bridge},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{20. WiFi 文字列テレメトリ bridge}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|mpc_solarcar/telemetry_text_bridge_node.py| \\
+        ソースSHA-256 & \path|8eb8c10611ec3d5115db88a38834178bead9b3c8ef68d952df090bc4fe2c6aa9| \\
+        種別 & Python \\
+        区分 & runtime node \\
+        役割 & 車両側・伴走車側から届く UDP 文字列を ROS topic に変換し、planner 指令を逆向きに文字列送信する。 \\
+        起動文脈 & live\_wifi のセンサ入口と outbound command bridge を兼ねる。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        車両側・伴走車側から届く UDP 文字列を ROS topic に変換し、planner 指令を逆向きに文字列送信する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item inbound と outbound の両方向を持つ。
+\item speed、battery、distance、GPS、wind を ROS topic 化する。
+\item planner command を JSON/テキストで送り返す。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|launch/solar_race_live_wifi.launch.py|
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/telemetry_protocol.py|
+\item \path|mpc_solarcar/speed_command_bridge_node.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|mpc_solarcar/signal_utils.py|
+\item \path|mpc_solarcar/telemetry_protocol.py|
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        モジュール docstring は明示されていない。
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+return float(wind_speed * math.cos(rel))
+
+
+class TelemetryTextBridgeNode(Node):
+    def __init__(self) -> None:
+        super().__init__("telemetry_text_bridge_node")
+        self.declare_parameter("enable_inbound", True)
+        self.declare_parameter("enable_outbound", True)
+        self.declare_parameter("bind_host", "0.0.0.0")
+        self.declare_parameter("bind_port", 52001)
+        self.declare_parameter("publish_period_sec", 1.0)
+        self.declare_parameter("solar_remote_host", "192.168.50.21")
+        self.declare_parameter("solar_remote_port", 52002)
+        self.declare_parameter("chase_remote_host", "192.168.50.22")
+        self.declare_parameter("chase_remote_port", 52003)
+        self.declare_parameter("send_to_solar", True)
+        self.declare_parameter("send_to_chase", True)
+        self.declare_parameter("prefer_direct_distance", False)
+        self.declare_parameter("speed_filter_tau_sec", 0.6)
+        self.declare_parameter("speed_max_kmh", 130.0)
+        self.declare_parameter("speed_max_accel_kmhps", 12.0)
+        self.declare_parameter("speed_max_decel_kmhps", 20.0)
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要クラスは TelemetryTextBridgeNode。 主要関数は parse\_text\_payload, headwind\_component\_ms, main。 ROS パラメータ宣言は 27 件。 ROS I/O は publisher 20 件、subscription 6 件。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            79 & class & \path|TelemetryTextBridgeNode| & bases: Node \\
+19 & function & \path|_safe_float| & args: payload \\
+32 & function & \path|_parse_key_value_text| & args: text \\
+53 & function & \path|parse_text_payload| & args: text \\
+66 & function & \path|headwind_component_ms| & args: payload \\
+80 & function & \path|__init__| & args: self \\
+195 & function & \path|_set_outbound| & args: self, key, value \\
+198 & function & \path|_poll_socket| & args: self \\
+238 & function & \path|_publish_gps| & args: self, pub, lat, lon, alt, source\_unix \\
+253 & function & \path|_handle_vehicle_payload| & args: self, payload, source\_unix \\
+291 & function & \path|_handle_chase_payload| & args: self, payload, source\_unix \\
+305 & function & \path|_publish_weather| & args: self, payload, wind\_speed, wind\_dir, course\_deg, headwind, now \\
+317 & function & \path|_send_payload| & args: self, addr, payload \\
+325 & function & \path|_send_outbound| & args: self \\
+349 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            19 & 関数 \_safe\_float を定義する。 \\
+32 & 関数 \_parse\_key\_value\_text を定義する。 \\
+53 & 関数 parse\_text\_payload を定義する。 \\
+66 & 関数 headwind\_component\_ms を定義する。 \\
+79 & クラス TelemetryTextBridgeNode を定義する。 \\
+349 & 関数 main を定義する。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            1 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+3 & \path|import json| & manifest、checkpoint、UDP payload をやり取りするため。 このファイル内での主な使用位置は L58, L321。 \\
+4 & \path|import math| & Python標準のスカラー数値関数と定数を使うため。実際に参照する名前と行は使用位置欄で確認する。 このファイル内での主な使用位置は L27, L75, L76, L180, L181, L182。 \\
+5 & \path|import socket| & socket モジュールを利用するため。 このファイル内での主な使用位置は L166, L169。 \\
+6 & \path|import time| & wall/monotonic time に基づく周期制御や freshness 判定を行うため。 このファイル内での主な使用位置は L216, L254, L292, L330。 \\
+7 & \path|from statistics import NormalDist| & statistics から NormalDist を読み込み、このファイルの処理を組み立てるため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+9 & \path|import rclpy| & ROS 2 Python ノードとして起動・spin するため。 このファイル内での主な使用位置は L350, L352, L354。 \\
+10 & \path|from rclpy.node import Node| & ROS 2 ノード本体の基底クラスとして使うため。 このファイル内での主な使用位置は L79。 \\
+12 & \path|from sensor_msgs.msg import NavSatFix| & GPS 緯度経度高度を ROS topic でやり取りするため。 このファイル内での主な使用位置は L153, L154, L241。 \\
+13 & \path|from std_msgs.msg import Float32, Float64, String| & Float32、Bool、Stringなどの標準ROS messageで値をpublishまたはsubscribeするため。 このファイル内での主な使用位置は L143, L144, L145, L146, L147, L148, L149, L150, ...。 \\
+15 & \path|from .signal_utils import RobustScalarFilter| & signal\_utils.py から RobustScalarFilter を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/signal\_utils.py。 このファイル内での主な使用位置は L124, L132, L133, L134, L135, L136, L137。 \\
+16 & \path|from .telemetry_protocol import utc_iso_now, validate_source_timestamp| & telemetry\_protocol.py から utc\_iso\_now, validate\_source\_timestamp を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは mpc\_solarcar/telemetry\_protocol.py。 このファイル内での主な使用位置は L214, L331。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{class、独自クラス、インスタンス、self、継承}
+クラスは、保持するデータと、そのデータを扱う関数を一つの型としてまとめる設計単位である。「独自クラス」とはPythonやROS 2が最初から用意した型ではなく、このプロジェクトが目的に合わせて定義した新しい型を指す。
+
+
+`class MPCNode(Node)`は、rclpyのNodeを基底クラスとして継承し、Nodeが持つpublisher、subscription、timer、parameterなどの機能にMPC固有機能を追加する。丸括弧内は関数引数ではなく基底クラス指定である。
+
+
+`MPCNode()`はクラスオブジェクトを呼び出して新しいインスタンスを作る。Pythonは新しい実体を用意し、その実体を第1引数selfとして`\_\_init\_\_`へ渡す。`self`は予約語ではなく慣習的な名前だが、この慣習を守ることでコードの意味が共有される。
+
+
+\begin{lstlisting}[language=python]
+class Counter:
+    def __init__(self):
+        self.value = 0
+
+    def increment(self):
+        self.value += 1
+
+counter = Counter()
+counter.increment()
+\end{lstlisting}
+
+
+`super().\_\_init\_\_(...)`は継承元の初期化処理を呼ぶ。MPCNodeではこれを省くとROSノードとして必要な内部実体が作られず、`create\_publisher`などを正しく使えない。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{先頭アンダースコア、\_\_init\_\_、名前付けの作法}
+`self.\_step\_solar`の先頭1個のアンダースコアは「クラス内部で使う実装詳細」という慣習であり、アクセスを強制禁止する機構ではない。外部コードから呼べるが、公開APIとして依存しない意思表示である。
+
+
+`\_\_init\_\_`の前後2個のアンダースコアはPythonが定めた特殊メソッド名である。クラス生成時に自動で呼ばれる。任意の名前に前後2個を付けて独自仕様を作ることは避ける。
+
+
+`\_`で始まるローカル変数は、未使用または外部へ見せない意図を示す場合がある。例えば`\_base\_csv`は戻り値として受け取る必要はあるが、その後の処理では使わないことを読者へ示す。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{rclpy、rcl、rmw、DDS/RTPSの層}
+rclpyはPython利用者向けROS 2 client libraryである。利用者のNode、publisher、subscriptionなどをPython APIとして提供し、その下で共通C層のrclを利用する。
+
+
+\begin{lstlisting}
+本プロジェクトのPythonコード -> rclpy -> rcl -> rmw -> DDS/RTPS実装 -> ネットワークまたは同一PC内通信
+\end{lstlisting}
+
+
+rclは言語に依存しない共通ROS機能を提供するC API、rmwはROS 2と具体的middleware実装の境界である。DDS/RTPS側が探索、serialize、publish/subscribe、request/replyなどを担う。executorの実行モデルはrclだけで完結せずclient library側にも実装される。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Concepts/About-Internal-Interfaces.html}{ROS 2 Humble公式: Internal ROS 2 interfaces}
+\end{itemize}
+
+\subsection{ROS graph、Node、topic、service、action、parameter}
+ROS graphは、実行中Nodeと、それらが持つpublisher、subscription、service、actionなどの接続関係である。Pythonクラス、プロセス、ROS graph上のNode名は関連するが同一物ではない。
+
+
+topicは継続データ向けの非同期一方向publish/subscribe、serviceは短いrequest/response、actionは時間のかかる目標へfeedback、cancel、resultを持たせる。parameterはNodeごとの設定値である。
+
+
+publisherが送った時点とsubscription callbackが実行される時点は同じとは限らない。通信遅延、QoS queue、executor待ちを挟むため、センサ値にはtimestampとfreshness判定が必要になる。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/Interfaces-Topics-Services-Actions.html}{ROS 2 Humble公式: Topics, Services, Actions}
+\item \href{https://docs.ros.org/en/humble/Concepts/Basic/About-Parameters.html}{ROS 2 Humble公式: Parameters}
+\end{itemize}
+
+\subsection{callback、timer、Executor、spin、Callback Group}
+callbackは、メッセージ受信、timer満了、service requestなどのイベントが成立した後でExecutorから呼ばれる関数である。登録時に`self.\_on\_speed`と括弧なしで渡すのは、今実行せず後で呼ぶ関数オブジェクトを渡すためである。
+
+
+Executorは実行可能になったcallbackを見つけ、Callback Groupの条件を確認して実行する。`spin()`は終了要求まで待機・dispatchを続けるため、通常運転中はmainの次の行へ戻らない。
+
+
+MutuallyExclusiveCallbackGroupは同じgroup内のcallbackを同時実行させない。別group間はMultiThreadedExecutorで並行実行し得る。groupを分けただけでは共有属性への完全な排他にはならないため、複数groupが同じ状態を読む・書く場合は設計確認が必要である。
+
+
+\begin{lstlisting}
+DDS受信またはtimer満了 -> wait setでready -> Executorが選択 -> Callback Groupが許可 -> worker threadがcallback実行 -> 終了後Executorへ戻る
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Executors.html}{ROS 2公式: Executors}
+\item \href{https://docs.ros.org/en/humble/Concepts/About-Internal-Interfaces.html}{ROS 2 Humble公式: Internal ROS 2 interfaces}
+\end{itemize}
+
+\subsection{rqt\_graph、ros2 CLI、rosbag2をいつ使うか}
+rqt\_graphは接続関係を見る道具であり、数値の正しさや更新周期までは保証しない。起動直後、topic名変更後、publisherが複数存在する疑いがある時に使う。
+
+
+\begin{lstlisting}[language=bash]
+ros2 node list
+ros2 node info /mpc_node
+ros2 topic list -t
+ros2 topic info -v /planner/speed_cmd
+ros2 topic hz /planner/speed_cmd
+ros2 topic echo /planner/status
+rqt_graph
+\end{lstlisting}
+
+
+rosbag2はtopicメッセージを時系列のまま記録・再生する。通信不具合、freshness、再計画trigger、実車とSILSの差を再現可能にするため、本番前試験では制御入力だけでなく原因となる全telemetry、status、parameter情報を記録する。
+
+
+\begin{lstlisting}[language=bash]
+ros2 bag record -o outputs/bags/preflight \
+  /vehicle/s_km /vehicle/speed_kmh /vehicle/batt_soc \
+  /vehicle/batt_temp_c /vehicle/batt_current_a /vehicle/batt_voltage_v \
+  /planner/upper_speed_cmd /planner/speed_cmd /planner/status
+
+ros2 bag info outputs/bags/preflight
+ros2 bag play outputs/bags/preflight --clock
+\end{lstlisting}
+
+
+bag再生時はQoS互換性、simulation time、外部publisherとの二重入力に注意する。実車Nodeを同時に動かす場合はnamespaceまたはremappingで入力源を明確に分離する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/ros2_packages/humble/api/rqt_graph/index.html}{ROS 2 Humble公式: rqt\_graph}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html}{ROS 2 Humble公式: Recording and playing back data}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html}{ROS 2 Humble公式: Understanding nodes}
+\end{itemize}
+
+\subsection{制御、状態、入力、モデル予測制御MPC}
+制御対象の内部を表す状態をx、操作入力をu、外乱・予報をwとすると、離散モデルは`x[k+1] = f(x[k], u[k], w[k])`と書ける。ソーラーカーではSoC、電池温度、距離、速度などが状態候補、速度目標や駆動トルクが入力候補になる。
+
+
+\[
+\min_{u_0,\ldots,u_{N-1}} \sum_{k=0}^{N-1}\ell(x_k,u_k,w_k)+V_f(x_N)
+\]
+
+MPCは現在状態からNステップ先まで予測し、目的関数と制約を満たす入力系列を求める。ただし実際に適用するのは通常先頭入力だけで、次回は新しい実測状態から再び解く。これがreceding horizonである。
+
+
+予測モデル、目的関数、制約、ホライズン、solver、初期値のどれかが変わると答えも変わる。「MPCを使う」だけでは仕様は決まらず、これらを単位付きで追う必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L19 関数 \_safe\_float}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L19--L29
+              \item 所属: module直下
+              \item 定義: \path!_safe_float(payload: dict, *keys: str) -> float | None!
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, isfinite
+              \item 戻り値の要点: None / value
+              \item 主なローカル代入名: key, value
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 1、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item keys を順に走査し、各要素を key に入れて処理する。
+\item   条件 key not in payload を判定し、真なら内部処理を行う。
+\item     Continue 文を実行する。
+\item   例外処理を伴う try ブロックを実行する。
+\item     value に float(payload[key]) の結果を代入する。
+\item     Exceptionを捕捉した場合:
+\item     Continue 文を実行する。
+\item   条件 math.isfinite(value) を判定し、真なら内部処理を行う。
+\item     value を返す。
+\item None を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def _safe_float(payload: dict, *keys: str) -> float | None:
+    for key in keys:
+        if key not in payload:
+            continue
+        try:
+            value = float(payload[key])
+        except Exception:
+            continue
+        if math.isfinite(value):
+            return value
+    return None
+\end{lstlisting}
+
+\subsection{L32 関数 \_parse\_key\_value\_text}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L32--L50
+              \item 所属: module直下
+              \item 定義: \path|_parse_key_value_text(text: str) -> dict|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: float, replace, split, strip
+              \item 戻り値の要点: payload
+              \item 主なローカル代入名: key, payload, sep, token, value
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 3、ループ 1、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item payload に \{\} を代入する。
+\item text.replace(';', ',').replace('\textbackslash{}n', ',').split(',') を順に走査し、各要素を token に入れて処理する。
+\item   token に token.strip() の結果を代入する。
+\item   条件 not token を判定し、真なら内部処理を行う。
+\item     Continue 文を実行する。
+\item   sep に '=' if '=' in token else ':' if ':' in token else '' の結果を代入する。
+\item   条件 not sep を判定し、真なら内部処理を行う。
+\item     Continue 文を実行する。
+\item   (key, value) に token.split(sep, 1) の結果を代入する。
+\item   key に key.strip() の結果を代入する。
+\item   value に value.strip() の結果を代入する。
+\item   条件 not key を判定し、真なら内部処理を行う。
+\item     Continue 文を実行する。
+\item   例外処理を伴う try ブロックを実行する。
+\item     payload[key] に float(value) の結果を代入する。
+\item     Exceptionを捕捉した場合:
+\item     payload[key] に value の結果を代入する。
+\item payload を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def _parse_key_value_text(text: str) -> dict:
+    payload: dict[str, object] = {}
+    for token in text.replace(";", ",").replace("\n", ",").split(","):
+        token = token.strip()
+        if not token:
+            continue
+        sep = "=" if "=" in token else (":" if ":" in token else "")
+        if not sep:
+            continue
+        key, value = token.split(sep, 1)
+        key = key.strip()
+        value = value.strip()
+        if not key:
+            continue
+        try:
+            payload[key] = float(value)
+        except Exception:
+            payload[key] = value
+    return payload
+\end{lstlisting}
+
+\subsection{L53 関数 parse\_text\_payload}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L53--L63
+              \item 所属: module直下
+              \item 定義: \path|parse_text_payload(text: str) -> dict|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_parse\_key\_value\_text, isinstance, loads, str, strip
+              \item 戻り値の要点: \_parse\_key\_value\_text(raw) / \{\} / parsed
+              \item 主なローカル代入名: parsed, raw
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item raw に str(text or '').strip() の結果を代入する。
+\item 条件 not raw を判定し、真なら内部処理を行う。
+\item   \{\} を返す。
+\item 例外処理を伴う try ブロックを実行する。
+\item   parsed に json.loads(raw) の結果を代入する。
+\item   条件 isinstance(parsed, dict) を判定し、真なら内部処理を行う。
+\item     parsed を返す。
+\item   Exceptionを捕捉した場合:
+\item   Pass 文を実行する。
+\item \_parse\_key\_value\_text(raw) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def parse_text_payload(text: str) -> dict:
+    raw = str(text or "").strip()
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, dict):
+            return parsed
+    except Exception:
+        pass
+    return _parse_key_value_text(raw)
+\end{lstlisting}
+
+\subsection{L66 関数 headwind\_component\_ms}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L66--L76
+              \item 所属: module直下
+              \item 定義: \path!headwind_component_ms(payload: dict) -> float | None!
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_safe\_float, cos, float, radians
+              \item 戻り値の要点: float(wind\_speed * math.cos(rel)) / direct / None
+              \item 主なローカル代入名: course\_deg, direct, rel, wind\_dir, wind\_speed
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item direct に \_safe\_float(payload, 'headwind\_ms') の結果を代入する。
+\item 条件 direct is not None を判定し、真なら内部処理を行う。
+\item   direct を返す。
+\item wind\_speed に \_safe\_float(payload, 'wind\_speed\_ms', 'wind\_ms') の結果を代入する。
+\item wind\_dir に \_safe\_float(payload, 'wind\_dir\_deg') の結果を代入する。
+\item course\_deg に \_safe\_float(payload, 'course\_deg', 'heading\_deg') の結果を代入する。
+\item 条件 wind\_speed is None or wind\_dir is None or course\_deg is None を判定し、真なら内部処理を行う。
+\item   None を返す。
+\item rel に math.radians((wind\_dir - course\_deg) \% 360.0) の結果を代入する。
+\item float(wind\_speed * math.cos(rel)) を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def headwind_component_ms(payload: dict) -> float | None:
+    direct = _safe_float(payload, "headwind_ms")
+    if direct is not None:
+        return direct
+    wind_speed = _safe_float(payload, "wind_speed_ms", "wind_ms")
+    wind_dir = _safe_float(payload, "wind_dir_deg")
+    course_deg = _safe_float(payload, "course_deg", "heading_deg")
+    if wind_speed is None or wind_dir is None or course_deg is None:
+        return None
+    rel = math.radians((wind_dir - course_deg) % 360.0)
+    return float(wind_speed * math.cos(rel))
+\end{lstlisting}
+
+\subsection{L79 クラス TelemetryTextBridgeNode}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L79--L346
+              \item 所属: module直下
+              \item 定義: \path|TelemetryTextBridgeNode(bases=Node)|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item class文は新しい型を定義する。丸括弧内は継承する基底クラスである。
+\item lambdaは名前を付けずに短い関数オブジェクトを作る構文である。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 関数 \_\_init\_\_ を定義する。
+\item 関数 \_set\_outbound を定義する。
+\item 関数 \_poll\_socket を定義する。
+\item 関数 \_publish\_gps を定義する。
+\item 関数 \_handle\_vehicle\_payload を定義する。
+\item 関数 \_handle\_chase\_payload を定義する。
+\item 関数 \_publish\_weather を定義する。
+\item 関数 \_send\_payload を定義する。
+\item 関数 \_send\_outbound を定義する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+class TelemetryTextBridgeNode(Node):
+    def __init__(self) -> None:
+        super().__init__("telemetry_text_bridge_node")
+        self.declare_parameter("enable_inbound", True)
+        self.declare_parameter("enable_outbound", True)
+        self.declare_parameter("bind_host", "0.0.0.0")
+        self.declare_parameter("bind_port", 52001)
+        self.declare_parameter("publish_period_sec", 1.0)
+        self.declare_parameter("solar_remote_host", "192.168.50.21")
+        self.declare_parameter("solar_remote_port", 52002)
+        self.declare_parameter("chase_remote_host", "192.168.50.22")
+        self.declare_parameter("chase_remote_port", 52003)
+        self.declare_parameter("send_to_solar", True)
+        self.declare_parameter("send_to_chase", True)
+        self.declare_parameter("prefer_direct_distance", False)
+        self.declare_parameter("speed_filter_tau_sec", 0.6)
+        self.declare_parameter("speed_max_kmh", 130.0)
+        self.declare_parameter("speed_max_accel_kmhps", 12.0)
+        self.declare_parameter("speed_max_decel_kmhps", 20.0)
+        self.declare_parameter("distance_max_rate_kmps", 0.06)
+        self.declare_parameter("distance_max_backtrack_km", 0.02)
+        self.declare_parameter("battery_filter_tau_sec", 1.0)
+        self.declare_parameter("wind_filter_tau_sec", 1.0)
+        self.declare_parameter("headwind_filter_tau_sec", 0.8)
+        self.declare_parameter("max_abs_headwind_ms", 25.0)
+        self.declare_parameter("timestamp_required", True)
+        self.declare_parameter("max_packet_age_sec", 5.0)
+        self.declare_parameter("max_future_skew_sec", 2.0)
+        self.declare_parameter("max_out_of_order_sec", 0.0)
+        self.declare_parameter("solar_power_gain_to_pack", 1.0)
+
+        self.enable_inbound = bool(self.get_parameter("enable_inbound").value)
+        self.enable_outbound = bool(self.get_parameter("enable_outbound").value)
+        self.publish_period_sec = max(0.1, float(self.get_parameter("publish_period_sec").value))
+        self.prefer_direct_distance = bool(self.get_parameter("prefer_direct_distance").value)
+...
+\end{lstlisting}
+
+\subsection{L80 関数 TelemetryTextBridgeNode.\_\_init\_\_}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L80--L193
+              \item 所属: \path|TelemetryTextBridgeNode|
+              \item 定義: \path|__init__(self) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: RobustScalarFilter, \_\_init\_\_, \_set\_outbound, bind, bool, create\_publisher, create\_subscription, create\_timer, declare\_parameter, float, get\_logger, get\_parameter
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.\_poll\_socket, self.\_send\_outbound, self.\_set\_outbound, self.create\_publisher, self.create\_subscription, self.create\_timer, self.declare\_parameter, self.enable\_inbound, self.enable\_outbound, self.get\_logger, self.get\_parameter, self.max\_abs\_headwind\_ms, self.publish\_period\_sec, self.sock
+              \item 更新する主なインスタンス属性: self.chase\_remote, self.enable\_inbound, self.enable\_outbound, self.headwind\_filter, self.i\_filter, self.last\_source\_unix, self.max\_abs\_headwind\_ms, self.max\_future\_skew\_sec, self.max\_out\_of\_order\_sec, self.max\_packet\_age\_sec, self.outbound\_state, self.prefer\_direct\_distance, self.pub\_chase\_alt, self.pub\_chase\_gps, self.pub\_chase\_source\_time, self.pub\_course\_dir, self.pub\_headwind, self.pub\_raw\_chase, self.pub\_raw\_solar, self.pub\_solar\_source\_time, self.pub\_status, self.pub\_vehicle\_alt, self.pub\_vehicle\_gps, self.pub\_vehicle\_i
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item lambdaは名前を付けずに短い関数オブジェクトを作る構文である。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item super().\_\_init\_\_(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.declare\_parameter(...) を実行する。
+\item self.enable\_inbound に bool(self.get\_parameter('enable\_inbound').value) の結果を代入する。
+\item self.enable\_outbound に bool(self.get\_parameter('enable\_outbound').value) の結果を代入する。
+\item self.publish\_period\_sec に max(0.1, float(self.get\_parameter('publish\_period\_sec').value)) の結果を代入する。
+\item self.prefer\_direct\_distance に bool(self.get\_parameter('prefer\_direct\_distance').value) の結果を代入する。
+\item self.max\_abs\_headwind\_ms に max(0.0, float(self.get\_parameter('max\_abs\_headwind\_ms').value)) の結果を代入する。
+\item self.timestamp\_required に bool(self.get\_parameter('timestamp\_required').value) の結果を代入する。
+\item self.max\_packet\_age\_sec に max(0.0, float(self.get\_parameter('max\_packet\_age\_sec').value)) の結果を代入する。
+\item self.max\_future\_skew\_sec に max(0.0, float(self.get\_parameter('max\_future\_skew\_sec').value)) の結果を代入する。
+\item self.max\_out\_of\_order\_sec に max(0.0, float(self.get\_parameter('max\_out\_of\_order\_sec').value)) の結果を代入する。
+\item self.solar\_power\_gain\_to\_pack に max(0.0, float(self.get\_parameter('solar\_power\_gain\_to\_pack').value)) の結果を代入する。
+\item self.last\_source\_unix に \{'solar': None, 'chase': None\} の結果を代入する。
+\item self.speed\_filter に RobustScalarFilter(tau\_sec=float(self.get\_parameter('speed\_filter\_tau\_sec').value), min\_value=0.0, max\_value=float(self.get\_parameter('speed\_max\_kmh').value), rise\_rate=float(self.get\_parameter('speed\_max\_accel\_kmhps').value), fall\_rate=float(self.get\_parameter('speed\_max\_decel\_kmhps').value), initial\_value=0.0) の結果を代入する。
+\item self.soc\_filter に RobustScalarFilter(tau\_sec=float(self.get\_parameter('battery\_filter\_tau\_sec').value), min\_value=0.0, max\_value=1.0) の結果を代入する。
+\item self.tb\_filter に RobustScalarFilter(tau\_sec=float(self.get\_parameter('battery\_filter\_tau\_sec').value), min\_value=-40.0, max\_value=120.0) の結果を代入する。
+\item self.i\_filter に RobustScalarFilter(tau\_sec=float(self.get\_parameter('battery\_filter\_tau\_sec').value)) の結果を代入する。
+\item self.v\_filter に RobustScalarFilter(tau\_sec=float(self.get\_parameter('battery\_filter\_tau\_sec').value), min\_value=0.0, max\_value=1000.0) の結果を代入する。
+\item self.wind\_filter に RobustScalarFilter(tau\_sec=float(self.get\_parameter('wind\_filter\_tau\_sec').value)) の結果を代入する。
+\item self.headwind\_filter に RobustScalarFilter(tau\_sec=float(self.get\_parameter('headwind\_filter\_tau\_sec').value), min\_value=-self.max\_abs\_headwind\_ms, max\_value=self.max\_abs\_headwind\_ms) の結果を代入する。
+\item self.pub\_raw\_solar に self.create\_publisher(String, '/telemetry/raw\_solar', 10) の結果を代入する。
+\item self.pub\_raw\_chase に self.create\_publisher(String, '/telemetry/raw\_chase', 10) の結果を代入する。
+\item self.pub\_vehicle\_speed に self.create\_publisher(Float32, '/vehicle/speed\_kmh', 10) の結果を代入する。
+\item self.pub\_vehicle\_soc に self.create\_publisher(Float32, '/vehicle/batt\_soc', 10) の結果を代入する。
+\item self.pub\_vehicle\_tb に self.create\_publisher(Float32, '/vehicle/batt\_temp\_c', 10) の結果を代入する。
+\item self.pub\_vehicle\_i に self.create\_publisher(Float32, '/vehicle/batt\_current\_a', 10) の結果を代入する。
+\item self.pub\_vehicle\_v に self.create\_publisher(Float32, '/vehicle/batt\_voltage\_v', 10) の結果を代入する。
+\item self.pub\_vehicle\_solar に self.create\_publisher(Float32, '/vehicle/solar\_power\_w', 10) の結果を代入する。
+\item self.pub\_vehicle\_alt に self.create\_publisher(Float32, '/vehicle/altitude\_m', 10) の結果を代入する。
+\item self.pub\_vehicle\_s に self.create\_publisher(Float32, '/vehicle/s\_km', 10) の結果を代入する。
+\item self.pub\_vehicle\_gps に self.create\_publisher(NavSatFix, '/vehicle/gps', 10) の結果を代入する。
+\item self.pub\_chase\_gps に self.create\_publisher(NavSatFix, '/chase/gps', 10) の結果を代入する。
+\item self.pub\_chase\_alt に self.create\_publisher(Float32, '/chase/altitude\_m', 10) の結果を代入する。
+\item self.pub\_headwind に self.create\_publisher(Float32, '/weather/headwind\_meas\_ms', 10) の結果を代入する。
+\item self.pub\_wind\_speed に self.create\_publisher(Float32, '/weather/wind\_speed\_ms', 10) の結果を代入する。
+\item self.pub\_wind\_dir に self.create\_publisher(Float32, '/weather/wind\_dir\_deg', 10) の結果を代入する。
+\item self.pub\_course\_dir に self.create\_publisher(Float32, '/weather/course\_deg', 10) の結果を代入する。
+\item self.pub\_status に self.create\_publisher(String, '/telemetry/bridge\_status', 10) の結果を代入する。
+\item self.pub\_solar\_source\_time に self.create\_publisher(Float64, '/telemetry/solar\_source\_ts\_unix', 10) の結果を代入する。
+\item self.pub\_chase\_source\_time に self.create\_publisher(Float64, '/telemetry/chase\_source\_ts\_unix', 10) の結果を代入する。
+\item self.sock に None の結果を代入する。
+\item 条件 self.enable\_inbound を判定し、真なら内部処理を行う。
+\item   self.sock に socket.socket(socket.AF\_INET, socket.SOCK\_DGRAM) の結果を代入する。
+\item   self.sock.bind(...) を実行する。
+\item   self.sock.setblocking(...) を実行する。
+\item self.tx\_sock に socket.socket(socket.AF\_INET, socket.SOCK\_DGRAM) if self.enable\_outbound else None の結果を代入する。
+\item self.solar\_remote に (str(self.get\_parameter('solar\_remote\_host').value), int(self.get\_parameter('solar\_remote\_port').value)) の結果を代入する。
+\item self.chase\_remote に (str(self.get\_parameter('chase\_remote\_host').value), int(self.get\_parameter('chase\_remote\_port').value)) の結果を代入する。
+\item self.send\_to\_solar に bool(self.get\_parameter('send\_to\_solar').value) の結果を代入する。
+\item self.send\_to\_chase に bool(self.get\_parameter('send\_to\_chase').value) の結果を代入する。
+\item self.outbound\_state に \{'speed\_cmd\_kmh': 0.0, 'upper\_speed\_cmd\_kmh': 0.0, 'drive\_mode': 'stop', 'speed\_meas\_kmh': math.nan, 'soc': math.nan, 's\_km': math.nan\} の結果を代入する。
+\item self.create\_subscription(...) を実行する。
+\item self.create\_subscription(...) を実行する。
+\item self.create\_subscription(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def __init__(self) -> None:
+        super().__init__("telemetry_text_bridge_node")
+        self.declare_parameter("enable_inbound", True)
+        self.declare_parameter("enable_outbound", True)
+        self.declare_parameter("bind_host", "0.0.0.0")
+        self.declare_parameter("bind_port", 52001)
+        self.declare_parameter("publish_period_sec", 1.0)
+        self.declare_parameter("solar_remote_host", "192.168.50.21")
+        self.declare_parameter("solar_remote_port", 52002)
+        self.declare_parameter("chase_remote_host", "192.168.50.22")
+        self.declare_parameter("chase_remote_port", 52003)
+        self.declare_parameter("send_to_solar", True)
+        self.declare_parameter("send_to_chase", True)
+        self.declare_parameter("prefer_direct_distance", False)
+        self.declare_parameter("speed_filter_tau_sec", 0.6)
+        self.declare_parameter("speed_max_kmh", 130.0)
+        self.declare_parameter("speed_max_accel_kmhps", 12.0)
+        self.declare_parameter("speed_max_decel_kmhps", 20.0)
+        self.declare_parameter("distance_max_rate_kmps", 0.06)
+        self.declare_parameter("distance_max_backtrack_km", 0.02)
+        self.declare_parameter("battery_filter_tau_sec", 1.0)
+        self.declare_parameter("wind_filter_tau_sec", 1.0)
+        self.declare_parameter("headwind_filter_tau_sec", 0.8)
+        self.declare_parameter("max_abs_headwind_ms", 25.0)
+        self.declare_parameter("timestamp_required", True)
+        self.declare_parameter("max_packet_age_sec", 5.0)
+        self.declare_parameter("max_future_skew_sec", 2.0)
+        self.declare_parameter("max_out_of_order_sec", 0.0)
+        self.declare_parameter("solar_power_gain_to_pack", 1.0)
+
+        self.enable_inbound = bool(self.get_parameter("enable_inbound").value)
+        self.enable_outbound = bool(self.get_parameter("enable_outbound").value)
+        self.publish_period_sec = max(0.1, float(self.get_parameter("publish_period_sec").value))
+        self.prefer_direct_distance = bool(self.get_parameter("prefer_direct_distance").value)
+        self.max_abs_headwind_ms = max(0.0, float(self.get_parameter("max_abs_headwind_ms").value))
+...
+\end{lstlisting}
+
+\subsection{L195 関数 TelemetryTextBridgeNode.\_set\_outbound}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L195--L196
+              \item 所属: \path|TelemetryTextBridgeNode|
+              \item 定義: \path|_set_outbound(self, key: str, value) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: 特に明示されていない。
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.outbound\_state
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item self.outbound\_state[key] に value の結果を代入する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _set_outbound(self, key: str, value) -> None:
+        self.outbound_state[key] = value
+\end{lstlisting}
+
+\subsection{L198 関数 TelemetryTextBridgeNode.\_poll\_socket}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L198--L236
+              \item 所属: \path|TelemetryTextBridgeNode|
+              \item 定義: \path|_poll_socket(self) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float64, String, \_handle\_chase\_payload, \_handle\_vehicle\_payload, decode, get, lower, parse\_text\_payload, publish, recvfrom, str, time
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: \_addr, data, payload, payload\_type, pub, source, text, validation
+              \item 読み取る主なインスタンス属性: self.\_handle\_chase\_payload, self.\_handle\_vehicle\_payload, self.last\_source\_unix, self.max\_future\_skew\_sec, self.max\_out\_of\_order\_sec, self.max\_packet\_age\_sec, self.pub\_chase\_source\_time, self.pub\_raw\_chase, self.pub\_raw\_solar, self.pub\_solar\_source\_time, self.pub\_status, self.sock, self.timestamp\_required
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 5、ループ 1、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 self.sock is None を判定し、真なら内部処理を行う。
+\item    を返す。
+\item 条件 True が成り立つ間くり返す。
+\item   例外処理を伴う try ブロックを実行する。
+\item     (data, \_addr) に self.sock.recvfrom(4096) の結果を代入する。
+\item     BlockingIOErrorを捕捉した場合:
+\item     Break 文を実行する。
+\item     Exceptionを捕捉した場合:
+\item     Break 文を実行する。
+\item   text に data.decode('utf-8', errors='replace') の結果を代入する。
+\item   payload に parse\_text\_payload(text) の結果を代入する。
+\item   条件 not payload を判定し、真なら内部処理を行う。
+\item     Continue 文を実行する。
+\item   payload\_type に str(payload.get('type', '')).lower() の結果を代入する。
+\item   source に 'chase' if payload\_type == 'chase\_state' else 'solar' の結果を代入する。
+\item   validation に validate\_source\_timestamp(payload, now\_unix=time.time(), last\_source\_unix=self.last\_source\_unix[source], required=self.timestamp\_required, max\_age\_sec=self.max\_packet\_age\_sec, max\_future\_skew\_sec=self.max\_future\_skew\_sec, max\_out\_of\_order\_sec=self.max\_out\_of\_order\_sec) の結果を代入する。
+\item   条件 not validation.accepted を判定し、真なら内部処理を行う。
+\item     self.pub\_status.publish(...) を実行する。
+\item     Continue 文を実行する。
+\item   条件 validation.source\_unix is not None を判定し、真なら内部処理を行う。
+\item     self.last\_source\_unix[source] に validation.source\_unix の結果を代入する。
+\item     pub に self.pub\_chase\_source\_time if source == 'chase' else self.pub\_solar\_source\_time の結果を代入する。
+\item     pub.publish(...) を実行する。
+\item   条件 source == 'chase' を判定し、真なら内部処理を行う。
+\item     self.pub\_raw\_chase.publish(...) を実行する。
+\item     self.\_handle\_chase\_payload(...) を実行する。
+\item     上の条件が偽の場合:
+\item     self.pub\_raw\_solar.publish(...) を実行する。
+\item     self.\_handle\_vehicle\_payload(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _poll_socket(self) -> None:
+        if self.sock is None:
+            return
+        while True:
+            try:
+                data, _addr = self.sock.recvfrom(4096)
+            except BlockingIOError:
+                break
+            except Exception:
+                break
+            text = data.decode("utf-8", errors="replace")
+            payload = parse_text_payload(text)
+            if not payload:
+                continue
+            payload_type = str(payload.get("type", "")).lower()
+            source = "chase" if payload_type == "chase_state" else "solar"
+            validation = validate_source_timestamp(
+                payload,
+                now_unix=time.time(),
+                last_source_unix=self.last_source_unix[source],
+                required=self.timestamp_required,
+                max_age_sec=self.max_packet_age_sec,
+                max_future_skew_sec=self.max_future_skew_sec,
+                max_out_of_order_sec=self.max_out_of_order_sec,
+            )
+            if not validation.accepted:
+                self.pub_status.publish(String(data=f"rejected source={source} reason={validation.reason}"))
+                continue
+            if validation.source_unix is not None:
+                self.last_source_unix[source] = validation.source_unix
+                pub = self.pub_chase_source_time if source == "chase" else self.pub_solar_source_time
+                pub.publish(Float64(data=validation.source_unix))
+
+            if source == "chase":
+                self.pub_raw_chase.publish(String(data=text))
+...
+\end{lstlisting}
+
+\subsection{L238 関数 TelemetryTextBridgeNode.\_publish\_gps}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L238--L251
+              \item 所属: \path|TelemetryTextBridgeNode|
+              \item 定義: \path!_publish_gps(self, pub, lat: float | None, lon: float | None, alt: float | None, source_unix: float | None) -> None!
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: NavSatFix, float, get\_clock, int, max, now, publish, to\_msg
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: msg, nanoseconds
+              \item 読み取る主なインスタンス属性: self.get\_clock
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 lat is None or lon is None を判定し、真なら内部処理を行う。
+\item    を返す。
+\item msg に NavSatFix() の結果を代入する。
+\item 条件 source\_unix is None を判定し、真なら内部処理を行う。
+\item   msg.header.stamp に self.get\_clock().now().to\_msg() の結果を代入する。
+\item   上の条件が偽の場合:
+\item   nanoseconds に max(0, int(source\_unix * 1000000000.0)) の結果を代入する。
+\item   msg.header.stamp.sec に nanoseconds // 1000000000 の結果を代入する。
+\item   msg.header.stamp.nanosec に nanoseconds \% 1000000000 の結果を代入する。
+\item msg.latitude に float(lat) の結果を代入する。
+\item msg.longitude に float(lon) の結果を代入する。
+\item msg.altitude に float(alt) if alt is not None else 0.0 の結果を代入する。
+\item pub.publish(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _publish_gps(self, pub, lat: float | None, lon: float | None, alt: float | None, source_unix: float | None) -> None:
+        if lat is None or lon is None:
+            return
+        msg = NavSatFix()
+        if source_unix is None:
+            msg.header.stamp = self.get_clock().now().to_msg()
+        else:
+            nanoseconds = max(0, int(source_unix * 1.0e9))
+            msg.header.stamp.sec = nanoseconds // 1_000_000_000
+            msg.header.stamp.nanosec = nanoseconds % 1_000_000_000
+        msg.latitude = float(lat)
+        msg.longitude = float(lon)
+        msg.altitude = float(alt) if alt is not None else 0.0
+        pub.publish(msg)
+\end{lstlisting}
+
+\subsection{L253 関数 TelemetryTextBridgeNode.\_handle\_vehicle\_payload}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L253--L289
+              \item 所属: \path|TelemetryTextBridgeNode|
+              \item 定義: \path!_handle_vehicle_payload(self, payload: dict, source_unix: float | None) -> None!
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, \_publish\_gps, \_publish\_weather, \_safe\_float, float, headwind\_component\_ms, monotonic, publish, update
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: alt, course\_deg, current, headwind, lat, lon, now, s\_km, soc, solar, speed, tb, voltage, wind\_dir, wind\_speed
+              \item 読み取る主なインスタンス属性: self.\_publish\_gps, self.\_publish\_weather, self.i\_filter, self.prefer\_direct\_distance, self.pub\_vehicle\_alt, self.pub\_vehicle\_gps, self.pub\_vehicle\_i, self.pub\_vehicle\_s, self.pub\_vehicle\_soc, self.pub\_vehicle\_solar, self.pub\_vehicle\_speed, self.pub\_vehicle\_tb, self.pub\_vehicle\_v, self.soc\_filter, self.solar\_power\_gain\_to\_pack, self.speed\_filter, self.tb\_filter, self.v\_filter
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 8、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item now に time.monotonic() の結果を代入する。
+\item speed に \_safe\_float(payload, 'speed\_kmh', 'vehicle\_speed\_kmh') の結果を代入する。
+\item soc に \_safe\_float(payload, 'soc', 'batt\_soc') の結果を代入する。
+\item tb に \_safe\_float(payload, 'batt\_temp\_c', 'tb\_c') の結果を代入する。
+\item current に \_safe\_float(payload, 'batt\_current\_a', 'current\_a') の結果を代入する。
+\item voltage に \_safe\_float(payload, 'batt\_voltage\_v', 'voltage\_v') の結果を代入する。
+\item solar に \_safe\_float(payload, 'solar\_power\_w', 'pv\_w') の結果を代入する。
+\item s\_km に \_safe\_float(payload, 's\_km', 'distance\_km') の結果を代入する。
+\item lat に \_safe\_float(payload, 'lat', 'latitude') の結果を代入する。
+\item lon に \_safe\_float(payload, 'lon', 'longitude') の結果を代入する。
+\item alt に \_safe\_float(payload, 'alt\_m', 'altitude\_m') の結果を代入する。
+\item wind\_speed に \_safe\_float(payload, 'wind\_speed\_ms', 'wind\_ms') の結果を代入する。
+\item wind\_dir に \_safe\_float(payload, 'wind\_dir\_deg') の結果を代入する。
+\item course\_deg に \_safe\_float(payload, 'course\_deg', 'heading\_deg') の結果を代入する。
+\item headwind に headwind\_component\_ms(payload) の結果を代入する。
+\item 条件 speed is not None を判定し、真なら内部処理を行う。
+\item   self.pub\_vehicle\_speed.publish(...) を実行する。
+\item 条件 soc is not None を判定し、真なら内部処理を行う。
+\item   self.pub\_vehicle\_soc.publish(...) を実行する。
+\item 条件 tb is not None を判定し、真なら内部処理を行う。
+\item   self.pub\_vehicle\_tb.publish(...) を実行する。
+\item 条件 current is not None を判定し、真なら内部処理を行う。
+\item   self.pub\_vehicle\_i.publish(...) を実行する。
+\item 条件 voltage is not None を判定し、真なら内部処理を行う。
+\item   self.pub\_vehicle\_v.publish(...) を実行する。
+\item 条件 solar is not None を判定し、真なら内部処理を行う。
+\item   self.pub\_vehicle\_solar.publish(...) を実行する。
+\item 条件 alt is not None を判定し、真なら内部処理を行う。
+\item   self.pub\_vehicle\_alt.publish(...) を実行する。
+\item 条件 self.prefer\_direct\_distance and s\_km is not None を判定し、真なら内部処理を行う。
+\item   self.pub\_vehicle\_s.publish(...) を実行する。
+\item self.\_publish\_gps(...) を実行する。
+\item self.\_publish\_weather(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _handle_vehicle_payload(self, payload: dict, source_unix: float | None) -> None:
+        now = time.monotonic()
+        speed = _safe_float(payload, "speed_kmh", "vehicle_speed_kmh")
+        soc = _safe_float(payload, "soc", "batt_soc")
+        tb = _safe_float(payload, "batt_temp_c", "tb_c")
+        current = _safe_float(payload, "batt_current_a", "current_a")
+        voltage = _safe_float(payload, "batt_voltage_v", "voltage_v")
+        solar = _safe_float(payload, "solar_power_w", "pv_w")
+        s_km = _safe_float(payload, "s_km", "distance_km")
+        lat = _safe_float(payload, "lat", "latitude")
+        lon = _safe_float(payload, "lon", "longitude")
+        alt = _safe_float(payload, "alt_m", "altitude_m")
+        wind_speed = _safe_float(payload, "wind_speed_ms", "wind_ms")
+        wind_dir = _safe_float(payload, "wind_dir_deg")
+        course_deg = _safe_float(payload, "course_deg", "heading_deg")
+        headwind = headwind_component_ms(payload)
+
+        if speed is not None:
+            self.pub_vehicle_speed.publish(Float32(data=float(self.speed_filter.update(speed, now=now))))
+        if soc is not None:
+            self.pub_vehicle_soc.publish(Float32(data=float(self.soc_filter.update(soc, now=now))))
+        if tb is not None:
+            self.pub_vehicle_tb.publish(Float32(data=float(self.tb_filter.update(tb, now=now))))
+        if current is not None:
+            self.pub_vehicle_i.publish(Float32(data=float(self.i_filter.update(current, now=now))))
+        if voltage is not None:
+            self.pub_vehicle_v.publish(Float32(data=float(self.v_filter.update(voltage, now=now))))
+        if solar is not None:
+            self.pub_vehicle_solar.publish(
+                Float32(data=float(solar) * self.solar_power_gain_to_pack)
+            )
+        if alt is not None:
+            self.pub_vehicle_alt.publish(Float32(data=float(alt)))
+        if self.prefer_direct_distance and s_km is not None:
+            self.pub_vehicle_s.publish(Float32(data=float(s_km)))
+...
+\end{lstlisting}
+
+\subsection{L291 関数 TelemetryTextBridgeNode.\_handle\_chase\_payload}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L291--L303
+              \item 所属: \path|TelemetryTextBridgeNode|
+              \item 定義: \path!_handle_chase_payload(self, payload: dict, source_unix: float | None) -> None!
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, \_publish\_gps, \_publish\_weather, \_safe\_float, float, headwind\_component\_ms, monotonic, publish
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: alt, course\_deg, headwind, lat, lon, now, wind\_dir, wind\_speed
+              \item 読み取る主なインスタンス属性: self.\_publish\_gps, self.\_publish\_weather, self.pub\_chase\_alt, self.pub\_chase\_gps
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item now に time.monotonic() の結果を代入する。
+\item lat に \_safe\_float(payload, 'lat', 'latitude') の結果を代入する。
+\item lon に \_safe\_float(payload, 'lon', 'longitude') の結果を代入する。
+\item alt に \_safe\_float(payload, 'alt\_m', 'altitude\_m') の結果を代入する。
+\item wind\_speed に \_safe\_float(payload, 'wind\_speed\_ms', 'wind\_ms') の結果を代入する。
+\item wind\_dir に \_safe\_float(payload, 'wind\_dir\_deg') の結果を代入する。
+\item course\_deg に \_safe\_float(payload, 'course\_deg', 'heading\_deg') の結果を代入する。
+\item headwind に headwind\_component\_ms(payload) の結果を代入する。
+\item self.\_publish\_gps(...) を実行する。
+\item 条件 alt is not None を判定し、真なら内部処理を行う。
+\item   self.pub\_chase\_alt.publish(...) を実行する。
+\item self.\_publish\_weather(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _handle_chase_payload(self, payload: dict, source_unix: float | None) -> None:
+        now = time.monotonic()
+        lat = _safe_float(payload, "lat", "latitude")
+        lon = _safe_float(payload, "lon", "longitude")
+        alt = _safe_float(payload, "alt_m", "altitude_m")
+        wind_speed = _safe_float(payload, "wind_speed_ms", "wind_ms")
+        wind_dir = _safe_float(payload, "wind_dir_deg")
+        course_deg = _safe_float(payload, "course_deg", "heading_deg")
+        headwind = headwind_component_ms(payload)
+        self._publish_gps(self.pub_chase_gps, lat, lon, alt, source_unix)
+        if alt is not None:
+            self.pub_chase_alt.publish(Float32(data=float(alt)))
+        self._publish_weather(payload, wind_speed, wind_dir, course_deg, headwind, now)
+\end{lstlisting}
+
+\subsection{L305 関数 TelemetryTextBridgeNode.\_publish\_weather}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L305--L315
+              \item 所属: \path|TelemetryTextBridgeNode|
+              \item 定義: \path|_publish_weather(self, payload: dict, wind_speed, wind_dir, course_deg, headwind, now: float) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Float32, String, float, get, publish, update
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: filtered
+              \item 読み取る主なインスタンス属性: self.headwind\_filter, self.pub\_course\_dir, self.pub\_headwind, self.pub\_status, self.pub\_wind\_dir, self.pub\_wind\_speed, self.wind\_filter
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 4、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 wind\_speed is not None を判定し、真なら内部処理を行う。
+\item   self.pub\_wind\_speed.publish(...) を実行する。
+\item 条件 wind\_dir is not None を判定し、真なら内部処理を行う。
+\item   self.pub\_wind\_dir.publish(...) を実行する。
+\item 条件 course\_deg is not None を判定し、真なら内部処理を行う。
+\item   self.pub\_course\_dir.publish(...) を実行する。
+\item 条件 headwind is not None を判定し、真なら内部処理を行う。
+\item   filtered に self.headwind\_filter.update(headwind, now=now) の結果を代入する。
+\item   self.pub\_headwind.publish(...) を実行する。
+\item   self.pub\_status.publish(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _publish_weather(self, payload: dict, wind_speed, wind_dir, course_deg, headwind, now: float) -> None:
+        if wind_speed is not None:
+            self.pub_wind_speed.publish(Float32(data=float(self.wind_filter.update(wind_speed, now=now))))
+        if wind_dir is not None:
+            self.pub_wind_dir.publish(Float32(data=float(wind_dir)))
+        if course_deg is not None:
+            self.pub_course_dir.publish(Float32(data=float(course_deg)))
+        if headwind is not None:
+            filtered = self.headwind_filter.update(headwind, now=now)
+            self.pub_headwind.publish(Float32(data=float(filtered)))
+            self.pub_status.publish(String(data=f"headwind_ms={filtered:.2f} type={payload.get('type', 'vehicle_state')}"))
+\end{lstlisting}
+
+\subsection{L317 関数 TelemetryTextBridgeNode.\_send\_payload}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L317--L323
+              \item 所属: \path|TelemetryTextBridgeNode|
+              \item 定義: \path|_send_payload(self, addr: tuple[str, int], payload: dict) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: dumps, encode, sendto
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: 特になし。
+              \item 読み取る主なインスタンス属性: self.tx\_sock
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 1、ループ 0、try 1
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item try文は例外が起き得る処理と、異常時または終了時の経路を分ける。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 self.tx\_sock is None を判定し、真なら内部処理を行う。
+\item    を返す。
+\item 例外処理を伴う try ブロックを実行する。
+\item   self.tx\_sock.sendto(...) を実行する。
+\item   Exceptionを捕捉した場合:
+\item    を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _send_payload(self, addr: tuple[str, int], payload: dict) -> None:
+        if self.tx_sock is None:
+            return
+        try:
+            self.tx_sock.sendto(json.dumps(payload, ensure_ascii=False).encode("utf-8"), addr)
+        except Exception:
+            return
+\end{lstlisting}
+
+\subsection{L325 関数 TelemetryTextBridgeNode.\_send\_outbound}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L325--L346
+              \item 所属: \path|TelemetryTextBridgeNode|
+              \item 定義: \path|_send_outbound(self) -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: \_send\_payload, time, utc\_iso\_now
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: payload
+              \item 読み取る主なインスタンス属性: self.\_send\_payload, self.chase\_remote, self.enable\_outbound, self.outbound\_state, self.send\_to\_chase, self.send\_to\_solar, self.solar\_remote
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 3、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item 第1引数selfは、このメソッドを呼んだインスタンス自身を受け取る慣習名である。
+\item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 not self.enable\_outbound を判定し、真なら内部処理を行う。
+\item    を返す。
+\item payload に \{'type': 'planner\_command', 'ts\_unix': time.time(), 'timestamp\_utc': utc\_iso\_now(), 'planner': \{'speed\_cmd\_kmh': self.outbound\_state['speed\_cmd\_kmh'], 'upper\_speed\_cmd\_kmh': self.outbound\_state['upper\_speed\_cmd\_kmh'], 'drive\_mode': self.outbound\_state['drive\_mode']\}, 'vehicle': \{'speed\_kmh': self.outbound\_state['speed\_meas\_kmh'], 'soc': self.outbound\_state['soc'], 's\_km': self.outbound\_state['s\_km']\}\} の結果を代入する。
+\item 条件 self.send\_to\_solar を判定し、真なら内部処理を行う。
+\item   self.\_send\_payload(...) を実行する。
+\item 条件 self.send\_to\_chase を判定し、真なら内部処理を行う。
+\item   self.\_send\_payload(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+    def _send_outbound(self) -> None:
+        if not self.enable_outbound:
+            return
+        payload = {
+            "type": "planner_command",
+            "ts_unix": time.time(),
+            "timestamp_utc": utc_iso_now(),
+            "planner": {
+                "speed_cmd_kmh": self.outbound_state["speed_cmd_kmh"],
+                "upper_speed_cmd_kmh": self.outbound_state["upper_speed_cmd_kmh"],
+                "drive_mode": self.outbound_state["drive_mode"],
+            },
+            "vehicle": {
+                "speed_kmh": self.outbound_state["speed_meas_kmh"],
+                "soc": self.outbound_state["soc"],
+                "s_km": self.outbound_state["s_km"],
+            },
+        }
+        if self.send_to_solar:
+            self._send_payload(self.solar_remote, payload)
+        if self.send_to_chase:
+            self._send_payload(self.chase_remote, payload)
+\end{lstlisting}
+
+\subsection{L349 関数 main}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L349--L354
+              \item 所属: module直下
+              \item 定義: \path|main() -> None|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: TelemetryTextBridgeNode, destroy\_node, init, shutdown, spin
+              \item 戻り値の要点: 戻り値が無いか、return 文が明示されていない。
+              \item 主なローカル代入名: node
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item rclpy.init(...) を実行する。
+\item node に TelemetryTextBridgeNode() の結果を代入する。
+\item rclpy.spin(...) を実行する。
+\item node.destroy\_node(...) を実行する。
+\item rclpy.shutdown(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def main() -> None:
+    rclpy.init()
+    node = TelemetryTextBridgeNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+\end{lstlisting}
+
+        \subsection{設定値と入力パラメータ}
+            \begin{longtable}{p{0.07\linewidth} p{0.35\linewidth} p{0.45\linewidth}}
+            \toprule
+            行 & 名前 & 既定値・補足 \\
+            \midrule
+            82 & \path|enable_inbound| & True \\
+83 & \path|enable_outbound| & True \\
+84 & \path|bind_host| & 0.0.0.0 \\
+85 & \path|bind_port| & 52001 \\
+86 & \path|publish_period_sec| & 1.0 \\
+87 & \path|solar_remote_host| & 192.168.50.21 \\
+88 & \path|solar_remote_port| & 52002 \\
+89 & \path|chase_remote_host| & 192.168.50.22 \\
+90 & \path|chase_remote_port| & 52003 \\
+91 & \path|send_to_solar| & True \\
+92 & \path|send_to_chase| & True \\
+93 & \path|prefer_direct_distance| & False \\
+94 & \path|speed_filter_tau_sec| & 0.6 \\
+95 & \path|speed_max_kmh| & 130.0 \\
+96 & \path|speed_max_accel_kmhps| & 12.0 \\
+97 & \path|speed_max_decel_kmhps| & 20.0 \\
+98 & \path|distance_max_rate_kmps| & 0.06 \\
+99 & \path|distance_max_backtrack_km| & 0.02 \\
+100 & \path|battery_filter_tau_sec| & 1.0 \\
+101 & \path|wind_filter_tau_sec| & 1.0 \\
+102 & \path|headwind_filter_tau_sec| & 0.8 \\
+103 & \path|max_abs_headwind_ms| & 25.0 \\
+104 & \path|timestamp_required| & True \\
+105 & \path|max_packet_age_sec| & 5.0 \\
+106 & \path|max_future_skew_sec| & 2.0 \\
+107 & \path|max_out_of_order_sec| & 0.0 \\
+108 & \path|solar_power_gain_to_pack| & 1.0 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ROS topic I/O}
+            \begin{longtable}{p{0.07\linewidth} p{0.18\linewidth} p{0.34\linewidth} p{0.28\linewidth}}
+            \toprule
+            行 & 種別 & topic & callback / 補足 \\
+            \midrule
+            143 & publisher & \path|/telemetry/raw_solar| & publisher \\
+144 & publisher & \path|/telemetry/raw_chase| & publisher \\
+145 & publisher & \path|/vehicle/speed_kmh| & publisher \\
+146 & publisher & \path|/vehicle/batt_soc| & publisher \\
+147 & publisher & \path|/vehicle/batt_temp_c| & publisher \\
+148 & publisher & \path|/vehicle/batt_current_a| & publisher \\
+149 & publisher & \path|/vehicle/batt_voltage_v| & publisher \\
+150 & publisher & \path|/vehicle/solar_power_w| & publisher \\
+151 & publisher & \path|/vehicle/altitude_m| & publisher \\
+152 & publisher & \path|/vehicle/s_km| & publisher \\
+153 & publisher & \path|/vehicle/gps| & publisher \\
+154 & publisher & \path|/chase/gps| & publisher \\
+155 & publisher & \path|/chase/altitude_m| & publisher \\
+156 & publisher & \path|/weather/headwind_meas_ms| & publisher \\
+157 & publisher & \path|/weather/wind_speed_ms| & publisher \\
+158 & publisher & \path|/weather/wind_dir_deg| & publisher \\
+159 & publisher & \path|/weather/course_deg| & publisher \\
+160 & publisher & \path|/telemetry/bridge_status| & publisher \\
+161 & publisher & \path|/telemetry/solar_source_ts_unix| & publisher \\
+162 & publisher & \path|/telemetry/chase_source_ts_unix| & publisher \\
+184 & subscription & \path|/planner/speed_cmd| & lambda msg: self.\_set\_outbound('speed\_cmd\_kmh', float(msg.data)) \\
+185 & subscription & \path|/planner/upper_speed_cmd| & lambda msg: self.\_set\_outbound('upper\_speed\_cmd\_kmh', float(msg.data)) \\
+186 & subscription & \path|/planner/drive_mode| & lambda msg: self.\_set\_outbound('drive\_mode', str(msg.data)) \\
+187 & subscription & \path|/vehicle/speed_kmh| & lambda msg: self.\_set\_outbound('speed\_meas\_kmh', float(msg.data)) \\
+188 & subscription & \path|/vehicle/batt_soc| & lambda msg: self.\_set\_outbound('soc', float(msg.data)) \\
+189 & subscription & \path|/vehicle/s_km| & lambda msg: self.\_set\_outbound('s\_km', float(msg.data)) \\
+            \bottomrule
+            \end{longtable}
+
+
+
+
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item 初期化時に設定値や入力パスを読み込む。
+\item publisher / subscription / timer を準備する。
+\item timer callback 周期で主処理を進める。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|mpc_solarcar/telemetry_text_bridge_node.py| を
+        \textbf{runtime node}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

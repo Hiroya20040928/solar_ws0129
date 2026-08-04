@@ -1,0 +1,971 @@
+\documentclass[a4paper,11pt]{article}
+        \usepackage[top=15mm,bottom=18mm,left=16mm,right=16mm]{geometry}
+        \usepackage{fontspec}
+        \usepackage{xeCJK}
+        \setmainfont{Times New Roman}
+        \setCJKmainfont{Yu Gothic}
+        \setmonofont{Consolas}
+        \setCJKmonofont{Yu Gothic}
+        \usepackage{booktabs}
+        \usepackage{longtable}
+        \usepackage{tabularx}
+        \usepackage{array}
+        \usepackage{enumitem}
+        \usepackage{hyperref}
+        \usepackage{listings}
+        \usepackage{xcolor}
+        \usepackage{amsmath}
+        \usepackage{amssymb}
+        \hypersetup{
+          colorlinks=true,
+          linkcolor=blue,
+          urlcolor=blue,
+          pdftitle={GPU 候補の厳密検証},
+          pdfauthor={Codex}
+        }
+        \lstset{
+          basicstyle=\ttfamily\small,
+          breaklines=true,
+          columns=fullflexible,
+          keepspaces=true,
+          frame=single,
+          framerule=0.2pt,
+          rulecolor=\color{black},
+          showstringspaces=false
+        }
+        \setlength{\parskip}{0.42em}
+        \setlength{\parindent}{1em}
+        \setlength{\emergencystretch}{3em}
+        \renewcommand{\arraystretch}{1.15}
+        \title{39. GPU 候補の厳密検証}
+        \author{solar\_ws0129-main}
+        \date{2026-07-29}
+        \begin{document}
+        \maketitle
+        \tableofcontents
+        \clearpage
+
+        \section{対象}
+        \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth} X}
+        \toprule
+        項目 & 内容 \\
+        \midrule
+        ファイル & \path|scripts/validate_gpu_upper_policy_candidates.py| \\
+        ソースSHA-256 & \path|5bb6f5b03980f4ccf6c741e6c2dbe7b09c7618c176f45c96bb6e471a7b33d4e6| \\
+        種別 & Python \\
+        区分 & planning validation \\
+        役割 & GPU 探索で得た speed policy 候補を CPU 側 exact replay と gate で再判定する。 \\
+        起動文脈 & GPU acceptance の中心。 \\
+        \bottomrule
+        \end{tabularx}
+
+        \section{このファイルを読む理由}
+        GPU 探索で得た speed policy 候補を CPU 側 exact replay と gate で再判定する。
+
+        \begin{itemize}[leftmargin=1.6em]
+        \item numerical match、mission feasibility、gate pass を確認する。
+        \end{itemize}
+
+        \section{呼び出し関係}
+        \subsection{どこから呼ばれるか}
+        \begin{itemize}[leftmargin=1.6em]
+        \item GPU acceptance pipeline
+\item 手動検証
+        \end{itemize}
+
+        \subsection{次に読むと理解が進むファイル}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/run_upper_mesh_convergence.py|
+\item \path|scripts/solar_sim.py|
+        \end{itemize}
+
+        \subsection{同一リポジトリ内の主要依存}
+        \begin{itemize}[leftmargin=1.6em]
+        \item \path|scripts/run_upper_mesh_convergence.py|
+        \end{itemize}
+
+        \section{ソース冒頭の把握}
+        モジュール docstring または先頭意図の要約:
+
+        Replay every GPU policy in the exact 1 Hz simulator and select the fastest feasible one.
+
+        \subsection{代表コード断片}
+        \begin{lstlisting}[language=Python]
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def resolve_result_path(raw: str) -> Path:
+    path = Path(str(raw))
+    return path if path.is_absolute() else (ROOT / path).resolve()
+
+
+def resolve_profile_asset(profile_path: Path, raw: str) -> Path:
+    path = Path(str(raw))
+    return path if path.is_absolute() else (profile_path.parent / path).resolve()
+
+
+def evaluate_event_timing(detail: pd.DataFrame, cfg: dict, profile_path: Path) -> dict:
+    """Check official control-stop closing times and the absolute finish deadline."""
+    paths = cfg.get("paths", {}) or {}
+    simulation = cfg.get("simulation", {}) or {}
+    stop_path = resolve_profile_asset(profile_path, paths.get("stop_yaml", ""))
+    stop_cfg = (
+        yaml.safe_load(stop_path.read_text(encoding="utf-8-sig")) or {}
+        if stop_path.is_file()
+        else {}
+\end{lstlisting}
+
+
+        \section{主要構造の読み取り}
+        主要関数は resolve\_result\_path, resolve\_profile\_asset, evaluate\_event\_timing, exact\_replay\_signature, inspect\_prediction\_mesh, prediction\_execution\_soc\_errors, evaluate\_soc\_guard\_intervention, main。 CLI 引数宣言は 8 件。
+
+        \subsection{主要クラス・関数}
+            \begin{longtable}{p{0.07\linewidth} p{0.16\linewidth} p{0.25\linewidth} p{0.40\linewidth}}
+            \toprule
+            行 & 種別 & 名前 & 補足 \\
+            \midrule
+            26 & function & \path|resolve_result_path| & args: raw \\
+31 & function & \path|resolve_profile_asset| & args: profile\_path, raw \\
+36 & function & \path|evaluate_event_timing| & args: detail, cfg, profile\_path \\
+112 & function & \path|exact_replay_signature| & args: profile, policy \\
+137 & function & \path|inspect_prediction_mesh| & args: manifest, manifest\_path \\
+199 & function & \path|prediction_execution_soc_errors| & args: manifest \\
+228 & function & \path|evaluate_soc_guard_intervention| & args: detail, manifest \\
+249 & function & \path|main| &  \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{ファイルを上から読んだときの定義順}
+            \begin{longtable}{p{0.07\linewidth} p{0.84\linewidth}}
+            \toprule
+            行 & 内容 \\
+            \midrule
+            17 & 例外処理を伴う try ブロックを実行する。 \\
+23 & ROOT に Path(\_\_file\_\_).resolve().parents[1] の結果を代入する。 \\
+26 & 関数 resolve\_result\_path を定義する。 \\
+31 & 関数 resolve\_profile\_asset を定義する。 \\
+36 & 関数 evaluate\_event\_timing を定義する。 \\
+112 & 関数 exact\_replay\_signature を定義する。 \\
+137 & 関数 inspect\_prediction\_mesh を定義する。 \\
+199 & 関数 prediction\_execution\_soc\_errors を定義する。 \\
+228 & 関数 evaluate\_soc\_guard\_intervention を定義する。 \\
+249 & 関数 main を定義する。 \\
+476 & 条件 \_\_name\_\_ == '\_\_main\_\_' を判定し、真なら内部処理を行う。 \\
+            \bottomrule
+            \end{longtable}
+
+        \subsection{import 群の詳細}
+            \begin{longtable}{p{0.07\linewidth} p{0.33\linewidth} p{0.50\linewidth}}
+            \toprule
+            行 & import 文 & このファイルで読む理由 \\
+            \midrule
+            4 & \path|from __future__ import annotations| & 型ヒントの遅延評価を有効にし、自己参照型や forward reference を安全に扱うため。 このファイル内での使用位置は少ないか、間接利用である。 \\
+6 & \path|import argparse| & CLI 引数を宣言し、実行時パラメータを外から受け取るため。 このファイル内での主な使用位置は L250。 \\
+7 & \path|import json| & manifest、checkpoint、UDP payload をやり取りするため。 このファイル内での主な使用位置は L309, L340, L470, L472。 \\
+8 & \path|import math| & Python標準のスカラー数値関数と定数を使うため。実際に参照する名前と行は使用位置欄で確認する。 このファイル内での主な使用位置は L148, L205, L210。 \\
+9 & \path|import shutil| & shutil モジュールを利用するため。 このファイル内での主な使用位置は L458。 \\
+10 & \path|import subprocess| & git 情報取得や外部コマンド実行を行うため。 このファイル内での主な使用位置は L318, L322。 \\
+11 & \path|import sys| & sys モジュールを利用するため。 このファイル内での主な使用位置は L319。 \\
+12 & \path|from pathlib import Path| & ファイルやディレクトリを安全に扱うため。 このファイル内での主な使用位置は L23, L26, L27, L31, L32, L36, L112, L123, ...。 \\
+14 & \path|import pandas as pd| & CSV や時刻列の読込・整形・再サンプリングに使うため。 このファイル内での主な使用位置は L36, L48, L49, L50, L63, L64, L88, L89, ...。 \\
+15 & \path|import yaml| & profile、stop、schedule、summary YAML を読み書きするため。 このファイル内での主な使用位置は L42, L127, L272, L297。 \\
+18 & \path|from scripts.run_upper_mesh_convergence import file_sha256, materialize_profile| & upper mesh 収束確認 から file\_sha256, materialize\_profile を読み込み、このファイルの内部処理を分担させるため。 実体ファイルは scripts/run\_upper\_mesh\_convergence.py。 このファイル内での主な使用位置は L125, L126, L133, L282。 \\
+20 & \path|from run_upper_mesh_convergence import file_sha256, materialize_profile| & run\_upper\_mesh\_convergence から file\_sha256, materialize\_profile を読み込み、このファイルの処理を組み立てるため。 このファイル内での主な使用位置は L125, L126, L133, L282。 \\
+113 & \path|import hashlib| & snapshot ID や入力資産の digest を作るため。 このファイル内での主な使用位置は L134。 \\
+            \bottomrule
+            \end{longtable}
+
+        \section{このファイルを読む前に必要な基礎知識}
+        次の章は、構文やROS用語を既知と仮定しないための説明である。
+
+        \subsection{プログラム、プロセス、メモリ、オブジェクトを区別する}
+ソースファイルはディスク上の文字列であり、それ自体は走っていない。Python実行可能プログラムがソースを読み、OSがその実行を一つのプロセスとして管理する。プロセスには仮想メモリ、開いているファイル、スレッド、終了コードなどが対応する。
+
+
+\begin{lstlisting}
+ソースファイル -> Pythonインタプリタが読み込む -> OS上のプロセス -> Pythonオブジェクトをメモリに生成 -> 関数やcallbackを実行
+\end{lstlisting}
+
+
+「メモリ上に生成する」とは、実行中プロセスが使う記憶領域に、その値の型、属性、参照関係を表す実体を用意することである。変数は実体そのものというより、そのオブジェクトを指す名前として理解するとPythonの代入が読みやすい。
+
+
+\begin{lstlisting}[language=python]
+node = MPCNode()
+alias = node
+# nodeとaliasは同じオブジェクトを参照する。
+\end{lstlisting}
+
+
+一つのプロセスには複数スレッドを持たせられる。スレッドは同じプロセスのメモリを共有するため、受信callbackと最適化callbackが同じself.zを書き換える場合は実行順と排他を検討する必要がある。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{名前、代入、型、参照}
+Pythonの代入文は、右辺を先に評価し、その結果のオブジェクトへ左辺の名前を結び付ける。`x = f()`では、まずfを呼び、その戻り値が得られてからxが更新される。
+
+
+`float(...)`、`int(...)`、`bool(...)`は型名を呼び出して値を変換する。外部CSV、YAML、ROS parameterから来た値は型が期待どおりとは限らないため、このリポジトリでは明示変換が多い。
+
+
+`None`は値が無いことを示す単一のオブジェクト、`math.nan`は浮動小数点値ではあるが有効な数値ではないことを示す。両者は用途が異なるため、`is None`と`math.isfinite`を使い分ける。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{関数、引数、戻り値、スコープ}
+`def`は関数本体をその場で実行する文ではない。関数オブジェクトを作り、その名前を現在の名前空間へ登録する。`f`は関数そのもの、`f()`はその関数を呼んだ結果である。
+
+
+仮引数は関数定義側の受け取り名、実引数は呼出側から渡す値である。位置引数、キーワード引数、既定値付き引数、`*args`、`**kwargs`は渡し方が異なる。
+
+
+\begin{lstlisting}[language=python]
+def clip_speed(value, minimum=0.0, maximum=110.0):
+    return min(maximum, max(minimum, value))
+
+v = clip_speed(120.0, maximum=90.0)
+\end{lstlisting}
+
+
+関数内で作った通常の名前はローカルスコープに属する。メソッドが`self.z`を更新すればオブジェクトの状態が残るが、単に`z`を更新しただけならその呼出しのローカル値である。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{module、package、import、console\_scripts}
+Pythonファイルはmoduleとして読み込める。複数moduleをディレクトリにまとめたものがpackageである。`from .model import SolarCarModel`の先頭の点は、現在と同じpackage内のmodel moduleを指す相対importである。
+
+
+import時にはファイルのトップレベル文が上から一度実行される。`def`や`class`は関数・クラスを登録するが、その本体の通常処理は呼び出すまで走らない。
+
+
+setuptoolsの`console\_scripts`は、端末で使う実行可能名と`package.module:function`を対応付けるインストール時メタデータである。生成される実行用ラッパーはmoduleをimportし、指定関数を呼び、戻り値を終了コードとして扱う小さな入口である。
+
+
+\begin{lstlisting}
+ROS launchのexecutable名 -> install済みconsole script -> mpc_solarcar.mpc_nodeをimport -> main()を呼ぶ
+\end{lstlisting}
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\item \href{https://docs.python.org/3/tutorial/classes.html}{Python公式チュートリアル: Classes}
+\end{itemize}
+
+\subsection{例外、try/finally、with、資源解放}
+例外は通常の戻り値とは別経路で異常を呼出元へ伝える。`try/except`は想定した異常を処理し、`finally`は成功・失敗にかかわらず後始末を行う。
+
+
+`with open(...) as f:`はcontext managerを使い、ブロックを出るとファイルを閉じる。CSVやログの破損を避けるため、開いた資源の所有者と閉じる場所を明確にする。
+
+
+`except Exception: pass`はノードを止めない利点がある一方、入力異常を隠して原因追跡を難しくする。安全に関係する値では、少なくとも頻度制限付き警告、異常カウンタ、fallback状態のpublishを検討する。
+
+
+
+\subsection{list、dict、deque、NumPy配列、pandas DataFrame}
+listは順序付き可変列、tupleは順序付きで通常変更しない列、dictはキーから値を引く対応表、dequeは両端追加・削除が効率的なキューである。どの構造を選ぶかはアクセス方法と更新方法で決まる。
+
+
+NumPy配列は同種数値を連続的に扱い、要素ごとの演算、clip、補間、線形代数を簡潔に書く。shapeは各次元の要素数であり、速度系列なら通常`(N,)`、候補集団なら`(population, N)`となる。
+
+
+pandas DataFrameは列名を持つ表である。CSV読込後は列型、欠損、単位、timezone、並び順、重複を明示的に処理しなければ、数値計算が動いても意味が誤る。
+
+
+
+\subsection{CLI、PowerShell、Bash、環境変数、終了コード}
+CLIは端末からプログラム名と引数を渡す操作界面である。`argparse`は文字列として届く引数を名前、型、既定値、必須性に従って解析する。
+
+
+PowerShellとBashは別のshellであり、変数記法、改行継続、引用、パス表記が異なる。このプロジェクトではWindows側のSolarSim.ps1がWSL側のsolar\_control.shへ処理を渡す。
+
+
+環境変数は親プロセスから子プロセスへ受け渡される名前付き文字列である。ROS\_DOMAIN\_ID、RMW\_IMPLEMENTATION、Pythonの数値スレッド数などはコード外から動作を変えるため、実行記録へ残す必要がある。
+
+
+終了コード0は一般に成功、0以外は失敗を示す。shellルータは子プロセスの終了コードを握り潰さず上位へ返すことで、自動運用が失敗を検知できる。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://setuptools.pypa.io/en/latest/userguide/entry_point.html}{setuptools公式: Entry Points / Console Scripts}
+\end{itemize}
+
+\subsection{freshness、filter、guard、fallback、fail-safe}
+分散システムでは最後に受け取った値が現在も有効とは限らない。受信時刻とtimeoutからfreshnessを判定し、stale値を計画状態へ無条件に同期しない。
+
+
+filterはnoiseと一時的な飛び値を抑えるが、遅れを生む。slew limitは指令変化率を制限する。安全guardはsolverのcost罰則とは別に、現在出力へ強制制約を適用する最後の防波堤である。
+
+
+fallbackは失敗時の代替動作を事前に決める設計である。前回計画保持、物理に基づく決定論的入力、停止、低速制限などから、故障modeごとに選ぶ。fallback発生はstatusとlogへ残し、正常解と区別する。
+
+
+
+\subsection{CSV/YAMLのdata contractと検証}
+data contractは列名、型、単位、timezone、欠損可否、並び順、重複、許容範囲、先頭行、encodingを事前に決めた仕様である。単にCSVとして読めることは、モデル入力として正しいことを意味しない。
+
+
+同定用実測、map、route、forecast、stop、scheduleはそれぞれgrainが異なる。生成時にschema validation、物理範囲、時間単調性、route範囲、coverageを検査し、検査結果をartifactとして残す。
+
+
+学習用データと独立検証データを分離し、RMSEだけでなくbias、時系列残差、energy積算誤差、終端SoC、温度・電圧制約、外挿領域を評価する。
+
+
+
+\subsection{単体試験、SILS、replay、観測可能性}
+単体試験は関数やモデル項の局所契約、SILSは複数Nodeと時間進行を含む閉ループ、historical replayは実測入力への再現性、本番preflightは実機通信と停止動作を確認する。目的が異なるため一つで代用しない。
+
+
+再現可能な診断には、入力、出力、内部状態、solver成否、候補数、計算時間、fallback、source revision、profile hashを同じrun IDで記録する。
+
+
+非同期不具合は最終値だけでは追えない。topic周期、message age、callback所要時間、queue遅延、Node生存、publisher数を同時に観測する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.ros.org/en/ros2_packages/humble/api/rqt_graph/index.html}{ROS 2 Humble公式: rqt\_graph}
+\item \href{https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Recording-And-Playing-Back-Data/Recording-And-Playing-Back-Data.html}{ROS 2 Humble公式: Recording and playing back data}
+\item \href{https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Executors.html}{ROS 2公式: Executors}
+\end{itemize}
+
+\subsection{目的関数、制約、L-BFGS-B、SHGO、有限grid証明}
+数値最適化器は、利用者が与えた目的関数を複数の候補点で評価し、より小さい値を持つ候補を探す。solverが物理を理解するのではなく、物理と運用価値はcost関数へ書かれる。
+
+
+L-BFGS-Bは変数ごとの上下限を扱える局所最適化法である。初期値の近くの谷へ収束し得るため、非凸問題では複数seedや大域探索と組み合わせる。successがFalseでも有限な候補が返る場合があるため、採用条件をコード側で決める。
+
+
+SHGOは定めたsamplingと局所最適化を組み合わせる大域最適化法である。有限Cartesian gridの全列挙は、そのgrid上の最良を証明できるが、連続領域全体の最良を自動的に証明しない。資料ではこの証明範囲を区別する。
+
+\paragraph{根拠資料}
+\begin{itemize}[leftmargin=1.6em]
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{SciPy公式: scipy.optimize.minimize}
+\item \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.shgo.html}{SciPy公式: scipy.optimize.shgo}
+\end{itemize}
+
+
+
+        \section{関数・クラスを上から順に解説}
+        \subsection{L26 関数 resolve\_result\_path}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L26--L28
+              \item 所属: module直下
+              \item 定義: \path|resolve_result_path(raw: str) -> Path|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, is\_absolute, resolve, str
+              \item 戻り値の要点: path if path.is\_absolute() else (ROOT / path).resolve()
+              \item 主なローカル代入名: path
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item path に Path(str(raw)) の結果を代入する。
+\item path if path.is\_absolute() else (ROOT / path).resolve() を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def resolve_result_path(raw: str) -> Path:
+    path = Path(str(raw))
+    return path if path.is_absolute() else (ROOT / path).resolve()
+\end{lstlisting}
+
+\subsection{L31 関数 resolve\_profile\_asset}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L31--L33
+              \item 所属: module直下
+              \item 定義: \path|resolve_profile_asset(profile_path: Path, raw: str) -> Path|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, is\_absolute, resolve, str
+              \item 戻り値の要点: path if path.is\_absolute() else (profile\_path.parent / path).resolve()
+              \item 主なローカル代入名: path
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 0、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item path に Path(str(raw)) の結果を代入する。
+\item path if path.is\_absolute() else (profile\_path.parent / path).resolve() を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def resolve_profile_asset(profile_path: Path, raw: str) -> Path:
+    path = Path(str(raw))
+    return path if path.is_absolute() else (profile_path.parent / path).resolve()
+\end{lstlisting}
+
+\subsection{L36 関数 evaluate\_event\_timing}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L36--L109
+              \item 所属: module直下
+              \item 定義: \path|evaluate_event_timing(detail: pd.DataFrame, cfg: dict, profile_path: Path) -> dict|
+              \item docstring: Check official control-stop closing times and the absolute finish deadline.
+              \item このブロックが直接呼ぶ主な関数・メソッド: DataFrame, Timestamp, all, append, bool, dropna, float, get, is\_file, isna, isoformat, max
+              \item 戻り値の要点: \{'control\_stop\_windows\_pass': bool(all\_stops\_observed and all((row['passed'] for row in stop\_results))), 'finish\_deadline\_pass': bool(deadline\_late\_sec <= 1.0), 'max\_control\_stop\_late\_sec': max\_late\_sec, 'finish\_deadline\_late\_sec': deadline\_late\_sec, 'finish\_time\_utc': finish\_time.isoformat() if not pd.isna(finish\_time) else '', 'race\_deadline\_utc': deadline.isoformat() if deadline\_raw else '', 'control\_stops': stop\_results\}
+              \item 主なローカル代入名: all\_stops\_observed, arrival, arrivals, close, close\_raw, deadline, deadline\_late\_sec, deadline\_raw, distance, distance\_col, finish\_cfg, finish\_time, late\_sec, max\_late\_sec, observed, ordered, paths, row, simulation, stop
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 3、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item paths に cfg.get('paths', \{\}) or \{\} の結果を代入する。
+\item simulation に cfg.get('simulation', \{\}) or \{\} の結果を代入する。
+\item stop\_path に resolve\_profile\_asset(profile\_path, paths.get('stop\_yaml', '')) の結果を代入する。
+\item stop\_cfg に yaml.safe\_load(stop\_path.read\_text(encoding='utf-8-sig')) or \{\} if stop\_path.is\_file() else \{\} の結果を代入する。
+\item distance\_col に 's\_end\_km' if 's\_end\_km' in detail else 's\_km' の結果を代入する。
+\item time\_col に 'time\_end\_utc' if 'time\_end\_utc' in detail else 'time\_utc' の結果を代入する。
+\item distance に pd.to\_numeric(detail.get(distance\_col), errors='coerce') の結果を代入する。
+\item times に pd.to\_datetime(detail.get(time\_col), errors='coerce', utc=True, format='mixed') の結果を代入する。
+\item ordered に pd.DataFrame(\{'s\_km': distance, 'time': times\}).dropna().sort\_values('time') の結果を代入する。
+\item stop\_results に [] の結果を代入する。
+\item max\_late\_sec に 0.0 の結果を代入する。
+\item all\_stops\_observed に True の結果を代入する。
+\item stop\_cfg.get('stops', []) or [] を順に走査し、各要素を stop に入れて処理する。
+\item   close\_raw に str(stop.get('window\_close\_utc', '') or '') の結果を代入する。
+\item   条件 not close\_raw を判定し、真なら内部処理を行う。
+\item     Continue 文を実行する。
+\item   stop\_km に float(stop.get('s\_km', 0.0)) の結果を代入する。
+\item   arrivals に ordered.loc[ordered['s\_km'] >= stop\_km - 1e-06, 'time'] の結果を代入する。
+\item   observed に not arrivals.empty の結果を代入する。
+\item   all\_stops\_observed に all\_stops\_observed and observed の結果を代入する。
+\item   arrival に arrivals.iloc[0] if observed else pd.NaT の結果を代入する。
+\item   close に pd.Timestamp(close\_raw) の結果を代入する。
+\item   close に close.tz\_localize('UTC') if close.tzinfo is None else close.tz\_convert('UTC') の結果を代入する。
+\item   late\_sec に max(0.0, float((arrival - close).total\_seconds())) if observed else float('inf') の結果を代入する。
+\item   max\_late\_sec に max(max\_late\_sec, late\_sec) の結果を代入する。
+\item   stop\_results.append(...) を実行する。
+\item finish\_cfg に stop\_cfg.get('finish', \{\}) or \{\} の結果を代入する。
+\item deadline\_raw に str(simulation.get('race\_deadline\_utc', finish\_cfg.get('window\_close\_utc', '')) or '') の結果を代入する。
+\item finish\_time に ordered['time'].iloc[-1] if not ordered.empty else pd.NaT の結果を代入する。
+\item deadline に pd.Timestamp(deadline\_raw) if deadline\_raw else pd.NaT の結果を代入する。
+\item 条件 deadline\_raw and deadline.tzinfo is None を判定し、真なら内部処理を行う。
+\item   deadline に deadline.tz\_localize('UTC') の結果を代入する。
+\item   上の条件が偽の場合:
+\item   条件 deadline\_raw を判定し、真なら内部処理を行う。
+\item     deadline に deadline.tz\_convert('UTC') の結果を代入する。
+\item deadline\_late\_sec に max(0.0, float((finish\_time - deadline).total\_seconds())) if deadline\_raw and (not pd.isna(finish\_time)) else 0.0 if not deadline\_raw else float('inf') の結果を代入する。
+\item \{'control\_stop\_windows\_pass': bool(all\_stops\_observed and all((row['passed'] for row in stop\_results))), 'finish\_deadline\_pass': bool(deadline\_late\_sec <= 1.0), 'max\_control\_stop\_late\_sec': max\_late\_sec, 'finish\_deadline\_late\_sec': deadline\_late\_sec, 'finish\_time\_utc': finish\_time.isoformat() if not pd.isna(finish\_time) else '', 'race\_deadline\_utc': deadline.isoformat() if deadline\_raw else '', 'control\_stops': stop\_results\} を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def evaluate_event_timing(detail: pd.DataFrame, cfg: dict, profile_path: Path) -> dict:
+    """Check official control-stop closing times and the absolute finish deadline."""
+    paths = cfg.get("paths", {}) or {}
+    simulation = cfg.get("simulation", {}) or {}
+    stop_path = resolve_profile_asset(profile_path, paths.get("stop_yaml", ""))
+    stop_cfg = (
+        yaml.safe_load(stop_path.read_text(encoding="utf-8-sig")) or {}
+        if stop_path.is_file()
+        else {}
+    )
+    distance_col = "s_end_km" if "s_end_km" in detail else "s_km"
+    time_col = "time_end_utc" if "time_end_utc" in detail else "time_utc"
+    distance = pd.to_numeric(detail.get(distance_col), errors="coerce")
+    times = pd.to_datetime(detail.get(time_col), errors="coerce", utc=True, format="mixed")
+    ordered = pd.DataFrame({"s_km": distance, "time": times}).dropna().sort_values("time")
+
+    stop_results = []
+    max_late_sec = 0.0
+    all_stops_observed = True
+    for stop in stop_cfg.get("stops", []) or []:
+        close_raw = str(stop.get("window_close_utc", "") or "")
+        if not close_raw:
+            continue
+        stop_km = float(stop.get("s_km", 0.0))
+        arrivals = ordered.loc[ordered["s_km"] >= stop_km - 1.0e-6, "time"]
+        observed = not arrivals.empty
+        all_stops_observed = all_stops_observed and observed
+        arrival = arrivals.iloc[0] if observed else pd.NaT
+        close = pd.Timestamp(close_raw)
+        close = close.tz_localize("UTC") if close.tzinfo is None else close.tz_convert("UTC")
+        late_sec = (
+            max(0.0, float((arrival - close).total_seconds()))
+            if observed
+            else float("inf")
+        )
+...
+\end{lstlisting}
+
+\subsection{L112 関数 exact\_replay\_signature}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L112--L134
+              \item 所属: module直下
+              \item 定義: \path|exact_replay_signature(profile: Path, policy: Path) -> str|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, encode, file\_sha256, get, hexdigest, is\_file, isinstance, join, read\_text, resolve, resolve\_profile\_asset, safe\_load
+              \item 戻り値の要点: hashlib.sha256(payload.encode('ascii')).hexdigest()
+              \item 主なローカル代入名: asset, cfg, dependencies, path, payload, raw
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item Import 文を実行する。
+\item dependencies に (ROOT / 'scripts' / 'solar\_sim.py', ROOT / 'mpc\_solarcar' / 'upper\_horizon.py', ROOT / 'mpc\_solarcar' / 'upper\_solver.py', ROOT / 'mpc\_solarcar' / 'upper\_policy.py', ROOT / 'mpc\_solarcar' / 'upper\_cost.py', ROOT / 'mpc\_solarcar' / 'model.py', ROOT / 'mpc\_solarcar' / 'signal\_utils.py', Path(\_\_file\_\_).resolve()) の結果を代入する。
+\item payload に file\_sha256(profile) + file\_sha256(policy) の結果を代入する。
+\item payload を Add で更新する。
+\item cfg に yaml.safe\_load(profile.read\_text(encoding='utf-8-sig')) or \{\} の結果を代入する。
+\item (cfg.get('paths', \{\}) or \{\}).values() を順に走査し、各要素を raw に入れて処理する。
+\item   条件 not isinstance(raw, str) or not raw.strip() を判定し、真なら内部処理を行う。
+\item     Continue 文を実行する。
+\item   asset に resolve\_profile\_asset(profile, raw) の結果を代入する。
+\item   条件 asset.is\_file() を判定し、真なら内部処理を行う。
+\item     payload を Add で更新する。
+\item hashlib.sha256(payload.encode('ascii')).hexdigest() を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def exact_replay_signature(profile: Path, policy: Path) -> str:
+    import hashlib
+
+    dependencies = (
+        ROOT / "scripts" / "solar_sim.py",
+        ROOT / "mpc_solarcar" / "upper_horizon.py",
+        ROOT / "mpc_solarcar" / "upper_solver.py",
+        ROOT / "mpc_solarcar" / "upper_policy.py",
+        ROOT / "mpc_solarcar" / "upper_cost.py",
+        ROOT / "mpc_solarcar" / "model.py",
+        ROOT / "mpc_solarcar" / "signal_utils.py",
+        Path(__file__).resolve(),
+    )
+    payload = file_sha256(profile) + file_sha256(policy)
+    payload += "".join(file_sha256(path) for path in dependencies)
+    cfg = yaml.safe_load(profile.read_text(encoding="utf-8-sig")) or {}
+    for raw in (cfg.get("paths", {}) or {}).values():
+        if not isinstance(raw, str) or not raw.strip():
+            continue
+        asset = resolve_profile_asset(profile, raw)
+        if asset.is_file():
+            payload += file_sha256(asset)
+    return hashlib.sha256(payload.encode("ascii")).hexdigest()
+\end{lstlisting}
+
+\subsection{L137 関数 inspect\_prediction\_mesh}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L137--L196
+              \item 所属: module直下
+              \item 定義: \path|inspect_prediction_mesh(manifest: dict, manifest_path: Path, *, requested_ds_km: float, start_s_km: float, race_km: float) -> dict|
+              \item docstring: Verify that the selected prediction trace used the requested distance mesh.
+              \item このブロックが直接呼ぶ主な関数・メソッド: Path, abs, bool, ceil, dropna, float, get, int, is\_file, len, list, max
+              \item 戻り値の要点: result / result / result / result
+              \item 主なローカル代入名: diagnostic, diagnostics, ends, expected\_min\_steps, max\_trace\_ds\_km, positive, raw\_trace, remaining\_km, requested\_ds\_km, result, segment\_km, starts, terminal\_km, tolerance\_km, trace, trace\_path
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 5、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item requested\_ds\_km に float(requested\_ds\_km) の結果を代入する。
+\item remaining\_km に max(0.0, float(race\_km) - float(start\_s\_km)) の結果を代入する。
+\item expected\_min\_steps に int(math.ceil(remaining\_km / requested\_ds\_km - 1e-09)) の結果を代入する。
+\item result に \{'valid': False, 'expected\_min\_steps': expected\_min\_steps, 'prediction\_steps': 0, 'trace\_drive\_steps': 0, 'max\_trace\_ds\_km': float('nan'), 'trace\_terminal\_km': float('nan')\} の結果を代入する。
+\item diagnostics に list(manifest.get('upper\_solver\_diagnostics', []) or []) の結果を代入する。
+\item 条件 not diagnostics を判定し、真なら内部処理を行う。
+\item   result を返す。
+\item diagnostic に diagnostics[0] の結果を代入する。
+\item result['prediction\_steps'] に int(diagnostic.get('prediction\_steps', 0) or 0) の結果を代入する。
+\item raw\_trace に str(diagnostic.get('selected\_prediction\_trace\_csv', '') or '') の結果を代入する。
+\item 条件 not raw\_trace を判定し、真なら内部処理を行う。
+\item   result を返す。
+\item trace\_path に resolve\_result\_path(raw\_trace) の結果を代入する。
+\item 条件 not trace\_path.is\_file() を判定し、真なら内部処理を行う。
+\item   trace\_path に manifest\_path.parent / Path(raw\_trace).name の結果を代入する。
+\item 条件 not trace\_path.is\_file() を判定し、真なら内部処理を行う。
+\item   result を返す。
+\item trace に pd.read\_csv(trace\_path, usecols=['s\_km', 's\_end\_km']) の結果を代入する。
+\item starts に pd.to\_numeric(trace['s\_km'], errors='coerce') の結果を代入する。
+\item ends に pd.to\_numeric(trace['s\_end\_km'], errors='coerce') の結果を代入する。
+\item segment\_km に (ends - starts).abs() の結果を代入する。
+\item positive に segment\_km[segment\_km > 1e-09] の結果を代入する。
+\item 条件 positive.empty を判定し、真なら内部処理を行う。
+\item   result を返す。
+\item max\_trace\_ds\_km に float(positive.max()) の結果を代入する。
+\item terminal\_km に float(ends.dropna().iloc[-1]) の結果を代入する。
+\item result.update(...) を実行する。
+\item tolerance\_km に max(1e-08, requested\_ds\_km * 1e-06) の結果を代入する。
+\item result['valid'] に bool(result['prediction\_steps'] >= expected\_min\_steps and result['trace\_drive\_steps'] >= expected\_min\_steps and (max\_trace\_ds\_km <= requested\_ds\_km + tolerance\_km) and (abs(terminal\_km - float(race\_km)) <= tolerance\_km)) の結果を代入する。
+\item result を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def inspect_prediction_mesh(
+    manifest: dict,
+    manifest_path: Path,
+    *,
+    requested_ds_km: float,
+    start_s_km: float,
+    race_km: float,
+) -> dict:
+    """Verify that the selected prediction trace used the requested distance mesh."""
+    requested_ds_km = float(requested_ds_km)
+    remaining_km = max(0.0, float(race_km) - float(start_s_km))
+    expected_min_steps = int(math.ceil(remaining_km / requested_ds_km - 1.0e-9))
+    result = {
+        "valid": False,
+        "expected_min_steps": expected_min_steps,
+        "prediction_steps": 0,
+        "trace_drive_steps": 0,
+        "max_trace_ds_km": float("nan"),
+        "trace_terminal_km": float("nan"),
+    }
+    diagnostics = list(manifest.get("upper_solver_diagnostics", []) or [])
+    if not diagnostics:
+        return result
+    diagnostic = diagnostics[0]
+    result["prediction_steps"] = int(diagnostic.get("prediction_steps", 0) or 0)
+
+    raw_trace = str(diagnostic.get("selected_prediction_trace_csv", "") or "")
+    if not raw_trace:
+        return result
+    trace_path = resolve_result_path(raw_trace)
+    if not trace_path.is_file():
+        trace_path = manifest_path.parent / Path(raw_trace).name
+    if not trace_path.is_file():
+        return result
+
+...
+\end{lstlisting}
+
+\subsection{L199 関数 prediction\_execution\_soc\_errors}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L199--L225
+              \item 所属: module直下
+              \item 定義: \path|prediction_execution_soc_errors(manifest: dict) -> dict|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: append, dict, float, get, int, isfinite, list
+              \item 戻り値の要点: \{'initial\_prediction\_soc': initial\_prediction, 'latest\_nontrivial\_prediction\_soc': latest\_prediction, 'initial\_error': final\_soc - initial\_prediction, 'latest\_nontrivial\_error': final\_soc - latest\_prediction\} / \{'initial\_prediction\_soc': float('nan'), 'latest\_nontrivial\_prediction\_soc': float('nan'), 'initial\_error': float('inf'), 'latest\_nontrivial\_error': float('inf')\}
+              \item 主なローカル代入名: diagnostic, diagnostics, final\_soc, initial\_prediction, latest\_prediction, nontrivial, predictions, selected, soc, steps, terminal\_soc
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item diagnostics に list(manifest.get('upper\_solver\_diagnostics', []) or []) の結果を代入する。
+\item predictions に [] の結果を代入する。
+\item diagnostics を順に走査し、各要素を diagnostic に入れて処理する。
+\item   selected に dict(diagnostic.get('selected\_prediction', \{\}) or \{\}) の結果を代入する。
+\item   terminal\_soc に float(selected.get('terminal\_soc', float('nan'))) の結果を代入する。
+\item   条件 math.isfinite(terminal\_soc) を判定し、真なら内部処理を行う。
+\item     predictions.append(...) を実行する。
+\item final\_soc に float(manifest.get('final\_soc', float('nan'))) の結果を代入する。
+\item 条件 not predictions or not math.isfinite(final\_soc) を判定し、真なら内部処理を行う。
+\item   \{'initial\_prediction\_soc': float('nan'), 'latest\_nontrivial\_prediction\_soc': float('nan'), 'initial\_error': float('inf'), 'latest\_nontrivial\_error': float('inf')\} を返す。
+\item initial\_prediction に predictions[0][1] の結果を代入する。
+\item nontrivial に [soc for steps, soc in predictions if steps > 1] の結果を代入する。
+\item latest\_prediction に nontrivial[-1] if nontrivial else predictions[-1][1] の結果を代入する。
+\item \{'initial\_prediction\_soc': initial\_prediction, 'latest\_nontrivial\_prediction\_soc': latest\_prediction, 'initial\_error': final\_soc - initial\_prediction, 'latest\_nontrivial\_error': final\_soc - latest\_prediction\} を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def prediction_execution_soc_errors(manifest: dict) -> dict:
+    diagnostics = list(manifest.get("upper_solver_diagnostics", []) or [])
+    predictions = []
+    for diagnostic in diagnostics:
+        selected = dict(diagnostic.get("selected_prediction", {}) or {})
+        terminal_soc = float(selected.get("terminal_soc", float("nan")))
+        if math.isfinite(terminal_soc):
+            predictions.append(
+                (int(diagnostic.get("prediction_steps", 0) or 0), terminal_soc)
+            )
+    final_soc = float(manifest.get("final_soc", float("nan")))
+    if not predictions or not math.isfinite(final_soc):
+        return {
+            "initial_prediction_soc": float("nan"),
+            "latest_nontrivial_prediction_soc": float("nan"),
+            "initial_error": float("inf"),
+            "latest_nontrivial_error": float("inf"),
+        }
+    initial_prediction = predictions[0][1]
+    nontrivial = [soc for steps, soc in predictions if steps > 1]
+    latest_prediction = nontrivial[-1] if nontrivial else predictions[-1][1]
+    return {
+        "initial_prediction_soc": initial_prediction,
+        "latest_nontrivial_prediction_soc": latest_prediction,
+        "initial_error": final_soc - initial_prediction,
+        "latest_nontrivial_error": final_soc - latest_prediction,
+    }
+\end{lstlisting}
+
+\subsection{L228 関数 evaluate\_soc\_guard\_intervention}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L228--L246
+              \item 所属: module直下
+              \item 定義: \path|evaluate_soc_guard_intervention(detail: pd.DataFrame, manifest: dict) -> dict|
+              \item docstring: Reject policies that only finish because the execution safety guard intervened.
+              \item このブロックが直接呼ぶ主な関数・メソッド: astype, bool, fillna, float, get, int, isin, lower, strip, sum, to\_numeric
+              \item 戻り値の要点: \{'intervention\_rows': intervention\_rows, 'intervention\_sec': intervention\_sec, 'passed': bool(intervention\_rows == 0 and intervention\_sec <= 1e-09)\}
+              \item 主なローカル代入名: active, dt\_sec, intervention\_rows, intervention\_sec, raw
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: 明示的raiseはない。
+              \item 制御構造の規模: 条件分岐 2、ループ 0、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item 条件 'soc\_guard\_intervened' in detail.columns を判定し、真なら内部処理を行う。
+\item   raw に detail['soc\_guard\_intervened'] の結果を代入する。
+\item   active に raw.astype(str).str.strip().str.lower().isin(\{'true', '1', 'yes'\}) の結果を代入する。
+\item   条件 'step\_dt\_sec' in detail.columns を判定し、真なら内部処理を行う。
+\item     dt\_sec に pd.to\_numeric(detail['step\_dt\_sec'], errors='coerce').fillna(0.0) の結果を代入する。
+\item     intervention\_sec に float(dt\_sec.loc[active].sum()) の結果を代入する。
+\item     上の条件が偽の場合:
+\item     intervention\_sec に float(active.sum()) の結果を代入する。
+\item   intervention\_rows に int(active.sum()) の結果を代入する。
+\item   上の条件が偽の場合:
+\item   intervention\_rows に int(manifest.get('soc\_guard\_intervention\_rows', 0) or 0) の結果を代入する。
+\item   intervention\_sec に float(manifest.get('soc\_guard\_intervention\_sec', 0.0) or 0.0) の結果を代入する。
+\item \{'intervention\_rows': intervention\_rows, 'intervention\_sec': intervention\_sec, 'passed': bool(intervention\_rows == 0 and intervention\_sec <= 1e-09)\} を返す。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def evaluate_soc_guard_intervention(detail: pd.DataFrame, manifest: dict) -> dict:
+    """Reject policies that only finish because the execution safety guard intervened."""
+    if "soc_guard_intervened" in detail.columns:
+        raw = detail["soc_guard_intervened"]
+        active = raw.astype(str).str.strip().str.lower().isin({"true", "1", "yes"})
+        if "step_dt_sec" in detail.columns:
+            dt_sec = pd.to_numeric(detail["step_dt_sec"], errors="coerce").fillna(0.0)
+            intervention_sec = float(dt_sec.loc[active].sum())
+        else:
+            intervention_sec = float(active.sum())
+        intervention_rows = int(active.sum())
+    else:
+        intervention_rows = int(manifest.get("soc_guard_intervention_rows", 0) or 0)
+        intervention_sec = float(manifest.get("soc_guard_intervention_sec", 0.0) or 0.0)
+    return {
+        "intervention_rows": intervention_rows,
+        "intervention_sec": intervention_sec,
+        "passed": bool(intervention_rows == 0 and intervention_sec <= 1.0e-9),
+    }
+\end{lstlisting}
+
+\subsection{L249 関数 main}
+            \begin{itemize}[leftmargin=1.6em]
+              \item 行範囲: L249--L473
+              \item 所属: module直下
+              \item 定義: \path|main() -> int|
+              \item docstring: 明示されていない。
+              \item このブロックが直接呼ぶ主な関数・メソッド: ArgumentParser, DataFrame, FileNotFoundError, Path, abs, add\_argument, all, append, bool, copy2, dumps, evaluate\_event\_timing
+              \item 戻り値の要点: 0 if selection['selected'] else 2
+              \item 主なローカル代入名: args, base\_cfg, base\_profile, cached, cached\_detail, campaign, cfg, checks, column, detail, detail\_columns, detail\_path, event\_timing, feasible, final\_soc, label, log, manifest, manifest\_path, max\_charge\_a
+              \item 読み取る主なインスタンス属性: 特になし。
+              \item 更新する主なインスタンス属性: 特になし。
+              \item 明示的に送出する例外: FileNotFoundError(f'No \{args.stage\} policies under \{campaign\}')
+              \item 制御構造の規模: 条件分岐 5、ループ 1、try 0
+            \end{itemize}
+            \paragraph{この定義を読むためのPython構文}
+            \begin{itemize}[leftmargin=1.6em]
+            \item `->`以後は戻り値の型注釈であり、実行時の値を自動変換する命令ではない。
+\item 内包表記は、反復・条件・値生成を一つの式で記述してcollectionを作る。
+\item with文はcontext managerに開始・終了処理を任せ、ファイルなどの資源を確実に解放する。
+            \end{itemize}
+            \paragraph{上から順の処理}
+            \begin{enumerate}[leftmargin=1.8em]
+            \item parser に argparse.ArgumentParser(description=\_\_doc\_\_) の結果を代入する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item parser.add\_argument(...) を実行する。
+\item args に parser.parse\_args() の結果を代入する。
+\item base\_profile に args.profile.resolve() の結果を代入する。
+\item campaign に args.campaign\_dir.resolve() の結果を代入する。
+\item output に args.output\_dir.resolve() の結果を代入する。
+\item seed\_pattern に args.seed\_label.strip() or 'seed\_*' の結果を代入する。
+\item policies に sorted(campaign.glob(f'\{seed\_pattern\}/\{args.stage\}/latest\_policy.csv')) の結果を代入する。
+\item 条件 not policies を判定し、真なら内部処理を行う。
+\item   FileNotFoundError(f'No \{args.stage\} policies under \{campaign\}') を送出する。
+\item base\_cfg に yaml.safe\_load(base\_profile.read\_text(encoding='utf-8')) or \{\} の結果を代入する。
+\item model に base\_cfg['model'] の結果を代入する。
+\item rows に [] の結果を代入する。
+\item policies を順に走査し、各要素を policy に入れて処理する。
+\item   label に policy.parents[1].name の結果を代入する。
+\item   run\_dir に output / label の結果を代入する。
+\item   profile\_path に run\_dir / 'profile\_exact\_1hz.yaml' の結果を代入する。
+\item   manifest\_path に run\_dir / 'latest\_simulation\_run.json' の結果を代入する。
+\item   signature\_path に run\_dir / 'run\_signature.txt' の結果を代入する。
+\item   cfg に materialize\_profile(base\_profile, profile\_path, policy\_path=policy, ds\_km=float(args.integration\_ds\_km), ctrl\_km=float(args.control\_ds\_km)) の結果を代入する。
+\item   cfg['simulation']['require\_model\_validation\_gate'] に False の結果を代入する。
+\item   cfg['simulation']['validation\_scope'] に 'research\_only\_unvalidated\_model' の結果を代入する。
+\item   notes に list(cfg.setdefault('meta', \{\}).get('notes', []) or []) の結果を代入する。
+\item   notes.append(...) を実行する。
+\item   cfg['meta']['notes'] に list(dict.fromkeys(notes)) の結果を代入する。
+\item   profile\_path.write\_text(...) を実行する。
+\item   signature に exact\_replay\_signature(profile\_path, policy) の結果を代入する。
+\item   reusable に bool(not args.no\_resume and manifest\_path.is\_file() and signature\_path.is\_file() and (signature\_path.read\_text(encoding='ascii').strip() == signature)) の結果を代入する。
+\item   条件 reusable を判定し、真なら内部処理を行う。
+\item     cached に json.loads(manifest\_path.read\_text(encoding='utf-8')) の結果を代入する。
+\item     cached\_detail に resolve\_result\_path(str(cached.get('detail\_csv', ''))) の結果を代入する。
+\item     reusable に bool(cached\_detail.is\_file() and int(cached.get('detail\_rows', 0) or 0) > 0) の結果を代入する。
+\item   条件 not reusable を判定し、真なら内部処理を行う。
+\item     run\_dir.mkdir(...) を実行する。
+\item     with 文で (run\_dir / 'console.log').open('w', encoding='utf-8') を管理しながら処理する。
+\item       result に subprocess.run([sys.executable, '-u', str(ROOT / 'scripts' / 'solar\_sim.py'), '--profile\_yaml', str(profile\_path)], cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, check=False, text=True) の結果を代入する。
+\item     条件 result.returncode != 0 or not manifest\_path.is\_file() を判定し、真なら内部処理を行う。
+\item       rows.append(...) を実行する。
+\item       Continue 文を実行する。
+\item     signature\_path.write\_text(...) を実行する。
+\item   manifest に json.loads(manifest\_path.read\_text(encoding='utf-8')) の結果を代入する。
+\item   mesh に inspect\_prediction\_mesh(manifest, manifest\_path, requested\_ds\_km=float(args.integration\_ds\_km), start\_s\_km=float(cfg.get('simulation', \{\}).get('start\_s\_km', 0.0)), race\_km=float(cfg.get('mpc', \{\}).get('race\_km', manifest.get('race\_km', 0.0)))) の結果を代入する。
+\item   detail\_path に resolve\_result\_path(manifest['detail\_csv']) の結果を代入する。
+\item   detail\_columns に set(pd.read\_csv(detail\_path, nrows=0).columns) の結果を代入する。
+\item   detail に pd.read\_csv(detail\_path, usecols=[column for column in ('I', 'V', 's\_km', 's\_end\_km', 'time\_utc', 'time\_end\_utc', 'step\_dt\_sec', 'soc\_guard\_intervened') if column in detail\_columns]) の結果を代入する。
+\item   max\_discharge\_a に float(pd.to\_numeric(detail['I'], errors='coerce').max()) の結果を代入する。
+\item   max\_charge\_a に float(pd.to\_numeric(detail['I'], errors='coerce').min()) の結果を代入する。
+\item   min\_voltage\_v に float(pd.to\_numeric(detail['V'], errors='coerce').min()) の結果を代入する。
+\item   max\_voltage\_v に float(pd.to\_numeric(detail['V'], errors='coerce').max()) の結果を代入する。
+\item   soc\_floor に float(cfg['mpc'].get('terminal\_soc\_min', model.get('soc\_min', 0.1))) の結果を代入する。
+\item   soc\_target に float(cfg['mpc'].get('soc\_finish\_target', soc\_floor)) の結果を代入する。
+\item   soc\_target\_tolerance に float(cfg['mpc'].get('soc\_finish\_tol', 0.005)) の結果を代入する。
+\item   sync\_tol に float(cfg['mpc'].get('prediction\_execution\_soc\_tolerance', 0.002)) の結果を代入する。
+\item   final\_soc に float(manifest.get('final\_soc', float('nan'))) の結果を代入する。
+\item   soc\_sync に prediction\_execution\_soc\_errors(manifest) の結果を代入する。
+\item   sync\_error に abs(float(soc\_sync['initial\_error'])) の結果を代入する。
+\item   event\_timing に evaluate\_event\_timing(detail, cfg, profile\_path) の結果を代入する。
+\item   soc\_guard に evaluate\_soc\_guard\_intervention(detail, manifest) の結果を代入する。
+\item   checks に \{'finish': bool(manifest.get('finish\_reached', False)), 'soc': float(manifest.get('min\_soc', -1.0)) >= soc\_floor - 0.0001, 'terminal\_target': soc\_target - soc\_target\_tolerance - 0.0001 <= final\_soc <= soc\_target + soc\_target\_tolerance + 0.0001, 'discharge\_current': max\_discharge\_a <= float(model.get('I\_max', 40.0)) + 0.1, 'charge\_current': max\_charge\_a >= float(model.get('I\_chg\_min', -16.5)) - 0.1, 'voltage\_min': min\_voltage\_v >= float(model.get('V\_min', 0.0)) - 0.1, 'voltage\_max': max\_voltage\_v <= float(model.get('V\_max', float('inf'))) + 0.1, 'prediction\_execution\_sync': sync\_error <= sync\_tol, 'prediction\_mesh': bool(mesh['valid']), 'control\_stop\_windows': bool(event\_timing['control\_stop\_windows\_pass']), 'finish\_deadline': bool(event\_timing['finish\_deadline\_pass']), 'no\_soc\_guard\_intervention': bool(soc\_guard['passed'])\} の結果を代入する。
+\item   rows.append(...) を実行する。
+\item ranking に pd.DataFrame(rows) の結果を代入する。
+\item ranking に ranking.sort\_values(['feasible', 'elapsed\_hours'], ascending=[False, True], na\_position='last', kind='stable') の結果を代入する。
+\item output.mkdir(...) を実行する。
+\item ranking.to\_csv(...) を実行する。
+\item feasible に ranking.loc[ranking['feasible'].fillna(False)] の結果を代入する。
+\item selection に \{'scope': 'fixed-policy exact 1 Hz simulation ranking; mesh convergence and model validation remain separate gates', 'source\_stage': str(args.stage), 'candidate\_count': int(len(ranking)), 'feasible\_candidate\_count': int(len(feasible)), 'selected': False\} の結果を代入する。
+\item 条件 not feasible.empty を判定し、真なら内部処理を行う。
+\item   winner に feasible.iloc[0] の結果を代入する。
+\item   selected\_policy に output / 'selected\_exact\_policy.csv' の結果を代入する。
+\item   shutil.copy2(...) を実行する。
+\item   selection.update(...) を実行する。
+\item (output / 'exact\_selection.json').write\_text(...) を実行する。
+\item print(...) を実行する。
+            \end{enumerate}
+            \paragraph{代表コード断片}
+            \begin{lstlisting}[language=Python]
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--profile", type=Path, required=True)
+    parser.add_argument("--campaign-dir", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--stage", default="control_1km")
+    parser.add_argument(
+        "--seed-label",
+        default="",
+        help="Evaluate only one seed directory (for parallel acceptance workers).",
+    )
+    parser.add_argument("--integration-ds-km", type=float, default=0.1)
+    parser.add_argument("--control-ds-km", type=float, default=1.0)
+    parser.add_argument("--no-resume", action="store_true")
+    args = parser.parse_args()
+
+    base_profile = args.profile.resolve()
+    campaign = args.campaign_dir.resolve()
+    output = args.output_dir.resolve()
+    seed_pattern = args.seed_label.strip() or "seed_*"
+    policies = sorted(campaign.glob(f"{seed_pattern}/{args.stage}/latest_policy.csv"))
+    if not policies:
+        raise FileNotFoundError(f"No {args.stage} policies under {campaign}")
+    base_cfg = yaml.safe_load(base_profile.read_text(encoding="utf-8")) or {}
+    model = base_cfg["model"]
+    rows = []
+
+    for policy in policies:
+        label = policy.parents[1].name
+        run_dir = output / label
+        profile_path = run_dir / "profile_exact_1hz.yaml"
+        manifest_path = run_dir / "latest_simulation_run.json"
+        signature_path = run_dir / "run_signature.txt"
+        cfg = materialize_profile(
+            base_profile,
+...
+\end{lstlisting}
+
+
+
+
+
+
+
+        \subsection{CLI 引数}
+            \begin{longtable}{p{0.07\linewidth} p{0.78\linewidth}}
+            \toprule
+            行 & 引数 \\
+            \midrule
+            251 & \path|--profile| \\
+252 & \path|--campaign-dir| \\
+253 & \path|--output-dir| \\
+254 & \path|--stage| \\
+255 & \path|--seed-label| \\
+260 & \path|--integration-ds-km| \\
+261 & \path|--control-ds-km| \\
+262 & \path|--no-resume| \\
+            \bottomrule
+            \end{longtable}
+
+
+
+        \section{処理の流れ}
+        \begin{enumerate}[leftmargin=1.7em]
+        \item CLI 引数を解釈し、main() から処理を起動する。
+        \end{enumerate}
+
+        \section{このファイルの位置づけ}
+        この資料群では、\path|scripts/validate_gpu_upper_policy_candidates.py| を
+        \textbf{planning validation}の中核として扱う。
+        したがって、ここで扱う処理は単独で完結せず、
+        前段の profile / launch / telemetry と後段の planner / logger / report へ繋がる。
+
+        \end{document}

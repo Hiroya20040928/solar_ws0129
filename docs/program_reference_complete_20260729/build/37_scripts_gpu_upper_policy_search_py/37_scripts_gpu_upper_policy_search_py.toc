@@ -1,0 +1,176 @@
+\contentsline {section}{\numberline {1}対象}{3}{section.1}%
+\contentsline {section}{\numberline {2}このファイルを読む理由}{3}{section.2}%
+\contentsline {section}{\numberline {3}呼び出し関係}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}どこから呼ばれるか}{3}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}次に読むと理解が進むファイル}{3}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}同一リポジトリ内の主要依存}{3}{subsection.3.3}%
+\contentsline {section}{\numberline {4}ソース冒頭の把握}{3}{section.4}%
+\contentsline {subsection}{\numberline {4.1}代表コード断片}{3}{subsection.4.1}%
+\contentsline {section}{\numberline {5}主要構造の読み取り}{4}{section.5}%
+\contentsline {subsection}{\numberline {5.1}主要クラス・関数}{4}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}ファイルを上から読んだときの定義順}{5}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}import 群の詳細}{5}{subsection.5.3}%
+\contentsline {section}{\numberline {6}このファイルを読む前に必要な基礎知識}{6}{section.6}%
+\contentsline {subsection}{\numberline {6.1}プログラム、プロセス、メモリ、オブジェクトを区別する}{7}{subsection.6.1}%
+\contentsline {paragraph}{根拠資料}{7}{section*.2}%
+\contentsline {subsection}{\numberline {6.2}名前、代入、型、参照}{7}{subsection.6.2}%
+\contentsline {paragraph}{根拠資料}{7}{section*.3}%
+\contentsline {subsection}{\numberline {6.3}関数、引数、戻り値、スコープ}{7}{subsection.6.3}%
+\contentsline {paragraph}{根拠資料}{7}{section*.4}%
+\contentsline {subsection}{\numberline {6.4}module、package、import、console\_scripts}{8}{subsection.6.4}%
+\contentsline {paragraph}{根拠資料}{8}{section*.5}%
+\contentsline {subsection}{\numberline {6.5}例外、try/finally、with、資源解放}{8}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}class、独自クラス、インスタンス、self、継承}{8}{subsection.6.6}%
+\contentsline {paragraph}{根拠資料}{9}{section*.6}%
+\contentsline {subsection}{\numberline {6.7}先頭アンダースコア、\_\_init\_\_、名前付けの作法}{9}{subsection.6.7}%
+\contentsline {paragraph}{根拠資料}{9}{section*.7}%
+\contentsline {subsection}{\numberline {6.8}list、dict、deque、NumPy配列、pandas DataFrame}{9}{subsection.6.8}%
+\contentsline {subsection}{\numberline {6.9}CLI、PowerShell、Bash、環境変数、終了コード}{9}{subsection.6.9}%
+\contentsline {paragraph}{根拠資料}{9}{section*.8}%
+\contentsline {subsection}{\numberline {6.10}目的関数、制約、L-BFGS-B、SHGO、有限grid証明}{9}{subsection.6.10}%
+\contentsline {paragraph}{根拠資料}{10}{section*.9}%
+\contentsline {subsection}{\numberline {6.11}Cross-Entropy Methodを式と実装で理解する}{10}{subsection.6.11}%
+\contentsline {paragraph}{根拠資料}{10}{section*.10}%
+\contentsline {subsection}{\numberline {6.12}天候、route、補間、時刻、単位}{10}{subsection.6.12}%
+\contentsline {subsection}{\numberline {6.13}制御、状態、入力、モデル予測制御MPC}{10}{subsection.6.13}%
+\contentsline {paragraph}{根拠資料}{11}{section*.11}%
+\contentsline {subsection}{\numberline {6.14}warm startは何を保存し、どう効くか}{11}{subsection.6.14}%
+\contentsline {paragraph}{根拠資料}{11}{section*.12}%
+\contentsline {subsection}{\numberline {6.15}単体試験、SILS、replay、観測可能性}{11}{subsection.6.15}%
+\contentsline {paragraph}{根拠資料}{11}{section*.13}%
+\contentsline {section}{\numberline {7}関数・クラスを上から順に解説}{12}{section.7}%
+\contentsline {subsection}{\numberline {7.1}L39 関数 resolve}{12}{subsection.7.1}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{12}{section*.14}%
+\contentsline {paragraph}{上から順の処理}{12}{section*.15}%
+\contentsline {paragraph}{代表コード断片}{12}{lstlisting.-7}%
+\contentsline {subsection}{\numberline {7.2}L44 関数 iso\_utc}{12}{subsection.7.2}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{13}{section*.17}%
+\contentsline {paragraph}{上から順の処理}{13}{section*.18}%
+\contentsline {paragraph}{代表コード断片}{13}{lstlisting.-8}%
+\contentsline {subsection}{\numberline {7.3}L50 関数 source\_signature}{13}{subsection.7.3}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{13}{section*.20}%
+\contentsline {paragraph}{上から順の処理}{14}{section*.21}%
+\contentsline {paragraph}{代表コード断片}{14}{lstlisting.-9}%
+\contentsline {subsection}{\numberline {7.4}L62 関数 sample\_cem\_noise}{14}{subsection.7.4}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{14}{section*.23}%
+\contentsline {paragraph}{上から順の処理}{15}{section*.24}%
+\contentsline {paragraph}{代表コード断片}{15}{lstlisting.-10}%
+\contentsline {subsection}{\numberline {7.5}L85 関数 cem\_should\_stop}{15}{subsection.7.5}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{16}{section*.26}%
+\contentsline {paragraph}{上から順の処理}{16}{section*.27}%
+\contentsline {paragraph}{代表コード断片}{16}{lstlisting.-11}%
+\contentsline {subsection}{\numberline {7.6}L102 関数 resolve\_cuda\_graph\_enabled}{16}{subsection.7.6}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{17}{section*.29}%
+\contentsline {paragraph}{上から順の処理}{17}{section*.30}%
+\contentsline {paragraph}{代表コード断片}{17}{lstlisting.-12}%
+\contentsline {subsection}{\numberline {7.7}L109 関数 build\_distance\_segments}{17}{subsection.7.7}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{17}{section*.32}%
+\contentsline {paragraph}{上から順の処理}{18}{section*.33}%
+\contentsline {paragraph}{代表コード断片}{18}{lstlisting.-13}%
+\contentsline {subsection}{\numberline {7.8}L133 関数 kinetic\_power\_w}{18}{subsection.7.8}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{19}{section*.35}%
+\contentsline {paragraph}{上から順の処理}{19}{section*.36}%
+\contentsline {paragraph}{代表コード断片}{19}{lstlisting.-14}%
+\contentsline {subsection}{\numberline {7.9}L146 関数 slew\_limited\_segment\_kinematics}{19}{subsection.7.9}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{19}{section*.38}%
+\contentsline {paragraph}{上から順の処理}{20}{section*.39}%
+\contentsline {paragraph}{代表コード断片}{20}{lstlisting.-15}%
+\contentsline {subsection}{\numberline {7.10}L193 関数 stationary\_auxiliary\_power\_w}{21}{subsection.7.10}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{21}{section*.41}%
+\contentsline {paragraph}{上から順の処理}{21}{section*.42}%
+\contentsline {paragraph}{代表コード断片}{21}{lstlisting.-16}%
+\contentsline {subsection}{\numberline {7.11}L208 クラス TensorMap2D}{22}{subsection.7.11}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{22}{section*.44}%
+\contentsline {paragraph}{上から順の処理}{22}{section*.45}%
+\contentsline {paragraph}{代表コード断片}{22}{lstlisting.-17}%
+\contentsline {subsection}{\numberline {7.12}L211 関数 TensorMap2D.\_\_init\_\_}{23}{subsection.7.12}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{23}{section*.47}%
+\contentsline {paragraph}{上から順の処理}{23}{section*.48}%
+\contentsline {paragraph}{代表コード断片}{23}{lstlisting.-18}%
+\contentsline {subsection}{\numberline {7.13}L219 関数 TensorMap2D.sample}{24}{subsection.7.13}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{24}{section*.50}%
+\contentsline {paragraph}{上から順の処理}{24}{section*.51}%
+\contentsline {paragraph}{代表コード断片}{25}{lstlisting.-19}%
+\contentsline {subsection}{\numberline {7.14}L236 クラス TensorMap1D}{25}{subsection.7.14}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{25}{section*.53}%
+\contentsline {paragraph}{上から順の処理}{25}{section*.54}%
+\contentsline {paragraph}{代表コード断片}{25}{lstlisting.-20}%
+\contentsline {subsection}{\numberline {7.15}L237 関数 TensorMap1D.\_\_init\_\_}{26}{subsection.7.15}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{26}{section*.56}%
+\contentsline {paragraph}{上から順の処理}{26}{section*.57}%
+\contentsline {paragraph}{代表コード断片}{26}{lstlisting.-21}%
+\contentsline {subsection}{\numberline {7.16}L244 関数 TensorMap1D.sample}{27}{subsection.7.16}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{27}{section*.59}%
+\contentsline {paragraph}{上から順の処理}{27}{section*.60}%
+\contentsline {paragraph}{代表コード断片}{27}{lstlisting.-22}%
+\contentsline {subsection}{\numberline {7.17}L252 クラス WeatherGrid}{27}{subsection.7.17}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{28}{section*.62}%
+\contentsline {paragraph}{上から順の処理}{28}{section*.63}%
+\contentsline {paragraph}{代表コード断片}{28}{lstlisting.-23}%
+\contentsline {subsection}{\numberline {7.18}L253 関数 WeatherGrid.\_\_init\_\_}{29}{subsection.7.18}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{29}{section*.65}%
+\contentsline {paragraph}{上から順の処理}{29}{section*.66}%
+\contentsline {paragraph}{代表コード断片}{30}{lstlisting.-24}%
+\contentsline {subsection}{\numberline {7.19}L306 関数 WeatherGrid.refine\_time\_grid}{31}{subsection.7.19}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{32}{section*.68}%
+\contentsline {paragraph}{上から順の処理}{32}{section*.69}%
+\contentsline {paragraph}{代表コード断片}{33}{lstlisting.-25}%
+\contentsline {subsection}{\numberline {7.20}L375 関数 WeatherGrid.\_sample\_matrix}{33}{subsection.7.20}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{34}{section*.71}%
+\contentsline {paragraph}{上から順の処理}{34}{section*.72}%
+\contentsline {paragraph}{代表コード断片}{34}{lstlisting.-26}%
+\contentsline {subsection}{\numberline {7.21}L392 関数 WeatherGrid.sample}{35}{subsection.7.21}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{35}{section*.74}%
+\contentsline {paragraph}{上から順の処理}{35}{section*.75}%
+\contentsline {paragraph}{代表コード断片}{35}{lstlisting.-27}%
+\contentsline {subsection}{\numberline {7.22}L395 関数 WeatherGrid.register\_time\_integral}{35}{subsection.7.22}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{36}{section*.77}%
+\contentsline {paragraph}{上から順の処理}{36}{section*.78}%
+\contentsline {paragraph}{代表コード断片}{36}{lstlisting.-28}%
+\contentsline {subsection}{\numberline {7.23}L405 関数 WeatherGrid.sample\_integral}{36}{subsection.7.23}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{37}{section*.80}%
+\contentsline {paragraph}{上から順の処理}{37}{section*.81}%
+\contentsline {paragraph}{代表コード断片}{37}{lstlisting.-29}%
+\contentsline {subsection}{\numberline {7.24}L428 関数 WeatherGrid.register\_soc\_time\_integral}{38}{subsection.7.24}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{38}{section*.83}%
+\contentsline {paragraph}{上から順の処理}{38}{section*.84}%
+\contentsline {paragraph}{代表コード断片}{39}{lstlisting.-30}%
+\contentsline {subsection}{\numberline {7.25}L454 関数 WeatherGrid.sample\_soc\_integral}{39}{subsection.7.25}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{39}{section*.86}%
+\contentsline {paragraph}{上から順の処理}{40}{section*.87}%
+\contentsline {paragraph}{代表コード断片}{40}{lstlisting.-31}%
+\contentsline {subsection}{\numberline {7.26}L480 関数 WeatherGrid.sample\_soc\_integral.interpolate}{41}{subsection.7.26}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{41}{section*.89}%
+\contentsline {paragraph}{上から順の処理}{41}{section*.90}%
+\contentsline {paragraph}{代表コード断片}{42}{lstlisting.-32}%
+\contentsline {subsection}{\numberline {7.27}L498 関数 parse\_args}{42}{subsection.7.27}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{42}{section*.92}%
+\contentsline {paragraph}{上から順の処理}{42}{section*.93}%
+\contentsline {paragraph}{代表コード断片}{43}{lstlisting.-33}%
+\contentsline {subsection}{\numberline {7.28}L554 関数 main}{44}{subsection.7.28}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{44}{section*.95}%
+\contentsline {paragraph}{上から順の処理}{44}{section*.96}%
+\contentsline {paragraph}{代表コード断片}{47}{lstlisting.-34}%
+\contentsline {subsection}{\numberline {7.29}L912 関数 main.pv\_power}{48}{subsection.7.29}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{48}{section*.98}%
+\contentsline {paragraph}{上から順の処理}{48}{section*.99}%
+\contentsline {paragraph}{代表コード断片}{49}{lstlisting.-35}%
+\contentsline {subsection}{\numberline {7.30}L944 関数 main.register\_stationary\_mode}{49}{subsection.7.30}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{50}{section*.101}%
+\contentsline {paragraph}{上から順の処理}{50}{section*.102}%
+\contentsline {paragraph}{代表コード断片}{51}{lstlisting.-36}%
+\contentsline {subsection}{\numberline {7.31}L1010 関数 main.apply\_wait}{51}{subsection.7.31}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{52}{section*.104}%
+\contentsline {paragraph}{上から順の処理}{52}{section*.105}%
+\contentsline {paragraph}{代表コード断片}{53}{lstlisting.-37}%
+\contentsline {subsection}{\numberline {7.32}L1091 関数 main.evaluate}{53}{subsection.7.32}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{54}{section*.107}%
+\contentsline {paragraph}{上から順の処理}{54}{section*.108}%
+\contentsline {paragraph}{代表コード断片}{57}{lstlisting.-38}%
+\contentsline {subsection}{\numberline {7.33}L1097 関数 main.evaluate.append\_wait\_trace}{57}{subsection.7.33}%
+\contentsline {paragraph}{この定義を読むためのPython構文}{58}{section*.110}%
+\contentsline {paragraph}{上から順の処理}{58}{section*.111}%
+\contentsline {paragraph}{代表コード断片}{58}{lstlisting.-39}%
+\contentsline {subsection}{\numberline {7.34}CLI 引数}{59}{subsection.7.34}%
+\contentsline {section}{\numberline {8}処理の流れ}{59}{section.8}%
+\contentsline {section}{\numberline {9}このファイルの位置づけ}{59}{section.9}%

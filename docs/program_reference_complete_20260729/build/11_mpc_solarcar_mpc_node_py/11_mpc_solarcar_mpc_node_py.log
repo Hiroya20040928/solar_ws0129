@@ -1,0 +1,1773 @@
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.12) (preloaded format=xelatex 2026.5.1)  29 JUL 2026 12:10
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**"C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refe
+rence_complete_20260729/tex/11_mpc_solarcar_mpc_node_py.tex"
+
+(C:/Users/user/OneDrive - 和歌山大学/ソーラー/エネマネ/solar_ws0129-main/docs/program_refere
+nce_complete_20260729/tex/11_mpc_solarcar_mpc_node_py.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\size11.clo
+File: size11.clo 2025/01/22 v1.4n Standard LaTeX file (size option)
+)
+\c@part=\count271
+\c@section=\count272
+\c@subsection=\count273
+\c@subsubsection=\count274
+\c@paragraph=\count275
+\c@subparagraph=\count276
+\c@figure=\count277
+\c@table=\count278
+\abovecaptionskip=\skip49
+\belowcaptionskip=\skip50
+\bibindent=\dimen148
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.sty
+Package: geometry 2026/03/07 v6.0 Page Geometry
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty
+Package: keyval 2022/05/29 v1.15 key=value parser (DPC)
+\KV@toks@=\toks17
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
+Package: ifvtex 2019/10/25 v1.7 ifvtex legacy package. Use iftex instead.
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty
+Package: iftex 2024/12/12 v1.0g TeX engine tests
+))
+\Gm@cnth=\count279
+\Gm@cntv=\count280
+\c@Gm@tempcnt=\count281
+\Gm@bindingoffset=\dimen149
+\Gm@wd@mp=\dimen150
+\Gm@odd@mp=\dimen151
+\Gm@even@mp=\dimen152
+\Gm@layoutwidth=\dimen153
+\Gm@layoutheight=\dimen154
+\Gm@layouthoffset=\dimen155
+\Gm@layoutvoffset=\dimen156
+\Gm@dimlist=\toks18
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.sty
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xparse\xparse
+.sty (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3kernel\expl3.sty
+Package: expl3 2025-12-24 L3 programming layer (loader) 
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-xete
+x.def
+File: l3backend-xetex.def 2025-10-09 L3 backend support: XeTeX
+\g__graphics_track_int=\count282
+\g__pdfannot_backend_int=\count283
+\g__pdfannot_backend_link_int=\count284
+))
+Package: xparse 2025-10-09 L3 Experimental document command parser
+)
+Package: fontspec 2025/09/29 v2.9g Font selection for XeLaTeX and LuaLaTeX
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec-xetex.
+sty
+Package: fontspec-xetex 2025/09/29 v2.9g Font selection for XeLaTeX and LuaLaTe
+X
+\l__fontspec_script_int=\count285
+\l__fontspec_language_int=\count286
+\l__fontspec_strnum_int=\count287
+\l__fontspec_tmp_int=\count288
+\l__fontspec_tmpa_int=\count289
+\l__fontspec_tmpb_int=\count290
+\l__fontspec_tmpc_int=\count291
+\l__fontspec_em_int=\count292
+\l__fontspec_emdef_int=\count293
+\l__fontspec_strong_int=\count294
+\l__fontspec_strongdef_int=\count295
+\l__fontspec_tmpa_dim=\dimen157
+\l__fontspec_tmpb_dim=\dimen158
+\l__fontspec_tmpc_dim=\dimen159
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty
+Package: fontenc 2025/07/18 v2.1d Standard LaTeX package
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/fontspec\fontspec.cfg)))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.sty
+Package: xeCJK 2022/08/05 v3.9.1 Typesetting CJK scripts with XeLaTeX
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/ctex\ctexhook.sty
+Package: ctexhook 2022/07/14 v2.5.10 Document and package hooks (CTEX)
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/l3packages/xtemplate\xte
+mplate.sty
+Package: xtemplate 2025-10-09 L3 Experimental prototype document functions
+)
+\l__xeCJK_tmp_int=\count296
+\l__xeCJK_tmp_box=\box53
+\l__xeCJK_tmp_dim=\dimen160
+\l__xeCJK_tmp_skip=\skip51
+\g__xeCJK_space_factor_int=\count297
+\l__xeCJK_begin_int=\count298
+\l__xeCJK_end_int=\count299
+\c__xeCJK_CJK_class_int=\XeTeXcharclass1
+\c__xeCJK_FullLeft_class_int=\XeTeXcharclass2
+\c__xeCJK_FullRight_class_int=\XeTeXcharclass3
+\c__xeCJK_HalfLeft_class_int=\XeTeXcharclass4
+\c__xeCJK_HalfRight_class_int=\XeTeXcharclass5
+\c__xeCJK_NormalSpace_class_int=\XeTeXcharclass6
+\c__xeCJK_CM_class_int=\XeTeXcharclass7
+\c__xeCJK_HangulJamo_class_int=\XeTeXcharclass8
+\l__xeCJK_last_skip=\skip52
+\c__xeCJK_none_node=\count300
+\g__xeCJK_node_int=\count301
+\c__xeCJK_CJK_node_dim=\dimen161
+\c__xeCJK_CJK-space_node_dim=\dimen162
+\c__xeCJK_default_node_dim=\dimen163
+\c__xeCJK_CJK-widow_node_dim=\dimen164
+\c__xeCJK_normalspace_node_dim=\dimen165
+\c__xeCJK_default-space_node_skip=\skip53
+\l__xeCJK_ccglue_skip=\skip54
+\l__xeCJK_ecglue_skip=\skip55
+\l__xeCJK_punct_kern_skip=\skip56
+\l__xeCJK_indent_box=\box54
+\l__xeCJK_last_penalty_int=\count302
+\l__xeCJK_last_bound_dim=\dimen166
+\l__xeCJK_last_kern_dim=\dimen167
+\l__xeCJK_widow_penalty_int=\count303
+
+LaTeX template Info: Declaring template type 'xeCJK/punctuation' taking 0
+(template)           argument(s) on line 2396.
+
+\l__xeCJK_fixed_punct_width_dim=\dimen168
+\l__xeCJK_mixed_punct_width_dim=\dimen169
+\l__xeCJK_middle_punct_width_dim=\dimen170
+\l__xeCJK_fixed_margin_width_dim=\dimen171
+\l__xeCJK_mixed_margin_width_dim=\dimen172
+\l__xeCJK_middle_margin_width_dim=\dimen173
+\l__xeCJK_bound_punct_width_dim=\dimen174
+\l__xeCJK_bound_margin_width_dim=\dimen175
+\l__xeCJK_margin_minimum_dim=\dimen176
+\l__xeCJK_kerning_total_width_dim=\dimen177
+\l__xeCJK_same_align_margin_dim=\dimen178
+\l__xeCJK_different_align_margin_dim=\dimen179
+\l__xeCJK_kerning_margin_width_dim=\dimen180
+\l__xeCJK_kerning_margin_minimum_dim=\dimen181
+\l__xeCJK_bound_dim=\dimen182
+\l__xeCJK_reverse_bound_dim=\dimen183
+\l__xeCJK_margin_dim=\dimen184
+\l__xeCJK_minimum_bound_dim=\dimen185
+\l__xeCJK_kerning_margin_dim=\dimen186
+\g__xeCJK_family_int=\count304
+\l__xeCJK_fam_int=\count305
+\g__xeCJK_fam_allocation_int=\count306
+\l__xeCJK_verb_case_int=\count307
+\l__xeCJK_verb_exspace_skip=\skip57
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK.cfg
+File: xeCJK.cfg 2022/08/05 v3.9.1 Configuration file for xeCJK package
+))
+
+Package fontspec Info: 
+(fontspec)             Font family 'TimesNewRoman(0)' created for font 'Times
+(fontspec)             New Roman' with options [Ligatures=TeX].
+(fontspec)              
+(fontspec)              This font family consists of the following NFSS
+(fontspec)             series/shapes:
+(fontspec)              
+(fontspec)             - 'normal' (m/n) with NFSS spec.: <->"Times New
+(fontspec)             Roman/OT:script=latn;language=dflt;mapping=tex-text;"
+(fontspec)             - 'small caps'  (m/sc) with NFSS spec.: <->"Times New
+(fontspec)             Roman/OT:script=latn;language=dflt;+smcp;mapping=tex-tex
+t;"
+(fontspec)             - 'bold' (b/n) with NFSS spec.: <->"Times New
+(fontspec)             Roman/B/OT:script=latn;language=dflt;mapping=tex-text;"
+(fontspec)             - 'bold small caps'  (b/sc) with NFSS spec.: <->"Times
+(fontspec)             New
+(fontspec)             Roman/B/OT:script=latn;language=dflt;+smcp;mapping=tex-t
+ext;"
+(fontspec)             - 'italic' (m/it) with NFSS spec.: <->"Times New
+(fontspec)             Roman/I/OT:script=latn;language=dflt;mapping=tex-text;"
+(fontspec)             - 'italic small caps'  (m/scit) with NFSS spec.:
+(fontspec)             <->"Times New
+(fontspec)             Roman/I/OT:script=latn;language=dflt;+smcp;mapping=tex-t
+ext;"
+(fontspec)             - 'bold italic' (b/it) with NFSS spec.: <->"Times New
+(fontspec)             Roman/BI/OT:script=latn;language=dflt;mapping=tex-text;"
+
+(fontspec)             - 'bold italic small caps'  (b/scit) with NFSS spec.:
+(fontspec)             <->"Times New
+(fontspec)             Roman/BI/OT:script=latn;language=dflt;+smcp;mapping=tex-
+text;"
+
+
+Package fontspec Info: 
+(fontspec)             Could not resolve font "Yu Gothic/I" (it probably
+(fontspec)             doesn't exist).
+
+
+Package fontspec Info: 
+(fontspec)             Font family 'YuGothic(0)' created for font 'Yu Gothic'
+(fontspec)             with options [Script={CJK}].
+(fontspec)              
+(fontspec)              This font family consists of the following NFSS
+(fontspec)             series/shapes:
+(fontspec)              
+(fontspec)             - 'normal' (m/n) with NFSS spec.: <->"Yu
+(fontspec)             Gothic/OT:script=hani;language=dflt;"
+(fontspec)             - 'bold' (b/n) with NFSS spec.: <->"Yu
+(fontspec)             Gothic/B/OT:script=hani;language=dflt;"
+(fontspec)             - 'bold italic' (b/it) with NFSS spec.: <->"Yu
+(fontspec)             Gothic/BI/OT:script=hani;language=dflt;"
+
+
+Package fontspec Info: 
+(fontspec)             Font family 'Consolas(0)' created for font 'Consolas'
+(fontspec)             with options
+(fontspec)             [WordSpace={1,0,0},HyphenChar=None,PunctuationSpace=Word
+Space].
+(fontspec)              
+(fontspec)              This font family consists of the following NFSS
+(fontspec)             series/shapes:
+(fontspec)              
+(fontspec)             - 'normal' (m/n) with NFSS spec.:
+(fontspec)             <->"Consolas/OT:script=latn;language=dflt;"
+(fontspec)             - 'bold' (b/n) with NFSS spec.:
+(fontspec)             <->"Consolas/B/OT:script=latn;language=dflt;"
+(fontspec)             - 'italic' (m/it) with NFSS spec.:
+(fontspec)             <->"Consolas/I/OT:script=latn;language=dflt;"
+(fontspec)             - 'bold italic' (b/it) with NFSS spec.:
+(fontspec)             <->"Consolas/BI/OT:script=latn;language=dflt;"
+
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.sty
+Package: booktabs 2020/01/12 v1.61803398 Publication quality tables
+\heavyrulewidth=\dimen187
+\lightrulewidth=\dimen188
+\cmidrulewidth=\dimen189
+\belowrulesep=\dimen190
+\belowbottomsep=\dimen191
+\aboverulesep=\dimen192
+\abovetopsep=\dimen193
+\cmidrulesep=\dimen194
+\cmidrulekern=\dimen195
+\defaultaddspace=\dimen196
+\@cmidla=\count308
+\@cmidlb=\count309
+\@aboverulesep=\dimen197
+\@belowrulesep=\dimen198
+\@thisruleclass=\count310
+\@lastruleclass=\count311
+\@thisrulewidth=\dimen199
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty
+Package: longtable 2025-10-13 v4.24 Multi-page Table package (DPC)
+\LTleft=\skip58
+\LTright=\skip59
+\LTpre=\skip60
+\LTpost=\skip61
+\LTchunksize=\count312
+\LTcapwidth=\dimen256
+\LT@head=\box55
+\LT@firsthead=\box56
+\LT@foot=\box57
+\LT@lastfoot=\box58
+\LT@gbox=\box59
+\LT@cols=\count313
+\LT@rows=\count314
+\c@LT@tables=\count315
+\c@LT@chunks=\count316
+\LT@p@ftn=\toks19
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\tabularx.sty
+Package: tabularx 2023/12/11 v2.12a `tabularx' package (DPC)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty
+Package: array 2025/09/25 v2.6n Tabular extension package (FMi)
+\col@sep=\dimen257
+\ar@mcellbox=\box60
+\extrarowheight=\dimen258
+\NC@list=\toks20
+\extratabsurround=\skip62
+\backup@length=\skip63
+\ar@cellbox=\box61
+)
+\TX@col@width=\dimen259
+\TX@old@table=\dimen260
+\TX@old@col=\dimen261
+\TX@target=\dimen262
+\TX@delta=\dimen263
+\TX@cols=\count317
+\TX@ftn=\toks21
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty
+Package: enumitem 2025/02/06 v3.11 Customized lists
+\labelindent=\skip64
+\enit@outerparindent=\dimen264
+\enit@toks=\toks22
+\enit@inbox=\box62
+\enit@count@id=\count318
+\enitdp@description=\count319
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
+Package: hyperref 2025-07-12 v7.01o Hypertext links for LaTeX
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty
+Package: kvsetkeys 2022-10-05 v1.19 Key value parser (HO)
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdefinek
+eys.sty
+Package: kvdefinekeys 2019-12-19 v1.6 Define keys (HO)
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescape.st
+y
+Package: pdfescape 2019/12/09 v1.15 Implements pdfTeX's escape features (HO)
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty
+Package: ltxcmds 2023-12-04 v1.26 LaTeX kernel commands for general use (HO)
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexcmds.
+sty
+Package: pdftexcmds 2020-06-27 v0.33 Utility functions of pdfTeX for LuaTeX (HO
+)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarerr.st
+y
+Package: infwarerr 2019/12/03 v1.5 Providing info/warning/error messages (HO)
+)
+Package pdftexcmds Info: \pdf@primitive is available.
+Package pdftexcmds Info: \pdf@ifprimitive is available.
+Package pdftexcmds Info: \pdfdraftmode not found.
+)) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty
+Package: hycolor 2020-01-27 v1.10 Color options for hyperref/bookmark (HO)
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+Package: nameref 2025-06-21 v2.57 Cross-referencing by name of section
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty
+Package: refcount 2019/12/15 v3.6 Data extraction from label references (HO)
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitl
+estring.sty
+Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty
+Package: kvoptions 2022-06-15 v3.15 Key value format for package options (HO)
+))
+\c@section@level=\count320
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
+Package: etoolbox 2025/10/02 v2.5m e-TeX tools for LaTeX (JAW)
+\etb@tempcnta=\count321
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringenc.st
+y
+Package: stringenc 2019/11/29 v1.12 Convert strings between diff. encodings (HO
+)
+)
+\@linkdim=\dimen265
+\Hy@linkcounter=\count322
+\Hy@pagecounter=\count323
+ (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def
+File: pd1enc.def 2025-07-12 v7.01o Hyperref: PDFDocEncoding definition (HO)
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.sty
+Package: intcalc 2019/12/15 v1.3 Expandable calculations with integers (HO)
+)
+\Hy@SavedSpaceFactor=\count324
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def
+File: puenc.def 2025-07-12 v7.01o Hyperref: PDF Unicode definition (HO)
+)
+Package hyperref Info: Hyper figures OFF on input line 4195.
+Package hyperref Info: Link nesting OFF on input line 4200.
+Package hyperref Info: Hyper index ON on input line 4203.
+Package hyperref Info: Plain pages OFF on input line 4210.
+Package hyperref Info: Backreferencing OFF on input line 4215.
+Package hyperref Info: Implicit mode ON; LaTeX internals redefined.
+Package hyperref Info: Bookmarks ON on input line 4462.
+\c@Hy@tempcnt=\count325
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty
+\Urlmuskip=\muskip17
+Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
+)
+LaTeX Info: Redefining \url on input line 4801.
+\XeTeXLinkMargin=\dimen266
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+Package: bitset 2019/12/09 v1.3 Handle bit-vector datatype (HO)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.
+sty
+Package: bigintcalc 2019/12/15 v1.5 Expandable calculations on big integers (HO
+)
+))
+\Fld@menulength=\count326
+\Field@Width=\dimen267
+\Fld@charsize=\dimen268
+Package hyperref Info: Hyper figures OFF on input line 6078.
+Package hyperref Info: Link nesting OFF on input line 6083.
+Package hyperref Info: Hyper index ON on input line 6086.
+Package hyperref Info: backreferencing OFF on input line 6093.
+Package hyperref Info: Link coloring OFF on input line 6098.
+Package hyperref Info: Link coloring with OCG OFF on input line 6103.
+Package hyperref Info: PDF/A mode OFF on input line 6108.
+\Hy@abspage=\count327
+\c@Item=\count328
+\c@Hfootnote=\count329
+)
+Package hyperref Info: Driver (autodetected): hxetex.
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hxetex.def
+File: hxetex.def 2025-07-12 v7.01o Hyperref driver for XeTeX
+\pdfm@box=\box63
+\c@Hy@AnnotLevel=\count330
+\HyField@AnnotCount=\count331
+\Fld@listcount=\count332
+\c@bookmark@seq@number=\count333
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfile
+check.sty
+Package: rerunfilecheck 2025-06-21 v1.11 Rerun checks for auxiliary files (HO)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniqueco
+unter.sty
+Package: uniquecounter 2019/12/15 v1.4 Provide unlimited unique counter (HO)
+)
+Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
+84.
+)
+\Hy@SectionHShift=\skip65
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+\lst@mode=\count334
+\lst@gtempboxa=\box64
+\lst@token=\toks23
+\lst@length=\count335
+\lst@currlwidth=\dimen269
+\lst@column=\count336
+\lst@pos=\count337
+\lst@lostspace=\dimen270
+\lst@width=\dimen271
+\lst@newlines=\count338
+\lst@lineno=\count339
+\lst@maxwidth=\dimen272
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty
+File: lstpatch.sty 2025/11/14 1.11b (Carsten Heinz)
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty
+File: lstmisc.sty 2025/11/14 1.11b (Carsten Heinz)
+\c@lstnumber=\count340
+\lst@skipnumbers=\count341
+\lst@framebox=\box65
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg
+File: listings.cfg 2025/11/14 1.11b listings configuration
+))
+Package: listings 2025/11/14 1.11b (Carsten Heinz)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/xelatex/xecjk\xeCJK-listings.s
+ty
+Package: xeCJK-listings 2022/08/05 v3.9.1 xeCJK patch file for listings
+\l__xeCJK_listings_max_char_int=\count342
+\l__xeCJK_listings_flag_int=\count343
+)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+Package: xcolor 2024/09/29 v3.02 LaTeX color extensions (UK)
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg
+File: color.cfg 2016/01/02 v1.6 sample color configuration
+)
+Package xcolor Info: Driver file: xetex.def on input line 274.
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\xetex.def
+File: xetex.def 2025/11/01 v5.0p Graphics/color driver for xetex
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.ltx)
+Package xcolor Info: Model `cmy' substituted by `cmy0' on input line 1349.
+Package xcolor Info: Model `RGB' extended on input line 1365.
+Package xcolor Info: Model `HTML' substituted by `rgb' on input line 1367.
+Package xcolor Info: Model `Hsb' substituted by `hsb' on input line 1368.
+Package xcolor Info: Model `tHsb' substituted by `hsb' on input line 1369.
+Package xcolor Info: Model `HSB' substituted by `hsb' on input line 1370.
+Package xcolor Info: Model `Gray' substituted by `gray' on input line 1371.
+Package xcolor Info: Model `wave' substituted by `hsb' on input line 1372.
+) (C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+Package: amsmath 2025/07/09 v2.17z AMS math features
+\@mathmargin=\skip66
+
+For additional information on amsmath, use the `?' option.
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+Package: amstext 2024/11/17 v2.01 AMS text
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty
+File: amsgen.sty 1999/11/30 v2.0 generic functions
+\@emptytoks=\toks24
+\ex@=\dimen273
+))
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty
+Package: amsbsy 1999/11/29 v1.2d Bold Symbols
+\pmbraise@=\dimen274
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty
+Package: amsopn 2022/04/08 v2.04 operator names
+)
+\inf@bad=\count344
+LaTeX Info: Redefining \frac on input line 233.
+\uproot@=\count345
+\leftroot@=\count346
+LaTeX Info: Redefining \overline on input line 398.
+LaTeX Info: Redefining \colon on input line 409.
+\classnum@=\count347
+\DOTSCASE@=\count348
+LaTeX Info: Redefining \ldots on input line 495.
+LaTeX Info: Redefining \dots on input line 498.
+LaTeX Info: Redefining \cdots on input line 619.
+\Mathstrutbox@=\box66
+\strutbox@=\box67
+LaTeX Info: Redefining \big on input line 721.
+LaTeX Info: Redefining \Big on input line 722.
+LaTeX Info: Redefining \bigg on input line 723.
+LaTeX Info: Redefining \Bigg on input line 724.
+\big@size=\dimen275
+LaTeX Font Info:    Redeclaring font encoding OML on input line 742.
+LaTeX Font Info:    Redeclaring font encoding OMS on input line 743.
+\macc@depth=\count349
+LaTeX Info: Redefining \bmod on input line 904.
+LaTeX Info: Redefining \pmod on input line 909.
+LaTeX Info: Redefining \smash on input line 939.
+LaTeX Info: Redefining \relbar on input line 969.
+LaTeX Info: Redefining \Relbar on input line 970.
+\c@MaxMatrixCols=\count350
+\dotsspace@=\muskip18
+\c@parentequation=\count351
+\dspbrk@lvl=\count352
+\tag@help=\toks25
+\row@=\count353
+\column@=\count354
+\maxfields@=\count355
+\andhelp@=\toks26
+\eqnshift@=\dimen276
+\alignsep@=\dimen277
+\tagshift@=\dimen278
+\tagwidth@=\dimen279
+\totwidth@=\dimen280
+\lineht@=\dimen281
+\@envbody=\toks27
+\multlinegap=\skip67
+\multlinetaggap=\skip68
+\mathdisplay@stack=\toks28
+LaTeX Info: Redefining \[ on input line 2950.
+LaTeX Info: Redefining \] on input line 2951.
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+Package: amssymb 2013/01/14 v3.01 AMS font symbols
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty
+Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
+\symAMSa=\mathgroup4
+\symAMSb=\mathgroup5
+LaTeX Font Info:    Redeclaring math symbol \hbar on input line 98.
+LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
+(Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
+))
+Package hyperref Info: Option `colorlinks' set `true' on input line 25.
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.aux)
+\openout1 = `11_mpc_solarcar_mpc_node_py.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+*geometry* verbose mode - [ preamble ] result:
+* driver: xetex
+* paper: a4paper
+* layout: <same size as paper>
+* layoutoffset:(h,v)=(0.0pt,0.0pt)
+* modes: 
+* h-part:(L,W,R)=(45.5244pt, 506.45908pt, 45.5244pt)
+* v-part:(T,H,B)=(42.67912pt, 751.15277pt, 51.21495pt)
+* \paperwidth=597.50787pt
+* \paperheight=845.04684pt
+* \textwidth=506.45908pt
+* \textheight=751.15277pt
+* \oddsidemargin=-26.74559pt
+* \evensidemargin=-26.74559pt
+* \topmargin=-66.59087pt
+* \headheight=12.0pt
+* \headsep=25.0pt
+* \topskip=11.0pt
+* \footskip=30.0pt
+* \marginparwidth=50.0pt
+* \marginparsep=10.0pt
+* \columnsep=10.0pt
+* \skip\footins=10.0pt plus 4.0pt minus 2.0pt
+* \hoffset=0.0pt
+* \voffset=0.0pt
+* \mag=1000
+* \@twocolumnfalse
+* \@twosidefalse
+* \@mparswitchfalse
+* \@reversemarginfalse
+* (1in=72.27pt=25.4mm, 1cm=28.453pt)
+
+
+Package fontspec Info: 
+(fontspec)             Adjusting the maths setup (use [no-math] to avoid
+(fontspec)             this).
+
+\symlegacymaths=\mathgroup6
+LaTeX Font Info:    Overwriting symbol font `legacymaths' in version `bold'
+(Font)                  OT1/cmr/m/n --> OT1/cmr/bx/n on input line 43.
+LaTeX Font Info:    Redeclaring math accent \acute on input line 43.
+LaTeX Font Info:    Redeclaring math accent \grave on input line 43.
+LaTeX Font Info:    Redeclaring math accent \ddot on input line 43.
+LaTeX Font Info:    Redeclaring math accent \tilde on input line 43.
+LaTeX Font Info:    Redeclaring math accent \bar on input line 43.
+LaTeX Font Info:    Redeclaring math accent \breve on input line 43.
+LaTeX Font Info:    Redeclaring math accent \check on input line 43.
+LaTeX Font Info:    Redeclaring math accent \hat on input line 43.
+LaTeX Font Info:    Redeclaring math accent \dot on input line 43.
+LaTeX Font Info:    Redeclaring math accent \mathring on input line 43.
+LaTeX Font Info:    Redeclaring math symbol \Gamma on input line 43.
+LaTeX Font Info:    Redeclaring math symbol \Delta on input line 43.
+LaTeX Font Info:    Redeclaring math symbol \Theta on input line 43.
+LaTeX Font Info:    Redeclaring math symbol \Lambda on input line 43.
+LaTeX Font Info:    Redeclaring math symbol \Xi on input line 43.
+LaTeX Font Info:    Redeclaring math symbol \Pi on input line 43.
+LaTeX Font Info:    Redeclaring math symbol \Sigma on input line 43.
+LaTeX Font Info:    Redeclaring math symbol \Upsilon on input line 43.
+LaTeX Font Info:    Redeclaring math symbol \Phi on input line 43.
+LaTeX Font Info:    Redeclaring math symbol \Psi on input line 43.
+LaTeX Font Info:    Redeclaring math symbol \Omega on input line 43.
+LaTeX Font Info:    Redeclaring math symbol \mathdollar on input line 43.
+LaTeX Font Info:    Redeclaring symbol font `operators' on input line 43.
+LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
+(Font)              `operators' in the math version `normal' on input line 43.
+LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
+(Font)                  OT1/cmr/m/n --> TU/TimesNewRoman(0)/m/n on input line 4
+3.
+LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
+(Font)              `operators' in the math version `bold' on input line 43.
+LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
+(Font)                  OT1/cmr/bx/n --> TU/TimesNewRoman(0)/m/n on input line 
+43.
+LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
+(Font)                  TU/TimesNewRoman(0)/m/n --> TU/TimesNewRoman(0)/m/n on 
+input line 43.
+LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `normal'
+(Font)                  OT1/cmr/m/it --> TU/TimesNewRoman(0)/m/it on input line
+ 43.
+LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `normal'
+(Font)                  OT1/cmr/bx/n --> TU/TimesNewRoman(0)/b/n on input line 
+43.
+LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `normal'
+(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 43.
+LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `normal'
+(Font)                  OT1/cmtt/m/n --> TU/Consolas(0)/m/n on input line 43.
+LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
+(Font)                  TU/TimesNewRoman(0)/m/n --> TU/TimesNewRoman(0)/b/n on 
+input line 43.
+LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
+(Font)                  OT1/cmr/bx/it --> TU/TimesNewRoman(0)/b/it on input lin
+e 43.
+LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
+(Font)                  OT1/cmss/bx/n --> TU/lmss/b/n on input line 43.
+LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
+(Font)                  OT1/cmtt/m/n --> TU/Consolas(0)/b/n on input line 43.
+Package hyperref Info: Link coloring ON on input line 43.
+
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.out)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.out)
+\@outlinefile=\write3
+\openout3 = `11_mpc_solarcar_mpc_node_py.out'.
+
+\c@lstlisting=\count356
+LaTeX Font Info:    Trying to load font information for U+msa on input line 45.
+
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+)
+LaTeX Font Info:    Trying to load font information for U+msb on input line 45.
+
+
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+)
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.toc [1
+
+] [2] [3])
+\tf@toc=\write4
+\openout4 = `11_mpc_solarcar_mpc_node_py.toc'.
+
+ [4] [5
+
+]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty
+File: lstlang1.sty 2025/11/14 1.11b listings language file
+)
+Underfull \hbox (badness 10000) in paragraph at lines 145--145
+[]|$[][][][][][] [] [][][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 155--155
+[]|$[][][] [] [][][][][] [] [][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 168--168
+[]|$[][][][][][][] [] [][][][] [] [][][][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 173--173
+[]|$[][][][] [] [][][][][] [] [][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 176--176
+[]|$[][][][][][][][][] [] [][][][][][][][][][] []
+ []
+
+
+Underfull \hbox (badness 2744) in paragraph at lines 192--193
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: self, v0_ms, u_seq, env, z0, Tb0,
+ []
+
+
+Underfull \hbox (badness 1953) in paragraph at lines 193--194
+[]|\TU/TimesNewRoman(0)/m/n/10.95 args: self, v0_ms, s0_km, z0, Tb0, env,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 197--197
+[]|$[][][][][][][][] [] [][][][][] []
+ []
+
+ignored error: Infinite glue shrinkage found in box being split [6]
+ignored error: Infinite glue shrinkage found in box being split [7]
+Underfull \hbox (badness 10000) in paragraph at lines 223--223
+[]|$[][][][][][][][][][][][][][][][][][][][][][][][][][] [][]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 225--225
+[]|$[][][][][][][][][] [] [][][][][][][][] []
+ []
+
+
+Overfull \hbox (85.7225pt too wide) in paragraph at lines 225--225
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][
+][][]$| 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 226--226
+[]|$[][][][][][][][][] []
+ []
+
+
+Overfull \hbox (49.60037pt too wide) in paragraph at lines 226--226
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]$| 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 228--228
+[]|$[][][][][][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 232--232
+[]|$[][][][][][][] [] [][][][] [] [][][][][][][][][][][][][] [][]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 232--232
+[][][][][][][] [][] [][][][][][][][][][][][][][][][][] [][]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 234--234
+[]|$[][][][][][][][][][][][] [] [][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 235--235
+[]|$[][][][][][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 236--236
+[]|$[][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 236--236
+[][][][][][][][][][][][][][][][][][][][][][][][] [][]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 237--237
+[]|$[][][][] [] [][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 238--238
+[]|$[][][][] [] [][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 238--238
+[][][][][][][][][][][][][][][][][][] [] [][][][][][][] [][]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 239--239
+[]|$[][][][] [] [][][][][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 240--240
+[]|$[][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 240--240
+[][][][][][][][][][][][][][][][][][][][][][][][][] [][]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 241--241
+[]|$[][][][] [] [][][][][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 241--241
+[][][][][][][][][][][][][][][] [] [][][][][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 241--241
+[][][][] [] [][][][][][][] [][] [][][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 242--242
+[]|$[][][][] [] [][][][][][] []
+ []
+
+
+Overfull \hbox (13.97824pt too wide) in paragraph at lines 242--242
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][] [][]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 242--242
+[][][][][][] [] [][][][][] [][] [][][][][] [] [][][][][][] [][]
+ []
+
+
+Underfull \hbox (badness 7291) in paragraph at lines 242--243
+[]|\TU/TimesNewRoman(0)/m/n/10.95 signal_utils.py \TU/YuGothic(0)/m/n/10.95 か ら
+ \TU/TimesNewRoman(0)/m/n/10.95 RobustScalarFilter, finite_float,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 243--243
+[]|$[][][][] [] [][][][][] [] [][][][][][][][][][][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 243--243
+[][][][][] [] [][][][] [] [][][][][][] [][] [][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 243--243
+[][][][][] [] [][][][] [][] [][][][][] [] [][][][][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--244
+[]|$[][][][] [] [][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--244
+[][][][][][][][][][][][][][][][][][] [] [][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--244
+[][][][][][][][] [] [][][][][][][] [][] [][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--245
+[]|\TU/YuGothic(0)/m/n/10.95 上 位 \TU/TimesNewRoman(0)/m/n/10.95 MPC \TU/YuGothi
+c(0)/m/n/10.95 距 離 メ ッ シ ュ 生 成 か ら
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 244--245
+\TU/TimesNewRoman(0)/m/n/10.95 build_upper_distance_horizon, plan_segment_index
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[]|$[][][][] [] [][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][][][][][][][][][][][][][][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][][][][] [] [][][][][][][][][] [][]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][][][][][][][][] [] [][][][][] [] [][][][][][] [][]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][] [] [][][][][] [] [][][][][][] [] [][][] [][]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--245
+[][][][][] [] [][][][][] [] [][][][][][] [] [][][][] []
+ []
+
+
+Underfull \hbox (badness 3417) in paragraph at lines 245--246
+[]|\TU/YuGothic(0)/m/n/10.95 上 位 速 度 計 画 の 補 間 と \TU/TimesNewRoman(0)/m/n/10.95
+ warm start \TU/YuGothic(0)/m/n/10.95 か ら \TU/TimesNewRoman(0)/m/n/10.95 ab-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--246
+\TU/TimesNewRoman(0)/m/n/10.95 solute_control_distances, interpolate_upper_poli
+cy,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 245--246
+\TU/TimesNewRoman(0)/m/n/10.95 load_upper_policy_csv, shift_upper_policy_warm_s
+tart
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 246--246
+[]|$[][][][] [] [][][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 246--246
+[][][][][][][][][][][][][][][][][][] [] [][][][][][][] []
+ []
+
+ignored error: Infinite glue shrinkage found in box being split [8]
+ignored error: Infinite glue shrinkage found in box being split [9]
+
+LaTeX Font Warning: Font shape `TU/YuGothic(0)/m/it' undefined
+(Font)              using `TU/YuGothic(0)/m/n' instead on input line 268.
+
+[10] [11] [12] [13]
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty
+File: lstlang1.sty 2025/11/14 1.11b listings language file
+)
+(C:\Users\user\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty
+File: lstlang1.sty 2025/11/14 1.11b listings language file
+)
+[14] [15] [16] [17] [18]
+Overfull \hbox (4.48563pt too wide) in paragraph at lines 769--770
+[]\TU/YuGothic(0)/m/n/10.95 上 位 \TU/TimesNewRoman(0)/m/n/10.95 solve \TU/YuGoth
+ic(0)/m/n/10.95 中 は \TU/TimesNewRoman(0)/m/n/10.95 option \TU/YuGothic(0)/m/n/1
+0.95 に よ り 下 位 \TU/TimesNewRoman(0)/m/n/10.95 refine \TU/YuGothic(0)/m/n/10.95 
+を 省 略 し、|  決 定 論 的 入 力 を 使 う。| \TU/TimesNewRoman(0)/m/n/10.95 ‘_publish_lower_c
+ommand_cycle‘\TU/YuGothic(0)/m/n/10.95 は
+ []
+
+[19] [20] [21]
+Overfull \hbox (0.63358pt too wide) in paragraph at lines 907--908
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._init_passo, self._init_solar, self.declare_parameter, self.get_p
+arameter,
+ []
+
+
+Overfull \hbox (3.59846pt too wide) in paragraph at lines 908--909
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.command_callback_group, self.lower_callback_group, self.params_cf
+g,
+ []
+
+[22] [23] [24] [25] [26] [27] [28]
+Underfull \hbox (badness 1320) in paragraph at lines 1182--1183
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._load_forecast_file, self.forecast_mtime, self.forecast_path,
+ []
+
+[29] [30] [31] [32] [33] [34] [35] [36]
+Underfull \hbox (badness 2922) in paragraph at lines 1499--1500
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.distance_meas_timeout_sec, self.get_clock, self.s_meas,
+ []
+
+
+Underfull \hbox (badness 3128) in paragraph at lines 1534--1535
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._measured_distance_km, self.battery_meas_timeout_sec,
+ []
+
+[37] [38] [39] [40]
+Underfull \hbox (badness 10000) in paragraph at lines 1694--1695
+\TU/TimesNewRoman(0)/m/n/10.95 self._on_calib_aux_power, self._on_calib_drive_p
+ower_gain, self._on_calib_solar_gain, self._on_i_solar,
+ []
+
+
+Overfull \hbox (112.52144pt too wide) in paragraph at lines 1694--1695
+\TU/TimesNewRoman(0)/m/n/10.95 self._on_s_km_solar, self._on_soc_solar, self._o
+n_speed_solar, self._on_tb_solar, self._on_v_solar, self._publish_lower_command
+_cycle,
+ []
+
+
+Overfull \hbox (26.3946pt too wide) in paragraph at lines 1694--1695
+\TU/TimesNewRoman(0)/m/n/10.95 self._step_lower, self._step_solar, self._warned
+_lower_rate, self.base_drive_eff_scale, self.command_callback_group,
+ []
+
+[41]
+Overfull \hbox (23.2607pt too wide) in paragraph at lines 1695--1696
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Np, self.Tb, self._forecast_warned_out_of_range, self._lower_solv
+e_logged,
+ []
+
+
+Overfull \hbox (24.30148pt too wide) in paragraph at lines 1695--1696
+\TU/TimesNewRoman(0)/m/n/10.95 self._lower_upper_busy_logged, self._upper_solve
+_in_progress, self._upper_solve_logged, self._warned_lower_rate,
+ []
+
+
+Overfull \hbox (21.40364pt too wide) in paragraph at lines 1695--1696
+\TU/TimesNewRoman(0)/m/n/10.95 self.active_control_stop_index, self.base_drive_
+eff_scale, self.base_regen_eff_scale, self.battery_meas_timeout_sec,
+ []
+
+
+Overfull \hbox (65.10738pt too wide) in paragraph at lines 1695--1696
+\TU/TimesNewRoman(0)/m/n/10.95 self.completed_control_stops, self.control_stop_
+end_monotonic, self.control_stop_hold, self.control_stop_position_initialized,
+ []
+
+
+Overfull \hbox (33.84535pt too wide) in paragraph at lines 1695--1696
+\TU/TimesNewRoman(0)/m/n/10.95 self.distance_meas_filter, self.distance_meas_ma
+x_backtrack_km, self.distance_meas_timeout_sec, self.drive_schedule 
+ []
+
+[42] [43] [44] [45] [46] [47]
+Underfull \hbox (badness 1762) in paragraph at lines 1938--1939
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Np, self._forecast_at_time, self.current_forecast_time_utc,
+ []
+
+
+Underfull \hbox (badness 2951) in paragraph at lines 1938--1939
+\TU/TimesNewRoman(0)/m/n/10.95 self.df, self.drive_schedule, self.dt, self.fore
+cast_start_time, self.forecast_time_mode, self.forecast_times,
+ []
+
+[48] [49]
+Underfull \hbox (badness 6758) in paragraph at lines 2037--2038
+\TU/TimesNewRoman(0)/m/n/10.95 or 0.0), ’elev_m’, 0.0)) / dict(G_poa=0.0, Tcell
+_C=40.0, Tamb_C=30.0, headwind_ms=0.0, eleva-
+ []
+
+
+Underfull \hbox (badness 2617) in paragraph at lines 2037--2038
+\TU/TimesNewRoman(0)/m/n/10.95 tion_m=self._route_value(float(s_km or 0.0), ’el
+ev_m’, 0.0)) / dict(G_poa=(poa_drive + tilt_fraction *
+ []
+
+
+Overfull \hbox (74.27411pt too wide) in paragraph at lines 2037--2038
+\TU/TimesNewRoman(0)/m/n/10.95 tcell_drive), Tamb_C=tamb, headwind_ms=headwind,
+ panel_stop_mode=stop_mode, elevation_m=self._route_value(float(s_km
+ []
+
+[50]
+Underfull \hbox (badness 1092) in paragraph at lines 2039--2040
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._route_value, self.control_stop_tilt_fraction, self.df, self.dt,
+ []
+
+
+Overfull \hbox (40.76367pt too wide) in paragraph at lines 2039--2040
+\TU/TimesNewRoman(0)/m/n/10.95 self.forecast_grid, self.forecast_start_time, se
+lf.poa_gain_drive, self.poa_gain_stop, self.solar_gain, self.stop_tilt_fraction
+ 
+ []
+
+
+Overfull \hbox (49.08661pt too wide) in paragraph at lines 2058--2059
+[]\TU/TimesNewRoman(0)/m/n/10.95 tcell_drive \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 interp_forecast_grid(self.forecast_grid, ’Tcell_drive_
+C’, t_utc, s_km, interp_forecast_grid(self.forecast_grid,
+ []
+
+
+Overfull \hbox (8.58235pt too wide) in paragraph at lines 2069--2070
+[]\TU/TimesNewRoman(0)/m/n/10.95 dict(G_poa=(poa_drive + tilt_fraction * (poa_s
+top_ideal - poa_drive)) * self.solar_gain * gain, Tcell_C=tcell_drive
+ []
+
+
+Overfull \hbox (36.45065pt too wide) in paragraph at lines 2069--2070
+\TU/TimesNewRoman(0)/m/n/10.95 + tilt_fraction * (tcell_stop_ideal - tcell_driv
+e), Tamb_C=tamb, headwind_ms=headwind, panel_stop_mode=stop_mode,
+ []
+
+[51]
+Overfull \hbox (8.58235pt too wide) in paragraph at lines 2085--2086
+[]\TU/TimesNewRoman(0)/m/n/10.95 dict(G_poa=(poa_drive + tilt_fraction * (poa_s
+top_ideal - poa_drive)) * self.solar_gain * gain, Tcell_C=tcell_drive
+ []
+
+
+Overfull \hbox (99.33221pt too wide) in paragraph at lines 2085--2086
+\TU/TimesNewRoman(0)/m/n/10.95 + tilt_fraction * (tcell_stop_ideal - tcell_driv
+e), Tamb_C=float(row.get(’Tamb_C’, 30.0)), headwind_ms=float(row.get(’headwind_
+ms’,
+ []
+
+[52] [53] [54] [55]
+Underfull \hbox (badness 1990) in paragraph at lines 2267--2268
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : float(d
+efault_kmh) / float(interpolate_profile(self.speed_profile, s_km, ’v_max_kmh’,
+ []
+
+[56]
+Underfull \hbox (badness 1024) in paragraph at lines 2307--2308
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : float(l
+o) / self.model.soc_step(self.z, P_pack, self.model.p.dt, current_a=float(out[’
+I’]),
+ []
+
+
+Overfull \hbox (1.09055pt too wide) in paragraph at lines 2309--2310
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Tb, self._route_value, self.get_parameter, self.model, self.route
+_profile,
+ []
+
+[57] [58]
+Underfull \hbox (badness 10000) in paragraph at lines 2417--2418
+\TU/TimesNewRoman(0)/m/n/10.95 headwind_ms=headwind_ms, ambient_temp_c=d0.get(’
+Tamb_C’), elevation_m=self._route_value(s_km,
+ []
+
+[59] [60]
+Overfull \hbox (62.02696pt too wide) in paragraph at lines 2507--2508
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._control_stop_catalog, self.active_control_stop_index, self.compl
+eted_control_stops,
+ []
+
+[61] [62] [63] [64] [65] [66] [67] [68]
+Underfull \hbox (badness 3128) in paragraph at lines 2826--2827
+[]\TU/TimesNewRoman(0)/m/n/10.95 aux_power_w \TU/YuGothic(0)/m/n/10.95 に \TU/Ti
+mesNewRoman(0)/m/n/10.95 self.model.scheduled_auxiliary_power(is_driving=False,
+ irradiance_wm2=d.get(’G_poa’,
+ []
+
+
+Overfull \hbox (11.25319pt too wide) in paragraph at lines 2828--2829
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(v_k, slope_pct, z, Tb, d[’G_poa’
+], d[’Tcell_C’], headwind_ms=headwind_ms,
+ []
+
+[69] [70] [71]
+Overfull \hbox (17.16014pt too wide) in paragraph at lines 2928--2929
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Tb, self._control_stop_catalog, self._forecast_at_time, self._rou
+te_average,
+ []
+
+
+Overfull \hbox (38.85486pt too wide) in paragraph at lines 2928--2929
+\TU/TimesNewRoman(0)/m/n/10.95 self._route_value, self._speed_limit_at, self.dr
+ive_schedule, self.get_logger, self.get_parameter, self.initial_upper_policy,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2928--2929
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_upper_solve_ok, self.model, self.race_
+km, self.soc_day_end_max, self.soc_day_end_target,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2928--2929
+\TU/TimesNewRoman(0)/m/n/10.95 self.soc_finish_target, self.soc_finish_tol, sel
+f.upper_adaptive_growth, self.upper_adaptive_max_ds_km,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2928--2929
+\TU/TimesNewRoman(0)/m/n/10.95 self.upper_adaptive_min_ds_km, self.upper_cost_c
+fg, self.upper_ctrl_km, self.upper_day_end_soc_min,
+ []
+
+
+Overfull \hbox (17.7668pt too wide) in paragraph at lines 2941--2942
+[]\TU/TimesNewRoman(0)/m/n/10.95 horizon \TU/YuGothic(0)/m/n/10.95 に \TU/TimesN
+ewRoman(0)/m/n/10.95 build_upper_distance_horizon(mode=self.upper_horizon_mode,
+ s0_km=s0_km, race_km=self.race_km,
+ []
+
+
+Overfull \hbox (75.55263pt too wide) in paragraph at lines 2941--2942
+\TU/TimesNewRoman(0)/m/n/10.95 ds_km=self.upper_ds_km, horizon_km=self.upper_ho
+rizon_km, max_steps=self.upper_max_steps, ctrl_km=self.upper_ctrl_km,
+ []
+
+
+Overfull \hbox (11.74037pt too wide) in paragraph at lines 2941--2942
+\TU/TimesNewRoman(0)/m/n/10.95 adaptive_min_ds_km=self.upper_adaptive_min_ds_km
+, adaptive_max_ds_km=self.upper_adaptive_max_ds_km,
+ []
+
+[72]
+Overfull \hbox (9.72235pt too wide) in paragraph at lines 2965--2966
+[]\TU/YuGothic(0)/m/n/10.95 条 件 \TU/TimesNewRoman(0)/m/n/10.95 x0 is not None a
+nd previous_ctrl_s is not None and (len(x0) == len(previous_ctrl_s)) and (len(p
+revious_ctrl_s)
+ []
+
+
+Underfull \hbox (badness 2111) in paragraph at lines 2972--2973
+[]\TU/TimesNewRoman(0)/m/n/10.95 x0 \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRom
+an(0)/m/n/10.95 interpolate_upper_policy(self.initial_upper_policy, ctrl_s_abs,
+ minimum_speed_kmh=v_min_solver,
+ []
+
+[73]
+Underfull \hbox (badness 6125) in paragraph at lines 2999--3000
+[]\TU/TimesNewRoman(0)/m/n/10.95 (u_seq, solve_info) \TU/YuGothic(0)/m/n/10.95 
+に \TU/TimesNewRoman(0)/m/n/10.95 hybrid_bounded_minimize(cost, x0, bounds, maxi
+ter=int(self.upper_max_iter),
+ []
+
+
+Underfull \hbox (badness 4132) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 structured_seeds=structured_seeds, cem_enabled=g
+lobal_search_enabled, cem_mode=global_search_mode,
+ []
+
+
+Overfull \hbox (165.47874pt too wide) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 cem_generations=int(self.get_parameter(’upper_ce
+m_generations’).value), cem_population=int(self.get_parameter(’upper_cem_popula
+tion’).value),
+ []
+
+
+Overfull \hbox (115.58354pt too wide) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 cem_elite=int(self.get_parameter(’upper_cem_elit
+e’).value), local_refine_topk=int(self.get_parameter(’upper_local_refine_topk’)
+.value),
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 seed_library_mode=str(self.get_parameter(’upper_
+seed_library_mode’).value), rng_seed=int(max(0.0,
+ []
+
+
+Overfull \hbox (191.28258pt too wide) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 round(s0_km * 10.0))), shgo_samples=int(self.get
+_parameter(’upper_shgo_samples’).value), shgo_iters=int(self.get_parameter(’upp
+er_shgo_iters’).value),
+ []
+
+
+Overfull \hbox (209.24666pt too wide) in paragraph at lines 2999--3000
+\TU/TimesNewRoman(0)/m/n/10.95 cert_grid_levels=int(self.get_parameter(’upper_c
+ert_grid_levels’).value), cert_max_evaluations=int(self.get_parameter(’upper_ce
+rt_max_evaluations’).value),
+ []
+
+[74] [75] [76]
+Underfull \hbox (badness 10000) in paragraph at lines 3134--3135
+\TU/TimesNewRoman(0)/m/n/10.95 headwind_ms=headwind_ms, ambient_temp_c=env.get(
+’Tamb_C’), elevation_m=env.get(’elevation_m’,
+ []
+
+[77]
+Overfull \hbox (19.64934pt too wide) in paragraph at lines 3156--3157
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(best_v / 3.6, slope_leg, z_seed,
+ Tb_seed, env_leg[’G_poa’], env_leg[’Tcell_C’],
+ []
+
+
+Overfull \hbox (11.92926pt too wide) in paragraph at lines 3156--3157
+\TU/TimesNewRoman(0)/m/n/10.95 headwind_ms=headwind_leg, ambient_temp_c=env_leg
+.get(’Tamb_C’), elevation_m=env_leg.get(’elevation_m’,
+ []
+
+[78] [79]
+Overfull \hbox (29.18594pt too wide) in paragraph at lines 3238--3239
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(0.0, slope_pct, z, Tb, env[’G_po
+a’], env[’Tcell_C’], headwind_ms=headwind_ms,
+ []
+
+
+Underfull \hbox (badness 6493) in paragraph at lines 3238--3239
+\TU/TimesNewRoman(0)/m/n/10.95 bient_temp_c=env.get(’Tamb_C’), elevation_m=env.
+get(’elevation_m’, self._route_value(s_km, ’elev_m’,
+ []
+
+[80] [81] [82]
+Underfull \hbox (badness 5105) in paragraph at lines 3354--3355
+[]\TU/TimesNewRoman(0)/m/n/10.95 (t_utc, z, Tb, dt_stop, stop_cost) \TU/YuGothi
+c(0)/m/n/10.95 に \TU/TimesNewRoman(0)/m/n/10.95 integrate_stationary_duration(t
+_utc, z, Tb, float(stop[’s_km’]),
+ []
+
+
+Underfull \hbox (badness 2042) in paragraph at lines 3388--3389
+\TU/TimesNewRoman(0)/m/n/10.95 ds_step_km, dt_travel, dt_wait, elapsed_plan_sec
+, env, forces, headwind_ms, inertial_power_w, k, ki-
+ []
+
+
+Overfull \hbox (29.32709pt too wide) in paragraph at lines 3389--3390
+\TU/TimesNewRoman(0)/m/n/10.95 self._speed_limit_at, self.drive_schedule, self.
+model, self.soc_day_end_target, self.soc_finish_tol, self.upper_cost_cfg,
+ []
+
+[83] [84]
+Underfull \hbox (badness 2608) in paragraph at lines 3430--3431
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(v_k / 3.6, slope_pct, z, Tb, env
+[’G_poa’], env[’Tcell_C’], head-
+ []
+
+
+Underfull \hbox (badness 2486) in paragraph at lines 3430--3431
+\TU/TimesNewRoman(0)/m/n/10.95 wind_ms=headwind_ms, inertial_power_w=inertial_p
+ower_w, ambient_temp_c=env.get(’Tamb_C’), eleva-
+ []
+
+
+Overfull \hbox (61.69054pt too wide) in paragraph at lines 3441--3442
+[]\TU/TimesNewRoman(0)/m/n/10.95 forces \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.resistive_forces(v_k / 3.6, slope_pct, headwind_
+ms=headwind_ms, ambient_temp_c=env.get(’Tamb_C’),
+ []
+
+[85] [86] [87] [88] [89] [90]
+Underfull \hbox (badness 1701) in paragraph at lines 3686--3687
+[]\TU/TimesNewRoman(0)/m/n/10.95 out \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 self.model.electrical_balance(v_exec_kmh / 3.6, slope_pct, sel
+f.z, self.Tb, d0.get(’G_poa’, 0.0),
+ []
+
+
+Overfull \hbox (68.5335pt too wide) in paragraph at lines 3686--3687
+\TU/TimesNewRoman(0)/m/n/10.95 d0.get(’Tcell_C’, 40.0), headwind_ms=headwind_ms
+, ambient_temp_c=d0.get(’Tamb_C’), elevation_m=d0.get(’elevation_m’,
+ []
+
+
+Overfull \hbox (2.60153pt too wide) in paragraph at lines 3695--3696
+[]\TU/TimesNewRoman(0)/m/n/10.95 msg.data \TU/YuGothic(0)/m/n/10.95 に \TU/Times
+NewRoman(0)/m/n/10.95 [float(V), float(I), float(self.z), float(P_motor_elec), 
+float(I_motor), float(P_pv), float(v_exec_kmh),
+ []
+
+[91]
+Underfull \hbox (badness 2359) in paragraph at lines 3747--3748
+\TU/TimesNewRoman(0)/m/n/10.95 self.control_stop_hold, self.df, self.forecast_s
+tart_time, self.forecast_time_mode, self.forecast_time_offset,
+ []
+
+[92]
+Overfull \hbox (48.10608pt too wide) in paragraph at lines 3777--3778
+[]\TU/TimesNewRoman(0)/m/n/10.95 st.data \TU/YuGothic(0)/m/n/10.95 に \TU/TimesN
+ewRoman(0)/m/n/10.95 [float(self.z), float(self.Tb), float(self.s_km), float(se
+lf.k), float(sec_to_next), float(bool(self.control_stop_hold)),
+ []
+
+[93]
+Overfull \hbox (28.96362pt too wide) in paragraph at lines 3822--3823
+[]\TU/YuGothic(0)/m/n/10.95 戻 り 値 の 要 点\TU/TimesNewRoman(0)/m/n/10.95 : float((
+1.0 - alpha) * self.v_plan_kmh[i] + alpha * self.v_plan_kmh[i + 1]) / float(sel
+f.v_plan_segments[-
+ []
+
+
+Overfull \hbox (23.89699pt too wide) in paragraph at lines 3824--3825
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.plan_dt_sec, self.upper_plan_mode, self.v_plan_kmh, self.v_plan_s
+egments,
+ []
+
+[94] [95] [96]
+Overfull \hbox (157.44987pt too wide) in paragraph at lines 3982--3983
+\TU/TimesNewRoman(0)/m/n/10.95 else self._tau_max_for_mode(self.model.maps_driv
+e, ’eco’) if ’eco’ in self.model.maps_drive else self._tau_max_for_mode(self.mo
+del.maps_drive,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 3983--3984
+\TU/TimesNewRoman(0)/m/n/10.95 else self._tau_max_for_mode(self.model.maps_rege
+n, ’eco’) if ’eco’ in self.model.maps_regen else
+ []
+
+[97] [98] [99] [100]
+Underfull \hbox (badness 1231) in paragraph at lines 4123--4124
+\TU/TimesNewRoman(0)/m/n/10.95 self.drive_schedule, self.get_parameter, self.lo
+wer_N, self.lower_dt, self.model, self.plan_start_monotonic,
+ []
+
+[101]
+Underfull \hbox (badness 10000) in paragraph at lines 4194--4195
+[]\TU/YuGothic(0)/m/n/10.95 定 義\TU/TimesNewRoman(0)/m/n/10.95 : $[][][][][][] [
+] [][][][][][][][][][][][] [][] [][] [] [][] [] [][][][][] [][] [] [] [][][] []
+ [][] [] [][][][][][][] [][] [][][] [] [][][][] [][] [][] [] [][][][][] [][] []
+[][] []
+ []
+
+[102]
+Overfull \hbox (22.83797pt too wide) in paragraph at lines 4221--4222
+[]\TU/TimesNewRoman(0)/m/n/10.95 forces \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.resistive_forces(v, env[’slope_pct’], env[’headw
+ind_ms’], ambient_temp_c=env.get(’Tamb_C’),
+ []
+
+[103] [104]
+Underfull \hbox (badness 10000) in paragraph at lines 4277--4278
+\TU/TimesNewRoman(0)/m/n/10.95 self._tau_limits, self._traction_force, self._up
+per_solve_in_progress, self.get_logger, self.get_parameter,
+ []
+
+
+Overfull \hbox (117.71231pt too wide) in paragraph at lines 4277--4278
+\TU/TimesNewRoman(0)/m/n/10.95 self.lower_N, self.lower_dt, self.lower_last_u, 
+self.lower_max_iter, self.lower_maxfun, self.lower_skip_optimization_during_upp
+er_solve,
+ []
+
+[105]
+Overfull \hbox (48.48065pt too wide) in paragraph at lines 4311--4312
+[]\TU/TimesNewRoman(0)/m/n/10.95 forces \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.resistive_forces(v_seed, env[’slope_pct’], env[’
+headwind_ms’], ambient_temp_c=env.get(’Tamb_C’),
+ []
+
+
+Overfull \hbox (14.25906pt too wide) in paragraph at lines 4320--4321
+[]\TU/TimesNewRoman(0)/m/n/10.95 candidate_controls \TU/YuGothic(0)/m/n/10.95 に
+ \TU/TimesNewRoman(0)/m/n/10.95 np.unique(np.concatenate((np.linspace(u_min, u_
+max, 25, dtype=float), np.array([u_request,
+ []
+
+[106]
+Underfull \hbox (badness 10000) in paragraph at lines 4348--4349
+[]\TU/TimesNewRoman(0)/m/n/10.95 z_seed \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.soc_step(z_seed, float(pack[’P_pack’]), self.low
+er_dt, current_a=float(pack[’I’]),
+ []
+
+[107] [108]
+Overfull \hbox (22.83797pt too wide) in paragraph at lines 4440--4441
+[]\TU/TimesNewRoman(0)/m/n/10.95 forces \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNe
+wRoman(0)/m/n/10.95 self.model.resistive_forces(v, env[’slope_pct’], env[’headw
+ind_ms’], ambient_temp_c=env.get(’Tamb_C’),
+ []
+
+[109] [110]
+Underfull \hbox (badness 1117) in paragraph at lines 4516--4517
+[]\TU/YuGothic(0)/m/n/10.95 こ の ブ ロ ッ ク が 直 接 呼 ぶ 主 な 関 数  |・|  メ ソ ッ ド\TU/Time
+sNewRoman(0)/m/n/10.95 : Float32, Float32MultiArray, MheInput, Mhe-
+ []
+
+
+Underfull \hbox (badness 1348) in paragraph at lines 4516--4517
+\TU/TimesNewRoman(0)/m/n/10.95 Meas, _current_bin_index, _distance_plan_speed, 
+_forecast_at_time, _horizon_data, _interp_upper_speed,
+ []
+
+
+Underfull \hbox (badness 3364) in paragraph at lines 4519--4520
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Tb, self._current_bin_index, self._distance_plan_speed,
+ []
+
+
+Overfull \hbox (74.29547pt too wide) in paragraph at lines 4519--4520
+\TU/TimesNewRoman(0)/m/n/10.95 self._forecast_at_time, self._horizon_data, self
+._interp_upper_speed, self._maybe_reload_forecast, self._measured_distance_km,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 4519--4520
+\TU/TimesNewRoman(0)/m/n/10.95 self._mpc_solve_solar, self._mpc_solve_solar_dis
+tance, self._publish_metrics, self._publish_plan_path,
+ []
+
+
+Overfull \hbox (46.30022pt too wide) in paragraph at lines 4519--4520
+\TU/TimesNewRoman(0)/m/n/10.95 self._publish_summary, self._publish_upper_plan,
+ self._route_value, self._sample_plan_segments, self._soc_guard_speed,
+ []
+
+
+Overfull \hbox (53.49437pt too wide) in paragraph at lines 4519--4520
+\TU/TimesNewRoman(0)/m/n/10.95 self._sync_measured_state, self._update_live_con
+trol_stop_hold, self._upper_solve_logged, self.battery_meas_timeout_sec,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 4520--4521
+\TU/TimesNewRoman(0)/m/n/10.95 self.control_stop_hold, self.forecast_reloaded, 
+self.k, self.last_bin, self.last_data, self.last_plan_time,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 4520--4521
+\TU/TimesNewRoman(0)/m/n/10.95 self.model_prev_speed_ms, self.plan_dt_sec, self
+.plan_start_monotonic, self.s_km, self.upper_plan_id,
+ []
+
+
+Overfull \hbox (19.63107pt too wide) in paragraph at lines 4520--4521
+\TU/TimesNewRoman(0)/m/n/10.95 self.upper_plan_mode, self.upper_plan_s_km, self
+.upper_plan_seq, self.upper_plan_soc, self.upper_plan_stop_hold,
+ []
+
+[111] [112]
+Underfull \hbox (badness 10000) in paragraph at lines 4582--4583
+[]\TU/YuGothic(0)/m/n/10.95 条 件 \TU/TimesNewRoman(0)/m/n/10.95 data and data[0]
+.get(’t_utc’) and ((data[0][’t_utc’] - self.upper_plan_time).total_seconds() >=
+
+ []
+
+
+Overfull \hbox (49.40352pt too wide) in paragraph at lines 4590--4591
+[]\TU/YuGothic(0)/m/n/10.95 条 件 \TU/TimesNewRoman(0)/m/n/10.95 self.upper_repla
+n_on_stop_transition and self.upper_plan_stop_hold is not None and bool(self.up
+per_plan_stop_hold)
+ []
+
+[113]
+Underfull \hbox (badness 10000) in paragraph at lines 4608--4609
+[]\TU/TimesNewRoman(0)/m/n/10.95 (self.v_upper_cmd, self.v_plan_segments, self.
+upper_plan_seq) \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRoman(0)/m/n/10.95 self
+._mpc_solve_solar_distance(t0,
+ []
+
+[114]
+Underfull \hbox (badness 1584) in paragraph at lines 4658--4659
+[]\TU/YuGothic(0)/m/n/10.95 こ の ブ ロ ッ ク が 直 接 呼 ぶ 主 な 関 数  |・|  メ ソ ッ ド\TU/Time
+sNewRoman(0)/m/n/10.95 : _build_lower_ref, _lower_mpc_solve, _pub-
+ []
+
+
+Overfull \hbox (27.53802pt too wide) in paragraph at lines 4661--4662
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Tb, self._build_lower_ref, self._lower_mpc_solve, self._lower_sol
+ve_logged,
+ []
+
+
+Underfull \hbox (badness 2269) in paragraph at lines 4661--4662
+\TU/TimesNewRoman(0)/m/n/10.95 self.last_data, self.route_profile, self.s_km, s
+elf.s_meas, self.timer_lower, self.v_lower_cmd, self.v_now,
+ []
+
+[115]
+Underfull \hbox (badness 4441) in paragraph at lines 4687--4688
+[]\TU/TimesNewRoman(0)/m/n/10.95 env \TU/YuGothic(0)/m/n/10.95 に \TU/TimesNewRo
+man(0)/m/n/10.95 dict(slope_pct=float(slope_pct), headwind_ms=float(headwind_ms
+), G_poa=float(d0.get(’G_poa’,
+ []
+
+[116]
+Overfull \hbox (12.6771pt too wide) in paragraph at lines 4761--4762
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self._publish_lower_plan, self._publish_summary, self._sync_measured_s
+tate,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 4761--4762
+\TU/TimesNewRoman(0)/m/n/10.95 self.control_stop_hold, self.get_parameter, self
+.hierarchical, self.lower_last_mode, self.lower_last_u,
+ []
+
+
+Overfull \hbox (15.40971pt too wide) in paragraph at lines 4761--4762
+\TU/TimesNewRoman(0)/m/n/10.95 self.lower_last_v_pred, self.pub_drive_mode, sel
+f.pub_speed, self.pub_throttle, self.timer_lower, self.v_lower_cmd 
+ []
+
+[117] [118]
+Overfull \hbox (46.99254pt too wide) in paragraph at lines 4817--4818
+\TU/TimesNewRoman(0)/m/n/10.95 self._on_throttle, self._step_passo, self.create
+_publisher, self.create_subscription, self.create_timer, self.declare_parameter
+,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 4818--4819
+\TU/TimesNewRoman(0)/m/n/10.95 self.id_ema_alpha, self.id_min_samples, self.id_
+r2, self.id_rmse, self.id_samples, self.id_window_sec,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 4818--4819
+\TU/TimesNewRoman(0)/m/n/10.95 self.online_id_enabled, self.prev_speed_kmh, sel
+f.prev_speed_time, self.pub_mpc_state, self.pub_path,
+ []
+
+[119]
+Overfull \hbox (42.2307pt too wide) in paragraph at lines 4866--4867
+[]\TU/TimesNewRoman(0)/m/n/10.95 self.model_coeffs \TU/YuGothic(0)/m/n/10.95 に 
+\TU/TimesNewRoman(0)/m/n/10.95 np.array([float(self.get_parameter(’model_a0’).v
+alue), float(self.get_parameter(’model_a1’).value),
+ []
+
+
+Overfull \hbox (107.35219pt too wide) in paragraph at lines 4866--4867
+\TU/TimesNewRoman(0)/m/n/10.95 float(self.get_parameter(’model_a2’).value), flo
+at(self.get_parameter(’model_a3’).value), float(self.get_parameter(’model_a4’).
+value)],
+ []
+
+[120] [121] [122] [123] [124] [125] [126] [127] [128] [129] [130] [131]
+[132] [133] [134]
+Underfull \hbox (badness 1009) in paragraph at lines 5512--5513
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Np, self._fuel_model_lph, self._stop_penalty_passo, self.dt,
+ []
+
+[135] [136] [137] [138]
+Underfull \hbox (badness 2150) in paragraph at lines 5706--5707
+[]\TU/YuGothic(0)/m/n/10.95 読 み 取 る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.Np, self._fuel_model_lph, self._publish_trajectory_passo,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 5706--5707
+\TU/TimesNewRoman(0)/m/n/10.95 self._solve_passo_mpc, self._update_identificati
+on, self.config_ready, self.fuel_rate_lph, self.get_clock,
+ []
+
+[139]
+Overfull \hbox (19.01546pt too wide) in paragraph at lines 5707--5708
+[]\TU/YuGothic(0)/m/n/10.95 更 新 す る 主 な イ ン ス タ ン ス 属 性\TU/TimesNewRoman(0)/m/n
+/10.95 : self.last_step_time, self.mpc_state, self.prev_speed_kmh, self.prev_sp
+eed_time,
+ []
+
+
+Underfull \hbox (badness 6944) in paragraph at lines 5740--5741
+[]\TU/TimesNewRoman(0)/m/n/10.95 run_ready \TU/YuGothic(0)/m/n/10.95 に \TU/Time
+sNewRoman(0)/m/n/10.95 self.valid_obd_sec >= run_ready_sec and self.valid_speed
+_sec >= run_ready_sec and
+ []
+
+[140]
+Underfull \hbox (badness 5431) in paragraph at lines 5764--5765
+\TU/TimesNewRoman(0)/m/n/10.95 if np.isfinite(fuel_pred_lph) else math.nan, flo
+at(self.v_now) if np.isfinite(self.v_now) else math.nan,
+ []
+
+[141] [142]
+Underfull \hbox (badness 10000) in paragraph at lines 5901--5901
+[]|$[][][][][][][][] [] [][][][] [] [][][] [] [][][][][][][][][] []
+ []
+
+ignored error: Infinite glue shrinkage found in box being split [143]
+Overfull \hbox (5.05998pt too wide) in paragraph at lines 5938--5939
+[]|\TU/TimesNewRoman(0)/m/n/10.95 self._on_calib_drive_power_gain| 
+ []
+
+ignored error: Infinite glue shrinkage found in box being split [144] [145]
+(C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\docs\program_refere
+nce_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc_solarcar_mpc_nod
+e_py.aux)
+ ***********
+LaTeX2e <2025-11-01>
+L3 programming layer <2022/08/05>
+ ***********
+
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+Package rerunfilecheck Info: File `11_mpc_solarcar_mpc_node_py.out' has not cha
+nged.
+(rerunfilecheck)             Checksum: 0E4F5316E87BBA4F0C8B5E63BDF5B5C0;29326.
+ ) 
+Here is how much of TeX's memory you used:
+ 16911 strings out of 402986
+ 334400 string characters out of 5448711
+ 1531826 words of memory out of 5000000
+ 45414 multiletter control sequences out of 15000+600000
+ 635208 words of font info for 114 fonts, out of 8000000 for 9000
+ 1348 hyphenation exceptions out of 8191
+ 73i,9n,93p,1232b,1827s stack positions out of 10000i,1000n,20000p,200000b,200000s
+
+Output written on C:\Users\user\OneDrive - 和歌山大学\ソーラー\エネマネ\solar_ws0129-main\do
+cs\program_reference_complete_20260729\build\11_mpc_solarcar_mpc_node_py\11_mpc
+_solarcar_mpc_node_py.pdf (145 pages).
