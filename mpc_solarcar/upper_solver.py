@@ -6,7 +6,7 @@ import multiprocessing as mp
 import os
 from typing import Callable, Iterable, List, Sequence, Tuple
 
-import numpy as np
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
 from scipy.optimize import minimize, shgo
 
 
@@ -16,30 +16,30 @@ Bounds = Sequence[Tuple[float, float]]
 _FORK_COST_FN: Callable[[np.ndarray], float] | None = None
 
 
-def _fork_finite_cost(vec: np.ndarray) -> float:
+def _fork_finite_cost(vec: np.ndarray) -> float:                   # [関数定義] _fork_finite_cost の処理実行ブロック
     if _FORK_COST_FN is None:
-        return float("inf")
-    return finite_cost(_FORK_COST_FN, vec)
+        return float("inf")                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return finite_cost(_FORK_COST_FN, vec)                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def clip_to_bounds(vec: np.ndarray, bounds: Bounds) -> np.ndarray:
+def clip_to_bounds(vec: np.ndarray, bounds: Bounds) -> np.ndarray:  # [関数定義] clip_to_bounds の処理実行ブロック
     out = np.asarray(vec, dtype=float).copy()
     for idx, (lo, hi) in enumerate(bounds):
         out[idx] = float(np.clip(out[idx], lo, hi))
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def finite_cost(cost_fn: Callable[[np.ndarray], float], vec: np.ndarray) -> float:
+def finite_cost(cost_fn: Callable[[np.ndarray], float], vec: np.ndarray) -> float:  # [関数定義] finite_cost の処理実行ブロック
     try:
         value = float(cost_fn(np.asarray(vec, dtype=float)))
     except Exception:
-        return float("inf")
+        return float("inf")                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if not np.isfinite(value):
-        return float("inf")
-    return value
+        return float("inf")                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return value                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def default_seed_library(x0: np.ndarray, bounds: Bounds) -> List[tuple[str, np.ndarray]]:
+def default_seed_library(x0: np.ndarray, bounds: Bounds) -> List[tuple[str, np.ndarray]]:  # [関数定義] default_seed_library の処理実行ブロック
     x0 = np.asarray(x0, dtype=float)
     lo = np.array([float(lo_i) for lo_i, _ in bounds], dtype=float)
     hi = np.array([float(hi_i) for _, hi_i in bounds], dtype=float)
@@ -51,10 +51,10 @@ def default_seed_library(x0: np.ndarray, bounds: Bounds) -> List[tuple[str, np.n
         seeds.append((f"warm_mix_{frac:.2f}", clip_to_bounds(0.5 * x0 + 0.5 * const, bounds)))
     seeds.append(("ramp_up", clip_to_bounds(np.linspace(lo[0], hi[0], len(x0)), bounds)))
     seeds.append(("ramp_down", clip_to_bounds(np.linspace(hi[0], lo[0], len(x0)), bounds)))
-    return seeds
+    return seeds                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def hybrid_bounded_minimize(
+def hybrid_bounded_minimize(                                       # [関数定義] hybrid_bounded_minimize の処理実行ブロック
     cost_fn: Callable[[np.ndarray], float],
     x0: np.ndarray,
     bounds: Bounds,
@@ -88,7 +88,7 @@ def hybrid_bounded_minimize(
     evaluated: list[dict] = []
     seen: set[tuple[float, ...]] = set()
 
-    def add_candidate(label: str, vec: np.ndarray) -> None:
+    def add_candidate(label: str, vec: np.ndarray) -> None:        # [関数定義] add_candidate の処理実行ブロック
         clipped = clip_to_bounds(vec, bounds)
         key = tuple(np.round(clipped, 6))
         if key in seen:
@@ -127,7 +127,7 @@ def hybrid_bounded_minimize(
 
     finite_pool = [row for row in evaluated if np.isfinite(row["fun"])]
     if not finite_pool:
-        return clip_to_bounds(x0, bounds), {
+        return clip_to_bounds(x0, bounds), {                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "success": False,
             "fun": float("inf"),
             "label": "fallback_warm_start",
@@ -140,10 +140,10 @@ def hybrid_bounded_minimize(
     finite_pool.sort(key=lambda item: float(item["fun"]))
     best = dict(finite_pool[0])
 
-    def local_refine_rows(pool: Sequence[dict]) -> list[dict]:
+    def local_refine_rows(pool: Sequence[dict]) -> list[dict]:     # [関数定義] local_refine_rows の処理実行ブロック
         refined: list[dict] = []
         if maxiter <= 0:
-            return refined
+            return refined                                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
         for row in pool:
             res = minimize(cost_fn, row["x"], method="L-BFGS-B", bounds=bounds, options=dict(maxiter=int(maxiter)))
             candidate_x = row["x"]
@@ -162,7 +162,7 @@ def hybrid_bounded_minimize(
                 }
             )
         refined.sort(key=lambda item: float(item["fun"]))
-        return refined
+        return refined                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     refine_pool = finite_pool[: max(1, int(local_refine_topk))]
     refined_rows = local_refine_rows(refine_pool)
@@ -198,7 +198,7 @@ def hybrid_bounded_minimize(
     discrete_grid_best_fun = float("inf")
     discrete_grid_best_x: list[float] = []
 
-    def emit_progress(payload: dict) -> None:
+    def emit_progress(payload: dict) -> None:                      # [関数定義] emit_progress の処理実行ブロック
         if progress_callback is None:
             return
         try:
@@ -222,7 +222,7 @@ def hybrid_bounded_minimize(
             workers = max(1, int(cert_workers))
             executor_kind = "serial"
 
-            def record_grid_candidate(idx: int, candidate_x: np.ndarray, candidate_fun: float) -> None:
+            def record_grid_candidate(idx: int, candidate_x: np.ndarray, candidate_fun: float) -> None:  # [関数定義] record_grid_candidate の処理実行ブロック
                 nonlocal discrete_grid_candidates, discrete_grid_nonfinite, grid_best
                 discrete_grid_candidates += 1
                 if not np.isfinite(candidate_fun):
@@ -366,10 +366,10 @@ def hybrid_bounded_minimize(
         if refined_rows and float(refined_rows[0]["fun"]) < float(best["fun"]):
             best = dict(refined_rows[0])
 
-    def should_run_cem_from_seed_consensus(rows: Sequence[dict]) -> tuple[bool, float]:
+    def should_run_cem_from_seed_consensus(rows: Sequence[dict]) -> tuple[bool, float]:  # [関数定義] should_run_cem_from_seed_consensus の処理実行ブロック
         usable = [row for row in rows if np.isfinite(float(row.get("fun", float("inf"))))]
         if len(usable) < 2:
-            return False, 0.0
+            return False, 0.0                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
         top = usable[: min(3, len(usable))]
         mat = np.vstack([np.asarray(row["x"], dtype=float) for row in top])
         spread = float(np.max(np.std(mat, axis=0) / np.maximum(span, 1.0e-6)))
@@ -377,7 +377,7 @@ def hybrid_bounded_minimize(
         next_fun = float(top[1]["fun"])
         gap = abs(next_fun - best_fun) / max(1.0, abs(best_fun))
         run = bool((spread > 0.08) or (gap > 0.10) or (not bool(top[0].get("success", True))))
-        return run, spread
+        return run, spread                                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     use_cem = bool(cem_enabled and len(x0) > 0 and cem_mode_norm not in {"never", "shgo", "certify"})
     if use_cem and cem_mode_norm == "auto":
@@ -440,7 +440,7 @@ def hybrid_bounded_minimize(
     else:
         certificate_scope = "no exhaustive finite-grid certificate"
 
-    return np.asarray(best["x"], dtype=float), {
+    return np.asarray(best["x"], dtype=float), {                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "success": bool(best.get("success", True)),
         "fun": float(best["fun"]),
         "label": str(best.get("label", "best")),

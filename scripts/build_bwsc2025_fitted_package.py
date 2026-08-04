@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import os
 import shutil
 import stat
@@ -22,9 +22,9 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import yaml
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
 from scipy.interpolate import RegularGridInterpolator
 from scipy.optimize import minimize
 from zoneinfo import ZoneInfo
@@ -133,8 +133,8 @@ BATTERY_SOC_PDF = DATA_ARCHIVE_ROOT / "BWSC2025バッテリーSoC推測.pdf"
 TROUBLE_DOCX = SCRUTINEERING_ROOT / "電装" / "【電装】BWSC走行中トラブル.docx"
 
 
-def local_dt(text: str) -> datetime:
-    return datetime.fromisoformat(text).replace(tzinfo=TIMEZONE_LOCAL)
+def local_dt(text: str) -> datetime:                               # [関数定義] local_dt の処理実行ブロック
+    return datetime.fromisoformat(text).replace(tzinfo=TIMEZONE_LOCAL)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
 EVENT_ANCHORS = [
@@ -261,7 +261,7 @@ EXCLUDE_INTERVALS = [
 
 
 @dataclass
-class PvFitResult:
+class PvFitResult:                                                 # [クラス定義] PvFitResult オブジェクトの設計
     panel_gain: float
     tcell_gain_c_per_wm2: float
     objective: float
@@ -269,7 +269,7 @@ class PvFitResult:
 
 
 @dataclass
-class BatteryFitResult:
+class BatteryFitResult:                                            # [クラス定義] BatteryFitResult オブジェクトの設計
     soc0: float
     e_nom_wh: float
     rint_scale: float
@@ -280,7 +280,7 @@ class BatteryFitResult:
 
 
 @dataclass
-class MotionFitResult:
+class MotionFitResult:                                             # [クラス定義] MotionFitResult オブジェクトの設計
     cda: float
     crr: float
     p_aux_w: float
@@ -292,11 +292,11 @@ class MotionFitResult:
     residual_sigma_w: float
 
 
-def ensure_dir(path: Path) -> None:
+def ensure_dir(path: Path) -> None:                                # [関数定義] ensure_dir の処理実行ブロック
     path.mkdir(parents=True, exist_ok=True)
 
 
-def append_reason(log_df: pd.DataFrame, mask: pd.Series, reason: str) -> None:
+def append_reason(log_df: pd.DataFrame, mask: pd.Series, reason: str) -> None:  # [関数定義] append_reason の処理実行ブロック
     if not mask.any():
         return
     current = log_df.loc[mask, "exclude_reason"].fillna("").astype(str)
@@ -304,7 +304,7 @@ def append_reason(log_df: pd.DataFrame, mask: pd.Series, reason: str) -> None:
     log_df.loc[mask, "exclude_reason"] = combined
 
 
-def log_stage(message: str) -> None:
+def log_stage(message: str) -> None:                               # [関数定義] log_stage の処理実行ブロック
     print(f"[{PACKAGE_NAME}] {message}", flush=True)
     try:
         stage_log = OUT_PACKAGE / "outputs" / "build_stage_log.txt"
@@ -315,8 +315,8 @@ def log_stage(message: str) -> None:
         pass
 
 
-def remove_tree_force(path: Path) -> None:
-    def _onexc(func, target, excinfo):
+def remove_tree_force(path: Path) -> None:                         # [関数定義] remove_tree_force の処理実行ブロック
+    def _onexc(func, target, excinfo):                             # [関数定義] _onexc の処理実行ブロック
         try:
             os.chmod(target, stat.S_IWRITE)
         except Exception:
@@ -327,65 +327,65 @@ def remove_tree_force(path: Path) -> None:
         shutil.rmtree(path, onexc=_onexc)
 
 
-def robust_read_csv(path: Path) -> pd.DataFrame:
+def robust_read_csv(path: Path) -> pd.DataFrame:                   # [関数定義] robust_read_csv の処理実行ブロック
     errors = []
     for enc in ("utf-8-sig", "cp932", "utf-8", "latin1"):
         try:
-            return pd.read_csv(path, encoding=enc)
+            return pd.read_csv(path, encoding=enc)                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
         except Exception as exc:  # pragma: no cover - diagnostic path
             errors.append(f"{enc}: {exc}")
     raise RuntimeError(f"failed to read {path}: {' | '.join(errors)}")
 
 
-def to_utc(dt_local: datetime) -> datetime:
-    return dt_local.astimezone(timezone.utc)
+def to_utc(dt_local: datetime) -> datetime:                        # [関数定義] to_utc の処理実行ブロック
+    return dt_local.astimezone(timezone.utc)                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def timestamp_ns(value) -> int:
-    return int(pd.Timestamp(value).value)
+def timestamp_ns(value) -> int:                                    # [関数定義] timestamp_ns の処理実行ブロック
+    return int(pd.Timestamp(value).value)                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def series_timestamp_ns(values: pd.Series) -> np.ndarray:
-    return np.array([timestamp_ns(value) for value in values], dtype=np.int64)
+def series_timestamp_ns(values: pd.Series) -> np.ndarray:          # [関数定義] series_timestamp_ns の処理実行ブロック
+    return np.array([timestamp_ns(value) for value in values], dtype=np.int64)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def series_timestamp_s(values: pd.Series) -> np.ndarray:
-    return series_timestamp_ns(values).astype(float) / 1.0e9
+def series_timestamp_s(values: pd.Series) -> np.ndarray:           # [関数定義] series_timestamp_s の処理実行ブロック
+    return series_timestamp_ns(values).astype(float) / 1.0e9       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def iso_z(dt_obj: datetime) -> str:
-    return dt_obj.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+def iso_z(dt_obj: datetime) -> str:                                # [関数定義] iso_z の処理実行ブロック
+    return dt_obj.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def smooth_series(values: pd.Series, window: int, min_periods: int = 1) -> pd.Series:
-    return values.rolling(window=window, center=True, min_periods=min_periods).median().bfill().ffill()
+def smooth_series(values: pd.Series, window: int, min_periods: int = 1) -> pd.Series:  # [関数定義] smooth_series の処理実行ブロック
+    return values.rolling(window=window, center=True, min_periods=min_periods).median().bfill().ffill()  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def clip_series(values: pd.Series, lo: float, hi: float) -> pd.Series:
-    return values.clip(lower=lo, upper=hi)
+def clip_series(values: pd.Series, lo: float, hi: float) -> pd.Series:  # [関数定義] clip_series の処理実行ブロック
+    return values.clip(lower=lo, upper=hi)                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def load_event_anchors() -> List[dict]:
+def load_event_anchors() -> List[dict]:                            # [関数定義] load_event_anchors の処理実行ブロック
     anchors = []
     for item in EVENT_ANCHORS:
         anchors.append({**item, "ts_local": local_dt(item["ts_local"])})
-    return sorted(anchors, key=lambda d: d["ts_local"])
+    return sorted(anchors, key=lambda d: d["ts_local"])            # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def classify_stop(label: str) -> str:
+def classify_stop(label: str) -> str:                              # [関数定義] classify_stop の処理実行ブロック
     name = str(label or "").strip().lower()
     if name.startswith("cs"):
-        return "control_stop"
+        return "control_stop"                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if "road works light" in name or "red light" in name:
-        return "traffic_stop"
+        return "traffic_stop"                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if "low soc" in name:
-        return "strategy_stop"
+        return "strategy_stop"                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if any(token in name for token in ("repair", "issue", "puncture", "noise check")):
-        return "trouble_stop"
-    return "unscheduled_stop"
+        return "trouble_stop"                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return "unscheduled_stop"                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def build_stop_records() -> List[dict]:
+def build_stop_records() -> List[dict]:                            # [関数定義] build_stop_records の処理実行ブロック
     anchors = load_event_anchors()
     stops = []
     for a, b in zip(anchors[:-1], anchors[1:]):
@@ -413,10 +413,10 @@ def build_stop_records() -> List[dict]:
                 "end_utc": iso_z(b["ts_local"]),
             }
         )
-    return stops
+    return stops                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def load_processed_day_logs() -> pd.DataFrame:
+def load_processed_day_logs() -> pd.DataFrame:                     # [関数定義] load_processed_day_logs の処理実行ブロック
     rows = []
     for day_idx, date_text, csv_path in DAY_FILES:
         df = robust_read_csv(csv_path).copy()
@@ -457,10 +457,10 @@ def load_processed_day_logs() -> pd.DataFrame:
         rows.append(part)
     out = pd.concat(rows, ignore_index=True)
     out = out.sort_values("time_local").reset_index(drop=True)
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def apply_distance_reconstruction(log_df: pd.DataFrame, anchors: List[dict]) -> pd.DataFrame:
+def apply_distance_reconstruction(log_df: pd.DataFrame, anchors: List[dict]) -> pd.DataFrame:  # [関数定義] apply_distance_reconstruction の処理実行ブロック
     log_df = log_df.copy()
     log_df["s_km"] = np.nan
     for day_idx, day_df in log_df.groupby("day", sort=False):
@@ -497,10 +497,10 @@ def apply_distance_reconstruction(log_df: pd.DataFrame, anchors: List[dict]) -> 
             dist[nearest] = float(anchor["s_km"])
         dist = pd.Series(dist).interpolate(limit_direction="both").ffill().bfill().to_numpy()
         log_df.loc[day_idxes, "s_km"] = dist
-    return log_df
+    return log_df                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def load_route_dem() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def load_route_dem() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:  # [関数定義] load_route_dem の処理実行ブロック
     dem = robust_read_csv(DEM_CSV).copy()
     dem["dist_km"] = pd.to_numeric(dem["distance_m"], errors="coerce") / 1000.0
     dem["lat"] = pd.to_numeric(dem["lat"], errors="coerce")
@@ -513,10 +513,10 @@ def load_route_dem() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     route_profile["headwind_ms"] = 0.0
     route_waypoints = dem.iloc[::100, :][["dist_km", "lat", "lon", "elev_m"]].copy()
     route_waypoints = pd.concat([route_waypoints, dem.iloc[[-1]][["dist_km", "lat", "lon", "elev_m"]]], ignore_index=True)
-    return dem, route_profile, route_waypoints
+    return dem, route_profile, route_waypoints                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def attach_route_geometry(log_df: pd.DataFrame, dem: pd.DataFrame) -> pd.DataFrame:
+def attach_route_geometry(log_df: pd.DataFrame, dem: pd.DataFrame) -> pd.DataFrame:  # [関数定義] attach_route_geometry の処理実行ブロック
     log_df = log_df.copy()
     route_df = dem[["dist_km", "lat", "lon", "elev_m", "slope_pct"]].dropna().sort_values("dist_km").copy()
     dist_grid = route_df["dist_km"].to_numpy(dtype=float)
@@ -547,10 +547,10 @@ def attach_route_geometry(log_df: pd.DataFrame, dem: pd.DataFrame) -> pd.DataFra
     log_df["alt_m"] = np.interp(s_query, dist_grid, elev_grid)
     log_df["slope_pct"] = np.interp(s_query, dist_grid, slope_grid)
     log_df["route_heading_deg"] = np.interp(s_query, dist_grid, heading_grid)
-    return log_df
+    return log_df                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def apply_exclusion_flags(log_df: pd.DataFrame) -> pd.DataFrame:
+def apply_exclusion_flags(log_df: pd.DataFrame) -> pd.DataFrame:   # [関数定義] apply_exclusion_flags の処理実行ブロック
     log_df = log_df.copy()
     log_df["exclude_power_fit"] = False
     log_df["exclude_voltage_fit"] = False
@@ -574,16 +574,16 @@ def apply_exclusion_flags(log_df: pd.DataFrame) -> pd.DataFrame:
         log_df.loc[invalid_voltage, "exclude_power_fit"] = True
         log_df.loc[invalid_voltage, "exclude_voltage_fit"] = True
         append_reason(log_df, invalid_voltage, "invalid_pack_voltage_sensor")
-    return log_df
+    return log_df                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _fetch_json(url: str, timeout_sec: float = 60.0, retries: int = 3) -> Dict:
+def _fetch_json(url: str, timeout_sec: float = 60.0, retries: int = 3) -> Dict:  # [関数定義] _fetch_json の処理実行ブロック
     last_exc: Optional[Exception] = None
     for attempt in range(retries):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "solarcar-bwsc2025-fit/1.0"})
             with urllib.request.urlopen(req, timeout=timeout_sec) as res:
-                return json.loads(res.read().decode("utf-8"))
+                return json.loads(res.read().decode("utf-8"))      # [戻り値] 計算結果・計算状態の呼び出し元への返却
         except Exception as exc:  # pragma: no cover - network retry path
             last_exc = exc
             if attempt + 1 >= retries:
@@ -592,7 +592,7 @@ def _fetch_json(url: str, timeout_sec: float = 60.0, retries: int = 3) -> Dict:
     raise RuntimeError(f"failed to fetch json after {retries} attempts: {url}") from last_exc
 
 
-def archive_url(latitude, longitude, start_date: str, end_date: str) -> str:
+def archive_url(latitude, longitude, start_date: str, end_date: str) -> str:  # [関数定義] archive_url の処理実行ブロック
     if isinstance(latitude, (list, tuple, np.ndarray)):
         lat_text = ",".join(f"{float(v):.6f}" for v in latitude)
     else:
@@ -609,17 +609,17 @@ def archive_url(latitude, longitude, start_date: str, end_date: str) -> str:
         "timezone": "GMT",
         "hourly": "temperature_2m,shortwave_radiation,wind_speed_10m,wind_direction_10m",
     }
-    return OPENMETEO_ARCHIVE_URL + "?" + urllib.parse.urlencode(params)
+    return OPENMETEO_ARCHIVE_URL + "?" + urllib.parse.urlencode(params)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def meteorological_headwind_ms(wind_speed_ms: float, wind_from_deg: float, heading_deg: float) -> float:
+def meteorological_headwind_ms(wind_speed_ms: float, wind_from_deg: float, heading_deg: float) -> float:  # [関数定義] meteorological_headwind_ms の処理実行ブロック
     if not math.isfinite(wind_speed_ms):
-        return 0.0
+        return 0.0                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
     delta = math.radians((float(wind_from_deg) - float(heading_deg) + 180.0) % 360.0 - 180.0)
-    return float(wind_speed_ms) * math.cos(delta)
+    return float(wind_speed_ms) * math.cos(delta)                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def fetch_route_weather_cache(
+def fetch_route_weather_cache(                                     # [関数定義] fetch_route_weather_cache の処理実行ブロック
     dem: pd.DataFrame,
     cache_csv: Path,
     start_date: str,
@@ -634,7 +634,7 @@ def fetch_route_weather_cache(
         cached_max_s = float(pd.to_numeric(cached.get("s_km"), errors="coerce").max()) if "s_km" in cached.columns else -1.0
         cached_max_date = cached["time_utc"].max().date().isoformat() if "time_utc" in cached.columns and not cached.empty else ""
         if cached_max_s + 1.0 >= sample_limit_km and cached_max_date >= end_date:
-            return cached
+            return cached                                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
     sample_ds = sorted(
         set(
             [round(x, 1) for x in np.arange(0.0, sample_limit_km + 1.0, WEATHER_SAMPLE_STEP_KM)]
@@ -686,10 +686,10 @@ def fetch_route_weather_cache(
     out = pd.DataFrame(rows).sort_values(["time_utc", "s_km"]).reset_index(drop=True)
     ensure_dir(cache_csv.parent)
     out.to_csv(cache_csv, index=False)
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def build_weather_interpolators(weather_df: pd.DataFrame) -> Dict[str, RegularGridInterpolator]:
+def build_weather_interpolators(weather_df: pd.DataFrame) -> Dict[str, RegularGridInterpolator]:  # [関数定義] build_weather_interpolators の処理実行ブロック
     time_grid = np.array(sorted(series_timestamp_s(weather_df["time_utc"].drop_duplicates())), dtype=float)
     s_grid = np.array(sorted(weather_df["s_km"].drop_duplicates()), dtype=float)
     interpolators = {}
@@ -706,10 +706,10 @@ def build_weather_interpolators(weather_df: pd.DataFrame) -> Dict[str, RegularGr
         interpolators[col] = RegularGridInterpolator((time_grid, s_grid), pivot.to_numpy(dtype=float), bounds_error=False, fill_value=None)
     interpolators["time_grid"] = time_grid
     interpolators["s_grid"] = s_grid
-    return interpolators
+    return interpolators                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def attach_archive_weather(log_df: pd.DataFrame, weather_df: pd.DataFrame) -> pd.DataFrame:
+def attach_archive_weather(log_df: pd.DataFrame, weather_df: pd.DataFrame) -> pd.DataFrame:  # [関数定義] attach_archive_weather の処理実行ブロック
     log_df = log_df.copy()
     interps = build_weather_interpolators(weather_df)
     query = np.column_stack(
@@ -720,10 +720,10 @@ def attach_archive_weather(log_df: pd.DataFrame, weather_df: pd.DataFrame) -> pd
     )
     for col in ("GHI_archive", "Tamb_archive_C", "headwind_archive_ms", "wind_speed_ms", "wind_dir_deg"):
         log_df[col] = interps[col](query)
-    return log_df
+    return log_df                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def base_model_from_public_profile(*, fixed_mass_kg: float | None = None) -> Tuple[dict, SolarCarModel]:
+def base_model_from_public_profile(*, fixed_mass_kg: float | None = None) -> Tuple[dict, SolarCarModel]:  # [関数定義] base_model_from_public_profile の処理実行ブロック
     profile_yaml = SRC_PACKAGE / "profile.yaml"
     with profile_yaml.open("r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f) or {}
@@ -767,9 +767,9 @@ def base_model_from_public_profile(*, fixed_mass_kg: float | None = None) -> Tup
         eta_charge=float(mdl.get("eta_charge", 1.0)),
     )
 
-    def src(rel_key: str) -> str:
+    def src(rel_key: str) -> str:                                  # [関数定義] src の処理実行ブロック
         raw = str(pth.get(rel_key, "") or "").strip()
-        return str((SRC_PACKAGE / raw).resolve())
+        return str((SRC_PACKAGE / raw).resolve())                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     model = SolarCarModel(
         src("drive_eff_map"),
@@ -784,18 +784,18 @@ def base_model_from_public_profile(*, fixed_mass_kg: float | None = None) -> Tup
         regen_map_power_path=src("regen_map_power"),
         ocv_soc_map_path="",
     )
-    return cfg, model
+    return cfg, model                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def soc_fit_upper_bound(base_model: SolarCarModel) -> float:
-    return float(np.clip(base_model.p.soc_max, 0.80, 1.0))
+def soc_fit_upper_bound(base_model: SolarCarModel) -> float:       # [関数定義] soc_fit_upper_bound の処理実行ブロック
+    return float(np.clip(base_model.p.soc_max, 0.80, 1.0))         # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def soft_soc_upper_bound(base_model: SolarCarModel) -> float:
-    return float(min(1.02, soc_fit_upper_bound(base_model) + 0.01))
+def soft_soc_upper_bound(base_model: SolarCarModel) -> float:      # [関数定義] soft_soc_upper_bound の処理実行ブロック
+    return float(min(1.02, soc_fit_upper_bound(base_model) + 0.01))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def fit_pv_parameters(log_df: pd.DataFrame, base_model: SolarCarModel) -> PvFitResult:
+def fit_pv_parameters(log_df: pd.DataFrame, base_model: SolarCarModel) -> PvFitResult:  # [関数定義] fit_pv_parameters の処理実行ブロック
     work = log_df.copy()
     work["solar_power_w_obs"] = work["solar_power_w_obs"].clip(lower=0.0)
     ghi_col = "GHI_effective" if "GHI_effective" in work.columns else "GHI_archive"
@@ -825,13 +825,13 @@ def fit_pv_parameters(log_df: pd.DataFrame, base_model: SolarCarModel) -> PvFitR
         & ((y_obs.to_numpy(dtype=float) > 20.0) | (ghi > 80.0))
     )
     if not np.any(valid):
-        return PvFitResult(panel_gain=1.0, tcell_gain_c_per_wm2=0.03, objective=0.0, solar_rmse_w=float("nan"))
+        return PvFitResult(panel_gain=1.0, tcell_gain_c_per_wm2=0.03, objective=0.0, solar_rmse_w=float("nan"))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     ghi_use = ghi[valid]
     tamb_use = tamb[valid]
     y_use = y_obs.to_numpy(dtype=float)[valid]
 
-    def objective(x: np.ndarray) -> float:
+    def objective(x: np.ndarray) -> float:                         # [関数定義] objective の処理実行ブロック
         panel_gain, tcell_gain = [float(v) for v in x]
         tcell = tamb_use + tcell_gain * ghi_use
         base_pred = np.array([float(base_model.pv_power_mppt(g, tc)) for g, tc in zip(ghi_use, tcell)], dtype=float)
@@ -839,7 +839,7 @@ def fit_pv_parameters(log_df: pd.DataFrame, base_model: SolarCarModel) -> PvFitR
         resid = y_use - pred
         delta = 120.0
         huber = np.where(np.abs(resid) <= delta, 0.5 * resid ** 2, delta * (np.abs(resid) - 0.5 * delta))
-        return float(np.mean(huber))
+        return float(np.mean(huber))                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     x0 = np.array([1.0, PV_TCELL_SEED_GAIN], dtype=float)
     bounds = [(0.80, 1.25), (0.0, 0.08)]
@@ -849,7 +849,7 @@ def fit_pv_parameters(log_df: pd.DataFrame, base_model: SolarCarModel) -> PvFitR
     base_pred = np.array([float(base_model.pv_power_mppt(g, tc)) for g, tc in zip(ghi_use, tcell)], dtype=float)
     pred = float(x[0]) * base_pred
     rmse = float(np.sqrt(np.mean((y_use - pred) ** 2)))
-    return PvFitResult(
+    return PvFitResult(                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
         panel_gain=float(x[0]),
         tcell_gain_c_per_wm2=float(x[1]),
         objective=float(objective(x)),
@@ -857,7 +857,7 @@ def fit_pv_parameters(log_df: pd.DataFrame, base_model: SolarCarModel) -> PvFitR
     )
 
 
-def attach_archive_pv_model(log_df: pd.DataFrame, base_model: SolarCarModel, pv: PvFitResult) -> pd.DataFrame:
+def attach_archive_pv_model(log_df: pd.DataFrame, base_model: SolarCarModel, pv: PvFitResult) -> pd.DataFrame:  # [関数定義] attach_archive_pv_model の処理実行ブロック
     work = log_df.copy()
     ghi_col = "GHI_effective" if "GHI_effective" in work.columns else "GHI_archive"
     ghi = work[ghi_col].to_numpy(dtype=float)
@@ -875,10 +875,10 @@ def attach_archive_pv_model(log_df: pd.DataFrame, base_model: SolarCarModel, pv:
         work["solar_ratio"] = np.where(base_pred > 1.0, solar_model / base_pred, 1.0)
         work["GHI_effective"] = work["GHI_archive"]
     work["Tcell_effective_C"] = tcell
-    return work
+    return work                                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def build_ocv_curve(out_csv: Path) -> pd.DataFrame:
+def build_ocv_curve(out_csv: Path) -> pd.DataFrame:                # [関数定義] build_ocv_curve の処理実行ブロック
     df = robust_read_csv(DISCHARGE_TEST_CSV)
     if not {"cellVoltage(V)", "SOC(%)"}.issubset(df.columns):
         raise ValueError("discharge test csv is missing required columns")
@@ -892,19 +892,19 @@ def build_ocv_curve(out_csv: Path) -> pd.DataFrame:
     out = work.groupby("soc_bin", as_index=False)["ocv_v"].median().rename(columns={"soc_bin": "soc"}).sort_values("soc")
     ensure_dir(out_csv.parent)
     out.to_csv(out_csv, index=False)
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def inverse_ocv_lookup(ocv_df: pd.DataFrame, voltage_v: float) -> float:
+def inverse_ocv_lookup(ocv_df: pd.DataFrame, voltage_v: float) -> float:  # [関数定義] inverse_ocv_lookup の処理実行ブロック
     work = ocv_df.sort_values("ocv_v")
-    return float(np.interp(float(voltage_v), work["ocv_v"].to_numpy(), work["soc"].to_numpy()))
+    return float(np.interp(float(voltage_v), work["ocv_v"].to_numpy(), work["soc"].to_numpy()))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def rint_lookup(base_model: SolarCarModel, temp_c: float, soc: float) -> float:
-    return float(base_model.R_int(float(temp_c), float(np.clip(soc, 0.1, 0.95))))
+def rint_lookup(base_model: SolarCarModel, temp_c: float, soc: float) -> float:  # [関数定義] rint_lookup の処理実行ブロック
+    return float(base_model.R_int(float(temp_c), float(np.clip(soc, 0.1, 0.95))))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def battery_prior_penalty(soc0_seed: float, x: np.ndarray) -> float:
+def battery_prior_penalty(soc0_seed: float, x: np.ndarray) -> float:  # [関数定義] battery_prior_penalty の処理実行ブロック
     soc0, e_nom_wh, rint_scale, r_line_ohm, eta_charge = [float(v) for v in x]
     prior = 0.0
     prior += 2.0 * ((soc0 - soc0_seed) / BATTERY_PRIOR_SOC0_SIGMA) ** 2
@@ -912,10 +912,10 @@ def battery_prior_penalty(soc0_seed: float, x: np.ndarray) -> float:
     prior += 1.5 * ((rint_scale - BATTERY_PRIOR_RINT_SCALE) / BATTERY_PRIOR_RINT_SIGMA) ** 2
     prior += 1.5 * ((r_line_ohm - BATTERY_PRIOR_RLINE_OHM) / BATTERY_PRIOR_RLINE_SIGMA_OHM) ** 2
     prior += 2.0 * ((eta_charge - BATTERY_PRIOR_ETA_CHARGE) / BATTERY_PRIOR_ETA_SIGMA) ** 2
-    return float(prior)
+    return float(prior)                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def motion_prior_penalty(x: np.ndarray) -> float:
+def motion_prior_penalty(x: np.ndarray) -> float:                  # [関数定義] motion_prior_penalty の処理実行ブロック
     cda, crr, p_aux_w, grade_scale, drive_eff_scale, headwind_gain = [float(v) for v in x]
     prior = 0.0
     prior += 400.0 * ((cda - MOTION_PRIOR_CDA) / MOTION_PRIOR_CDA_SIGMA) ** 2
@@ -924,23 +924,23 @@ def motion_prior_penalty(x: np.ndarray) -> float:
     prior += 80.0 * ((grade_scale - MOTION_PRIOR_GRADE_SCALE) / MOTION_PRIOR_GRADE_SIGMA) ** 2
     prior += 180.0 * ((drive_eff_scale - MOTION_PRIOR_DRIVE_EFF_SCALE) / MOTION_PRIOR_DRIVE_EFF_SIGMA) ** 2
     prior += 260.0 * ((headwind_gain - MOTION_PRIOR_HEADWIND_GAIN) / MOTION_PRIOR_HEADWIND_SIGMA) ** 2
-    return float(prior)
+    return float(prior)                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def clip_to_bounds_vec(x: np.ndarray, bounds: List[Tuple[float, float]]) -> np.ndarray:
+def clip_to_bounds_vec(x: np.ndarray, bounds: List[Tuple[float, float]]) -> np.ndarray:  # [関数定義] clip_to_bounds_vec の処理実行ブロック
     out = np.asarray(x, dtype=float).copy()
     for idx, (lo, hi) in enumerate(bounds):
         out[idx] = float(np.clip(out[idx], lo, hi))
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def clone_params(params: Params) -> Params:
+def clone_params(params: Params) -> Params:                        # [関数定義] clone_params の処理実行ブロック
     payload = {field.name: getattr(params, field.name) for field in fields(Params)}
-    return Params(**payload)
+    return Params(**payload)                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def identity_shape_summary(name: str, x_grid: np.ndarray, y_grid: np.ndarray, *, reason: str = "identity") -> Dict[str, object]:
-    return {
+def identity_shape_summary(name: str, x_grid: np.ndarray, y_grid: np.ndarray, *, reason: str = "identity") -> Dict[str, object]:  # [関数定義] identity_shape_summary の処理実行ブロック
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "name": name,
         "sample_count": 0,
         "reason": reason,
@@ -955,17 +955,17 @@ def identity_shape_summary(name: str, x_grid: np.ndarray, y_grid: np.ndarray, *,
     }
 
 
-def unpack_shape_theta(theta: np.ndarray, nx: int, ny: int) -> Tuple[float, np.ndarray, np.ndarray]:
+def unpack_shape_theta(theta: np.ndarray, nx: int, ny: int) -> Tuple[float, np.ndarray, np.ndarray]:  # [関数定義] unpack_shape_theta の処理実行ブロック
     theta = np.asarray(theta, dtype=float)
     g = float(theta[0])
     row = theta[1 : 1 + nx].astype(float).copy()
     col = theta[1 + nx : 1 + nx + ny].astype(float).copy()
     row -= float(np.mean(row))
     col -= float(np.mean(col))
-    return g, row, col
+    return g, row, col                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def shape_log_surface_at(
+def shape_log_surface_at(                                          # [関数定義] shape_log_surface_at の処理実行ブロック
     x_grid: np.ndarray,
     y_grid: np.ndarray,
     summary: Dict[str, object],
@@ -977,10 +977,10 @@ def shape_log_surface_at(
     g = float(summary.get("global_log_gain", 0.0))
     row_interp = np.interp(np.asarray(x_samples, dtype=float), np.asarray(x_grid, dtype=float), row)
     col_interp = np.interp(np.asarray(y_samples, dtype=float), np.asarray(y_grid, dtype=float), col)
-    return g + row_interp + col_interp
+    return g + row_interp + col_interp                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def fit_separable_shape_summary(
+def fit_separable_shape_summary(                                   # [関数定義] fit_separable_shape_summary の処理実行ブロック
     name: str,
     x_grid: np.ndarray,
     y_grid: np.ndarray,
@@ -1008,7 +1008,7 @@ def fit_separable_shape_summary(
         & (target_values > 1.0e-9)
     )
     if int(np.count_nonzero(valid)) < max(MAP_SHAPE_MIN_SAMPLES, len(x_grid) + len(y_grid)):
-        return identity_shape_summary(name, x_grid, y_grid, reason="insufficient_samples")
+        return identity_shape_summary(name, x_grid, y_grid, reason="insufficient_samples")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     xs = x_samples[valid]
     ys = y_samples[valid]
@@ -1020,7 +1020,7 @@ def fit_separable_shape_summary(
     nx = int(len(x_grid))
     ny = int(len(y_grid))
 
-    def objective(theta: np.ndarray) -> float:
+    def objective(theta: np.ndarray) -> float:                     # [関数定義] objective の処理実行ブロック
         g, row, col = unpack_shape_theta(theta, nx, ny)
         pred = g + np.interp(xs, x_grid, row) + np.interp(ys, y_grid, col)
         resid = log_target - pred
@@ -1032,7 +1032,7 @@ def fit_separable_shape_summary(
             np.mean(np.diff(col) ** 2) if ny >= 2 else 0.0
         )
         anchor = anchor_weight * (np.mean(row ** 2) + np.mean(col ** 2)) + 0.25 * (g ** 2)
-        return float(np.mean(huber) + smooth + anchor)
+        return float(np.mean(huber) + smooth + anchor)             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     x0 = np.zeros(1 + nx + ny, dtype=float)
     x0[0] = float(np.clip(np.median(log_target), -0.12, 0.12))
@@ -1062,10 +1062,10 @@ def fit_separable_shape_summary(
     grid_scale = np.exp(float(g) + row[:, None] + col[None, :])
     summary["correction_min"] = float(np.min(grid_scale))
     summary["correction_max"] = float(np.max(grid_scale))
-    return summary
+    return summary                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def apply_shape_summary_to_df(
+def apply_shape_summary_to_df(                                     # [関数定義] apply_shape_summary_to_df の処理実行ブロック
     df: pd.DataFrame,
     summary: Dict[str, object],
     *,
@@ -1077,13 +1077,13 @@ def apply_shape_summary_to_df(
     row = np.asarray(summary.get("row_offsets", []), dtype=float)
     col = np.asarray(summary.get("col_offsets", []), dtype=float)
     if len(row) != len(x_grid) or len(col) != len(y_grid):
-        return df.copy()
+        return df.copy()                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
     corr = np.exp(float(summary.get("global_log_gain", 0.0)) + row[:, None] + col[None, :])
     out = df.astype(float) * corr
-    return out.clip(lower=lower, upper=upper)
+    return out.clip(lower=lower, upper=upper)                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def scaled_shape_summary(summary: Dict[str, object], share: float, name: str) -> Dict[str, object]:
+def scaled_shape_summary(summary: Dict[str, object], share: float, name: str) -> Dict[str, object]:  # [関数定義] scaled_shape_summary の処理実行ブロック
     share = float(np.clip(share, 0.0, 1.0))
     out = dict(summary)
     out["name"] = name
@@ -1092,11 +1092,11 @@ def scaled_shape_summary(summary: Dict[str, object], share: float, name: str) ->
     out["row_offsets"] = [float(v) * share for v in summary.get("row_offsets", [])]
     out["col_offsets"] = [float(v) * share for v in summary.get("col_offsets", [])]
     out["reason"] = f"shared_from_{summary.get('name', 'combined')}"
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def build_model_from_map_assets(base_model: SolarCarModel, map_assets: Dict[str, Path]) -> SolarCarModel:
-    return SolarCarModel(
+def build_model_from_map_assets(base_model: SolarCarModel, map_assets: Dict[str, Path]) -> SolarCarModel:  # [関数定義] build_model_from_map_assets の処理実行ブロック
+    return SolarCarModel(                                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
         os.fspath(map_assets["drive_eff_map"]),
         os.fspath(map_assets["regen_eff_map"]),
         os.fspath(map_assets["rint_map"]),
@@ -1111,7 +1111,7 @@ def build_model_from_map_assets(base_model: SolarCarModel, map_assets: Dict[str,
     )
 
 
-def rest_soc_targets(df: pd.DataFrame, ocv_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+def rest_soc_targets(df: pd.DataFrame, ocv_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:  # [関数定義] rest_soc_targets の処理実行ブロック
     mask = (
         (~df["exclude_voltage_fit"])
         & np.isfinite(df["battery_voltage_v"])
@@ -1129,10 +1129,10 @@ def rest_soc_targets(df: pd.DataFrame, ocv_df: pd.DataFrame) -> Tuple[np.ndarray
             work["ocv_v"].to_numpy(dtype=float),
             work["soc"].to_numpy(dtype=float),
         )
-    return mask.to_numpy(dtype=bool), soc_obs
+    return mask.to_numpy(dtype=bool), soc_obs                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def make_battery_starts(soc0_seed: float, soc0_hi: float) -> List[np.ndarray]:
+def make_battery_starts(soc0_seed: float, soc0_hi: float) -> List[np.ndarray]:  # [関数定義] make_battery_starts の処理実行ブロック
     starts = [
         np.array([soc0_seed, BATTERY_PRIOR_E_NOM_WH, 1.10, 0.010, 0.975], dtype=float),
         np.array([min(soc0_hi, soc0_seed + 0.01), BATTERY_PRIOR_E_NOM_WH, 1.40, 0.015, 0.955], dtype=float),
@@ -1141,10 +1141,10 @@ def make_battery_starts(soc0_seed: float, soc0_hi: float) -> List[np.ndarray]:
         np.array([min(soc0_hi, soc0_seed + 0.03), 2900.0, 2.00, 0.028, 0.940], dtype=float),
         np.array([max(0.86, soc0_seed - 0.02), 3120.0, 0.95, 0.008, 0.985], dtype=float),
     ]
-    return starts[:BATTERY_RESTART_COUNT]
+    return starts[:BATTERY_RESTART_COUNT]                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def make_motion_starts(x0: np.ndarray) -> List[np.ndarray]:
+def make_motion_starts(x0: np.ndarray) -> List[np.ndarray]:        # [関数定義] make_motion_starts の処理実行ブロック
     starts = [
         x0,
         np.array([0.100, 0.0080, 24.0, 0.90, 1.00, 0.10], dtype=float),
@@ -1155,10 +1155,10 @@ def make_motion_starts(x0: np.ndarray) -> List[np.ndarray]:
         np.array([0.108, 0.0105, 25.0, 0.76, 0.92, 0.05], dtype=float),
         np.array([0.112, 0.0045, 17.0, 1.08, 1.08, 0.22], dtype=float),
     ]
-    return starts[:MOTION_RESTART_COUNT]
+    return starts[:MOTION_RESTART_COUNT]                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def battery_replay_voltage(
+def battery_replay_voltage(                                        # [関数定義] battery_replay_voltage の処理実行ブロック
     df: pd.DataFrame,
     ocv_df: pd.DataFrame,
     base_model: SolarCarModel,
@@ -1183,10 +1183,10 @@ def battery_replay_voltage(
         eta = eta_charge if p_obs < 0.0 else 1.0
         z = z - eta * (p_obs * dt_sec / 3600.0) / max(e_nom_wh, 100.0)
         z = float(np.clip(z, -0.05, 1.05))
-    return np.asarray(soc_vals, dtype=float), np.asarray(v_preds, dtype=float)
+    return np.asarray(soc_vals, dtype=float), np.asarray(v_preds, dtype=float)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def fit_battery_parameters(
+def fit_battery_parameters(                                        # [関数定義] fit_battery_parameters の処理実行ブロック
     fit_df: pd.DataFrame,
     ocv_df: pd.DataFrame,
     base_model: SolarCarModel,
@@ -1203,7 +1203,7 @@ def fit_battery_parameters(
         & (use_df["battery_voltage_v"] >= INVALID_PACK_VOLTAGE_MIN_V)
     )
     if not valid.any():
-        return BatteryFitResult(
+        return BatteryFitResult(                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
             soc0=0.95,
             e_nom_wh=float(base_model.p.E_nom_Wh),
             rint_scale=1.0,
@@ -1221,7 +1221,7 @@ def fit_battery_parameters(
     valid_mask = valid.to_numpy(dtype=bool)
     rest_mask, rest_soc_obs = rest_soc_targets(use_df, ocv_df)
 
-    def objective(x: np.ndarray) -> float:
+    def objective(x: np.ndarray) -> float:                         # [関数定義] objective の処理実行ブロック
         soc0, e_nom_wh, rint_scale, r_line_ohm, eta_charge = [float(v) for v in x]
         soc_arr, v_pred = battery_replay_voltage(
             use_df,
@@ -1242,7 +1242,7 @@ def fit_battery_parameters(
             rest_err = (soc_arr[rest_mask] - rest_soc_obs[rest_mask]) / REST_SOC_SIGMA
             rest_penalty = 4.0 * float(np.mean(rest_err ** 2))
         penalty = float(np.mean(np.maximum(0.0, soc_arr - soc_soft_hi) ** 2 + np.maximum(0.0, -0.02 - soc_arr) ** 2)) * 1.0e4
-        return float(np.mean(huber) + prior + rest_penalty + penalty)
+        return float(np.mean(huber) + prior + rest_penalty + penalty)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     starts = make_battery_starts(soc0_seed, soc0_hi)[: max(1, int(restart_count))]
     bounds = [
@@ -1268,7 +1268,7 @@ def fit_battery_parameters(
     assert best_x is not None and best_pred is not None
     resid = v_obs[valid_mask] - best_pred[valid_mask]
     rmse = float(np.sqrt(np.mean(resid ** 2)))
-    return BatteryFitResult(
+    return BatteryFitResult(                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         soc0=float(best_x[0]),
         e_nom_wh=float(best_x[1]),
         rint_scale=float(best_x[2]),
@@ -1279,7 +1279,7 @@ def fit_battery_parameters(
     )
 
 
-def motion_power_prediction(
+def motion_power_prediction(                                       # [運動電力予測] 速度・勾配・風速・日射量から必要消費電力を物理計算
     speed_kmh: float,
     slope_pct: float,
     headwind_ms: float,
@@ -1309,11 +1309,11 @@ def motion_power_prediction(
         eff_base = float(base_model.eff_regen(v_ms, t_m))
         eff_reg = float(np.clip(eff_base * float(drive_eff_scale), 0.40, 0.95))
         p_el = -eff_reg * base_model.p.gear_eta * base_model.p.inverter_eta * abs(p_mech)
-    return float(p_el - float(solar_power_w))
+    return float(p_el - float(solar_power_w))                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def initial_motion_guess(fit_df: pd.DataFrame, base_model: SolarCarModel) -> np.ndarray:
-    return np.array(
+def initial_motion_guess(fit_df: pd.DataFrame, base_model: SolarCarModel) -> np.ndarray:  # [関数定義] initial_motion_guess の処理実行ブロック
+    return np.array(                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
         [
             MOTION_PRIOR_CDA,
             MOTION_PRIOR_CRR,
@@ -1326,7 +1326,7 @@ def initial_motion_guess(fit_df: pd.DataFrame, base_model: SolarCarModel) -> np.
     )
 
 
-def fit_motion_parameters(
+def fit_motion_parameters(                                         # [関数定義] fit_motion_parameters の処理実行ブロック
     fit_df: pd.DataFrame,
     base_model: SolarCarModel,
     *,
@@ -1353,7 +1353,7 @@ def fit_motion_parameters(
     ]
     starts = make_motion_starts(x0)[: max(1, int(restart_count))]
 
-    def objective(x: np.ndarray) -> float:
+    def objective(x: np.ndarray) -> float:                         # [関数定義] objective の処理実行ブロック
         preds = np.array(
             [
                 motion_power_prediction(
@@ -1376,7 +1376,7 @@ def fit_motion_parameters(
         delta = 200.0
         huber = np.where(np.abs(resid) <= delta, 0.5 * resid ** 2, delta * (np.abs(resid) - 0.5 * delta))
         prior = motion_prior_penalty(x)
-        return float(np.mean(huber) + prior)
+        return float(np.mean(huber) + prior)                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     best_x = None
     best_obj = float("inf")
@@ -1411,7 +1411,7 @@ def fit_motion_parameters(
     resid = work["battery_power_w_obs"].to_numpy(dtype=float) - preds
     rmse = float(np.sqrt(np.mean(resid ** 2)))
     sigma = float(np.std(resid, ddof=1)) if len(resid) >= 2 else rmse
-    return MotionFitResult(
+    return MotionFitResult(                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
         cda=float(x[0]),
         crr=float(x[1]),
         p_aux_w=float(x[2]),
@@ -1424,7 +1424,7 @@ def fit_motion_parameters(
     )
 
 
-def joint_refine_parameters(
+def joint_refine_parameters(                                       # [関数定義] joint_refine_parameters の処理実行ブロック
     fit_df: pd.DataFrame,
     ocv_df: pd.DataFrame,
     base_model: SolarCarModel,
@@ -1452,7 +1452,7 @@ def joint_refine_parameters(
     ).to_numpy(dtype=bool)
     rest_mask, rest_soc_obs = rest_soc_targets(work, ocv_df)
     if not valid_voltage.any() or not valid_power.any():
-        return batt_init, mot_init, {
+        return batt_init, mot_init, {                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "objective": float("nan"),
             "restart_count": 0,
             "maxiter": int(maxiter),
@@ -1519,7 +1519,7 @@ def joint_refine_parameters(
 
     anchor_scale = np.array([0.02, 160.0, 0.35, 0.010, 0.020, 0.012, 0.0025, 3.0, 0.10, 0.05, 0.05], dtype=float)
 
-    def objective(x: np.ndarray) -> float:
+    def objective(x: np.ndarray) -> float:                         # [関数定義] objective の処理実行ブロック
         batt_x = np.asarray(x[:5], dtype=float)
         mot_x = np.asarray(x[5:], dtype=float)
         use_df = work.copy()
@@ -1563,7 +1563,7 @@ def joint_refine_parameters(
         bound_penalty = 4.0e3 * float(np.mean(np.maximum(0.0, soc_bounds - soc_soft_hi) ** 2 + np.maximum(0.0, -0.02 - soc_bounds) ** 2))
         prior = battery_prior_penalty(soc0_seed, batt_x) + motion_prior_penalty(mot_x)
         stage_anchor = JOINT_OBJECTIVE_STAGE_ANCHOR_WEIGHT * float(np.mean(((x - x_stage) / anchor_scale) ** 2))
-        return float(
+        return float(                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
             JOINT_OBJECTIVE_POWER_WEIGHT * (power_rmse / 180.0) ** 2
             + JOINT_OBJECTIVE_VOLTAGE_WEIGHT * (voltage_rmse / 4.0) ** 2
             + JOINT_OBJECTIVE_POWER_BIAS_WEIGHT * (power_bias / 75.0) ** 2
@@ -1640,7 +1640,7 @@ def joint_refine_parameters(
         )
     )
     if not accepted:
-        return batt_init, mot_init, {
+        return batt_init, mot_init, {                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "objective": float(best_obj),
             "baseline_objective": float(baseline_objective),
             "restart_count": len(local_starts),
@@ -1660,7 +1660,7 @@ def joint_refine_parameters(
             ),
             "baseline_final_soc_pred": float(baseline_metrics["final_soc_pred"]),
         }
-    return batt, mot, {
+    return batt, mot, {                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "objective": float(best_obj),
         "baseline_objective": float(baseline_objective),
         "restart_count": len(local_starts),
@@ -1682,7 +1682,7 @@ def joint_refine_parameters(
     }
 
 
-def joint_replay_core(
+def joint_replay_core(                                             # [関数定義] joint_replay_core の処理実行ブロック
     log_df: pd.DataFrame,
     ocv_df: pd.DataFrame,
     base_model: SolarCarModel,
@@ -1763,8 +1763,8 @@ def joint_replay_core(
         z = z - eta * (p_pack_pred * dt_sec / 3600.0) / max(batt.e_nom_wh, 100.0)
         z = float(np.clip(z, -0.05, 1.05))
     if return_dataframe:
-        return pd.DataFrame(rows)
-    return {
+        return pd.DataFrame(rows)                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "battery_power_w_obs": power_obs,
         "battery_power_w_pred": power_pred,
         "battery_voltage_v_obs": voltage_obs,
@@ -1773,11 +1773,11 @@ def joint_replay_core(
     }
 
 
-def joint_replay(log_df: pd.DataFrame, ocv_df: pd.DataFrame, base_model: SolarCarModel, batt: BatteryFitResult, mot: MotionFitResult) -> pd.DataFrame:
-    return joint_replay_core(log_df, ocv_df, base_model, batt, mot, return_dataframe=True)
+def joint_replay(log_df: pd.DataFrame, ocv_df: pd.DataFrame, base_model: SolarCarModel, batt: BatteryFitResult, mot: MotionFitResult) -> pd.DataFrame:  # [関数定義] joint_replay の処理実行ブロック
+    return joint_replay_core(log_df, ocv_df, base_model, batt, mot, return_dataframe=True)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def resample_for_fit(log_df: pd.DataFrame) -> pd.DataFrame:
+def resample_for_fit(log_df: pd.DataFrame) -> pd.DataFrame:        # [関数定義] resample_for_fit の処理実行ブロック
     work = log_df.copy()
     work = work.set_index(pd.to_datetime(work["time_utc"], utc=True))
     agg = {
@@ -1815,10 +1815,10 @@ def resample_for_fit(log_df: pd.DataFrame) -> pd.DataFrame:
     for col in ("exclude_power_fit", "exclude_voltage_fit", "exclude_weather_fit"):
         out[col] = out[col].fillna(False).astype(bool)
     out["exclude_reason"] = ""
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def build_effective_weather(log_df: pd.DataFrame, base_model: SolarCarModel) -> pd.DataFrame:
+def build_effective_weather(log_df: pd.DataFrame, base_model: SolarCarModel) -> pd.DataFrame:  # [関数定義] build_effective_weather の処理実行ブロック
     work = log_df.copy()
     work["solar_power_w_obs"] = work["solar_power_w_obs"].clip(lower=0.0)
     work["solar_power_w_obs_smooth"] = smooth_series(work["solar_power_w_obs"], window=13)
@@ -1841,10 +1841,10 @@ def build_effective_weather(log_df: pd.DataFrame, base_model: SolarCarModel) -> 
     for row in work.itertuples(index=False):
         pv_model_eff.append(float(base_model.pv_power_mppt(float(row.GHI_effective), float(row.Tcell_effective_C))))
     work["solar_power_w_model"] = np.asarray(pv_model_eff, dtype=float)
-    return work
+    return work                                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def metrics_from_replay(replay_df: pd.DataFrame) -> Dict[str, float]:
+def metrics_from_replay(replay_df: pd.DataFrame) -> Dict[str, float]:  # [関数定義] metrics_from_replay の処理実行ブロック
     power_mask = ~replay_df["exclude_power_fit"]
     volt_mask = ~replay_df["exclude_voltage_fit"]
     rp = replay_df.loc[power_mask, "battery_power_w_obs"] - replay_df.loc[power_mask, "battery_power_w_pred"]
@@ -1887,10 +1887,10 @@ def metrics_from_replay(replay_df: pd.DataFrame) -> Dict[str, float]:
         metrics["power_rmse_fit_window_w"] = float(np.sqrt(np.mean(rp_fit ** 2)))
         metrics["power_mae_fit_window_w"] = float(np.mean(np.abs(rp_fit)))
         metrics["voltage_rmse_fit_window_v"] = float(np.sqrt(np.mean(rv_fit ** 2)))
-    return metrics
+    return metrics                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def fit_map_shapes(
+def fit_map_shapes(                                                # [関数定義] fit_map_shapes の処理実行ブロック
     log_df: pd.DataFrame,
     fit_df: pd.DataFrame,
     replay_df: pd.DataFrame,
@@ -2076,7 +2076,7 @@ def fit_map_shapes(
         smooth_weight=1.60,
         anchor_weight=0.30,
     )
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "panel_mppt_combined": combined_pv,
         "panel_eff_map": panel_shape,
         "mppt_eff_map": mppt_shape,
@@ -2086,7 +2086,7 @@ def fit_map_shapes(
     }
 
 
-def write_scaled_maps(
+def write_scaled_maps(                                             # [関数定義] write_scaled_maps の処理実行ブロック
     base_cfg: dict,
     pv: PvFitResult,
     mot: MotionFitResult,
@@ -2147,10 +2147,10 @@ def write_scaled_maps(
         upper=1.0,
     ).to_csv(rint_dst)
     path_map["rint_map"] = rint_dst
-    return path_map
+    return path_map                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def planning_race_km_from_route(route_profile: pd.DataFrame) -> float:
+def planning_race_km_from_route(route_profile: pd.DataFrame) -> float:  # [関数定義] planning_race_km_from_route の処理実行ブロック
     public_info = SRC_PACKAGE / "data" / "public" / "bwsc2025_public_info.yaml"
     if public_info.exists():
         try:
@@ -2159,17 +2159,17 @@ def planning_race_km_from_route(route_profile: pd.DataFrame) -> float:
             event = payload.get("event", {}) if isinstance(payload, dict) else {}
             route_finish_ref = float(event.get("route_finish_ref_km", 0.0) or 0.0)
             if route_finish_ref > 0.0:
-                return route_finish_ref
+                return route_finish_ref                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
         except Exception:
             pass
     if "dist_km" in route_profile.columns:
         dist_vals = pd.to_numeric(route_profile["dist_km"], errors="coerce").dropna()
         if not dist_vals.empty:
-            return float(dist_vals.max())
-    return OFFICIAL_CLASSIFIED_DISTANCE_KM
+            return float(dist_vals.max())                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return OFFICIAL_CLASSIFIED_DISTANCE_KM                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_route_assets(
+def write_route_assets(                                            # [関数定義] write_route_assets の処理実行ブロック
     route_profile: pd.DataFrame,
     route_waypoints: pd.DataFrame,
     out_dir: Path,
@@ -2186,14 +2186,14 @@ def write_route_assets(
         speed_profile_path,
         index=False,
     )
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "route_profile_csv": route_profile_path,
         "route_waypoints_csv": route_waypoints_path,
         "speed_profile_csv": speed_profile_path,
     }
 
 
-def drive_windows_from_anchors() -> List[Tuple[datetime, datetime, str]]:
+def drive_windows_from_anchors() -> List[Tuple[datetime, datetime, str]]:  # [関数定義] drive_windows_from_anchors の処理実行ブロック
     items = [
         ("2025-08-24T08:21:00", "2025-08-24T17:09:00", "Day1 drive"),
         ("2025-08-25T08:09:00", "2025-08-25T17:05:00", "Day2 drive"),
@@ -2202,10 +2202,10 @@ def drive_windows_from_anchors() -> List[Tuple[datetime, datetime, str]]:
         ("2025-08-28T08:35:00", "2025-08-28T16:59:00", "Day5 drive"),
         ("2025-08-29T08:45:00", "2025-08-29T14:46:00", "Day6 drive"),
     ]
-    return [(local_dt(a), local_dt(b), label) for a, b, label in items]
+    return [(local_dt(a), local_dt(b), label) for a, b, label in items]  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_drive_schedule_yaml(out_path: Path) -> None:
+def write_drive_schedule_yaml(out_path: Path) -> None:             # [関数定義] write_drive_schedule_yaml の処理実行ブロック
     payload = {"deny_by_default": True, "drive_windows": []}
     for start_local, end_local, label in drive_windows_from_anchors():
         payload["drive_windows"].append(
@@ -2222,14 +2222,14 @@ def write_drive_schedule_yaml(out_path: Path) -> None:
         yaml.safe_dump(payload, f, sort_keys=False, allow_unicode=True)
 
 
-def write_stops_yaml(out_path: Path) -> None:
+def write_stops_yaml(out_path: Path) -> None:                      # [関数定義] write_stops_yaml の処理実行ブロック
     stops = build_stop_records()
     ensure_dir(out_path.parent)
     with out_path.open("w", encoding="utf-8", newline="\n") as f:
         yaml.safe_dump({"stops": stops}, f, sort_keys=False, allow_unicode=True)
 
 
-def write_control_stops_yaml(out_path: Path) -> None:
+def write_control_stops_yaml(out_path: Path) -> None:              # [関数定義] write_control_stops_yaml の処理実行ブロック
     stops = []
     seen_s = set()
     for row in build_stop_records():
@@ -2247,7 +2247,7 @@ def write_control_stops_yaml(out_path: Path) -> None:
         yaml.safe_dump({"stops": stops}, f, sort_keys=False, allow_unicode=True)
 
 
-def write_nominal_planning_weather_grid_csv(
+def write_nominal_planning_weather_grid_csv(                       # [関数定義] write_nominal_planning_weather_grid_csv の処理実行ブロック
     weather_grid_df: pd.DataFrame,
     out_csv: Path,
     pv: PvFitResult,
@@ -2273,16 +2273,16 @@ def write_nominal_planning_weather_grid_csv(
     out["weather_source"] = "openmeteo_archive_spatiotemporal_grid_corrected_by_fitted_tcell_and_headwind"
     ensure_dir(out_csv.parent)
     out.sort_values(["time", "s_km"]).to_csv(out_csv, index=False)
-    return out_csv
+    return out_csv                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_stop_catalog_csv(out_path: Path) -> Path:
+def write_stop_catalog_csv(out_path: Path) -> Path:                # [関数定義] write_stop_catalog_csv の処理実行ブロック
     ensure_dir(out_path.parent)
     pd.DataFrame(build_stop_records()).to_csv(out_path, index=False)
-    return out_path
+    return out_path                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_observed_weather_csv(log_df: pd.DataFrame, out_csv: Path) -> pd.DataFrame:
+def write_observed_weather_csv(log_df: pd.DataFrame, out_csv: Path) -> pd.DataFrame:  # [関数定義] write_observed_weather_csv の処理実行ブロック
     work = log_df.copy()
     work = work.set_index(pd.to_datetime(work["time_utc"], utc=True))
     agg = {
@@ -2329,10 +2329,10 @@ def write_observed_weather_csv(log_df: pd.DataFrame, out_csv: Path) -> pd.DataFr
     )
     ensure_dir(out_csv.parent)
     out.to_csv(out_csv, index=False)
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_normalized_logs(log_df: pd.DataFrame, replay_df: pd.DataFrame, package_dir: Path) -> Dict[str, Path]:
+def write_normalized_logs(log_df: pd.DataFrame, replay_df: pd.DataFrame, package_dir: Path) -> Dict[str, Path]:  # [関数定義] write_normalized_logs の処理実行ブロック
     out_dir = package_dir / "data" / "observed"
     ensure_dir(out_dir)
     observed_csv = out_dir / "bwsc2025_observed_log_5s.csv"
@@ -2351,10 +2351,10 @@ def write_normalized_logs(log_df: pd.DataFrame, replay_df: pd.DataFrame, package
         time_utc=fit_df["time_utc"].dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
         time_local=fit_df["time_local"].astype(str),
     ).to_csv(fit_csv, index=False)
-    return {"observed_csv": observed_csv, "fit_csv": fit_csv, "replay_csv": replay_csv}
+    return {"observed_csv": observed_csv, "fit_csv": fit_csv, "replay_csv": replay_csv}  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_profile(
+def write_profile(                                                 # [関数定義] write_profile の処理実行ブロック
     base_cfg: dict,
     package_dir: Path,
     route_assets: Dict[str, Path],
@@ -2506,10 +2506,10 @@ def write_profile(
     profile_yaml = package_dir / "profile.yaml"
     with profile_yaml.open("w", encoding="utf-8", newline="\n") as f:
         yaml.safe_dump(cfg, f, sort_keys=False, allow_unicode=True)
-    return profile_yaml
+    return profile_yaml                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_fit_summary_yaml(
+def write_fit_summary_yaml(                                        # [関数定義] write_fit_summary_yaml の処理実行ブロック
     package_dir: Path,
     pv: PvFitResult,
     batt: BatteryFitResult,
@@ -2593,10 +2593,10 @@ def write_fit_summary_yaml(
     }
     with out_path.open("w", encoding="utf-8", newline="\n") as f:
         yaml.safe_dump(payload, f, sort_keys=False, allow_unicode=True)
-    return out_path
+    return out_path                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def run_forward_sim(profile_yaml: Path) -> Dict[str, Path]:
+def run_forward_sim(profile_yaml: Path) -> Dict[str, Path]:        # [関数定義] run_forward_sim の処理実行ブロック
     subprocess.run(
         [
             os.fspath(Path(os.sys.executable)),
@@ -2608,7 +2608,7 @@ def run_forward_sim(profile_yaml: Path) -> Dict[str, Path]:
         check=True,
     )
     manifest = json.loads((OUT_PACKAGE / "outputs" / "prerace" / "latest_simulation_run.json").read_text(encoding="utf-8"))
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "summary_json": Path(ROOT / manifest["latest_manifest_json"]).resolve(),
         "out_csv": Path(ROOT / manifest["out_csv"]).resolve(),
         "detail_csv": Path(ROOT / manifest["detail_csv"]).resolve(),
@@ -2618,19 +2618,19 @@ def run_forward_sim(profile_yaml: Path) -> Dict[str, Path]:
     }
 
 
-def load_profile_yaml(profile_yaml: Path) -> dict:
+def load_profile_yaml(profile_yaml: Path) -> dict:                 # [関数定義] load_profile_yaml の処理実行ブロック
     with profile_yaml.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+        return yaml.safe_load(f) or {}                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def numerical_dpower_dv(base_model: SolarCarModel, mot: MotionFitResult, slope_pct: float, headwind_ms: float, solar_power_w: float, v_kmh: float) -> float:
+def numerical_dpower_dv(base_model: SolarCarModel, mot: MotionFitResult, slope_pct: float, headwind_ms: float, solar_power_w: float, v_kmh: float) -> float:  # [関数定義] numerical_dpower_dv の処理実行ブロック
     dv = 1.0
     p_hi = motion_power_prediction(v_kmh + dv, slope_pct, headwind_ms, solar_power_w, base_model, mot.cda, mot.crr, mot.p_aux_w, mot.grade_scale, mot.drive_eff_scale)
     p_lo = motion_power_prediction(max(0.0, v_kmh - dv), slope_pct, headwind_ms, solar_power_w, base_model, mot.cda, mot.crr, mot.p_aux_w, mot.grade_scale, mot.drive_eff_scale)
-    return (p_hi - p_lo) / max(2.0 * dv / 3.6, 1.0e-6)
+    return (p_hi - p_lo) / max(2.0 * dv / 3.6, 1.0e-6)             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def shape_lower_plan(nominal_kmh: Iterable[float], dt_sec: float, start_kmh: float, accel_limit_kmhps: float, decel_limit_kmhps: float, deadband_kmh: float) -> List[float]:
+def shape_lower_plan(nominal_kmh: Iterable[float], dt_sec: float, start_kmh: float, accel_limit_kmhps: float, decel_limit_kmhps: float, deadband_kmh: float) -> List[float]:  # [関数定義] shape_lower_plan の処理実行ブロック
     out = []
     prev = float(start_kmh)
     for raw in nominal_kmh:
@@ -2643,10 +2643,10 @@ def shape_lower_plan(nominal_kmh: Iterable[float], dt_sec: float, start_kmh: flo
             target = prev
         out.append(target)
         prev = target
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def generate_plan_products(profile_yaml: Path, route_profile: pd.DataFrame, weather_10min: pd.DataFrame, mot: MotionFitResult, sigma_power_w: float, sim_outputs: Dict[str, Path]) -> Dict[str, Path]:
+def generate_plan_products(profile_yaml: Path, route_profile: pd.DataFrame, weather_10min: pd.DataFrame, mot: MotionFitResult, sigma_power_w: float, sim_outputs: Dict[str, Path]) -> Dict[str, Path]:  # [関数定義] generate_plan_products の処理実行ブロック
     cfg = load_profile_yaml(profile_yaml)
     plan_csv = sim_outputs["plan_csv"]
     if not plan_csv.exists():
@@ -2742,14 +2742,14 @@ def generate_plan_products(profile_yaml: Path, route_profile: pd.DataFrame, weat
     plt.savefig(upper_plot, dpi=180)
     plt.close()
 
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "upper_three_csv": upper_three_csv,
         "lower_three_csv": lower_csv,
         "upper_plot": upper_plot,
     }
 
 
-def plot_validation(replay_df: pd.DataFrame, out_dir: Path) -> Dict[str, Path]:
+def plot_validation(replay_df: pd.DataFrame, out_dir: Path) -> Dict[str, Path]:  # [関数定義] plot_validation の処理実行ブロック
     ensure_dir(out_dir)
     plots = {}
     for name, y_obs, y_pred, ylabel in [
@@ -2784,10 +2784,10 @@ def plot_validation(replay_df: pd.DataFrame, out_dir: Path) -> Dict[str, Path]:
     plt.savefig(soc_plot, dpi=180)
     plt.close()
     plots["soc_pred"] = soc_plot
-    return plots
+    return plots                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_placeholder_plan_outputs(package_dir: Path) -> Dict[str, Path]:
+def write_placeholder_plan_outputs(package_dir: Path) -> Dict[str, Path]:  # [関数定義] write_placeholder_plan_outputs の処理実行ブロック
     out_dir = package_dir / "outputs" / "plans"
     ensure_dir(out_dir)
     upper_csv = out_dir / f"{PACKAGE_NAME}_upper_three_plans.csv"
@@ -2802,14 +2802,14 @@ def write_placeholder_plan_outputs(package_dir: Path) -> Dict[str, Path]:
     fig.tight_layout()
     fig.savefig(plot_path, dpi=160)
     plt.close(fig)
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "upper_three_csv": upper_csv,
         "lower_three_csv": lower_csv,
         "upper_plot": plot_path,
     }
 
 
-def write_report_markdown(
+def write_report_markdown(                                         # [関数定義] write_report_markdown の処理実行ブロック
     package_dir: Path,
     pv: PvFitResult,
     batt: BatteryFitResult,
@@ -2906,10 +2906,10 @@ def write_report_markdown(
 - `{plan_outputs['upper_plot']}`
 """
     md_path.write_text(text, encoding="utf-8", newline="\n")
-    return md_path
+    return md_path                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_report_tex(
+def write_report_tex(                                              # [関数定義] write_report_tex の処理実行ブロック
     package_dir: Path,
     pv: PvFitResult,
     batt: BatteryFitResult,
@@ -3266,10 +3266,10 @@ MPPT 側へ {1.0 - MAP_SHAPE_PANEL_MPPT_PANEL_SHARE:.2f} の比率で配分し�
 \\end{{document}}
 """
     tex_path.write_text(textwrap.dedent(tex).strip() + "\n", encoding="utf-8", newline="\n")
-    return tex_path
+    return tex_path                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def compile_tex(tex_path: Path) -> Path:
+def compile_tex(tex_path: Path) -> Path:                           # [関数定義] compile_tex の処理実行ブロック
     pdf_path = tex_path.with_suffix(".pdf")
     for _ in range(2):
         res = subprocess.run(
@@ -3283,10 +3283,10 @@ def compile_tex(tex_path: Path) -> Path:
             raise subprocess.CalledProcessError(res.returncode, res.args)
     if not pdf_path.exists():
         raise FileNotFoundError(pdf_path)
-    return pdf_path
+    return pdf_path                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_package_readme(package_dir: Path, pv: PvFitResult, batt: BatteryFitResult, mot: MotionFitResult) -> Path:
+def write_package_readme(package_dir: Path, pv: PvFitResult, batt: BatteryFitResult, mot: MotionFitResult) -> Path:  # [関数定義] write_package_readme の処理実行ブロック
     readme = package_dir / "README.md"
     text = f"""# {PACKAGE_NAME}
 
@@ -3320,10 +3320,10 @@ This package duplicates `bwsc2025_public` and replaces it with a log-fitted BWSC
 ```
 """
     readme.write_text(text, encoding="utf-8", newline="\n")
-    return readme
+    return readme                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def main() -> None:
+def main() -> None:                                                # [関数定義] main の処理実行ブロック
     global SRC_PACKAGE_NAME, PACKAGE_NAME, SRC_PACKAGE, OUT_PACKAGE, REPORT_DATE
     ap = argparse.ArgumentParser()
     ap.add_argument("--package-name", default=DEFAULT_PACKAGE_NAME)

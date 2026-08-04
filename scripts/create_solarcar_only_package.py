@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import yaml
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -126,7 +126,7 @@ REMOVE_PATTERNS = [
 ]
 
 
-def copy_path(src: Path, dst: Path, *, ignore=None) -> None:
+def copy_path(src: Path, dst: Path, *, ignore=None) -> None:       # [関数定義] copy_path の処理実行ブロック
     if src.is_dir():
         shutil.copytree(
             src,
@@ -144,20 +144,20 @@ def copy_path(src: Path, dst: Path, *, ignore=None) -> None:
         shutil.copy(src, dst)
 
 
-def _newest_completed_directory(root: Path, marker_name: str) -> Path | None:
+def _newest_completed_directory(root: Path, marker_name: str) -> Path | None:  # [関数定義] _newest_completed_directory の処理実行ブロック
     if not root.is_dir():
-        return None
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
     completed = [
         path
         for path in root.iterdir()
         if path.is_dir() and (path / marker_name).is_file()
     ]
     if not completed:
-        return None
-    return max(completed, key=lambda path: (path / marker_name).stat().st_mtime_ns)
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return max(completed, key=lambda path: (path / marker_name).stat().st_mtime_ns)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def current_fitted_copy_ignore(package_root: Path):
+def current_fitted_copy_ignore(package_root: Path):                # [関数定義] current_fitted_copy_ignore の処理実行ブロック
     """Avoid copying superseded multi-GB histories into the release staging tree."""
     package_root = package_root.resolve()
     outputs_root = package_root / "outputs"
@@ -169,7 +169,7 @@ def current_fitted_copy_ignore(package_root: Path):
         "self_learning_upper_planner_summary.json",
     )
 
-    def _ignore(directory: str, names: list[str]) -> set[str]:
+    def _ignore(directory: str, names: list[str]) -> set[str]:     # [関数定義] _ignore の処理実行ブロック
         current = Path(directory).resolve()
         ignored: set[str] = set()
         if current == runs_root.resolve() and keep_run is not None:
@@ -189,16 +189,16 @@ def current_fitted_copy_ignore(package_root: Path):
                     or (candidate / "PIPELINE_COMPLETE").is_file()
                 ):
                     ignored.add(name)
-        return ignored
+        return ignored                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    return _ignore
+    return _ignore                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def copy_lightweight_fullsim_evidence(src: Path, dst: Path) -> list[str]:
+def copy_lightweight_fullsim_evidence(src: Path, dst: Path) -> list[str]:  # [関数定義] copy_lightweight_fullsim_evidence の処理実行ブロック
     """Retain exact-run evidence without copying multi-GB 1 Hz detail traces."""
     source_root = src / "outputs" / "gpu_checkpoint_validation"
     if not source_root.is_dir():
-        return []
+        return []                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     copied: list[str] = []
     for manifest in sorted(source_root.rglob("latest_simulation_run.json")):
         for source in sorted(path for path in manifest.parent.iterdir() if path.is_file()):
@@ -210,10 +210,10 @@ def copy_lightweight_fullsim_evidence(src: Path, dst: Path) -> list[str]:
                 f"project_packages/{CURRENT_FITTED_PACKAGE}/"
                 f"{source.relative_to(src).as_posix()}"
             )
-    return copied
+    return copied                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def copy_current_fitted_package(src: Path, dst: Path) -> list[str]:
+def copy_current_fitted_package(src: Path, dst: Path) -> list[str]:  # [関数定義] copy_current_fitted_package の処理実行ブロック
     shutil.copytree(
         src,
         dst,
@@ -221,10 +221,10 @@ def copy_current_fitted_package(src: Path, dst: Path) -> list[str]:
         ignore=current_fitted_copy_ignore(src),
         copy_function=shutil.copy,
     )
-    return copy_lightweight_fullsim_evidence(src, dst)
+    return copy_lightweight_fullsim_evidence(src, dst)             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def safe_rmtree(path: Path, *, allowed_root: Path, allow_root: bool = False) -> None:
+def safe_rmtree(path: Path, *, allowed_root: Path, allow_root: bool = False) -> None:  # [関数定義] safe_rmtree の処理実行ブロック
     target = path.resolve()
     root = allowed_root.resolve()
     if target == root:
@@ -233,14 +233,14 @@ def safe_rmtree(path: Path, *, allowed_root: Path, allow_root: bool = False) -> 
     elif root not in target.parents:
         raise ValueError(f"refusing to remove path outside export root: {target}")
 
-    def _onerror(func, target, exc_info):
+    def _onerror(func, target, exc_info):                          # [関数定義] _onerror の処理実行ブロック
         os.chmod(target, 0o666)
         func(target)
 
     shutil.rmtree(target, onerror=_onerror)
 
 
-def prepare_output_dir(output_dir: Path, *, source_root: Path, force: bool) -> None:
+def prepare_output_dir(output_dir: Path, *, source_root: Path, force: bool) -> None:  # [関数定義] prepare_output_dir の処理実行ブロック
     if output_dir.exists():
         if not force:
             raise FileExistsError(f"{output_dir} already exists. Use --force to replace it.")
@@ -254,18 +254,18 @@ def prepare_output_dir(output_dir: Path, *, source_root: Path, force: bool) -> N
     output_dir.mkdir(parents=True, exist_ok=True)
 
 
-def rel(path: Path, root: Path) -> str:
-    return path.relative_to(root).as_posix()
+def rel(path: Path, root: Path) -> str:                            # [関数定義] rel の処理実行ブロック
+    return path.relative_to(root).as_posix()                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def should_remove(path: Path, root: Path) -> bool:
+def should_remove(path: Path, root: Path) -> bool:                 # [関数定義] should_remove の処理実行ブロック
     relpath = rel(path, root)
     if relpath in {p.replace("\\", "/") for p in REMOVE_FILES}:
-        return True
-    return any(pattern.search(relpath) for pattern in REMOVE_PATTERNS)
+        return True                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return any(pattern.search(relpath) for pattern in REMOVE_PATTERNS)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def prune_paths(dst_root: Path) -> list[str]:
+def prune_paths(dst_root: Path) -> list[str]:                      # [関数定義] prune_paths の処理実行ブロック
     removed: list[str] = []
 
     cache_dirs = [
@@ -305,22 +305,22 @@ def prune_paths(dst_root: Path) -> list[str]:
         except StopIteration:
             safe_rmtree(path, allowed_root=dst_root)
 
-    return sorted(set(removed))
+    return sorted(set(removed))                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def prune_current_fitted_history(dst_root: Path) -> list[str]:
+def prune_current_fitted_history(dst_root: Path) -> list[str]:     # [関数定義] prune_current_fitted_history の処理実行ブロック
     """Keep the newest completed immutable fit while preserving canonical assets."""
     package = dst_root / "project_packages" / CURRENT_FITTED_PACKAGE
     runs_root = package / "outputs" / "identification" / "runs"
     if not runs_root.is_dir():
-        return []
+        return []                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     completed = [
         path
         for path in runs_root.iterdir()
         if path.is_dir() and (path / "IDENTIFICATION_PIPELINE_COMPLETE").is_file()
     ]
     if not completed:
-        return []
+        return []                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     keep = max(
         completed,
         key=lambda path: (path / "IDENTIFICATION_PIPELINE_COMPLETE").stat().st_mtime_ns,
@@ -342,13 +342,13 @@ def prune_current_fitted_history(dst_root: Path) -> list[str]:
             if path.is_dir():
                 safe_rmtree(path, allowed_root=dst_root)
                 removed.append(rel(path, dst_root))
-    return removed
+    return removed                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def prune_self_learning_history(dst_root: Path) -> list[str]:
+def prune_self_learning_history(dst_root: Path) -> list[str]:      # [関数定義] prune_self_learning_history の処理実行ブロック
     root = dst_root / "project_packages" / CURRENT_FITTED_PACKAGE / "outputs" / "self_learning_upper"
     if not root.exists():
-        return []
+        return []                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     removed: list[str] = []
     completed = sorted(
         path
@@ -365,19 +365,19 @@ def prune_self_learning_history(dst_root: Path) -> list[str]:
             continue
         safe_rmtree(path, allowed_root=dst_root)
         removed.append(rel(path, dst_root))
-    return removed
+    return removed                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _resolve_source_document(dst_root: Path, raw: str) -> Path | None:
+def _resolve_source_document(dst_root: Path, raw: str) -> Path | None:  # [関数定義] _resolve_source_document の処理実行ブロック
     candidate = Path(raw)
     candidates = [candidate] if candidate.is_absolute() else [dst_root / candidate, ROOT / candidate]
     for path in candidates:
         if path.is_file():
-            return path.resolve()
-    return None
+            return path.resolve()                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return None                                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _bundle_yaml_source_fields(
+def _bundle_yaml_source_fields(                                    # [関数定義] _bundle_yaml_source_fields の処理実行ブロック
     payload: object,
     *,
     dst_root: Path,
@@ -432,10 +432,10 @@ def _bundle_yaml_source_fields(
                         key_path=key_path + (str(index),),
                     )
                 )
-    return bundled
+    return bundled                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def bundle_current_fitted_evidence(dst_root: Path) -> list[str]:
+def bundle_current_fitted_evidence(dst_root: Path) -> list[str]:   # [関数定義] bundle_current_fitted_evidence の処理実行ブロック
     package_root = dst_root / "project_packages" / CURRENT_FITTED_PACKAGE
     bundle_dir = package_root / "data" / "identification" / "evidence" / "source_documents"
     bundled: list[str] = []
@@ -459,10 +459,10 @@ def bundle_current_fitted_evidence(dst_root: Path) -> list[str]:
             encoding="utf-8",
             newline="\n",
         )
-    return sorted(set(bundled))
+    return sorted(set(bundled))                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _declared_source_values(payload: object, key_path: tuple[str, ...] = ()):
+def _declared_source_values(payload: object, key_path: tuple[str, ...] = ()):  # [関数定義] _declared_source_values の処理実行ブロック
     if isinstance(payload, dict):
         for key, value in payload.items():
             path = key_path + (str(key),)
@@ -479,7 +479,7 @@ def _declared_source_values(payload: object, key_path: tuple[str, ...] = ()):
                 yield from _declared_source_values(value, path)
 
 
-def validate_current_fitted_release(
+def validate_current_fitted_release(                               # [関数定義] validate_current_fitted_release の処理実行ブロック
     dst_root: Path,
     *,
     require_operational_acceptance: bool,
@@ -584,7 +584,7 @@ def validate_current_fitted_release(
                 "UNDECLARED",
             )
         )
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "fitted_package": CURRENT_FITTED_PACKAGE,
         "selected_identification_run": selected_run.name if selected_run else "",
         "operational_acceptance_required": bool(require_operational_acceptance),
@@ -600,7 +600,7 @@ def validate_current_fitted_release(
     }
 
 
-def repair_unreadable_files(dst_root: Path) -> list[str]:
+def repair_unreadable_files(dst_root: Path) -> list[str]:          # [関数定義] repair_unreadable_files の処理実行ブロック
     """Repair OneDrive placeholders accidentally propagated by older exports."""
     repaired: list[str] = []
     failures: list[str] = []
@@ -641,10 +641,10 @@ def repair_unreadable_files(dst_root: Path) -> list[str]:
     if failures:
         joined = "\n  - ".join(failures)
         raise RuntimeError(f"Export contains unreadable files that could not be repaired:\n  - {joined}")
-    return repaired
+    return repaired                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def patch_setup_py(dst_root: Path) -> None:
+def patch_setup_py(dst_root: Path) -> None:                        # [関数定義] patch_setup_py の処理実行ブロック
     path = dst_root / "setup.py"
     text = path.read_text(encoding="utf-8")
     filtered_lines = []
@@ -671,7 +671,7 @@ def patch_setup_py(dst_root: Path) -> None:
     package_xml.write_text(xml_text, encoding="utf-8")
 
 
-def patch_mpc_node(dst_root: Path) -> None:
+def patch_mpc_node(dst_root: Path) -> None:                        # [関数定義] patch_mpc_node の処理実行ブロック
     path = dst_root / "mpc_solarcar" / "mpc_node.py"
     text = path.read_text(encoding="utf-8")
 
@@ -689,7 +689,7 @@ def patch_mpc_node(dst_root: Path) -> None:
         )
 
     marker = "    # -------------------- passo mode --------------------\n"
-    main_marker = "\ndef main():\n"
+    main_marker = "\ndef main():\n"                                # [メイン関数] エントリーポイント関数
     if marker in text and main_marker in text:
         start = text.index(marker)
         end = text.index(main_marker)
@@ -698,7 +698,7 @@ def patch_mpc_node(dst_root: Path) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def patch_release_builder(dst_root: Path) -> None:
+def patch_release_builder(dst_root: Path) -> None:                 # [関数定義] patch_release_builder の処理実行ブロック
     """Make the copied release builder describe the fitted package it contains."""
     path = dst_root / "scripts" / "create_solarcar_only_package.py"
     if not path.is_file():
@@ -727,7 +727,7 @@ def patch_release_builder(dst_root: Path) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def write_readme(dst_root: Path, removed: list[str], release_status: dict) -> None:
+def write_readme(dst_root: Path, removed: list[str], release_status: dict) -> None:  # [関数定義] write_readme の処理実行ブロック
     pkg_root = dst_root / "project_packages" / CURRENT_FITTED_PACKAGE
     profile_names = [path.name for path in sorted(pkg_root.glob("profile*.yaml"))]
     report_paths = [path.relative_to(dst_root).as_posix() for path in sorted((pkg_root / "outputs" / "reports").glob("*.pdf"))]
@@ -786,7 +786,7 @@ def write_readme(dst_root: Path, removed: list[str], release_status: dict) -> No
     (dst_root / "README_SOLAR_ONLY.md").write_text(payload, encoding="utf-8")
 
 
-def write_manifest(
+def write_manifest(                                                # [関数定義] write_manifest の処理実行ブロック
     dst_root: Path,
     removed: list[str],
     copied: list[str],
@@ -812,7 +812,7 @@ def write_manifest(
     )
 
 
-def refresh_quality_artifacts(dst_root: Path) -> None:
+def refresh_quality_artifacts(dst_root: Path) -> None:             # [関数定義] refresh_quality_artifacts の処理実行ブロック
     commands = (
         [sys.executable, "scripts/generate_package_inventory.py"],
         [sys.executable, "scripts/audit_solar_package.py"],
@@ -821,7 +821,7 @@ def refresh_quality_artifacts(dst_root: Path) -> None:
         subprocess.run(command, cwd=dst_root, check=True)
 
 
-def finalize_clean_copy(
+def finalize_clean_copy(                                           # [関数定義] finalize_clean_copy の処理実行ブロック
     output_dir: Path,
     *,
     copied: list[str],
@@ -842,10 +842,10 @@ def finalize_clean_copy(
     write_manifest(output_dir, removed, copied, release_status)
     refresh_quality_artifacts(output_dir)
     write_manifest(output_dir, removed, copied, release_status)
-    return output_dir
+    return output_dir                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def build_clean_copy(
+def build_clean_copy(                                              # [関数定義] build_clean_copy の処理実行ブロック
     output_dir: Path,
     force: bool,
     *,
@@ -885,7 +885,7 @@ def build_clean_copy(
     removed = prune_paths(output_dir)
     removed.extend(prune_current_fitted_history(output_dir))
     removed.extend(prune_self_learning_history(output_dir))
-    return finalize_clean_copy(
+    return finalize_clean_copy(                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
         output_dir,
         copied=copied,
         removed=removed,
@@ -893,7 +893,7 @@ def build_clean_copy(
     )
 
 
-def finalize_existing_copy(
+def finalize_existing_copy(                                        # [関数定義] finalize_existing_copy の処理実行ブロック
     output_dir: Path,
     *,
     require_operational_acceptance: bool = False,
@@ -919,7 +919,7 @@ def finalize_existing_copy(
     removed = prune_paths(output_dir)
     removed.extend(prune_current_fitted_history(output_dir))
     removed.extend(prune_self_learning_history(output_dir))
-    return finalize_clean_copy(
+    return finalize_clean_copy(                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
         output_dir,
         copied=copied,
         removed=removed,
@@ -927,29 +927,29 @@ def finalize_existing_copy(
     )
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:                            # [関数定義] parse_args の処理実行ブロック
     parser = argparse.ArgumentParser(description="Create a solar-car-only distribution copy.")
-    parser.add_argument("--output_dir", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument(
+    parser.add_argument("--output_dir", type=Path, default=DEFAULT_OUTPUT)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument(                                           # [CLI引数] コマンドライン実行引数の定義
         "--fitted-package",
         default=CURRENT_FITTED_PACKAGE,
         help="Project-package directory to include as the current fitted vehicle.",
     )
-    parser.add_argument(
+    parser.add_argument(                                           # [CLI引数] コマンドライン実行引数の定義
         "--require-operational-acceptance",
         action="store_true",
         help="Fail unless the selected fitted package passes both operational acceptance gates.",
     )
-    parser.add_argument(
+    parser.add_argument(                                           # [CLI引数] コマンドライン実行引数の定義
         "--finalize-existing",
         action="store_true",
         help="Resume pruning, evidence checks, patching, and audits in an existing output directory.",
     )
-    parser.add_argument("--force", action="store_true", help="Replace the output directory if it already exists.")
-    return parser.parse_args()
+    parser.add_argument("--force", action="store_true", help="Replace the output directory if it already exists.")  # [CLI引数] コマンドライン実行引数の定義
+    return parser.parse_args()                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def main() -> None:
+def main() -> None:                                                # [関数定義] main の処理実行ブロック
     global CURRENT_FITTED_PACKAGE, PROJECT_PACKAGES
     args = parse_args()
     CURRENT_FITTED_PACKAGE = str(args.fitted_package)

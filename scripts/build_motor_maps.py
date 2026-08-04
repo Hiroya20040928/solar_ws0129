@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import argparse
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
 
 
-def extract_rows(path, sheet):
+def extract_rows(path, sheet):                                     # [関数定義] extract_rows の処理実行ブロック
     df = pd.read_excel(path, sheet_name=sheet, header=None)
     speed_row = 13
     rpm_row = 17
@@ -27,19 +27,19 @@ def extract_rows(path, sheet):
         if eff <= 0.0:
             continue
         rows.append((speed, rpm, torque, eff))
-    return rows
+    return rows                                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def build_map(rows_low, rows_high, v_grid_kmh, tau_grid):
+def build_map(rows_low, rows_high, v_grid_kmh, tau_grid):          # [関数定義] build_map の処理実行ブロック
     # interpolate efficiency vs torque for low/high
-    def interp_curve(rows, tau_grid):
+    def interp_curve(rows, tau_grid):                              # [関数定義] interp_curve の処理実行ブロック
         tau = np.array([r[2] for r in rows], dtype=float)
         eff = np.array([r[3] for r in rows], dtype=float) / 100.0
         # ensure sorted
         idx = np.argsort(tau)
         tau = tau[idx]
         eff = eff[idx]
-        return np.interp(tau_grid, tau, eff, left=eff[0], right=eff[-1])
+        return np.interp(tau_grid, tau, eff, left=eff[0], right=eff[-1])  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     speed_low = np.mean([r[0] for r in rows_low])
     speed_high = np.mean([r[0] for r in rows_high])
@@ -55,10 +55,10 @@ def build_map(rows_low, rows_high, v_grid_kmh, tau_grid):
         else:
             w = (v - speed_low) / (speed_high - speed_low)
         Z[i, :] = (1 - w) * eff_low + w * eff_high
-    return Z
+    return Z                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     ap = argparse.ArgumentParser()
     ap.add_argument('--excel', required=True)
     ap.add_argument('--out_dir', required=True)
@@ -96,5 +96,5 @@ def main():
     print('generated maps in', out_dir)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
     main()

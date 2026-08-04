@@ -2,15 +2,15 @@
 from __future__ import annotations
 
 import argparse
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import os
 import sys
 from pathlib import Path
 from typing import Iterable
 
-import numpy as np
-import pandas as pd
-import yaml
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
 from scipy.optimize import least_squares
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,20 +27,20 @@ from scripts.run_vehicle_identification import (
 )
 
 
-def resolve(base: Path, raw: str) -> Path:
+def resolve(base: Path, raw: str) -> Path:                         # [関数定義] resolve の処理実行ブロック
     path = Path(raw)
     if path.is_absolute():
-        return path
+        return path                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
     root_candidate = (ROOT / path).resolve()
     if root_candidate.exists() or (path.parts and path.parts[0] == "project_packages"):
-        return root_candidate
-    return (base / path).resolve()
+        return root_candidate                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return (base / path).resolve()                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def summarize_channels(values: Iterable[float], max_spread: float) -> dict[str, float | bool]:
+def summarize_channels(values: Iterable[float], max_spread: float) -> dict[str, float | bool]:  # [関数定義] summarize_channels の処理実行ブロック
     finite = np.asarray([float(value) for value in values if np.isfinite(value)], dtype=float)
     if finite.size == 0:
-        return {
+        return {                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "evidence_interval_min": math.nan,
             "evidence_interval_max": math.nan,
             "unweighted_central_estimate": math.nan,
@@ -49,7 +49,7 @@ def summarize_channels(values: Iterable[float], max_spread: float) -> dict[str, 
         }
     lo = float(np.min(finite))
     hi = float(np.max(finite))
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "evidence_interval_min": lo,
         "evidence_interval_max": hi,
         "unweighted_central_estimate": float(np.mean(finite)),
@@ -58,14 +58,14 @@ def summarize_channels(values: Iterable[float], max_spread: float) -> dict[str, 
     }
 
 
-def random_effects_fusion(values: Iterable[float], sigmas: Iterable[float]) -> dict[str, float | int]:
+def random_effects_fusion(values: Iterable[float], sigmas: Iterable[float]) -> dict[str, float | int]:  # [関数定義] random_effects_fusion の処理実行ブロック
     pairs = [
         (float(value), max(float(sigma), 1.0e-6))
         for value, sigma in zip(values, sigmas)
         if np.isfinite(value) and np.isfinite(sigma) and float(sigma) > 0.0
     ]
     if not pairs:
-        return {
+        return {                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "fusion_channel_count": 0,
             "random_effects_soc": math.nan,
             "random_effects_standard_error": math.nan,
@@ -87,7 +87,7 @@ def random_effects_fusion(values: Iterable[float], sigmas: Iterable[float]) -> d
     fused_soc = float(np.sum(random_weights * estimates) / np.sum(random_weights))
     standard_error = float(math.sqrt(1.0 / np.sum(random_weights)))
     i2_pct = float(100.0 * max(0.0, (q_value - degrees_freedom) / q_value)) if q_value > 0.0 else 0.0
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "fusion_channel_count": int(len(estimates)),
         "random_effects_soc": fused_soc,
         "random_effects_standard_error": standard_error,
@@ -99,7 +99,7 @@ def random_effects_fusion(values: Iterable[float], sigmas: Iterable[float]) -> d
     }
 
 
-def terminal_loaded_state_soc(
+def terminal_loaded_state_soc(                                     # [関数定義] terminal_loaded_state_soc の処理実行ブロック
     frame: pd.DataFrame,
     model,
     ocv_df: pd.DataFrame,
@@ -134,23 +134,23 @@ def terminal_loaded_state_soc(
         "current_a": float(pd.to_numeric(window["battery_current_a"], errors="coerce").median()),
         "temperature_c": float(pd.to_numeric(window["Tamb_archive_C"], errors="coerce").median()),
     }
-    return value, observation
+    return value, observation                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _soc_from_ocv(ocv_v: float, ocv_df: pd.DataFrame) -> float:
+def _soc_from_ocv(ocv_v: float, ocv_df: pd.DataFrame) -> float:    # [関数定義] _soc_from_ocv の処理実行ブロック
     """Invert the monotone pack OCV map without extrapolating beyond its support."""
     soc = pd.to_numeric(ocv_df["soc"], errors="coerce").to_numpy(dtype=float)
     ocv = pd.to_numeric(ocv_df["ocv_v"], errors="coerce").to_numpy(dtype=float)
     valid = np.isfinite(soc) & np.isfinite(ocv)
     if np.count_nonzero(valid) < 2:
-        return math.nan
+        return math.nan                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
     order = np.argsort(ocv[valid])
     ocv_sorted = ocv[valid][order]
     soc_sorted = soc[valid][order]
-    return float(np.interp(float(ocv_v), ocv_sorted, soc_sorted))
+    return float(np.interp(float(ocv_v), ocv_sorted, soc_sorted))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _fit_terminal_thevenin_arrays(
+def _fit_terminal_thevenin_arrays(                                 # [関数定義] _fit_terminal_thevenin_arrays の処理実行ブロック
     time_h: np.ndarray,
     current_a: np.ndarray,
     voltage_v: np.ndarray,
@@ -172,10 +172,10 @@ def _fit_terminal_thevenin_arrays(
         f_scale=max(mad_sigma, 0.05),
         max_nfev=3000,
     )
-    return np.asarray(fit.x, dtype=float), design @ fit.x - voltage_v
+    return np.asarray(fit.x, dtype=float), design @ fit.x - voltage_v  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def fit_terminal_thevenin_window(
+def fit_terminal_thevenin_window(                                  # [関数定義] fit_terminal_thevenin_window の処理実行ブロック
     frame: pd.DataFrame,
     ocv_df: pd.DataFrame,
     *,
@@ -269,7 +269,7 @@ def fit_terminal_thevenin_window(
         int(bootstrap_repetitions) == 0
         or bootstrap_values.size >= max(50, int(0.8 * bootstrap_repetitions))
     )
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "window_km": float(window_km),
         "sample_count": int(len(work)),
         "time_start_utc": str(work["time_utc"].iloc[0]),
@@ -306,7 +306,7 @@ def fit_terminal_thevenin_window(
     }
 
 
-def day_net_energy_soc(
+def day_net_energy_soc(                                            # [関数定義] day_net_energy_soc の処理実行ブロック
     frame: pd.DataFrame,
     model,
     ocv_df: pd.DataFrame,
@@ -315,7 +315,7 @@ def day_net_energy_soc(
     day_values = pd.to_numeric(frame["day"], errors="coerce")
     work = frame.loc[day_values == int(day)].reset_index(drop=True)
     if work.empty:
-        return math.nan, math.nan, math.nan
+        return math.nan, math.nan, math.nan                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
     start_soc = robust_segment_anchor_soc(
         work,
         0,
@@ -335,34 +335,34 @@ def day_net_energy_soc(
         float(model.p.soc_min),
         float(model.p.soc_max),
     ))
-    return start_soc, signed_net_wh, end_soc
+    return start_soc, signed_net_wh, end_soc                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def main() -> None:
+def main() -> None:                                                # [関数定義] main の処理実行ブロック
     parser = argparse.ArgumentParser(description="Cross-check independent terminal-SoC evidence channels.")
-    parser.add_argument("--profile", required=True)
-    parser.add_argument("--observed-log")
-    parser.add_argument(
+    parser.add_argument("--profile", required=True)                # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--observed-log")                          # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument(                                           # [CLI引数] コマンドライン実行引数の定義
         "--ocv-map",
         help="Explicit grounded OCV map; defaults to paths.ocv_soc_map from the profile.",
     )
-    parser.add_argument("--terminal-km", type=float, default=2831.0)
-    parser.add_argument("--team-remaining-energy-wh", type=float, default=1335.0)
-    parser.add_argument("--team-nominal-energy-wh", type=float, default=3011.0)
-    parser.add_argument("--voltage-soc-sigma", type=float, default=0.08)
-    parser.add_argument("--team-remaining-energy-sigma-wh", type=float, default=200.0)
-    parser.add_argument("--team-nominal-energy-sigma-wh", type=float, default=100.0)
-    parser.add_argument("--day-integrated-soc-sigma", type=float, default=0.10)
-    parser.add_argument("--day", type=int, default=6)
-    parser.add_argument("--max-spread", type=float, default=0.05)
-    parser.add_argument("--pulse-window-km", type=float, default=3.0)
-    parser.add_argument("--pulse-sensitivity-windows-km", default="1,2,3,5,10")
-    parser.add_argument("--bootstrap-repetitions", type=int, default=400)
-    parser.add_argument("--bootstrap-block-rows", type=int, default=6)
-    parser.add_argument("--ocv-map-systematic-sigma-v", type=float, default=0.15)
-    parser.add_argument("--loaded-voltage-sigma-v", type=float, default=0.25)
-    parser.add_argument("--anchor-output")
-    parser.add_argument("--output")
+    parser.add_argument("--terminal-km", type=float, default=2831.0)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--team-remaining-energy-wh", type=float, default=1335.0)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--team-nominal-energy-wh", type=float, default=3011.0)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--voltage-soc-sigma", type=float, default=0.08)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--team-remaining-energy-sigma-wh", type=float, default=200.0)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--team-nominal-energy-sigma-wh", type=float, default=100.0)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--day-integrated-soc-sigma", type=float, default=0.10)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--day", type=int, default=6)              # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--max-spread", type=float, default=0.05)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--pulse-window-km", type=float, default=3.0)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--pulse-sensitivity-windows-km", default="1,2,3,5,10")  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--bootstrap-repetitions", type=int, default=400)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--bootstrap-block-rows", type=int, default=6)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--ocv-map-systematic-sigma-v", type=float, default=0.15)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--loaded-voltage-sigma-v", type=float, default=0.25)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--anchor-output")                         # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--output")                                # [CLI引数] コマンドライン実行引数の定義
     args = parser.parse_args()
 
     profile_path = resolve(ROOT, args.profile)

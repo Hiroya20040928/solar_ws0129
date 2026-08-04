@@ -5,7 +5,7 @@ from typing import Dict, Optional
 
 
 @dataclass
-class UpperCostConfig:
+class UpperCostConfig:                                             # [クラス定義] UpperCostConfig オブジェクトの設計
     w_wait: float = 1.0
     w_travel_time: float = 1.0
     w_terminal_soc_min: float = 30.0
@@ -40,17 +40,17 @@ class UpperCostConfig:
     reserve_soc_max_extra: float = 0.0
     constraint_penalty: float = 1.0e4
 
-    def to_dict(self) -> Dict[str, float]:
-        return asdict(self)
+    def to_dict(self) -> Dict[str, float]:                         # [関数定義] to_dict の処理実行ブロック
+        return asdict(self)                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _cfg_value(cfg: Optional[dict], key: str, default):
+def _cfg_value(cfg: Optional[dict], key: str, default):            # [関数定義] _cfg_value の処理実行ブロック
     if isinstance(cfg, dict) and key in cfg:
-        return cfg[key]
-    return default
+        return cfg[key]                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return default                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def load_upper_cost_config(
+def load_upper_cost_config(                                        # [関数定義] load_upper_cost_config の処理実行ブロック
     mpc_cfg: Optional[dict],
     *,
     legacy: Optional[dict] = None,
@@ -61,14 +61,14 @@ def load_upper_cost_config(
     if isinstance(mpc_cfg, dict):
         nested = mpc_cfg.get("upper_cost", {}) or {}
 
-    def pick(name: str, default):
+    def pick(name: str, default):                                  # [関数定義] pick の処理実行ブロック
         if name in nested:
-            return nested[name]
+            return nested[name]                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if name in legacy:
-            return legacy[name]
-        return default
+            return legacy[name]                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return default                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    return UpperCostConfig(
+    return UpperCostConfig(                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
         w_wait=float(pick("w_wait", 1.0)),
         w_travel_time=float(pick("w_travel_time", 1.0)),
         w_terminal_soc_min=float(pick("w_terminal_soc_min", 30.0)),
@@ -105,15 +105,15 @@ def load_upper_cost_config(
     )
 
 
-def quad_penalty(x: float, cap: float = 1.0e3) -> float:
+def quad_penalty(x: float, cap: float = 1.0e3) -> float:           # [関数定義] quad_penalty の処理実行ブロック
     if x <= 0.0:
-        return 0.0
+        return 0.0                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if x > cap:
         x = cap
-    return x * x
+    return x * x                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def upper_stage_cost(
+def upper_stage_cost(                                              # [関数定義] upper_stage_cost の処理実行ブロック
     cfg: UpperCostConfig,
     *,
     dt_wait: float,
@@ -230,10 +230,10 @@ def upper_stage_cost(
     J += cfg.w_temp * quad_penalty(temp_min_c - Tb_next_c)
     J += c * quad_penalty(soc_min - z_next)
     J += c * quad_penalty(z_next - soc_max)
-    return J
+    return J                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def upper_terminal_cost(
+def upper_terminal_cost(                                           # [関数定義] upper_terminal_cost の処理実行ブロック
     cfg: UpperCostConfig,
     *,
     z_terminal: float,
@@ -247,12 +247,12 @@ def upper_terminal_cost(
     if cfg.w_progress_terminal_lag > 0.0:
         lag_err = max(0.0, float(progress_terminal_lag_km) - float(cfg.progress_lag_deadband_km))
         J += cfg.w_progress_terminal_lag * quad_penalty(lag_err)
-    return J
+    return J                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def active_upper_cost_terms(cfg: UpperCostConfig, threshold: float = 1.0e-6) -> Dict[str, float]:
+def active_upper_cost_terms(cfg: UpperCostConfig, threshold: float = 1.0e-6) -> Dict[str, float]:  # [関数定義] active_upper_cost_terms の処理実行ブロック
     out = {}
     for key, value in cfg.to_dict().items():
         if key.startswith("w_") and abs(float(value)) > threshold:
             out[key] = float(value)
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却

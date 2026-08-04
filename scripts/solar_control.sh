@@ -47,10 +47,10 @@ source_ros() {
 }
 
 is_running() {
-  [[ -f "${PID_FILE}" ]] || return 1
+  [[ -f "${PID_FILE}" ]] || return 1                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
   local pid
   pid="$(cat "${PID_FILE}")"
-  [[ -n "${pid}" ]] || return 1
+  [[ -n "${pid}" ]] || return 1                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
   ps -p "${pid}" -o pid= 2>/dev/null | grep -q .
 }
 
@@ -85,7 +85,7 @@ stop_launch() {
     if ! has_matching_processes; then
       rm -f "${RUN_DIR}"/solar_*.pid
       echo "stopped"
-      return 0
+      return 0                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
     fi
     sleep 0.5
   done
@@ -105,7 +105,7 @@ stop_launch() {
 build_pkg() {
   source_ros
   cd "${ROOT_DIR}"
-  colcon build --packages-select mpc_solarcar
+  colcon build --packages-select mpc_solarcar                      # [ビルドコマンド] ROS 2 パッケージのコンパイル実行
 }
 
 start_launch() {
@@ -113,7 +113,7 @@ start_launch() {
   cd "${ROOT_DIR}"
   if is_running; then
     echo "already running"
-    return 0
+    return 0                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
   fi
   : > "${LOG_FILE}"
   local root_q profile_q launch_cmd
@@ -128,7 +128,7 @@ start_launch() {
       echo "launch failed: ros2 launch exited immediately" >&2
       [[ -f "${LOG_FILE}" ]] && tail -n 80 "${LOG_FILE}" >&2 || true
       rm -f "${PID_FILE}"
-      return 1
+      return 1                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
     fi
     sleep 0.5
   done
@@ -140,34 +140,34 @@ status_launch() {
     local pid
     pid="$(cat "${PID_FILE}" 2>/dev/null || true)"
     echo "running pid=${pid} mode=${mode}"
-    return 0
+    return 0                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
   fi
   echo "stopped"
-  return 1
+  return 1                                                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
 }
 
 graph_launch() {
   source_ros
   cd "${ROOT_DIR}"
-  python3 "${ROOT_DIR}/scripts/export_rqt_graph.py" --output-base "${GRAPH_BASE}" --wait-sec 20 --mode "${mode}"
+  python3 "${ROOT_DIR}/scripts/export_rqt_graph.py" --output-base "${GRAPH_BASE}" --wait-sec 20 --mode "${mode}"  # [Python実行] Python スクリプトの起動
 }
 
 simulate_offline() {
   source_ros
   cd "${ROOT_DIR}"
-  python3 "${ROOT_DIR}/scripts/solar_sim.py" --profile_yaml "${profile}"
+  python3 "${ROOT_DIR}/scripts/solar_sim.py" --profile_yaml "${profile}"  # [Python実行] Python スクリプトの起動
 }
 
 fetch_weather() {
   source_ros
   cd "${ROOT_DIR}"
-  python3 "${ROOT_DIR}/scripts/fetch_weather_forecast.py" --profile_yaml "${profile}"
+  python3 "${ROOT_DIR}/scripts/fetch_weather_forecast.py" --profile_yaml "${profile}"  # [Python実行] Python スクリプトの起動
 }
 
 identify_pipeline() {
   source_ros
   cd "${ROOT_DIR}"
-  python3 "${ROOT_DIR}/scripts/run_identification_pipeline.py" --profile_yaml "${profile}"
+  python3 "${ROOT_DIR}/scripts/run_identification_pipeline.py" --profile_yaml "${profile}"  # [Python実行] Python スクリプトの起動
 }
 
 tail_log() {

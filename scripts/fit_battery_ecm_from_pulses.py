@@ -19,7 +19,7 @@ import hashlib
 import html
 import io
 import json
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,8 +29,8 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
 from scipy.optimize import minimize, minimize_scalar, nnls
 
 
@@ -78,12 +78,12 @@ INDEPENDENT_SOC_METHODS = {
 }
 
 
-class BatteryEvidenceError(ValueError):
+class BatteryEvidenceError(ValueError):                            # [クラス定義] BatteryEvidenceError オブジェクトの設計
     """Raised when data cannot support a physically identifiable map."""
 
 
 @dataclass(frozen=True)
-class FitLimits:
+class FitLimits:                                                   # [クラス定義] FitLimits オブジェクトの設計
     minimum_rest_sec: float = 1800.0
     maximum_rest_current_a: float = 0.25
     maximum_rest_voltage_slope_uv_per_s: float = 10.0
@@ -104,13 +104,13 @@ class FitLimits:
     enforce_r0_temperature_nonincreasing: bool = False
 
 
-def _required_columns(frame: pd.DataFrame, required: set[str], label: str) -> None:
+def _required_columns(frame: pd.DataFrame, required: set[str], label: str) -> None:  # [関数定義] _required_columns の処理実行ブロック
     missing = sorted(required.difference(frame.columns))
     if missing:
         raise BatteryEvidenceError(f"{label} is missing columns: {missing}")
 
 
-def _numeric(frame: pd.DataFrame, columns: Iterable[str], label: str) -> pd.DataFrame:
+def _numeric(frame: pd.DataFrame, columns: Iterable[str], label: str) -> pd.DataFrame:  # [関数定義] _numeric の処理実行ブロック
     out = frame.copy()
     for column in columns:
         out[column] = pd.to_numeric(out[column], errors="coerce")
@@ -118,10 +118,10 @@ def _numeric(frame: pd.DataFrame, columns: Iterable[str], label: str) -> pd.Data
     if bool(bad.any()):
         rows = (np.flatnonzero(bad.to_numpy()) + 2).tolist()[:12]
         raise BatteryEvidenceError(f"{label} has non-numeric required values at CSV rows {rows}")
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def load_rest_data(path: str | Path) -> pd.DataFrame:
+def load_rest_data(path: str | Path) -> pd.DataFrame:              # [関数定義] load_rest_data の処理実行ブロック
     frame = pd.read_csv(path)
     _required_columns(frame, REST_REQUIRED, "rest CSV")
     frame = _numeric(
@@ -135,10 +135,10 @@ def load_rest_data(path: str | Path) -> pd.DataFrame:
     )
     frame["split"] = frame["split"].astype(str).str.strip().str.lower()
     frame["soc_reference_method"] = frame["soc_reference_method"].astype(str).str.strip().str.lower()
-    return frame
+    return frame                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def load_pulse_data(path: str | Path) -> pd.DataFrame:
+def load_pulse_data(path: str | Path) -> pd.DataFrame:             # [関数定義] load_pulse_data の処理実行ブロック
     frame = pd.read_csv(path)
     _required_columns(frame, PULSE_REQUIRED, "pulse CSV")
     frame = _numeric(
@@ -160,10 +160,10 @@ def load_pulse_data(path: str | Path) -> pd.DataFrame:
     frame["split"] = frame["split"].astype(str).str.strip().str.lower()
     frame["phase"] = frame["phase"].astype(str).str.strip().str.lower()
     frame["soc_reference_method"] = frame["soc_reference_method"].astype(str).str.strip().str.lower()
-    return frame.sort_values(["test_id", "time_s"]).reset_index(drop=True)
+    return frame.sort_values(["test_id", "time_s"]).reset_index(drop=True)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _pava_non_decreasing(values: np.ndarray, weights: np.ndarray) -> np.ndarray:
+def _pava_non_decreasing(values: np.ndarray, weights: np.ndarray) -> np.ndarray:  # [関数定義] _pava_non_decreasing の処理実行ブロック
     blocks = [[float(value), float(weight), 1] for value, weight in zip(values, weights)]
     index = 0
     while index < len(blocks) - 1:
@@ -181,10 +181,10 @@ def _pava_non_decreasing(values: np.ndarray, weights: np.ndarray) -> np.ndarray:
     output: list[float] = []
     for mean, _weight, count in blocks:
         output.extend([float(mean)] * int(count))
-    return np.asarray(output, dtype=float)
+    return np.asarray(output, dtype=float)                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def fit_ocv_curve(rest: pd.DataFrame, limits: FitLimits) -> tuple[pd.DataFrame, dict]:
+def fit_ocv_curve(rest: pd.DataFrame, limits: FitLimits) -> tuple[pd.DataFrame, dict]:  # [関数定義] fit_ocv_curve の処理実行ブロック
     eligible = rest[
         rest["split"].isin({"train", "validation"})
         & rest["soc_reference_method"].isin(INDEPENDENT_SOC_METHODS)
@@ -246,10 +246,10 @@ def fit_ocv_curve(rest: pd.DataFrame, limits: FitLimits) -> tuple[pd.DataFrame, 
         "validation_normalized_rmse": validation_normalized_rmse,
         "method": "weighted isotonic pack rested-voltage fit against independently referenced SoC",
     }
-    return curve, info
+    return curve, info                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _fit_single_pulse(group: pd.DataFrame, limits: FitLimits) -> dict:
+def _fit_single_pulse(group: pd.DataFrame, limits: FitLimits) -> dict:  # [関数定義] _fit_single_pulse の処理実行ブロック
     group = group.sort_values("time_s").copy()
     phases = set(group["phase"])
     if not {"pre_rest", "pulse"}.issubset(phases):
@@ -294,7 +294,7 @@ def _fit_single_pulse(group: pd.DataFrame, limits: FitLimits) -> dict:
     t = pulse["t_rel"].to_numpy(dtype=float)
     voltage = pulse["voltage_v"].to_numpy(dtype=float)
 
-    def evaluate_tau(log_tau: float) -> tuple[float, float, float, np.ndarray, np.ndarray]:
+    def evaluate_tau(log_tau: float) -> tuple[float, float, float, np.ndarray, np.ndarray]:  # [関数定義] evaluate_tau の処理実行ブロック
         tau = math.exp(float(log_tau))
         basis = step_current * (1.0 - np.exp(-np.maximum(t, 0.0) / tau))
         design = np.column_stack((delta_i, basis))
@@ -302,7 +302,7 @@ def _fit_single_pulse(group: pd.DataFrame, limits: FitLimits) -> dict:
         r0, r1 = [float(value) for value in coefficients]
         predicted = v_pre - design @ coefficients
         rmse = float(np.sqrt(np.mean((voltage - predicted) ** 2)))
-        return rmse, r0, r1, predicted, design
+        return rmse, r0, r1, predicted, design                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     result = minimize_scalar(
         lambda value: evaluate_tau(value)[0],
@@ -323,7 +323,7 @@ def _fit_single_pulse(group: pd.DataFrame, limits: FitLimits) -> dict:
         max(0.0, float(information_inverse[0, 0])) * voltage_sigma_effective**2
         + (r0 * current_relative_sigma) ** 2
     )
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "test_id": str(group["test_id"].iloc[0]),
         "split": str(group["split"].iloc[0]),
         "soc_reference": float(group["soc_reference"].median()),
@@ -346,7 +346,7 @@ def _fit_single_pulse(group: pd.DataFrame, limits: FitLimits) -> dict:
     }
 
 
-def fit_pulse_tests(pulse: pd.DataFrame, limits: FitLimits) -> tuple[pd.DataFrame, list[dict]]:
+def fit_pulse_tests(pulse: pd.DataFrame, limits: FitLimits) -> tuple[pd.DataFrame, list[dict]]:  # [関数定義] fit_pulse_tests の処理実行ブロック
     rows: list[dict] = []
     rejected: list[dict] = []
     for test_id, group in pulse.groupby("test_id", sort=False):
@@ -359,16 +359,16 @@ def fit_pulse_tests(pulse: pd.DataFrame, limits: FitLimits) -> tuple[pd.DataFram
     compact = pd.DataFrame(
         [{key: value for key, value in row.items() if not isinstance(value, list)} for row in rows]
     )
-    return compact, rejected
+    return compact, rejected                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _surface_features(soc: np.ndarray, temp_c: np.ndarray) -> np.ndarray:
+def _surface_features(soc: np.ndarray, temp_c: np.ndarray) -> np.ndarray:  # [関数定義] _surface_features の処理実行ブロック
     z = (np.asarray(soc, dtype=float) - 0.5) / 0.5
     t = (np.asarray(temp_c, dtype=float) - 25.0) / 25.0
-    return np.column_stack([np.ones_like(z), z, t, z * z, z * t, t * t])
+    return np.column_stack([np.ones_like(z), z, t, z * z, z * t, t * t])  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _surface_prediction(
+def _surface_prediction(                                           # [関数定義] _surface_prediction の処理実行ブロック
     beta: np.ndarray,
     soc: np.ndarray,
     temp_c: np.ndarray,
@@ -379,16 +379,16 @@ def _surface_prediction(
     """Evaluate only inside training support and hold the nearest edge outside it."""
     soc_eval = np.clip(np.asarray(soc, dtype=float), soc_support[0], soc_support[1])
     temp_eval = np.clip(np.asarray(temp_c, dtype=float), temp_support[0], temp_support[1])
-    return np.exp(_surface_features(soc_eval, temp_eval) @ beta)
+    return np.exp(_surface_features(soc_eval, temp_eval) @ beta)   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _validation_metrics(
+def _validation_metrics(                                           # [関数定義] _validation_metrics の処理実行ブロック
     validation: pd.DataFrame,
     observed_column: str,
     predicted: np.ndarray,
 ) -> dict:
     if validation.empty:
-        return {
+        return {                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "count": 0,
             "relative_rmse": math.nan,
             "normalized_rmse": math.nan,
@@ -405,14 +405,14 @@ def _validation_metrics(
         )
     else:
         normalized_rmse = math.nan
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "count": int(len(validation)),
         "relative_rmse": relative_rmse,
         "normalized_rmse": normalized_rmse,
     }
 
 
-def fit_positive_surface(
+def fit_positive_surface(                                          # [関数定義] fit_positive_surface の処理実行ブロック
     points: pd.DataFrame,
     value_column: str,
     soc_grid: np.ndarray,
@@ -466,12 +466,12 @@ def fit_positive_surface(
         else np.empty((0, len(beta_initial)), dtype=float)
     )
     if len(constraint_matrix):
-        def objective(candidate: np.ndarray) -> float:
+        def objective(candidate: np.ndarray) -> float:             # [関数定義] objective の処理実行ブロック
             residual = x @ candidate - y
-            return float(residual @ residual + candidate @ penalty @ candidate)
+            return float(residual @ residual + candidate @ penalty @ candidate)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-        def objective_jacobian(candidate: np.ndarray) -> np.ndarray:
-            return 2.0 * (x.T @ (x @ candidate - y) + penalty @ candidate)
+        def objective_jacobian(candidate: np.ndarray) -> np.ndarray:  # [関数定義] objective_jacobian の処理実行ブロック
+            return 2.0 * (x.T @ (x @ candidate - y) + penalty @ candidate)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
         optimized = minimize(
             objective,
@@ -546,7 +546,7 @@ def fit_positive_surface(
         ],
         dtype=float,
     )
-    return frame, {
+    return frame, {                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "value": value_column,
         "equation": (
             "value=exp(beta0+beta_z*zeta+beta_T*theta+beta_zz*zeta^2+"
@@ -596,23 +596,23 @@ def fit_positive_surface(
     }
 
 
-def _png_data_uri(fig: plt.Figure) -> str:
+def _png_data_uri(fig: plt.Figure) -> str:                         # [関数定義] _png_data_uri の処理実行ブロック
     buffer = io.BytesIO()
     fig.savefig(buffer, format="png", dpi=145, bbox_inches="tight")
     plt.close(fig)
     encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
-    return f"data:image/png;base64,{encoded}"
+    return f"data:image/png;base64,{encoded}"                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _placeholder_figure(title: str, message: str) -> plt.Figure:
+def _placeholder_figure(title: str, message: str) -> plt.Figure:   # [関数定義] _placeholder_figure の処理実行ブロック
     fig, ax = plt.subplots(figsize=(9.2, 4.8))
     ax.axis("off")
     ax.text(0.5, 0.62, title, ha="center", va="center", fontsize=16, weight="bold")
     ax.text(0.5, 0.38, message, ha="center", va="center", fontsize=11, wrap=True)
-    return fig
+    return fig                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def build_report_figures(
+def build_report_figures(                                          # [関数定義] build_report_figures の処理実行ブロック
     rest: pd.DataFrame,
     pulse_points: pd.DataFrame,
     pulse_details: list[dict],
@@ -741,10 +741,10 @@ def build_report_figures(
         "PASS" if summary["gate_pass"] else "NOT APPROVED",
         "The model passed independent physical-evidence checks." if summary["gate_pass"] else "Do not promote these maps. Resolve every failed evidence check and repeat the independent test.",
     ))))
-    return figures
+    return figures                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_html_report(path: Path, figures: list[tuple[str, str]], summary: dict) -> None:
+def write_html_report(path: Path, figures: list[tuple[str, str]], summary: dict) -> None:  # [関数定義] write_html_report の処理実行ブロック
     cards = "".join(
         f'<div class="check {"pass" if value else "fail"}"><b>{html.escape(key)}</b><br>{"PASS" if value else "FAIL"}</div>'
         for key, value in summary["checks"].items()
@@ -769,7 +769,7 @@ body{{font-family:"Yu Gothic",sans-serif;margin:0;background:#f3efe4;color:#1720
     path.write_text(document, encoding="utf-8", newline="\n")
 
 
-def identify(rest_csv: Path, pulse_csv: Path, output_dir: Path, limits: FitLimits) -> dict:
+def identify(rest_csv: Path, pulse_csv: Path, output_dir: Path, limits: FitLimits) -> dict:  # [関数定義] identify の処理実行ブロック
     if not 0.0 <= limits.operational_soc_min < limits.operational_soc_max <= 1.0:
         raise BatteryEvidenceError("operational SoC bounds must satisfy 0 <= min < max <= 1")
     if limits.maximum_soc_boundary_gap < 0.0 or limits.edge_validation_band <= 0.0:
@@ -927,32 +927,32 @@ def identify(rest_csv: Path, pulse_csv: Path, output_dir: Path, limits: FitLimit
     )
     figures = build_report_figures(rest, pulse_points, pulse_details, ocv, r0, r1, tau, summary)
     write_html_report(output_dir / "OCV_R0_1RC_complete_visual_report.html", figures, summary)
-    return summary
+    return summary                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def main() -> None:
+def main() -> None:                                                # [関数定義] main の処理実行ブロック
     parser = argparse.ArgumentParser()
-    parser.add_argument("--rest-csv", required=True)
-    parser.add_argument("--pulse-csv", required=True)
-    parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--minimum-rest-sec", type=float, default=1800.0)
-    parser.add_argument("--maximum-rest-current-a", type=float, default=0.25)
-    parser.add_argument("--maximum-rest-voltage-slope-uv-per-s", type=float, default=10.0)
-    parser.add_argument("--minimum-current-step-a", type=float, default=3.0)
-    parser.add_argument("--maximum-first-sample-delay-sec", type=float, default=0.25)
-    parser.add_argument("--maximum-validation-normalized-rmse", type=float, default=3.0)
-    parser.add_argument("--operational-soc-min", type=float, default=0.05)
-    parser.add_argument("--operational-soc-max", type=float, default=0.95)
-    parser.add_argument("--maximum-soc-boundary-gap", type=float, default=0.05)
-    parser.add_argument("--edge-validation-band", type=float, default=0.10)
-    parser.add_argument("--minimum-edge-validation-tests", type=int, default=1)
-    parser.add_argument(
+    parser.add_argument("--rest-csv", required=True)               # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--pulse-csv", required=True)              # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--output-dir", required=True)             # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--minimum-rest-sec", type=float, default=1800.0)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--maximum-rest-current-a", type=float, default=0.25)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--maximum-rest-voltage-slope-uv-per-s", type=float, default=10.0)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--minimum-current-step-a", type=float, default=3.0)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--maximum-first-sample-delay-sec", type=float, default=0.25)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--maximum-validation-normalized-rmse", type=float, default=3.0)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--operational-soc-min", type=float, default=0.05)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--operational-soc-max", type=float, default=0.95)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--maximum-soc-boundary-gap", type=float, default=0.05)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--edge-validation-band", type=float, default=0.10)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--minimum-edge-validation-tests", type=int, default=1)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument(                                           # [CLI引数] コマンドライン実行引数の定義
         "--r0-high-soc-nonincreasing-from",
         type=float,
         default=None,
         help="Diagnostic-only legacy hypothesis; omitted for release identification.",
     )
-    parser.add_argument(
+    parser.add_argument(                                           # [CLI引数] コマンドライン実行引数の定義
         "--enforce-r0-temperature-nonincreasing",
         action=argparse.BooleanOptionalAction,
         default=False,

@@ -2,16 +2,16 @@
 import argparse
 import os
 
-import numpy as np
-import pandas as pd
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
 
 
-def build_pivot(df, value_col, row_col='G_poa', col_col='Tcell_C'):
+def build_pivot(df, value_col, row_col='G_poa', col_col='Tcell_C'):  # [関数定義] build_pivot の処理実行ブロック
     pivot = df.pivot_table(index=row_col, columns=col_col, values=value_col, aggfunc='median')
-    return pivot.sort_index().sort_index(axis=1)
+    return pivot.sort_index().sort_index(axis=1)                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     ap = argparse.ArgumentParser()
     ap.add_argument('--panel_csv', required=True)
     ap.add_argument('--out_panel_csv', required=True)
@@ -46,5 +46,5 @@ def main():
     print(f'mppt map saved: {args.out_mppt_csv}')
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
     main()

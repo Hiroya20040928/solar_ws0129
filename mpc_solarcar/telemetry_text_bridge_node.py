@@ -1,23 +1,23 @@
 import json
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import socket
 import time
 from typing import Dict
 
-import rclpy
-from rclpy.node import Node
+import rclpy                                                       # [ROS 2] ROS 2 Python クライアントライブラリ (rclpy) のインポート
+from rclpy.node import Node                                        # [ROS 2] ノード基底クラス Node のインポート
 from sensor_msgs.msg import NavSatFix
 from std_msgs.msg import Float32, Float32MultiArray, String
 
 from .signal_utils import RobustScalarFilter, finite_float
 
 
-def as_float(value, default=math.nan):
-    return finite_float(value, default=default)
+def as_float(value, default=math.nan):                             # [関数定義] as_float の処理実行ブロック
+    return finite_float(value, default=default)                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-class TelemetryTextBridgeNode(Node):
-    def __init__(self):
+class TelemetryTextBridgeNode(Node):                               # [クラス定義] TelemetryTextBridgeNode オブジェクトの設計
+    def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
         super().__init__('telemetry_text_bridge_node')
         self.declare_parameter('enable_inbound', True)
         self.declare_parameter('enable_outbound', True)
@@ -68,28 +68,28 @@ class TelemetryTextBridgeNode(Node):
         if self.enable_inbound:
             self.sock.bind((self.bind_host, self.bind_port))
 
-        self.pub_network_status = self.create_publisher(String, '/system/network_status', 10)
+        self.pub_network_status = self.create_publisher(String, '/system/network_status', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
 
-        self.pub_vehicle_speed = self.create_publisher(Float32, '/vehicle/speed_kmh', 10)
-        self.pub_vehicle_soc = self.create_publisher(Float32, '/vehicle/batt_soc', 10)
-        self.pub_vehicle_temp = self.create_publisher(Float32, '/vehicle/batt_temp_c', 10)
-        self.pub_vehicle_current = self.create_publisher(Float32, '/vehicle/batt_current_a', 10)
-        self.pub_vehicle_voltage = self.create_publisher(Float32, '/vehicle/batt_voltage_v', 10)
-        self.pub_vehicle_dist = self.create_publisher(Float32, '/vehicle/s_km', 10)
-        self.pub_vehicle_alt = self.create_publisher(Float32, '/vehicle/altitude_m', 10)
-        self.pub_vehicle_gps = self.create_publisher(NavSatFix, '/vehicle/gps', 10)
-        self.pub_vehicle_wind_speed = self.create_publisher(Float32, '/vehicle/wind_speed_ms', 10)
-        self.pub_vehicle_wind_dir = self.create_publisher(Float32, '/vehicle/wind_dir_deg', 10)
-        self.pub_vehicle_course = self.create_publisher(Float32, '/vehicle/course_deg', 10)
-        self.pub_vehicle_headwind = self.create_publisher(Float32, '/vehicle/headwind_obs_ms', 10)
+        self.pub_vehicle_speed = self.create_publisher(Float32, '/vehicle/speed_kmh', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_soc = self.create_publisher(Float32, '/vehicle/batt_soc', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_temp = self.create_publisher(Float32, '/vehicle/batt_temp_c', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_current = self.create_publisher(Float32, '/vehicle/batt_current_a', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_voltage = self.create_publisher(Float32, '/vehicle/batt_voltage_v', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_dist = self.create_publisher(Float32, '/vehicle/s_km', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_alt = self.create_publisher(Float32, '/vehicle/altitude_m', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_gps = self.create_publisher(NavSatFix, '/vehicle/gps', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_wind_speed = self.create_publisher(Float32, '/vehicle/wind_speed_ms', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_wind_dir = self.create_publisher(Float32, '/vehicle/wind_dir_deg', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_course = self.create_publisher(Float32, '/vehicle/course_deg', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_headwind = self.create_publisher(Float32, '/vehicle/headwind_obs_ms', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
 
-        self.pub_chase_speed = self.create_publisher(Float32, '/chase/speed_kmh', 10)
-        self.pub_chase_alt = self.create_publisher(Float32, '/chase/altitude_m', 10)
-        self.pub_chase_gps = self.create_publisher(NavSatFix, '/chase/gps', 10)
-        self.pub_chase_wind_speed = self.create_publisher(Float32, '/chase/wind_speed_ms', 10)
-        self.pub_chase_wind_dir = self.create_publisher(Float32, '/chase/wind_dir_deg', 10)
-        self.pub_chase_course = self.create_publisher(Float32, '/chase/course_deg', 10)
-        self.pub_chase_headwind = self.create_publisher(Float32, '/chase/headwind_obs_ms', 10)
+        self.pub_chase_speed = self.create_publisher(Float32, '/chase/speed_kmh', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_chase_alt = self.create_publisher(Float32, '/chase/altitude_m', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_chase_gps = self.create_publisher(NavSatFix, '/chase/gps', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_chase_wind_speed = self.create_publisher(Float32, '/chase/wind_speed_ms', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_chase_wind_dir = self.create_publisher(Float32, '/chase/wind_dir_deg', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_chase_course = self.create_publisher(Float32, '/chase/course_deg', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_chase_headwind = self.create_publisher(Float32, '/chase/headwind_obs_ms', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
 
         self.outbound_state: Dict[str, object] = {
             'speed_cmd_kmh': math.nan,
@@ -160,11 +160,11 @@ class TelemetryTextBridgeNode(Node):
             ),
         }
 
-        self.create_subscription(Float32, '/planner/speed_cmd', self._set_out_float('speed_cmd_kmh'), 10)
-        self.create_subscription(Float32, '/planner/upper_speed_cmd', self._set_out_float('upper_speed_cmd_kmh'), 10)
-        self.create_subscription(String, '/planner/drive_mode', self._set_out_str('drive_mode'), 10)
-        self.create_subscription(Float32MultiArray, '/planner/summary', self._on_summary, 10)
-        self.create_subscription(Float32MultiArray, '/planner/wind_state', self._on_wind_state, 10)
+        self.create_subscription(Float32, '/planner/speed_cmd', self._set_out_float('speed_cmd_kmh'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/planner/upper_speed_cmd', self._set_out_float('upper_speed_cmd_kmh'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(String, '/planner/drive_mode', self._set_out_str('drive_mode'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32MultiArray, '/planner/summary', self._on_summary, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32MultiArray, '/planner/wind_state', self._on_wind_state, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
 
         self.rx_timer = self.create_timer(0.05, self._poll_inbound)
         self.tx_timer = self.create_timer(self.publish_period_sec, self._publish_outbound)
@@ -174,17 +174,17 @@ class TelemetryTextBridgeNode(Node):
             f'outbound={self.enable_outbound}'
         )
 
-    def _set_out_float(self, key):
-        def _handler(msg):
+    def _set_out_float(self, key):                                 # [関数定義] _set_out_float の処理実行ブロック
+        def _handler(msg):                                         # [関数定義] _handler の処理実行ブロック
             self.outbound_state[key] = float(msg.data)
-        return _handler
+        return _handler                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _set_out_str(self, key):
-        def _handler(msg):
+    def _set_out_str(self, key):                                   # [関数定義] _set_out_str の処理実行ブロック
+        def _handler(msg):                                         # [関数定義] _handler の処理実行ブロック
             self.outbound_state[key] = str(msg.data)
-        return _handler
+        return _handler                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _on_summary(self, msg: Float32MultiArray):
+    def _on_summary(self, msg: Float32MultiArray):                 # [関数定義] _on_summary の処理実行ブロック
         data = list(msg.data)
         keys = [
             'race_progress_pct',
@@ -197,7 +197,7 @@ class TelemetryTextBridgeNode(Node):
         for i, key in enumerate(keys):
             self.outbound_state[key] = float(data[i]) if i < len(data) else math.nan
 
-    def _on_wind_state(self, msg: Float32MultiArray):
+    def _on_wind_state(self, msg: Float32MultiArray):              # [関数定義] _on_wind_state の処理実行ブロック
         data = list(msg.data)
         mapping = {
             6: 'headwind_mu_ms',
@@ -209,7 +209,7 @@ class TelemetryTextBridgeNode(Node):
         for idx, key in mapping.items():
             self.outbound_state[key] = float(data[idx]) if idx < len(data) else math.nan
 
-    def _publish_status(self):
+    def _publish_status(self):                                     # [関数定義] _publish_status の処理実行ブロック
         age = time.monotonic() - self.last_rx_time if self.last_rx_time > 0.0 else math.inf
         rx = 'never' if not math.isfinite(age) else f'{age:.1f}s ago'
         sender = self.last_sender or '--'
@@ -219,7 +219,7 @@ class TelemetryTextBridgeNode(Node):
         self.outbound_state['network_status'] = status
         self.pub_network_status.publish(String(data=status))
 
-    def _poll_inbound(self):
+    def _poll_inbound(self):                                       # [関数定義] _poll_inbound の処理実行ブロック
         if not self.enable_inbound:
             return
         while True:
@@ -242,7 +242,7 @@ class TelemetryTextBridgeNode(Node):
             self.last_rx_time = time.monotonic()
             self._handle_payload(obj)
 
-    def _handle_payload(self, obj):
+    def _handle_payload(self, obj):                                # [関数定義] _handle_payload の処理実行ブロック
         if not isinstance(obj, dict):
             self.last_inbound_summary = 'ignored non-object payload'
             return
@@ -262,7 +262,7 @@ class TelemetryTextBridgeNode(Node):
 
         self.last_inbound_summary = f'type={payload_type or "auto"} keys={",".join(sorted(obj.keys())[:6])}'
 
-    def _publish_vehicle(self, data: Dict):
+    def _publish_vehicle(self, data: Dict):                        # [関数定義] _publish_vehicle の処理実行ブロック
         self._publish_filtered_float('vehicle', self.pub_vehicle_speed, data, 'speed_kmh')
         soc = as_float(data.get('soc', data.get('batt_soc', math.nan)))
         if math.isfinite(soc) and soc > 1.5:
@@ -282,7 +282,7 @@ class TelemetryTextBridgeNode(Node):
         self._publish_filtered_float('vehicle', self.pub_vehicle_headwind, data, 'headwind_ms', aliases=('headwind_obs_ms',))
         self._publish_navsat(self.pub_vehicle_gps, data)
 
-    def _publish_chase(self, data: Dict):
+    def _publish_chase(self, data: Dict):                          # [関数定義] _publish_chase の処理実行ブロック
         self._publish_filtered_float('chase', self.pub_chase_speed, data, 'speed_kmh')
         self._publish_filtered_float('chase', self.pub_chase_alt, data, 'alt_m', aliases=('altitude_m',))
         self._publish_filtered_float('chase', self.pub_chase_wind_speed, data, 'wind_speed_ms')
@@ -291,7 +291,7 @@ class TelemetryTextBridgeNode(Node):
         self._publish_filtered_float('chase', self.pub_chase_headwind, data, 'headwind_ms', aliases=('headwind_obs_ms',))
         self._publish_navsat(self.pub_chase_gps, data)
 
-    def _publish_filtered_float(self, prefix, publisher, data, key, aliases=()):
+    def _publish_filtered_float(self, prefix, publisher, data, key, aliases=()):  # [関数定義] _publish_filtered_float の処理実行ブロック
         for name in (key,) + tuple(aliases):
             value = as_float(data.get(name, math.nan))
             if math.isfinite(value):
@@ -300,20 +300,20 @@ class TelemetryTextBridgeNode(Node):
                     publisher.publish(Float32(data=float(filtered)))
                 return
 
-    def _publish_bounded_float(self, publisher, data, key, lo, hi, aliases=()):
+    def _publish_bounded_float(self, publisher, data, key, lo, hi, aliases=()):  # [関数定義] _publish_bounded_float の処理実行ブロック
         for name in (key,) + tuple(aliases):
             value = as_float(data.get(name, math.nan))
             if math.isfinite(value):
                 publisher.publish(Float32(data=float(max(lo, min(hi, value)))))
                 return
 
-    def _filter_value(self, prefix, key, value):
+    def _filter_value(self, prefix, key, value):                   # [関数定義] _filter_value の処理実行ブロック
         filt = self.filters.get((prefix, key))
         if filt is None:
-            return finite_float(value)
-        return filt.update(value)
+            return finite_float(value)                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return filt.update(value)                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _publish_navsat(self, publisher, data):
+    def _publish_navsat(self, publisher, data):                    # [関数定義] _publish_navsat の処理実行ブロック
         lat = as_float(data.get('lat', data.get('latitude', math.nan)))
         lon = as_float(data.get('lon', data.get('longitude', math.nan)))
         if not math.isfinite(lat) or not math.isfinite(lon):
@@ -329,7 +329,7 @@ class TelemetryTextBridgeNode(Node):
         msg.altitude = float(alt) if math.isfinite(alt) else 0.0
         publisher.publish(msg)
 
-    def _publish_outbound(self):
+    def _publish_outbound(self):                                   # [関数定義] _publish_outbound の処理実行ブロック
         if not self.enable_outbound:
             return
         snapshot = {
@@ -372,16 +372,16 @@ class TelemetryTextBridgeNode(Node):
         else:
             self.last_tx_summary = 'tx=idle'
 
-    def _clean(self, value):
+    def _clean(self, value):                                       # [関数定義] _clean の処理実行ブロック
         try:
             v = float(value)
             if math.isfinite(v):
-                return float(v)
+                return float(v)                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
         except Exception:
             pass
-        return None
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def destroy_node(self):
+    def destroy_node(self):                                        # [関数定義] destroy_node の処理実行ブロック
         try:
             self.sock.close()
         except Exception:
@@ -389,7 +389,7 @@ class TelemetryTextBridgeNode(Node):
         super().destroy_node()
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     rclpy.init()
     node = TelemetryTextBridgeNode()
     rclpy.spin(node)
@@ -397,5 +397,5 @@ def main():
     rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
     main()

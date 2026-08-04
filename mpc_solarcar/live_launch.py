@@ -13,16 +13,16 @@ from .solar_profile import (
 )
 
 
-def cfg_path(profile_path, raw: str) -> str:
-    return resolve_relative_path(profile_path.parent, raw) if str(raw or "").strip() else ""
+def cfg_path(profile_path, raw: str) -> str:                       # [関数定義] cfg_path の処理実行ブロック
+    return resolve_relative_path(profile_path.parent, raw) if str(raw or "").strip() else ""  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _drop_keys(payload: dict, *keys: str) -> dict:
+def _drop_keys(payload: dict, *keys: str) -> dict:                 # [関数定義] _drop_keys の処理実行ブロック
     blocked = set(keys)
-    return {key: value for key, value in (payload or {}).items() if key not in blocked}
+    return {key: value for key, value in (payload or {}).items() if key not in blocked}  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def live_forecast_paths(profile_path, cfg):
+def live_forecast_paths(profile_path, cfg):                        # [関数定義] live_forecast_paths の処理実行ブロック
     live_cfg = get_section(cfg, "live")
     weather_cfg = get_section(live_cfg, "weather")
     wind_cfg = get_section(live_cfg, "wind_model")
@@ -38,10 +38,10 @@ def live_forecast_paths(profile_path, cfg):
         if not target.exists() and Path(base_path).exists():
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(base_path, target)
-    return base_path, raw_path, corrected_path
+    return base_path, raw_path, corrected_path                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def build_live_nodes(profile_path, cfg, *, use_wifi: bool):
+def build_live_nodes(profile_path, cfg, *, use_wifi: bool):        # [関数定義] build_live_nodes の処理実行ブロック
     ensure_live_release_allowed(cfg, profile_path)
     runtime_cfg = get_section(cfg, "runtime")
     logging_cfg = get_section(cfg, "logging")
@@ -180,4 +180,4 @@ def build_live_nodes(profile_path, cfg, *, use_wifi: bool):
                 parameters=[_drop_keys(autocal_cfg, "enabled")],
             )
         )
-    return nodes
+    return nodes                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却

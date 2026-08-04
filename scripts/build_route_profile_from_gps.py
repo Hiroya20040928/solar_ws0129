@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 import argparse
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import os
 
-import numpy as np
-import pandas as pd
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
 
 
 EARTH_R = 6371000.0
 
 
-def haversine_m(lat1, lon1, lat2, lon2):
+def haversine_m(lat1, lon1, lat2, lon2):                           # [関数定義] haversine_m の処理実行ブロック
     p1 = math.radians(lat1)
     p2 = math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
     a = math.sin(dphi / 2.0) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlambda / 2.0) ** 2
-    return 2.0 * EARTH_R * math.asin(math.sqrt(max(0.0, a)))
+    return 2.0 * EARTH_R * math.asin(math.sqrt(max(0.0, a)))       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     ap = argparse.ArgumentParser()
     ap.add_argument('--gps_csv', required=True)
     ap.add_argument('--out_waypoints_csv', required=True)
@@ -70,5 +70,5 @@ def main():
     print(f'route profile saved: {args.out_profile_csv}')
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
     main()

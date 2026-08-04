@@ -1,15 +1,15 @@
 import time
 
-import rclpy
-from rclpy.node import Node
+import rclpy                                                       # [ROS 2] ROS 2 Python クライアントライブラリ (rclpy) のインポート
+from rclpy.node import Node                                        # [ROS 2] ノード基底クラス Node のインポート
 
 from std_msgs.msg import Float32, Float32MultiArray, String
 
 
-class SolarStateNode(Node):
+class SolarStateNode(Node):                                        # [状態推定ノード] バッテリーSoC・電圧・過渡分極(V1)の状態推定ノード
     """Mirror planner outputs into vehicle/system topics for solar-only simulation."""
 
-    def __init__(self):
+    def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
         super().__init__('solar_state_node')
         self.declare_parameter('publish_rate_hz', 5.0)
         self.declare_parameter('stale_timeout_sec', 5.0)
@@ -33,40 +33,40 @@ class SolarStateNode(Node):
         self.last_lower_plan_time = 0.0
         self.last_publish_time = time.monotonic()
 
-        self.pub_speed = self.create_publisher(Float32, '/vehicle/speed_kmh', 10)
-        self.pub_s_km = self.create_publisher(Float32, '/vehicle/s_km', 10)
-        self.pub_soc = self.create_publisher(Float32, '/vehicle/batt_soc', 10)
-        self.pub_tb = self.create_publisher(Float32, '/vehicle/batt_temp_c', 10)
-        self.pub_ibatt = self.create_publisher(Float32, '/vehicle/batt_current_a', 10)
-        self.pub_vbatt = self.create_publisher(Float32, '/vehicle/batt_voltage_v', 10)
-        self.pub_throttle = self.create_publisher(Float32, '/vehicle/throttle_pct', 10)
-        self.pub_state = self.create_publisher(String, '/system/state', 10)
-        self.pub_diag = self.create_publisher(String, '/system/diag', 10)
-        self.pub_mpc_state = self.create_publisher(String, '/system/mpc_state', 10)
-        self.pub_health = self.create_publisher(Float32, '/system/health', 10)
+        self.pub_speed = self.create_publisher(Float32, '/vehicle/speed_kmh', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_s_km = self.create_publisher(Float32, '/vehicle/s_km', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_soc = self.create_publisher(Float32, '/vehicle/batt_soc', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_tb = self.create_publisher(Float32, '/vehicle/batt_temp_c', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_ibatt = self.create_publisher(Float32, '/vehicle/batt_current_a', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vbatt = self.create_publisher(Float32, '/vehicle/batt_voltage_v', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_throttle = self.create_publisher(Float32, '/vehicle/throttle_pct', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_state = self.create_publisher(String, '/system/state', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_diag = self.create_publisher(String, '/system/diag', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_mpc_state = self.create_publisher(String, '/system/mpc_state', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_health = self.create_publisher(Float32, '/system/health', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
 
-        self.create_subscription(Float32, '/planner/speed_cmd', self._on_speed_cmd, 10)
-        self.create_subscription(Float32, '/planner/throttle_cmd_pct', self._on_throttle, 10)
-        self.create_subscription(String, '/planner/drive_mode', self._on_drive_mode, 10)
-        self.create_subscription(Float32MultiArray, '/planner/status', self._on_status, 10)
-        self.create_subscription(Float32MultiArray, '/planner/metrics', self._on_metrics, 10)
-        self.create_subscription(Float32MultiArray, '/planner/lower_plan', self._on_lower_plan, 10)
+        self.create_subscription(Float32, '/planner/speed_cmd', self._on_speed_cmd, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/planner/throttle_cmd_pct', self._on_throttle, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(String, '/planner/drive_mode', self._on_drive_mode, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32MultiArray, '/planner/status', self._on_status, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32MultiArray, '/planner/metrics', self._on_metrics, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32MultiArray, '/planner/lower_plan', self._on_lower_plan, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
 
         period = 1.0 / max(0.5, float(self.get_parameter('publish_rate_hz').value))
         self.timer = self.create_timer(period, self._publish)
         self.get_logger().info('SolarStateNode started.')
 
-    def _on_speed_cmd(self, msg: Float32):
+    def _on_speed_cmd(self, msg: Float32):                         # [関数定義] _on_speed_cmd の処理実行ブロック
         self.speed_cmd_kmh = float(msg.data)
         self.speed_meas_kmh = float(msg.data)
 
-    def _on_throttle(self, msg: Float32):
+    def _on_throttle(self, msg: Float32):                          # [関数定義] _on_throttle の処理実行ブロック
         self.throttle_pct = float(msg.data)
 
-    def _on_drive_mode(self, msg: String):
+    def _on_drive_mode(self, msg: String):                         # [関数定義] _on_drive_mode の処理実行ブロック
         self.drive_mode = str(msg.data)
 
-    def _on_status(self, msg: Float32MultiArray):
+    def _on_status(self, msg: Float32MultiArray):                  # [関数定義] _on_status の処理実行ブロック
         data = list(msg.data)
         if len(data) < 5:
             return
@@ -80,7 +80,7 @@ class SolarStateNode(Node):
         self.has_status = True
         self.last_status_time = time.monotonic()
 
-    def _on_metrics(self, msg: Float32MultiArray):
+    def _on_metrics(self, msg: Float32MultiArray):                 # [関数定義] _on_metrics の処理実行ブロック
         data = list(msg.data)
         if len(data) < 7:
             return
@@ -92,11 +92,11 @@ class SolarStateNode(Node):
         self.has_metrics = True
         self.last_metrics_time = time.monotonic()
 
-    def _on_lower_plan(self, msg: Float32MultiArray):
+    def _on_lower_plan(self, msg: Float32MultiArray):              # [関数定義] _on_lower_plan の処理実行ブロック
         if len(msg.data) > 1:
             self.last_lower_plan_time = time.monotonic()
 
-    def _publish(self):
+    def _publish(self):                                            # [関数定義] _publish の処理実行ブロック
         now = time.monotonic()
         dt = max(0.0, now - self.last_publish_time)
         self.last_publish_time = now
@@ -142,7 +142,7 @@ class SolarStateNode(Node):
         self.pub_health.publish(Float32(data=float(health)))
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     rclpy.init()
     node = SolarStateNode()
     rclpy.spin(node)
@@ -150,5 +150,5 @@ def main():
     rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
     main()

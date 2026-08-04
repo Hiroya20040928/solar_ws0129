@@ -1,8 +1,8 @@
 import os
 from datetime import datetime, timezone
 
-import rclpy
-from rclpy.node import Node
+import rclpy                                                       # [ROS 2] ROS 2 Python クライアントライブラリ (rclpy) のインポート
+from rclpy.node import Node                                        # [ROS 2] ノード基底クラス Node のインポート
 from sensor_msgs.msg import NavSatFix
 from std_msgs.msg import String
 
@@ -10,8 +10,8 @@ from .path_utils import resolve_path
 from .weather_utils import fetch_openmeteo_forecast, write_forecast_csv
 
 
-class WeatherFetchNode(Node):
-    def __init__(self):
+class WeatherFetchNode(Node):                                      # [クラス定義] WeatherFetchNode オブジェクトの設計
+    def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
         super().__init__('weather_fetch_node')
         self.declare_parameter('provider', 'openmeteo')
         self.declare_parameter('forecast_csv', 'data/weather/live_forecast.csv')
@@ -37,22 +37,22 @@ class WeatherFetchNode(Node):
         self.last_status = 'waiting for first fetch'
 
         gps_topic = str(self.get_parameter('gps_topic').value)
-        self.create_subscription(NavSatFix, gps_topic, self._on_gps, 10)
-        self.pub_status = self.create_publisher(String, '/system/forecast_status', 10)
+        self.create_subscription(NavSatFix, gps_topic, self._on_gps, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.pub_status = self.create_publisher(String, '/system/forecast_status', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
 
         os.makedirs(os.path.dirname(os.path.abspath(self.forecast_csv)), exist_ok=True)
         self._fetch_once()
         self.timer = self.create_timer(max(60.0, self.fetch_period_sec), self._fetch_once)
         self.get_logger().info(f'WeatherFetchNode started: provider={self.provider}, out={self.forecast_csv}')
 
-    def _on_gps(self, msg: NavSatFix):
+    def _on_gps(self, msg: NavSatFix):                             # [関数定義] _on_gps の処理実行ブロック
         if msg.latitude == 0.0 and msg.longitude == 0.0:
             return
         self.lat = float(msg.latitude)
         self.lon = float(msg.longitude)
         self.has_gps = True
 
-    def _fetch_once(self):
+    def _fetch_once(self):                                         # [関数定義] _fetch_once の処理実行ブロック
         if self.provider != 'openmeteo':
             self.last_status = f'provider={self.provider} not implemented'
             self.pub_status.publish(String(data=self.last_status))
@@ -77,7 +77,7 @@ class WeatherFetchNode(Node):
         self.pub_status.publish(String(data=self.last_status))
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     rclpy.init()
     node = WeatherFetchNode()
     rclpy.spin(node)

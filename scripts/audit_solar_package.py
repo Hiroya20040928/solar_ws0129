@@ -9,11 +9,11 @@ import csv
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 import json
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 from pathlib import Path
 import re
 
-import yaml
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,14 +39,14 @@ MLE_PACKAGE_RE = re.compile(r"^bwsc2025_fitted_mle(?P<generation>\d+)(?:_|$)")
 
 
 @dataclass
-class Finding:
+class Finding:                                                     # [クラス定義] Finding オブジェクトの設計
     severity: str
     check: str
     path: str
     detail: str
 
 
-def add(findings: list[Finding], severity: str, check: str, path: Path | str, detail: str) -> None:
+def add(findings: list[Finding], severity: str, check: str, path: Path | str, detail: str) -> None:  # [関数定義] add の処理実行ブロック
     raw = Path(path)
     try:
         display = raw.resolve().relative_to(ROOT).as_posix()
@@ -55,7 +55,7 @@ def add(findings: list[Finding], severity: str, check: str, path: Path | str, de
     findings.append(Finding(severity, check, display, detail))
 
 
-def python_files() -> list[Path]:
+def python_files() -> list[Path]:                                  # [関数定義] python_files の処理実行ブロック
     files: list[Path] = []
     for dirname in CODE_DIRS:
         files.extend(
@@ -63,10 +63,10 @@ def python_files() -> list[Path]:
             for path in (ROOT / dirname).rglob("*.py")
             if "__pycache__" not in path.parts
         )
-    return sorted(set(files))
+    return sorted(set(files))                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def audit_python(findings: list[Finding]) -> tuple[int, dict[str, ast.Module]]:
+def audit_python(findings: list[Finding]) -> tuple[int, dict[str, ast.Module]]:  # [関数定義] audit_python の処理実行ブロック
     trees: dict[str, ast.Module] = {}
     for path in python_files():
         rel = path.relative_to(ROOT).as_posix()
@@ -76,23 +76,23 @@ def audit_python(findings: list[Finding]) -> tuple[int, dict[str, ast.Module]]:
         except (OSError, UnicodeError, SyntaxError) as exc:
             add(findings, "ERROR", "python_parse", path, str(exc))
     add(findings, "PASS", "python_parse", ".", f"{len(trees)} Python files parsed")
-    return len(trees), trees
+    return len(trees), trees                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _local_module_path(parts: tuple[str, ...]) -> Path | None:
+def _local_module_path(parts: tuple[str, ...]) -> Path | None:     # [関数定義] _local_module_path の処理実行ブロック
     if not parts:
-        return None
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
     module_path = ROOT.joinpath(*parts)
     file_path = module_path.with_suffix(".py")
     if file_path.is_file():
-        return file_path
+        return file_path                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
     init_path = module_path / "__init__.py"
     if init_path.is_file():
-        return init_path
-    return None
+        return init_path                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return None                                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def audit_local_import_closure(findings: list[Finding], trees: dict[str, ast.Module]) -> None:
+def audit_local_import_closure(findings: list[Finding], trees: dict[str, ast.Module]) -> None:  # [関数定義] audit_local_import_closure の処理実行ブロック
     """Require every package-local Python import to resolve inside the distribution."""
     checked: set[tuple[str, tuple[str, ...]]] = set()
     missing: list[tuple[Path, int, str]] = []
@@ -149,15 +149,15 @@ def audit_local_import_closure(findings: list[Finding], trees: dict[str, ast.Mod
         add(findings, "PASS", "local_import_closure", ".", f"{len(checked)} local imports resolved")
 
 
-def setup_entries() -> dict[str, tuple[str, str]]:
+def setup_entries() -> dict[str, tuple[str, str]]:                 # [関数定義] setup_entries の処理実行ブロック
     text = (ROOT / "setup.py").read_text(encoding="utf-8")
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         match.group("name"): (match.group("module"), match.group("function"))
         for match in ENTRY_RE.finditer(text)
     }
 
 
-def audit_launch_contracts(findings: list[Finding], trees: dict[str, ast.Module]) -> None:
+def audit_launch_contracts(findings: list[Finding], trees: dict[str, ast.Module]) -> None:  # [関数定義] audit_launch_contracts の処理実行ブロック
     entries = setup_entries()
     used: set[str] = set()
     for raw in SOLAR_LAUNCHES:
@@ -204,16 +204,16 @@ def audit_launch_contracts(findings: list[Finding], trees: dict[str, ast.Module]
     add(findings, "PASS", "solar_scope", ".", "solar launch/runtime sources contain no PASSO, magnetic, OBD, MAF, or fuel dependency")
 
 
-def nested(cfg: dict, *keys: str, default=None):
+def nested(cfg: dict, *keys: str, default=None):                   # [関数定義] nested の処理実行ブロック
     value = cfg
     for key in keys:
         if not isinstance(value, dict):
-            return default
+            return default                                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
         value = value.get(key, default)
-    return value
+    return value                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def primary_profile_paths() -> list[Path]:
+def primary_profile_paths() -> list[Path]:                         # [関数定義] primary_profile_paths の処理実行ブロック
     profiles = [ROOT / raw for raw in BASE_PRIMARY_PROFILES]
     packages_root = ROOT / "project_packages"
     candidates: list[tuple[int, Path]] = []
@@ -234,10 +234,10 @@ def primary_profile_paths() -> list[Path]:
         }
         names.update(path.name for path in latest.glob("profile_mle*_operational_fine.yaml"))
         profiles.extend(latest / name for name in sorted(names) if (latest / name).is_file())
-    return list(dict.fromkeys(profiles))
+    return list(dict.fromkeys(profiles))                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def fitted_package_high_precision_allowed(package: Path) -> bool:
+def fitted_package_high_precision_allowed(package: Path) -> bool:  # [関数定義] fitted_package_high_precision_allowed の処理実行ブロック
     reports = package / "outputs" / "reports"
     for path in reports.glob("*model_acceptance.yaml") if reports.is_dir() else ():
         try:
@@ -245,11 +245,11 @@ def fitted_package_high_precision_allowed(package: Path) -> bool:
         except Exception:
             continue
         if bool(payload.get("fullsim_adoption_gate_pass")) and bool(payload.get("high_precision_claim_allowed")):
-            return True
-    return False
+            return True                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return False                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def audit_profile(findings: list[Finding], path: Path) -> None:
+def audit_profile(findings: list[Finding], path: Path) -> None:    # [関数定義] audit_profile の処理実行ブロック
     if not path.is_file():
         add(findings, "ERROR", "profile_exists", path, "missing")
         return
@@ -638,7 +638,7 @@ def audit_profile(findings: list[Finding], path: Path) -> None:
             add(findings, "PASS", "pv_hardware_limit_contract", path, f"declared aggregate MPPT limit={pv_limit_w} W")
 
 
-def audit_blank_templates(findings: list[Finding]) -> None:
+def audit_blank_templates(findings: list[Finding]) -> None:        # [関数定義] audit_blank_templates の処理実行ブロック
     strict_blank_distribution = (ROOT / "solarcar_blank_manifest.json").is_file()
     for name in ("bwsc2027_template", "other_template"):
         root = ROOT / "project_packages" / name
@@ -663,7 +663,7 @@ def audit_blank_templates(findings: list[Finding]) -> None:
             add(findings, "PASS", "blank_template", root, f"{len(files)} route/weather/map/replay files are schema-only")
 
 
-def write_report(output_dir: Path, python_count: int, findings: list[Finding]) -> None:
+def write_report(output_dir: Path, python_count: int, findings: list[Finding]) -> None:  # [関数定義] write_report の処理実行ブロック
     output_dir.mkdir(parents=True, exist_ok=True)
     now = datetime.now(timezone.utc).isoformat()
     counts = {level: sum(item.severity == level for item in findings) for level in ("PASS", "WARN", "ERROR")}
@@ -693,9 +693,9 @@ def write_report(output_dir: Path, python_count: int, findings: list[Finding]) -
     (output_dir / "solar_package_audit.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def main() -> int:
+def main() -> int:                                                 # [関数定義] main の処理実行ブロック
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output-dir", type=Path, default=ROOT / "docs" / "package_inventory")
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "docs" / "package_inventory")  # [CLI引数] コマンドライン実行引数の定義
     args = parser.parse_args()
     output_dir = args.output_dir if args.output_dir.is_absolute() else ROOT / args.output_dir
     findings: list[Finding] = []
@@ -732,7 +732,7 @@ def main() -> int:
     write_report(output_dir, count, findings)
     errors = sum(item.severity == "ERROR" for item in findings)
     print(f"python_files={count} errors={errors} output={output_dir}")
-    return 1 if errors else 0
+    return 1 if errors else 0                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
 if __name__ == "__main__":

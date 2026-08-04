@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import os
 import re
 import sys
@@ -11,9 +11,9 @@ import textwrap
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
-import numpy as np
-import pandas as pd
-import yaml
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
 from scipy.optimize import least_squares
 from scipy.signal import savgol_filter
 
@@ -121,7 +121,7 @@ FIT_QUALITY_PRESETS: Dict[str, Dict[str, Any]] = {
 }
 
 
-def neutralize_identification_scalars(model):
+def neutralize_identification_scalars(model):                      # [関数定義] neutralize_identification_scalars の処理実行ブロック
     """Fit each calibration factor once on top of the declared physical maps."""
     model.p.panel_gain = 1.0
     model.p.drive_eff_scale = 1.0
@@ -130,23 +130,23 @@ def neutralize_identification_scalars(model):
     model.p.rint_scale = 1.0
     model.p.r_polarization_ohm = 0.0
     model.aux_power_override_w = None
-    return model
+    return model                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def resolve_relative(base_dir: Path, raw: str) -> Path:
+def resolve_relative(base_dir: Path, raw: str) -> Path:            # [関数定義] resolve_relative の処理実行ブロック
     path = Path(str(raw or "").strip())
     if not path:
-        return base_dir
+        return base_dir                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if path.is_absolute():
-        return path
-    return (base_dir / path).resolve()
+        return path                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return (base_dir / path).resolve()                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def stage(message: str) -> None:
+def stage(message: str) -> None:                                   # [関数定義] stage の処理実行ブロック
     print(f"[generic-id] {message}", flush=True)
 
 
-def load_manifest(package_dir: Path, manifest_arg: str | None) -> Tuple[Path, dict]:
+def load_manifest(package_dir: Path, manifest_arg: str | None) -> Tuple[Path, dict]:  # [関数定義] load_manifest の処理実行ブロック
     default_path = package_dir / "data" / "identification" / "identification_manifest.yaml"
     if manifest_arg:
         raw_path = Path(str(manifest_arg).strip())
@@ -163,23 +163,23 @@ def load_manifest(package_dir: Path, manifest_arg: str | None) -> Tuple[Path, di
         manifest_path = default_path
     with manifest_path.open("r", encoding="utf-8") as f:
         payload = yaml.safe_load(f) or {}
-    return manifest_path, payload
+    return manifest_path, payload                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def relpath_from(base_dir: Path, target: Path | None) -> str:
+def relpath_from(base_dir: Path, target: Path | None) -> str:      # [関数定義] relpath_from の処理実行ブロック
     if target is None:
-        return ""
+        return ""                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     try:
-        return os.path.relpath(target, base_dir).replace("\\", "/")
+        return os.path.relpath(target, base_dir).replace("\\", "/")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     except Exception:
-        return os.fspath(target)
+        return os.fspath(target)                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def tex_path_fragment(value: object) -> str:
+def tex_path_fragment(value: object) -> str:                       # [関数定義] tex_path_fragment の処理実行ブロック
     """Render ASCII and Unicode paths without losing CJK glyphs or TeX syntax."""
     text = str(value)
     if text.isascii():
-        return rf"\path{{{text}}}"
+        return rf"\path{{{text}}}"                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
     replacements = {
         "\\": r"\textbackslash{}",
         "{": r"\{",
@@ -194,10 +194,10 @@ def tex_path_fragment(value: object) -> str:
     }
     escaped = "".join(replacements.get(char, char) for char in text)
     escaped = escaped.replace("/", r"/\allowbreak{}")
-    return rf"\texttt{{{escaped}}}"
+    return rf"\texttt{{{escaped}}}"                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def tex_text_fragment(value: object) -> str:
+def tex_text_fragment(value: object) -> str:                       # [関数定義] tex_text_fragment の処理実行ブロック
     """Escape arbitrary report prose without path-style whitespace handling."""
     replacements = {
         "\\": r"\textbackslash{}",
@@ -211,17 +211,17 @@ def tex_text_fragment(value: object) -> str:
         "^": r"\textasciicircum{}",
         "~": r"\textasciitilde{}",
     }
-    return "".join(replacements.get(char, char) for char in str(value))
+    return "".join(replacements.get(char, char) for char in str(value))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def load_yaml_if_exists(path: Path | None) -> dict:
+def load_yaml_if_exists(path: Path | None) -> dict:                # [関数定義] load_yaml_if_exists の処理実行ブロック
     if path is None or not path.exists():
-        return {}
+        return {}                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     with path.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+        return yaml.safe_load(f) or {}                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def declared_control_stop_km(profile_cfg: dict, profile_path: Path) -> list[float]:
+def declared_control_stop_km(profile_cfg: dict, profile_path: Path) -> list[float]:  # [関数定義] declared_control_stop_km の処理実行ブロック
     """Load control-stop distances declared by the vehicle package."""
     paths = profile_cfg.get("paths", {}) if isinstance(profile_cfg, dict) else {}
     for key in ("actual_stop_yaml", "stop_yaml"):
@@ -239,16 +239,16 @@ def declared_control_stop_km(profile_cfg: dict, profile_path: Path) -> list[floa
             except (KeyError, TypeError, ValueError):
                 continue
         if distances:
-            return sorted(set(distances))
-    return []
+            return sorted(set(distances))                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return []                                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _terminal_anchor_from_payload(payload: dict) -> Dict[str, Any]:
+def _terminal_anchor_from_payload(payload: dict) -> Dict[str, Any]:  # [関数定義] _terminal_anchor_from_payload の処理実行ブロック
     if not isinstance(payload, dict):
-        return {}
+        return {}                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     anchor = payload.get("terminal_anchor", payload)
     if not isinstance(anchor, dict):
-        return {}
+        return {}                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     out: Dict[str, Any] = {}
     for key in (
         "count",
@@ -287,10 +287,10 @@ def _terminal_anchor_from_payload(payload: dict) -> Dict[str, Any]:
     ):
         if key in anchor:
             out[key] = bool(anchor[key])
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _append_reason_column(frame: pd.DataFrame, mask: pd.Series, reason: str) -> None:
+def _append_reason_column(frame: pd.DataFrame, mask: pd.Series, reason: str) -> None:  # [関数定義] _append_reason_column の処理実行ブロック
     if not mask.any():
         return
     current = frame.loc[mask, "exclude_reason"].fillna("").astype(str)
@@ -298,17 +298,17 @@ def _append_reason_column(frame: pd.DataFrame, mask: pd.Series, reason: str) -> 
     frame.loc[mask, "exclude_reason"] = merged
 
 
-def resolve_manifest_context(package_dir: Path, manifest: dict) -> dict:
+def resolve_manifest_context(package_dir: Path, manifest: dict) -> dict:  # [関数定義] resolve_manifest_context の処理実行ブロック
     inputs = manifest.get("inputs", {}) if isinstance(manifest, dict) else {}
     options = manifest.get("options", {}) if isinstance(manifest, dict) else {}
     grounded = manifest.get("grounded_sources", {}) if isinstance(manifest, dict) else {}
     evidence = manifest.get("evidence", {}) if isinstance(manifest, dict) else {}
 
-    def opt_path(raw_value) -> Path | None:
+    def opt_path(raw_value) -> Path | None:                        # [関数定義] opt_path の処理実行ブロック
         raw = str(raw_value or "").strip()
         if not raw:
-            return None
-        return resolve_relative(package_dir, raw)
+            return None                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return resolve_relative(package_dir, raw)                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     actual_event_path = opt_path(inputs.get("actual_event_yaml"))
     counterfactual_event_path = opt_path(inputs.get("counterfactual_event_yaml"))
@@ -414,10 +414,10 @@ def resolve_manifest_context(package_dir: Path, manifest: dict) -> dict:
         "external_documents": external_documents,
         "declared_evidence": declared_evidence,
     }
-    return assets
+    return assets                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def hampel_mask(series: pd.Series, *, window: int, n_sigma: float, min_abs: float) -> pd.Series:
+def hampel_mask(series: pd.Series, *, window: int, n_sigma: float, min_abs: float) -> pd.Series:  # [関数定義] hampel_mask の処理実行ブロック
     x = pd.to_numeric(series, errors="coerce").astype(float)
     window = max(3, int(window))
     if window % 2 == 0:
@@ -426,10 +426,10 @@ def hampel_mask(series: pd.Series, *, window: int, n_sigma: float, min_abs: floa
     abs_dev = (x - med).abs()
     mad = abs_dev.rolling(window, center=True, min_periods=1).median()
     scale = (1.4826 * mad).clip(lower=max(1.0e-6, float(min_abs) * 0.25))
-    return abs_dev > np.maximum(float(min_abs), float(n_sigma) * scale)
+    return abs_dev > np.maximum(float(min_abs), float(n_sigma) * scale)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def apply_sensor_quality_annotations(
+def apply_sensor_quality_annotations(                              # [関数定義] apply_sensor_quality_annotations の処理実行ブロック
     work: pd.DataFrame,
     *,
     base_model,
@@ -438,7 +438,7 @@ def apply_sensor_quality_annotations(
     options = options if isinstance(options, dict) else {}
     sensor_cfg = options.get("sensor_filter", {}) if isinstance(options.get("sensor_filter", {}), dict) else {}
     if sensor_cfg.get("enabled", True) is False:
-        return work
+        return work                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     out = work.copy()
     for key in ("exclude_power_fit", "exclude_voltage_fit", "exclude_weather_fit"):
@@ -521,10 +521,10 @@ def apply_sensor_quality_annotations(
         out.loc[power_spike, "exclude_power_fit"] = True
         _append_reason_column(out, power_spike, "battery_power_hampel_spike")
 
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def polarization_current_trace(
+def polarization_current_trace(                                    # [関数定義] polarization_current_trace の処理実行ブロック
     replay: pd.DataFrame,
     *,
     current_column: str,
@@ -545,10 +545,10 @@ def polarization_current_trace(
         dt = min(float(dt_sec[idx]), 60.0)
         alpha = math.exp(-dt / tau)
         state[idx] = alpha * state[idx - 1] + (1.0 - alpha) * current[idx - 1]
-    return state
+    return state                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def fit_battery_polarization(replay: pd.DataFrame) -> Dict[str, Any]:
+def fit_battery_polarization(replay: pd.DataFrame) -> Dict[str, Any]:  # [関数定義] fit_battery_polarization の処理実行ブロック
     """Fit a bounded one-RC branch and gate it on the last independent day."""
     residual = (
         pd.to_numeric(replay["battery_voltage_v_obs"], errors="coerce")
@@ -557,7 +557,7 @@ def fit_battery_polarization(replay: pd.DataFrame) -> Dict[str, Any]:
     excluded = replay.get("exclude_voltage_fit", pd.Series(False, index=replay.index)).fillna(True).astype(bool).to_numpy()
     base_valid = np.isfinite(residual) & ~excluded
     if int(base_valid.sum()) < 500:
-        return {
+        return {                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "adopted": False,
             "reason": "insufficient_valid_voltage_samples",
             "sample_count": int(base_valid.sum()),
@@ -576,7 +576,7 @@ def fit_battery_polarization(replay: pd.DataFrame) -> Dict[str, Any]:
         groups = time_local.dt.strftime("%Y%m%d").astype(float).to_numpy()
     unique_groups = sorted(float(value) for value in np.unique(groups[base_valid & np.isfinite(groups)]))
     if len(unique_groups) < 2:
-        return {
+        return {                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "adopted": False,
             "reason": "no_independent_day_holdout",
             "sample_count": int(base_valid.sum()),
@@ -591,7 +591,7 @@ def fit_battery_polarization(replay: pd.DataFrame) -> Dict[str, Any]:
     training_valid = base_valid & np.isfinite(groups) & (groups != holdout_group)
     validation_valid = base_valid & np.isfinite(groups) & (groups == holdout_group)
     if int(training_valid.sum()) < 500 or int(validation_valid.sum()) < 100:
-        return {
+        return {                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "adopted": False,
             "reason": "insufficient_independent_day_holdout_samples",
             "sample_count": int(base_valid.sum()),
@@ -628,7 +628,7 @@ def fit_battery_polarization(replay: pd.DataFrame) -> Dict[str, Any]:
 
     rmse_before = float(np.sqrt(np.mean(residual[training_valid] ** 2)))
     if best is None:
-        return {
+        return {                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "adopted": False,
             "reason": "no_finite_candidate",
             "sample_count": int(base_valid.sum()),
@@ -659,7 +659,7 @@ def fit_battery_polarization(replay: pd.DataFrame) -> Dict[str, Any]:
         and np.isfinite(validation_ratio)
         and validation_ratio <= 1.0
     )
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "adopted": adopted,
         "reason": (
             "bounded_1rc_improves_training_and_last_day_holdout_rmse"
@@ -686,7 +686,7 @@ def fit_battery_polarization(replay: pd.DataFrame) -> Dict[str, Any]:
     }
 
 
-def apply_battery_polarization(
+def apply_battery_polarization(                                    # [関数定義] apply_battery_polarization の処理実行ブロック
     replay: pd.DataFrame,
     dynamic_fit: Dict[str, Any],
     *,
@@ -698,7 +698,7 @@ def apply_battery_polarization(
     )
     if not bool(dynamic_fit.get("adopted", False)):
         out["battery_polarization_v"] = 0.0
-        return out
+        return out                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
     state = polarization_current_trace(
         out,
         current_column=current_column,
@@ -707,10 +707,10 @@ def apply_battery_polarization(
     polarization_v = float(dynamic_fit["r_polarization_ohm"]) * state
     out["battery_polarization_v"] = polarization_v
     out["battery_voltage_v_pred"] = out["battery_voltage_v_pred_static"] - polarization_v
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def resolve_fit_plan(options: dict | None, *, quality: str) -> Dict[str, Any]:
+def resolve_fit_plan(options: dict | None, *, quality: str) -> Dict[str, Any]:  # [関数定義] resolve_fit_plan の処理実行ブロック
     options = options if isinstance(options, dict) else {}
     quality_norm = str(quality or options.get("fit_quality", "standard")).strip().lower()
     if quality_norm not in FIT_QUALITY_PRESETS:
@@ -751,10 +751,10 @@ def resolve_fit_plan(options: dict | None, *, quality: str) -> Dict[str, Any]:
     plan["sensor_filter"] = options.get("sensor_filter", {})
     plan["acceleration_observation"] = options.get("acceleration_observation", {})
     plan["grade_observation"] = options.get("grade_observation", {})
-    return plan
+    return plan                                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def resolve_identification_output_layout(
+def resolve_identification_output_layout(                          # [関数定義] resolve_identification_output_layout の処理実行ブロック
     package_dir: Path,
     profile_cfg: dict,
     *,
@@ -771,7 +771,7 @@ def resolve_identification_output_layout(
     tag = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(raw_tag).strip()).strip("._")
     run_root = output_root / "runs" / tag if tag else output_root
     report_root = run_root / "reports" if tag else package_dir / "outputs" / "reports"
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "tag": tag,
         "output_root": output_root,
         "run_root": run_root,
@@ -781,7 +781,7 @@ def resolve_identification_output_layout(
     }
 
 
-def identification_profile_output_path(
+def identification_profile_output_path(                            # [関数定義] identification_profile_output_path の処理実行ブロック
     canonical_profile: Path,
     run_output_dir: Path,
     *,
@@ -789,29 +789,29 @@ def identification_profile_output_path(
     adopt_profile: bool,
 ) -> Path:
     if str(output_tag).strip() and not adopt_profile:
-        return Path(run_output_dir) / "profile_candidate.yaml"
-    return Path(canonical_profile)
+        return Path(run_output_dir) / "profile_candidate.yaml"     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return Path(canonical_profile)                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def load_ocv_df(profile_cfg: dict, profile_yaml: Path) -> pd.DataFrame:
+def load_ocv_df(profile_cfg: dict, profile_yaml: Path) -> pd.DataFrame:  # [関数定義] load_ocv_df の処理実行ブロック
     raw = str((profile_cfg.get("paths", {}) or {}).get("ocv_soc_map", "") or "").strip()
     if not raw:
         raise FileNotFoundError("profile.paths.ocv_soc_map is required")
     ocv_path = resolve_relative(profile_yaml.parent, raw)
-    return pd.read_csv(ocv_path)
+    return pd.read_csv(ocv_path)                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def build_source_map_assets(profile_cfg: dict, profile_yaml: Path) -> Dict[str, Path]:
+def build_source_map_assets(profile_cfg: dict, profile_yaml: Path) -> Dict[str, Path]:  # [関数定義] build_source_map_assets の処理実行ブロック
     base_dir = profile_yaml.parent
     paths = profile_cfg.get("paths", {}) or {}
 
-    def rel(key: str, fallback: str | None = None) -> Path:
+    def rel(key: str, fallback: str | None = None) -> Path:        # [関数定義] rel の処理実行ブロック
         raw = str(paths.get(key, fallback or "") or "").strip()
         if not raw:
             raise FileNotFoundError(f"profile.paths.{key} is required")
-        return resolve_relative(base_dir, raw)
+        return resolve_relative(base_dir, raw)                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "drive_eff_map": rel("drive_eff_map"),
         "drive_map_eco": rel("drive_map_eco", paths.get("drive_eff_map", "")),
         "drive_map_power": rel("drive_map_power", paths.get("drive_eff_map", "")),
@@ -827,15 +827,15 @@ def build_source_map_assets(profile_cfg: dict, profile_yaml: Path) -> Dict[str, 
         raw = str(paths.get(key, "") or "").strip()
         if raw:
             assets[key] = resolve_relative(base_dir, raw)
-    return assets
+    return assets                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def apply_actual_event_annotations(work: pd.DataFrame, payload: dict | None) -> pd.DataFrame:
+def apply_actual_event_annotations(work: pd.DataFrame, payload: dict | None) -> pd.DataFrame:  # [関数定義] apply_actual_event_annotations の処理実行ブロック
     if not isinstance(payload, dict):
-        return work
+        return work                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
     events = payload.get("events", payload)
     if not isinstance(events, list) or not events:
-        return work
+        return work                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
     out = work.copy()
     for key in ("exclude_power_fit", "exclude_voltage_fit", "exclude_weather_fit"):
         if key not in out.columns:
@@ -869,16 +869,16 @@ def apply_actual_event_annotations(work: pd.DataFrame, payload: dict | None) -> 
                 touched = True
         if touched:
             _append_reason_column(out, mask, reason)
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def truncate_at_retire_event(work: pd.DataFrame, payload: dict | None) -> pd.DataFrame:
+def truncate_at_retire_event(work: pd.DataFrame, payload: dict | None) -> pd.DataFrame:  # [関数定義] truncate_at_retire_event の処理実行ブロック
     """End historical replay at the first authoritative retirement timestamp."""
     if not isinstance(payload, dict):
-        return work
+        return work                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
     events = payload.get("events", payload)
     if not isinstance(events, list):
-        return work
+        return work                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
     cutoffs: list[pd.Timestamp] = []
     for event in events:
         if not isinstance(event, dict) or str(event.get("kind", "")).strip().lower() != "retire_event":
@@ -892,16 +892,16 @@ def truncate_at_retire_event(work: pd.DataFrame, payload: dict | None) -> pd.Dat
         except Exception:
             continue
     if not cutoffs:
-        return work
+        return work                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
     cutoff = min(cutoffs)
     time_utc = pd.to_datetime(work["time_utc"], format="mixed", utc=True, errors="coerce")
     retained = work.loc[time_utc <= cutoff].copy()
     if retained.empty:
         raise ValueError(f"retire-event cutoff {cutoff.isoformat()} removed the complete replay")
-    return retained.reset_index(drop=True)
+    return retained.reset_index(drop=True)                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def normalize_generic_log(
+def normalize_generic_log(                                         # [関数定義] normalize_generic_log の処理実行ブロック
     log_csv: Path,
     *,
     actual_event_payload: dict | None = None,
@@ -1000,10 +1000,10 @@ def normalize_generic_log(
     work = truncate_at_retire_event(work, actual_event_payload)
     if base_model is not None:
         work = apply_sensor_quality_annotations(work, base_model=base_model, options=options)
-    return work
+    return work                                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def build_terminal_anchor(log_df: pd.DataFrame, ocv_df: pd.DataFrame, base_model, anchor_km: float) -> Dict[str, float]:
+def build_terminal_anchor(log_df: pd.DataFrame, ocv_df: pd.DataFrame, base_model, anchor_km: float) -> Dict[str, float]:  # [関数定義] build_terminal_anchor の処理実行ブロック
     valid = (
         np.isfinite(log_df["battery_voltage_v"])
         & np.isfinite(log_df["battery_current_a"])
@@ -1027,7 +1027,7 @@ def build_terminal_anchor(log_df: pd.DataFrame, ocv_df: pd.DataFrame, base_model
         )
         for row in window.itertuples(index=False)
     ]
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "count": int(len(window)),
         "s_km": float(window["s_km"].median()),
         "time_utc": pd.to_datetime(window["time_utc"].iloc[-1], utc=True).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -1038,7 +1038,7 @@ def build_terminal_anchor(log_df: pd.DataFrame, ocv_df: pd.DataFrame, base_model
     }
 
 
-def terminal_metrics(
+def terminal_metrics(                                              # [関数定義] terminal_metrics の処理実行ブロック
     replay_df: pd.DataFrame,
     ocv_df: pd.DataFrame,
     base_model,
@@ -1077,7 +1077,7 @@ def terminal_metrics(
             for row in window.itertuples(index=False)
         ]
         soc_obs_value = float(np.nanmedian(np.asarray(soc_obs, dtype=float)))
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "retire_anchor_s_km": float(window["s_km"].median()),
         "retire_anchor_voltage_obs_v": float(window["battery_voltage_v_obs"].median()),
         "retire_anchor_voltage_pred_v": float(window["battery_voltage_v_pred"].median()),
@@ -1087,7 +1087,7 @@ def terminal_metrics(
     }
 
 
-def replay_day_metrics(replay_df: pd.DataFrame) -> list[dict]:
+def replay_day_metrics(replay_df: pd.DataFrame) -> list[dict]:     # [関数定義] replay_day_metrics の処理実行ブロック
     rows: list[dict] = []
     for day, group in replay_df.groupby("day", dropna=False):
         power_mask = ~group["exclude_power_fit"]
@@ -1105,10 +1105,10 @@ def replay_day_metrics(replay_df: pd.DataFrame) -> list[dict]:
                 "excluded_voltage_points": int(pd.to_numeric(group["exclude_voltage_fit"], errors="coerce").fillna(False).astype(bool).sum()),
             }
         )
-    return rows
+    return rows                                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def identification_selection_score(metrics: Dict[str, float]) -> float:
+def identification_selection_score(metrics: Dict[str, float]) -> float:  # [関数定義] identification_selection_score の処理実行ブロック
     power_rmse = float(metrics.get("power_rmse_clean_w", float("inf")))
     robust_power_rmse = float(metrics.get("power_residual_mean_120s_rmse_w", power_rmse))
     energy_rmse_25km = float(metrics.get("energy_error_25km_rmse_wh", float("inf")))
@@ -1131,7 +1131,7 @@ def identification_selection_score(metrics: Dict[str, float]) -> float:
         float(metrics.get("end_to_end_retire_anchor_soc_error", float("inf")))
     )
     fit_window_term = 0.35 * float(metrics.get("power_rmse_fit_window_w", power_term))
-    return (
+    return (                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         power_term
         + energy_term
         + independent_pv_term
@@ -1144,7 +1144,7 @@ def identification_selection_score(metrics: Dict[str, float]) -> float:
     )
 
 
-def condition_vehicle_fit_on_measured_pv(frame: pd.DataFrame) -> pd.DataFrame:
+def condition_vehicle_fit_on_measured_pv(frame: pd.DataFrame) -> pd.DataFrame:  # [関数定義] condition_vehicle_fit_on_measured_pv の処理実行ブロック
     """Use measured array power when identifying vehicle-side coefficients.
 
     Forecast/PV-map error is validated separately.  Feeding predicted PV into the
@@ -1155,16 +1155,16 @@ def condition_vehicle_fit_on_measured_pv(frame: pd.DataFrame) -> pd.DataFrame:
     predicted = pd.to_numeric(out.get("solar_power_w_model"), errors="coerce")
     measured = pd.to_numeric(out.get("solar_power_w_obs"), errors="coerce")
     if predicted is None or measured is None:
-        return out
+        return out                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
     measured = measured.clip(lower=0.0)
     usable = measured.notna()
     out["solar_power_w_forecast_model"] = predicted
     out["solar_power_w_model"] = predicted.where(~usable, measured)
     out["vehicle_fit_solar_source"] = np.where(usable, "measured", "forecast_fallback")
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def calibrate_solar_measurement_to_pack(
+def calibrate_solar_measurement_to_pack(                           # [関数定義] calibrate_solar_measurement_to_pack の処理実行ブロック
     frame: pd.DataFrame,
     *,
     known_aux_power_w: float,
@@ -1277,10 +1277,10 @@ def calibrate_solar_measurement_to_pack(
     out["solar_power_w_obs_raw"] = raw
     out["solar_measurement_gain_to_pack"] = float(gain)
     out["solar_power_w_obs"] = raw * float(gain)
-    return out, result
+    return out, result                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _shift_acceleration_within_segments(
+def _shift_acceleration_within_segments(                           # [関数定義] _shift_acceleration_within_segments の処理実行ブロック
     frame: pd.DataFrame,
     sample_shift: int,
     acceleration: pd.Series | None = None,
@@ -1289,10 +1289,10 @@ def _shift_acceleration_within_segments(
     if acceleration is None:
         acceleration = pd.to_numeric(frame["accel_ms2"], errors="coerce")
     segment_id = pd.Series(replay_segment_start_mask(frame), index=frame.index).cumsum()
-    return acceleration.groupby(segment_id).shift(int(sample_shift))
+    return acceleration.groupby(segment_id).shift(int(sample_shift))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _acceleration_trace_from_speed(
+def _acceleration_trace_from_speed(                                # [関数定義] _acceleration_trace_from_speed の処理実行ブロック
     frame: pd.DataFrame,
     *,
     method: str,
@@ -1327,10 +1327,10 @@ def _acceleration_trace_from_speed(
             ).median()
         else:
             raise ValueError(f"unsupported acceleration filter method: {method}")
-    return smoothed.fillna(0.0).clip(lower=-1.5, upper=1.5)
+    return smoothed.fillna(0.0).clip(lower=-1.5, upper=1.5)        # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _bilinear_interp_array(x_grid, y_grid, values, x, y) -> np.ndarray:
+def _bilinear_interp_array(x_grid, y_grid, values, x, y) -> np.ndarray:  # [関数定義] _bilinear_interp_array の処理実行ブロック
     x_grid = np.asarray(x_grid, dtype=float)
     y_grid = np.asarray(y_grid, dtype=float)
     values = np.asarray(values, dtype=float)
@@ -1342,7 +1342,7 @@ def _bilinear_interp_array(x_grid, y_grid, values, x, y) -> np.ndarray:
     y0, y1 = y_grid[iy], y_grid[iy + 1]
     wx = np.divide(x - x0, x1 - x0, out=np.zeros_like(x), where=x1 != x0)
     wy = np.divide(y - y0, y1 - y0, out=np.zeros_like(y), where=y1 != y0)
-    return (
+    return (                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         (1.0 - wx) * (1.0 - wy) * values[ix, iy]
         + wx * (1.0 - wy) * values[ix + 1, iy]
         + (1.0 - wx) * wy * values[ix, iy + 1]
@@ -1350,7 +1350,7 @@ def _bilinear_interp_array(x_grid, y_grid, values, x, y) -> np.ndarray:
     )
 
 
-def _map_efficiency_array(base_model, maps, speed_ms, torque_nm, *, regen: bool) -> np.ndarray:
+def _map_efficiency_array(base_model, maps, speed_ms, torque_nm, *, regen: bool) -> np.ndarray:  # [関数定義] _map_efficiency_array の処理実行ブロック
     mode = str(base_model.drive_mode or "default").lower()
     if mode in {"eco", "power"}:
         selected_power = np.full(len(speed_ms), mode == "power", dtype=bool)
@@ -1370,10 +1370,10 @@ def _map_efficiency_array(base_model, maps, speed_ms, torque_nm, *, regen: bool)
     # The candidate scale is applied by the caller. Inheriting the scale from
     # the input profile here would apply old_scale * candidate_scale during
     # fitting, while the generated profile contains candidate_scale only.
-    return np.clip(result, 0.40 if regen else 0.55, 0.95 if regen else 0.99)
+    return np.clip(result, 0.40 if regen else 0.55, 0.95 if regen else 0.99)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _motion_predictions_for_acceleration(
+def _motion_predictions_for_acceleration(                          # [関数定義] _motion_predictions_for_acceleration の処理実行ブロック
     frame: pd.DataFrame,
     acceleration: pd.Series,
     base_model,
@@ -1437,10 +1437,10 @@ def _motion_predictions_for_acceleration(
         * base_model.p.inverter_eta
         * np.abs(p_mech[~positive])
     )
-    return electrical + float(mot.p_aux_w) - solar
+    return electrical + float(mot.p_aux_w) - solar                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def fit_acceleration_timestamp_alignment(
+def fit_acceleration_timestamp_alignment(                          # [関数定義] fit_acceleration_timestamp_alignment の処理実行ブロック
     frame: pd.DataFrame,
     base_model,
     mot: MotionFitResult,
@@ -1467,7 +1467,7 @@ def fit_acceleration_timestamp_alignment(
         "accel_ms2",
     }
     if not enabled or not required.issubset(frame.columns):
-        return frame.copy(), {
+        return frame.copy(), {                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "enabled": enabled,
             "adopted": False,
             "reason": "disabled_or_missing_columns",
@@ -1525,7 +1525,7 @@ def fit_acceleration_timestamp_alignment(
     train_mask = base_valid & (day_values != holdout_day)
     validation_mask = base_valid & (day_values == holdout_day)
     if int(train_mask.sum()) < int(cfg.get("minimum_train_samples", 500)):
-        return out, {
+        return out, {                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "enabled": True,
             "adopted": False,
             "reason": "insufficient_training_samples",
@@ -1550,9 +1550,9 @@ def fit_acceleration_timestamp_alignment(
                 out, aligned, base_model, mot
             )
 
-            def rmse(mask: pd.Series) -> float:
+            def rmse(mask: pd.Series) -> float:                    # [関数定義] rmse の処理実行ブロック
                 use = mask.to_numpy(dtype=bool) & np.isfinite(predicted) & np.isfinite(observed)
-                return (
+                return (                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
                     float(np.sqrt(np.mean(np.square(observed[use] - predicted[use]))))
                     if use.any()
                     else float("nan")
@@ -1613,7 +1613,7 @@ def fit_acceleration_timestamp_alignment(
     out["acceleration_timestamp_lag_sec"] = selected_lag
     out["acceleration_filter_method"] = selected_method
     out["acceleration_filter_window_samples"] = selected_window
-    return out, {
+    return out, {                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "enabled": True,
         "adopted": adopted,
         "method": "fixed-mass GNSS acceleration filter/lag selection with last-race-day holdout",
@@ -1640,7 +1640,7 @@ def fit_acceleration_timestamp_alignment(
     }
 
 
-def _grade_from_smoothed_elevation(
+def _grade_from_smoothed_elevation(                                # [関数定義] _grade_from_smoothed_elevation の処理実行ブロック
     distance_km: np.ndarray,
     elevation_m: np.ndarray,
     smoothing_window_km: float,
@@ -1651,7 +1651,7 @@ def _grade_from_smoothed_elevation(
         samples += 1
     samples = min(samples, len(elevation_m) if len(elevation_m) % 2 else len(elevation_m) - 1)
     if samples < 3:
-        return np.gradient(elevation_m, distance_km) * 0.1
+        return np.gradient(elevation_m, distance_km) * 0.1         # [戻り値] 計算結果・計算状態の呼び出し元への返却
     smoothed = savgol_filter(
         elevation_m,
         samples,
@@ -1659,10 +1659,10 @@ def _grade_from_smoothed_elevation(
         mode="interp",
     )
     # elevation [m] / distance [km] * 0.1 converts to percent grade.
-    return np.gradient(smoothed, distance_km) * 0.1
+    return np.gradient(smoothed, distance_km) * 0.1                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def fit_grade_observation_alignment(
+def fit_grade_observation_alignment(                               # [関数定義] fit_grade_observation_alignment の処理実行ブロック
     frame: pd.DataFrame,
     route_profile_csv: Path,
     output_csv: Path,
@@ -1678,7 +1678,7 @@ def fit_grade_observation_alignment(
     """
     cfg = options if isinstance(options, dict) else {}
     if not bool(cfg.get("enabled", True)) or not route_profile_csv.is_file():
-        return frame.copy(), {
+        return frame.copy(), {                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "enabled": bool(cfg.get("enabled", True)),
             "adopted": False,
             "reason": "disabled_or_route_profile_missing",
@@ -1694,7 +1694,7 @@ def fit_grade_observation_alignment(
         None,
     )
     if distance_column is None or elevation_column is None:
-        return frame.copy(), {
+        return frame.copy(), {                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "enabled": True,
             "adopted": False,
             "reason": "route_profile_requires_distance_and_elevation",
@@ -1709,7 +1709,7 @@ def fit_grade_observation_alignment(
     ).dropna()
     source = source.groupby("dist_km", as_index=False).mean().sort_values("dist_km")
     if len(source) < 21 or not np.all(np.diff(source["dist_km"].to_numpy()) > 0.0):
-        return frame.copy(), {
+        return frame.copy(), {                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "enabled": True,
             "adopted": False,
             "reason": "insufficient_monotonic_route_elevation_samples",
@@ -1728,7 +1728,7 @@ def fit_grade_observation_alignment(
         "slope_pct",
     }
     if not required.issubset(frame.columns):
-        return frame.copy(), {
+        return frame.copy(), {                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "enabled": True,
             "adopted": False,
             "reason": "replay_missing_grade_validation_columns",
@@ -1749,7 +1749,7 @@ def fit_grade_observation_alignment(
     min_train = int(cfg.get("minimum_train_samples", 500))
     min_validation = int(cfg.get("minimum_validation_samples", 100))
     if int(train_mask.sum()) < min_train or int(validation_mask.sum()) < min_validation:
-        return out, {
+        return out, {                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "enabled": True,
             "adopted": False,
             "reason": "insufficient_train_or_validation_samples",
@@ -1759,9 +1759,9 @@ def fit_grade_observation_alignment(
 
     acceleration = pd.to_numeric(out["accel_ms2"], errors="coerce").fillna(0.0)
 
-    def rmse(predicted: np.ndarray, mask: np.ndarray) -> float:
+    def rmse(predicted: np.ndarray, mask: np.ndarray) -> float:    # [関数定義] rmse の処理実行ブロック
         usable = mask & np.isfinite(predicted) & np.isfinite(observed)
-        return float(np.sqrt(np.mean(np.square(observed[usable] - predicted[usable]))))
+        return float(np.sqrt(np.mean(np.square(observed[usable] - predicted[usable]))))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     baseline_predicted = _motion_predictions_for_acceleration(
         out, acceleration, base_model, mot
@@ -1827,7 +1827,7 @@ def fit_grade_observation_alignment(
         and validation_ratio <= float(cfg.get("maximum_validation_rmse_ratio", 1.02))
     )
     if not adopted:
-        return out, {
+        return out, {                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "enabled": True,
             "adopted": False,
             "reason": "training_gain_or_holdout_gate_failed",
@@ -1869,7 +1869,7 @@ def fit_grade_observation_alignment(
     ensure_dir(output_csv.parent)
     adopted_route.to_csv(output_csv, index=False)
     top_candidates = sorted(records, key=lambda row: float(row["training_rmse_w"]))[:25]
-    return out, {
+    return out, {                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "enabled": True,
         "adopted": True,
         "reason": "training_improvement_and_last_day_holdout_passed",
@@ -1895,7 +1895,7 @@ def fit_grade_observation_alignment(
     }, output_csv
 
 
-def pv_leave_one_day_out_validation(
+def pv_leave_one_day_out_validation(                               # [関数定義] pv_leave_one_day_out_validation の処理実行ブロック
     frame: pd.DataFrame,
     model,
     *,
@@ -1959,12 +1959,12 @@ def pv_leave_one_day_out_validation(
         deployed_residuals.extend((observed.loc[deployed] - modeled.loc[deployed]).tolist())
         fold_count += 1
 
-    def rmse(values) -> float:
+    def rmse(values) -> float:                                     # [関数定義] rmse の処理実行ブロック
         array = np.asarray(values, dtype=float)
         array = array[np.isfinite(array)]
-        return float(np.sqrt(np.mean(np.square(array)))) if array.size else float("nan")
+        return float(np.sqrt(np.mean(np.square(array)))) if array.size else float("nan")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "pv_lodo_fold_count": int(fold_count),
         "pv_lodo_moving_rmse_w": rmse(moving_residuals),
         "pv_lodo_moving_sample_count": int(len(moving_residuals)),
@@ -1973,24 +1973,24 @@ def pv_leave_one_day_out_validation(
     }
 
 
-def add_end_to_end_metrics(primary: Dict[str, float], end_to_end: Dict[str, float]) -> Dict[str, float]:
+def add_end_to_end_metrics(primary: Dict[str, float], end_to_end: Dict[str, float]) -> Dict[str, float]:  # [関数定義] add_end_to_end_metrics の処理実行ブロック
     out = dict(primary)
     for key, value in end_to_end.items():
         out[f"end_to_end_{key}"] = value
     out["vehicle_fit_solar_source"] = "measured_when_available"
     out["end_to_end_solar_source"] = "weather_and_pv_model"
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def add_battery_conditional_metrics(primary: Dict[str, float], conditional: Dict[str, float]) -> Dict[str, float]:
+def add_battery_conditional_metrics(primary: Dict[str, float], conditional: Dict[str, float]) -> Dict[str, float]:  # [関数定義] add_battery_conditional_metrics の処理実行ブロック
     out = dict(primary)
     for key, value in conditional.items():
         out[f"battery_conditional_{key}"] = value
     out["battery_conditional_source"] = "observed_pack_power_and_current"
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_replay_csv(frame: pd.DataFrame, output_path: Path, *, chunk_rows: int = 5000) -> None:
+def write_replay_csv(frame: pd.DataFrame, output_path: Path, *, chunk_rows: int = 5000) -> None:  # [関数定義] write_replay_csv の処理実行ブロック
     """Write large replay tables without materializing a full string copy."""
     ensure_dir(output_path.parent)
     rows = max(1, int(chunk_rows))
@@ -2007,7 +2007,7 @@ def write_replay_csv(frame: pd.DataFrame, output_path: Path, *, chunk_rows: int 
         )
 
 
-def apply_fit_to_cfg(
+def apply_fit_to_cfg(                                              # [関数定義] apply_fit_to_cfg の処理実行ブロック
     cfg: dict,
     *,
     package_dir: Path,
@@ -2121,10 +2121,10 @@ def apply_fit_to_cfg(
     mpc.setdefault("control_stop_stationary_speed_kmh", 2.0)
     mpc.setdefault("control_stop_brake_decel_kmhps", 3.5)
     mpc.setdefault("control_stop_brake_margin_km", 0.03)
-    return cfg
+    return cfg                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def update_profile(
+def update_profile(                                                # [関数定義] update_profile の処理実行ブロック
     profile_yaml: Path,
     cfg: dict,
     map_assets: Dict[str, Path],
@@ -2168,7 +2168,7 @@ def update_profile(
         yaml.safe_dump(cfg, f, sort_keys=False, allow_unicode=True)
 
 
-def update_profile_artifact_references(
+def update_profile_artifact_references(                            # [関数定義] update_profile_artifact_references の処理実行ブロック
     profile_yaml: Path,
     package_dir: Path,
     *,
@@ -2191,7 +2191,7 @@ def update_profile_artifact_references(
     )
 
 
-def write_terminal_consistency_from_anchor(
+def write_terminal_consistency_from_anchor(                        # [関数定義] write_terminal_consistency_from_anchor の処理実行ブロック
     output_path: Path,
     terminal_anchor: Dict[str, Any],
     *,
@@ -2326,10 +2326,10 @@ def write_terminal_consistency_from_anchor(
         encoding="utf-8",
         newline="\n",
     )
-    return output_path
+    return output_path                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def sync_canonical_fullsim_profile(
+def sync_canonical_fullsim_profile(                                # [関数定義] sync_canonical_fullsim_profile の処理実行ブロック
     package_dir: Path,
     *,
     map_assets: Dict[str, Path],
@@ -2342,7 +2342,7 @@ def sync_canonical_fullsim_profile(
 ) -> Path | None:
     fullsim_yaml = package_dir / "profile_fullsim_selflearned.yaml"
     if not fullsim_yaml.exists():
-        return None
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
     with fullsim_yaml.open("r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f) or {}
     if not isinstance(cfg, dict):
@@ -2361,10 +2361,10 @@ def sync_canonical_fullsim_profile(
     )
     with fullsim_yaml.open("w", encoding="utf-8", newline="\n") as f:
         yaml.safe_dump(cfg, f, sort_keys=False, allow_unicode=True)
-    return fullsim_yaml
+    return fullsim_yaml                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_generic_summary(
+def write_generic_summary(                                         # [関数定義] write_generic_summary の処理実行ブロック
     package_dir: Path,
     manifest_path: Path,
     profile_yaml: Path,
@@ -2430,10 +2430,10 @@ def write_generic_summary(
     }
     with out_path.open("w", encoding="utf-8", newline="\n") as f:
         yaml.safe_dump(payload, f, sort_keys=False, allow_unicode=True)
-    return out_path
+    return out_path                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_generic_report(
+def write_generic_report(                                          # [関数定義] write_generic_report の処理実行ブロック
     package_dir: Path,
     profile_yaml: Path,
     manifest_path: Path,
@@ -3083,10 +3083,10 @@ $R_{{int}}$ factor & {post_refine.rint_factor:.5f} \\\\
 """
     tex_path.write_text(textwrap.dedent(tex).strip() + "\n", encoding="utf-8", newline="\n")
     compile_tex(tex_path)
-    return md_path, pdf_path
+    return md_path, pdf_path                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def main() -> None:
+def main() -> None:                                                # [関数定義] main の処理実行ブロック
     ap = argparse.ArgumentParser()
     ap.add_argument("--profile", required=True)
     ap.add_argument("--manifest")

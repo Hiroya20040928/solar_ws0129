@@ -6,10 +6,10 @@ from setuptools import setup
 package_name = 'mpc_solarcar'
 
 
-def collect_data_files(src_dir):
+def collect_data_files(src_dir):                                   # [関数定義] collect_data_files の処理実行ブロック
     collected = []
     if not os.path.isdir(src_dir):
-        return collected
+        return collected                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
     for root, dirs, files in os.walk(src_dir):
         dirs[:] = [d for d in dirs if d != '__pycache__']
         if not files:
@@ -18,7 +18,7 @@ def collect_data_files(src_dir):
             os.path.join('share', package_name, root),
             [os.path.join(root, f) for f in files],
         ))
-    return collected
+    return collected                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
 data_files = [

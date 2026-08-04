@@ -5,7 +5,7 @@ import socket
 import time
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     ap = argparse.ArgumentParser()
     ap.add_argument('--host', default='192.168.50.10')
     ap.add_argument('--port', type=int, default=52001)
@@ -38,5 +38,5 @@ def main():
         time.sleep(args.period_sec)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
     main()

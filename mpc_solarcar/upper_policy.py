@@ -2,18 +2,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
 
 
-def _finite_vector(values, *, name: str) -> np.ndarray:
+def _finite_vector(values, *, name: str) -> np.ndarray:            # [関数定義] _finite_vector の処理実行ブロック
     vector = np.asarray(values, dtype=float)
     if vector.ndim != 1 or len(vector) == 0 or not np.all(np.isfinite(vector)):
         raise ValueError(f"{name} must be a non-empty finite one-dimensional array")
-    return vector
+    return vector                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def absolute_control_distances(start_s_km: float, relative_control_s_km) -> np.ndarray:
+def absolute_control_distances(start_s_km: float, relative_control_s_km) -> np.ndarray:  # [関数定義] absolute_control_distances の処理実行ブロック
     """Convert a horizon-relative control mesh to route-absolute distances."""
     start = float(start_s_km)
     if not np.isfinite(start):
@@ -21,10 +21,10 @@ def absolute_control_distances(start_s_km: float, relative_control_s_km) -> np.n
     relative = _finite_vector(relative_control_s_km, name="relative_control_s_km")
     if np.any(relative < -1.0e-9) or np.any(np.diff(relative) < -1.0e-9):
         raise ValueError("relative_control_s_km must be non-negative and non-decreasing")
-    return start + relative
+    return start + relative                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def shift_upper_policy_warm_start(
+def shift_upper_policy_warm_start(                                 # [関数定義] shift_upper_policy_warm_start の処理実行ブロック
     previous_control_s_km,
     previous_speeds_kmh,
     current_control_s_km,
@@ -51,10 +51,10 @@ def shift_upper_policy_warm_start(
     previous_v = previous_v[keep]
 
     shifted = np.interp(current_s, previous_s, previous_v)
-    return np.clip(shifted, float(minimum_speed_kmh), float(maximum_speed_kmh))
+    return np.clip(shifted, float(minimum_speed_kmh), float(maximum_speed_kmh))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def load_upper_policy_csv(path: str | Path) -> pd.DataFrame:
+def load_upper_policy_csv(path: str | Path) -> pd.DataFrame:       # [関数定義] load_upper_policy_csv の処理実行ブロック
     """Load a distance-indexed upper speed policy with strict schema checks."""
     policy_path = Path(path)
     frame = pd.read_csv(policy_path)
@@ -75,10 +75,10 @@ def load_upper_policy_csv(path: str | Path) -> pd.DataFrame:
         raise ValueError(f"upper policy needs at least two finite distance points: {policy_path}")
     if float(out["s_km"].iloc[-1]) <= float(out["s_km"].iloc[0]):
         raise ValueError(f"upper policy distance must increase: {policy_path}")
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def interpolate_upper_policy(
+def interpolate_upper_policy(                                      # [関数定義] interpolate_upper_policy の処理実行ブロック
     frame: pd.DataFrame,
     control_s_km,
     *,
@@ -92,4 +92,4 @@ def interpolate_upper_policy(
     if len(source_s) < 2 or not np.all(np.isfinite(source_s)) or not np.all(np.isfinite(source_v)):
         raise ValueError("upper policy contains non-finite or insufficient points")
     interpolated = np.interp(control_s, source_s, source_v)
-    return np.clip(interpolated, float(minimum_speed_kmh), float(maximum_speed_kmh))
+    return np.clip(interpolated, float(minimum_speed_kmh), float(maximum_speed_kmh))  # [戻り値] 計算結果・計算状態の呼び出し元への返却

@@ -4,7 +4,7 @@ import json
 import socket
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     ap = argparse.ArgumentParser()
     ap.add_argument('--bind_host', default='0.0.0.0')
     ap.add_argument('--bind_port', type=int, default=52002)
@@ -25,5 +25,5 @@ def main():
         print(json.dumps(obj, ensure_ascii=False, indent=2))
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
     main()

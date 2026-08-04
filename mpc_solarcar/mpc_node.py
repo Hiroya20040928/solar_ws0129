@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import os
 import time
 from collections import deque
 from datetime import datetime, timezone, timedelta
 
-import rclpy
-from rclpy.node import Node
+import rclpy                                                       # [ROS 2] ROS 2 Python クライアントライブラリ (rclpy) のインポート
+from rclpy.node import Node                                        # [ROS 2] ノード基底クラス Node のインポート
 from rclpy.parameter import Parameter
 
-import yaml
-import pandas as pd
-import numpy as np
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
 
 from std_msgs.msg import Bool, Float32, Float32MultiArray, String
 from nav_msgs.msg import Path
@@ -29,14 +29,14 @@ from .upper_cost import load_upper_cost_config, upper_stage_cost, upper_terminal
 from .upper_horizon import build_upper_distance_horizon, plan_segment_index
 
 
-class MPCNode(Node):
+class MPCNode(Node):                                               # [ローカルMPCノード] 周期的(10s)に後退ホライズン最適化を実行する主ROS2ノード
     """
     MPC node with two modes:
       - Default: solarcar MPC (forecast-driven)
       - Passo mode: fuel-minimizing advisory MPC
     """
 
-    def __init__(self):
+    def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
         super().__init__('mpc_node')
         self.declare_parameter('passo_mode', False)
         self.passo_mode = bool(self.get_parameter('passo_mode').value)
@@ -46,7 +46,7 @@ class MPCNode(Node):
             self._init_solar()
 
     # -------------------- common helpers --------------------
-    def _load_stops(self, stop_yaml: str):
+    def _load_stops(self, stop_yaml: str):                         # [関数定義] _load_stops の処理実行ブロック
         self.stops = []
         try:
             with open(stop_yaml, 'r', encoding='utf-8') as f:
@@ -56,7 +56,7 @@ class MPCNode(Node):
         except Exception:
             self.get_logger().info('No stop_points.yaml provided. Running without dwell constraints.')
 
-    def _load_forecast_file(self, path: str):
+    def _load_forecast_file(self, path: str):                      # [関数定義] _load_forecast_file の処理実行ブロック
         self.df = pd.read_csv(path)
         if 'time' in self.df.columns:
             t = pd.to_datetime(self.df['time'], errors='coerce')
@@ -77,16 +77,16 @@ class MPCNode(Node):
         else:
             self.get_logger().warn("forecast CSV has no 'time' column; falling back to index bins.")
 
-    def _read_params_yaml(self, path: str):
+    def _read_params_yaml(self, path: str):                        # [関数定義] _read_params_yaml の処理実行ブロック
         try:
             with open(path, 'r', encoding='utf-8') as f:
                 cfg = yaml.safe_load(f) or {}
-            return cfg if isinstance(cfg, dict) else {}
+            return cfg if isinstance(cfg, dict) else {}            # [戻り値] 計算結果・計算状態の呼び出し元への返却
         except Exception as exc:
             self.get_logger().warn(f'params_yaml load failed: {exc}')
-            return {}
+            return {}                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _apply_declared_yaml_params(self, cfg: dict):
+    def _apply_declared_yaml_params(self, cfg: dict):              # [関数定義] _apply_declared_yaml_params の処理実行ブロック
         if not isinstance(cfg, dict):
             return
         params = []
@@ -110,7 +110,7 @@ class MPCNode(Node):
                 'Skipping undeclared params from params_yaml: ' + ', '.join(skipped)
             )
 
-    def _apply_model_cfg(self, model_cfg: dict):
+    def _apply_model_cfg(self, model_cfg: dict):                   # [関数定義] _apply_model_cfg の処理実行ブロック
         if not isinstance(model_cfg, dict):
             return
         motor_type = None
@@ -147,7 +147,7 @@ class MPCNode(Node):
                 if 'gear_eta' not in model_cfg:
                     self.model.p.gear_eta = 1.0
 
-    def _maybe_reload_forecast(self):
+    def _maybe_reload_forecast(self):                              # [関数定義] _maybe_reload_forecast の処理実行ブロック
         if self.forecast_reload_sec <= 0:
             return
         now = time.monotonic()
@@ -167,7 +167,7 @@ class MPCNode(Node):
             except Exception as exc:
                 self.get_logger().warn(f'Forecast reload failed: {exc}')
 
-    def _on_s_km_solar(self, msg: Float32):
+    def _on_s_km_solar(self, msg: Float32):                        # [関数定義] _on_s_km_solar の処理実行ブロック
         try:
             value = finite_float(msg.data)
             if math.isfinite(value):
@@ -177,7 +177,7 @@ class MPCNode(Node):
         except Exception:
             pass
 
-    def _on_speed_solar(self, msg: Float32):
+    def _on_speed_solar(self, msg: Float32):                       # [関数定義] _on_speed_solar の処理実行ブロック
         try:
             value = finite_float(msg.data)
             if math.isfinite(value):
@@ -187,7 +187,7 @@ class MPCNode(Node):
         except Exception:
             pass
 
-    def _on_soc_solar(self, msg: Float32):
+    def _on_soc_solar(self, msg: Float32):                         # [関数定義] _on_soc_solar の処理実行ブロック
         try:
             value = finite_float(msg.data)
             if math.isfinite(value) and value > 1.5:
@@ -199,7 +199,7 @@ class MPCNode(Node):
         except Exception:
             pass
 
-    def _on_tb_solar(self, msg: Float32):
+    def _on_tb_solar(self, msg: Float32):                          # [関数定義] _on_tb_solar の処理実行ブロック
         try:
             value = finite_float(msg.data)
             if math.isfinite(value):
@@ -209,7 +209,7 @@ class MPCNode(Node):
         except Exception:
             pass
 
-    def _on_i_solar(self, msg: Float32):
+    def _on_i_solar(self, msg: Float32):                           # [関数定義] _on_i_solar の処理実行ブロック
         try:
             value = finite_float(msg.data)
             if math.isfinite(value):
@@ -219,7 +219,7 @@ class MPCNode(Node):
         except Exception:
             pass
 
-    def _on_v_solar(self, msg: Float32):
+    def _on_v_solar(self, msg: Float32):                           # [関数定義] _on_v_solar の処理実行ブロック
         try:
             value = finite_float(msg.data)
             if math.isfinite(value):
@@ -229,7 +229,7 @@ class MPCNode(Node):
         except Exception:
             pass
 
-    def _on_calibration(self, msg: String):
+    def _on_calibration(self, msg: String):                        # [関数定義] _on_calibration の処理実行ブロック
         try:
             cfg = yaml.safe_load(msg.data) or {}
         except Exception:
@@ -263,38 +263,38 @@ class MPCNode(Node):
                 pass
         self.calibration_state = cfg
 
-    def _fresh_measurement(self, value, timestamp, timeout_sec):
+    def _fresh_measurement(self, value, timestamp, timeout_sec):   # [関数定義] _fresh_measurement の処理実行ブロック
         now_mono = time.monotonic()
         if not math.isfinite(finite_float(value)):
-            return math.nan
+            return math.nan                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if not fresh_enough(timestamp, timeout_sec, now=now_mono):
-            return math.nan
-        return float(value)
+            return math.nan                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return float(value)                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _measured_speed_kmh(self):
-        return self._fresh_measurement(self.v_now, self.v_now_time, self.speed_meas_timeout_sec)
+    def _measured_speed_kmh(self):                                 # [関数定義] _measured_speed_kmh の処理実行ブロック
+        return self._fresh_measurement(self.v_now, self.v_now_time, self.speed_meas_timeout_sec)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _measured_distance_km(self):
-        return self._fresh_measurement(self.s_meas, self.s_meas_time, self.distance_meas_timeout_sec)
+    def _measured_distance_km(self):                               # [関数定義] _measured_distance_km の処理実行ブロック
+        return self._fresh_measurement(self.s_meas, self.s_meas_time, self.distance_meas_timeout_sec)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _measured_soc(self):
-        return self._fresh_measurement(self.solar_soc_meas, self.solar_soc_time, self.battery_meas_timeout_sec)
+    def _measured_soc(self):                                       # [関数定義] _measured_soc の処理実行ブロック
+        return self._fresh_measurement(self.solar_soc_meas, self.solar_soc_time, self.battery_meas_timeout_sec)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _measured_tb(self):
-        return self._fresh_measurement(self.solar_tb_meas, self.solar_tb_time, self.battery_meas_timeout_sec)
+    def _measured_tb(self):                                        # [関数定義] _measured_tb の処理実行ブロック
+        return self._fresh_measurement(self.solar_tb_meas, self.solar_tb_time, self.battery_meas_timeout_sec)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _measured_i(self):
-        return self._fresh_measurement(self.solar_i_meas, self.solar_i_time, self.battery_meas_timeout_sec)
+    def _measured_i(self):                                         # [関数定義] _measured_i の処理実行ブロック
+        return self._fresh_measurement(self.solar_i_meas, self.solar_i_time, self.battery_meas_timeout_sec)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _measured_v(self):
-        return self._fresh_measurement(self.solar_v_meas, self.solar_v_time, self.battery_meas_timeout_sec)
+    def _measured_v(self):                                         # [関数定義] _measured_v の処理実行ブロック
+        return self._fresh_measurement(self.solar_v_meas, self.solar_v_time, self.battery_meas_timeout_sec)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _plan_warm_start_ms(self, count: int, default_speed_ms: float):
+    def _plan_warm_start_ms(self, count: int, default_speed_ms: float):  # [関数定義] _plan_warm_start_ms の処理実行ブロック
         if count <= 0:
-            return np.zeros(0, dtype=float)
+            return np.zeros(0, dtype=float)                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
         default_ms = max(0.0, float(default_speed_ms))
         if not self.v_plan_kmh:
-            return np.full(count, default_ms, dtype=float)
+            return np.full(count, default_ms, dtype=float)         # [戻り値] 計算結果・計算状態の呼び出し元への返却
         values = [finite_float(v) for v in list(self.v_plan_kmh)[:count]]
         seeded = []
         last_kmh = default_ms * 3.6
@@ -304,11 +304,11 @@ class MPCNode(Node):
             seeded.append(max(0.0, last_kmh) / 3.6)
         while len(seeded) < count:
             seeded.append(max(0.0, last_kmh) / 3.6)
-        return np.array(seeded[:count], dtype=float)
+        return np.array(seeded[:count], dtype=float)               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _shape_lower_ref_seq(self, raw_ref_seq_kmh, seed_kmh: float):
+    def _shape_lower_ref_seq(self, raw_ref_seq_kmh, seed_kmh: float):  # [関数定義] _shape_lower_ref_seq の処理実行ブロック
         if not raw_ref_seq_kmh:
-            return []
+            return []                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
         shaped = []
         prev = max(0.0, float(seed_kmh))
         for raw in raw_ref_seq_kmh:
@@ -324,19 +324,19 @@ class MPCNode(Node):
                 candidate = prev
             shaped.append(float(candidate))
             prev = candidate
-        return shaped
+        return shaped                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _apply_drive_mode_hold(self, requested_mode: str):
+    def _apply_drive_mode_hold(self, requested_mode: str):         # [関数定義] _apply_drive_mode_hold の処理実行ブロック
         requested = str(requested_mode or self.lower_last_mode or 'eco')
         now_mono = time.monotonic()
         if requested == self.lower_last_mode:
-            return self.lower_last_mode
+            return self.lower_last_mode                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if (now_mono - self.last_lower_mode_change) < self.drive_mode_min_hold_sec:
-            return self.lower_last_mode
+            return self.lower_last_mode                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
         self.last_lower_mode_change = now_mono
-        return requested
+        return requested                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _publish_mpc_state(self):
+    def _publish_mpc_state(self):                                  # [関数定義] _publish_mpc_state の処理実行ブロック
         speed_state = 'fresh' if math.isfinite(self._measured_speed_kmh()) else 'stale'
         dist_state = 'fresh' if math.isfinite(self._measured_distance_km()) else 'stale'
         msg = (
@@ -349,7 +349,7 @@ class MPCNode(Node):
         self.pub_mpc_state.publish(String(data=msg))
 
     # -------------------- solarcar mode --------------------
-    def _init_solar(self):
+    def _init_solar(self):                                         # [関数定義] _init_solar の処理実行ブロック
         self.declare_parameter('forecast_csv', 'inputs/forecast_10min.csv')
         self.declare_parameter('maps_dir', 'maps')
         self.declare_parameter('drive_eff_map', '')
@@ -728,27 +728,27 @@ class MPCNode(Node):
             )
 
         # Pubs
-        self.pub_speed = self.create_publisher(Float32, '/planner/speed_cmd', 10)
-        self.pub_upper_speed = self.create_publisher(Float32, '/planner/upper_speed_cmd', 10)
-        self.pub_throttle = self.create_publisher(Float32, '/planner/throttle_cmd_pct', 10)
-        self.pub_drive_mode = self.create_publisher(String, '/planner/drive_mode', 10)
-        self.pub_path = self.create_publisher(Path, '/planner/trajectory', 10)
-        self.pub_plan = self.create_publisher(Float32MultiArray, '/planner/upper_plan', 10)
-        self.pub_lower_plan = self.create_publisher(Float32MultiArray, '/planner/lower_plan', 10)
-        self.pub_env = self.create_publisher(Float32MultiArray, '/planner/env', 10)
-        self.pub_metrics = self.create_publisher(Float32MultiArray, '/planner/metrics', 10)
-        self.pub_status = self.create_publisher(Float32MultiArray, '/planner/status', 10)
-        self.pub_summary = self.create_publisher(Float32MultiArray, '/planner/summary', 10)
-        self.pub_mpc_state = self.create_publisher(String, '/system/mpc_state', 10)
+        self.pub_speed = self.create_publisher(Float32, '/planner/speed_cmd', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_upper_speed = self.create_publisher(Float32, '/planner/upper_speed_cmd', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_throttle = self.create_publisher(Float32, '/planner/throttle_cmd_pct', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_drive_mode = self.create_publisher(String, '/planner/drive_mode', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_path = self.create_publisher(Path, '/planner/trajectory', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_plan = self.create_publisher(Float32MultiArray, '/planner/upper_plan', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_lower_plan = self.create_publisher(Float32MultiArray, '/planner/lower_plan', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_env = self.create_publisher(Float32MultiArray, '/planner/env', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_metrics = self.create_publisher(Float32MultiArray, '/planner/metrics', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_status = self.create_publisher(Float32MultiArray, '/planner/status', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_summary = self.create_publisher(Float32MultiArray, '/planner/summary', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_mpc_state = self.create_publisher(String, '/system/mpc_state', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
 
         # Subs (optional measurements)
-        self.create_subscription(Float32, '/vehicle/s_km', self._on_s_km_solar, 10)
-        self.create_subscription(Float32, '/vehicle/speed_kmh', self._on_speed_solar, 10)
-        self.create_subscription(Float32, '/vehicle/batt_soc', self._on_soc_solar, 10)
-        self.create_subscription(Float32, '/vehicle/batt_temp_c', self._on_tb_solar, 10)
-        self.create_subscription(Float32, '/vehicle/batt_current_a', self._on_i_solar, 10)
-        self.create_subscription(Float32, '/vehicle/batt_voltage_v', self._on_v_solar, 10)
-        self.create_subscription(String, '/planner/calibration', self._on_calibration, 10)
+        self.create_subscription(Float32, '/vehicle/s_km', self._on_s_km_solar, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/speed_kmh', self._on_speed_solar, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/batt_soc', self._on_soc_solar, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/batt_temp_c', self._on_tb_solar, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/batt_current_a', self._on_i_solar, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/batt_voltage_v', self._on_v_solar, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(String, '/planner/calibration', self._on_calibration, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
 
         # Timer @1Hz (upper layer)
         self.timer = self.create_timer(1.0, self._step_solar)
@@ -763,7 +763,7 @@ class MPCNode(Node):
             self.timer_lower = None
         self.get_logger().info('MPCNode started (solarcar mode).')
 
-    def _current_bin_index(self) -> int:
+    def _current_bin_index(self) -> int:                           # [関数定義] _current_bin_index の処理実行ブロック
         mode = str(self.forecast_time_mode).lower()
         has_time = ('time' in self.df.columns) and (not self.df['time'].isna().all())
         if mode == 'auto':
@@ -782,21 +782,21 @@ class MPCNode(Node):
                 mode = 'relative'
             else:
                 idx = int(np.searchsorted(t_series, np.datetime64(now)) - 1)
-                return int(np.clip(idx, 0, len(self.df) - 1))
+                return int(np.clip(idx, 0, len(self.df) - 1))      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
         if mode in ('relative', 'loop') or not has_time:
             elapsed = (now - self.forecast_start_time).total_seconds()
             elapsed = max(0.0, elapsed)
             idx = int(elapsed / max(self.dt, 1.0e-3))
             if len(self.df) == 0:
-                return 0
+                return 0                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
             if mode == 'loop':
-                return int(idx % len(self.df))
-            return int(np.clip(idx, 0, len(self.df) - 1))
+                return int(idx % len(self.df))                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+            return int(np.clip(idx, 0, len(self.df) - 1))          # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-        return int(np.clip(self.k, 0, len(self.df) - 1))
+        return int(np.clip(self.k, 0, len(self.df) - 1))           # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _horizon_data(self, k0: int):
+    def _horizon_data(self, k0: int):                              # [関数定義] _horizon_data の処理実行ブロック
         N = len(self.df)
         data = []
         has_time = ('time' in self.df.columns) and (not self.df['time'].isna().all())
@@ -804,7 +804,7 @@ class MPCNode(Node):
         if mode == 'auto':
             mode = 'absolute' if has_time else 'relative'
         if N <= 0:
-            return data
+            return data                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if mode == 'loop':
             Np = max(1, self.Np)
             for i in range(Np):
@@ -828,7 +828,7 @@ class MPCNode(Node):
                     headwind_ms=float(row.get('headwind_ms', 0.0)) if 'headwind_ms' in row else 0.0,
                     t_utc=t_utc,
                 ))
-            return data
+            return data                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
         Np = max(0, min(self.Np, N - k0 - 1))
         for j in range(k0, k0 + Np):
@@ -851,11 +851,11 @@ class MPCNode(Node):
                 headwind_ms=float(row.get('headwind_ms', 0.0)) if 'headwind_ms' in row else 0.0,
                 t_utc=t_utc,
             ))
-        return data
+        return data                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _forecast_at_time(self, t_utc: datetime, drive: bool = True) -> dict:
+    def _forecast_at_time(self, t_utc: datetime, drive: bool = True) -> dict:  # [関数定義] _forecast_at_time の処理実行ブロック
         if len(self.df) == 0:
-            return dict(G_poa=0.0, Tcell_C=40.0, Tamb_C=30.0, headwind_ms=0.0)
+            return dict(G_poa=0.0, Tcell_C=40.0, Tamb_C=30.0, headwind_ms=0.0)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
         has_time = ('time' in self.df.columns) and (not self.df['time'].isna().all())
         if has_time:
             t_series = self.df['time'].values
@@ -867,44 +867,44 @@ class MPCNode(Node):
         row = self.df.iloc[idx]
         gain = self.poa_gain_drive if drive else self.poa_gain_stop
         G_raw = float(row.get('GHI', 0.0)) * self.solar_gain
-        return dict(
+        return dict(                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
             G_poa=G_raw * gain,
             Tcell_C=float(row.get('Tcell_C', 40.0)),
             Tamb_C=float(row.get('Tamb_C', 30.0)),
             headwind_ms=float(row.get('headwind_ms', 0.0)) if 'headwind_ms' in row else 0.0,
         )
 
-    def _sample_plan_segments(self, dt_sample: float):
+    def _sample_plan_segments(self, dt_sample: float):             # [関数定義] _sample_plan_segments の処理実行ブロック
         if not self.v_plan_segments:
-            return []
+            return []                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if dt_sample <= 0.0:
-            return [float(seg['v_kmh']) for seg in self.v_plan_segments]
+            return [float(seg['v_kmh']) for seg in self.v_plan_segments]  # [戻り値] 計算結果・計算状態の呼び出し元への返却
         samples = []
         for seg in self.v_plan_segments:
             n = max(1, int(math.ceil(seg['dt_sec'] / dt_sample)))
             samples.extend([float(seg['v_kmh'])] * n)
-        return samples
+        return samples                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _route_value(self, s_km: float, field: str, default: float) -> float:
+    def _route_value(self, s_km: float, field: str, default: float) -> float:  # [関数定義] _route_value の処理実行ブロック
         if self.route_profile is None:
-            return float(default)
+            return float(default)                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
         try:
             val = float(interpolate_profile(self.route_profile, s_km, field, default))
             if not np.isfinite(val):
-                return float(default)
-            return float(val)
+                return float(default)                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
+            return float(val)                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
         except Exception:
-            return float(default)
+            return float(default)                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _speed_limit_at(self, s_km: float, default_kmh: float) -> float:
+    def _speed_limit_at(self, s_km: float, default_kmh: float) -> float:  # [関数定義] _speed_limit_at の処理実行ブロック
         if self.speed_profile is None:
-            return float(default_kmh)
+            return float(default_kmh)                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
         try:
-            return float(interpolate_profile(self.speed_profile, s_km, 'v_max_kmh', default_kmh))
+            return float(interpolate_profile(self.speed_profile, s_km, 'v_max_kmh', default_kmh))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
         except Exception:
-            return float(default_kmh)
+            return float(default_kmh)                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _soc_guard_speed(self, v_kmh: float, s_km: float, d0: dict) -> float:
+    def _soc_guard_speed(self, v_kmh: float, s_km: float, d0: dict) -> float:  # [関数定義] _soc_guard_speed の処理実行ブロック
         mode = str(self.get_parameter('soc_guard_mode').value).lower()
         soc_guard = float(self.get_parameter('soc_guard_margin').value)
         target = self.model.p.soc_min + soc_guard
@@ -916,18 +916,18 @@ class MPCNode(Node):
         if self.route_profile is not None:
             headwind_ms = self._route_value(s_km, 'headwind_ms', headwind_ms)
 
-        def z_next_for(v_kmh_local: float) -> float:
+        def z_next_for(v_kmh_local: float) -> float:               # [関数定義] z_next_for の処理実行ブロック
             out = self.model.electrical_balance(v_kmh_local / 3.6, slope_pct, self.z, self.Tb,
                                                 d0['G_poa'], d0['Tcell_C'], headwind_ms=headwind_ms)
             P_pack = float(out['P_pack'])
-            return self.model.soc_step(self.z, P_pack, self.model.p.dt)
+            return self.model.soc_step(self.z, P_pack, self.model.p.dt)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
         # If already below target, apply guard mode
         if self.z <= target:
             if mode == 'stop':
-                return 0.0
+                return 0.0                                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
             if mode != 'pv_only':
-                return v_kmh
+                return v_kmh                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
             # find max speed such that P_pack <= 0
             lo = 0.0
             hi = max(0.0, float(v_kmh))
@@ -937,11 +937,11 @@ class MPCNode(Node):
                     hi = mid
                 else:
                     lo = mid
-            return float(lo)
+            return float(lo)                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
         # If next step would violate, limit speed to keep z_next >= target
         if z_next_for(v_kmh) >= target:
-            return v_kmh
+            return v_kmh                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
         lo = 0.0
         hi = max(0.0, float(v_kmh))
         for _ in range(25):
@@ -950,9 +950,9 @@ class MPCNode(Node):
                 hi = mid
             else:
                 lo = mid
-        return float(lo)
+        return float(lo)                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _dwell_penalty(self, s_km: float, v_ms: float) -> float:
+    def _dwell_penalty(self, s_km: float, v_ms: float) -> float:   # [関数定義] _dwell_penalty の処理実行ブロック
         vmax_kmh = float(self.get_parameter('v_max_kmh').value)
         vmax_ms = vmax_kmh / 3.6
         pen = 0.0
@@ -962,13 +962,13 @@ class MPCNode(Node):
             width_km = max(0.05, (dwell_s * vmax_ms) / 1000.0 * 0.5)
             if abs(s_km - s_stop) <= width_km:
                 pen += 1.0e5 * (v_ms ** 2)
-        return pen
+        return pen                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _mpc_solve_solar(self, data):
+    def _mpc_solve_solar(self, data):                              # [関数定義] _mpc_solve_solar の処理実行ブロック
         p = self.model.p
         Np = len(data)
         if Np <= 0:
-            return self.v_cmd, [self.v_cmd]
+            return self.v_cmd, [self.v_cmd]                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
         v0_guess = self.v_cmd / 3.6
         speed_meas_kmh = self._measured_speed_kmh()
@@ -1002,14 +1002,14 @@ class MPCNode(Node):
         race_km = float(self.race_km)
         z_start = float(self.z)
 
-        def quad_penalty(x, cap=1.0e3):
+        def quad_penalty(x, cap=1.0e3):                            # [関数定義] quad_penalty の処理実行ブロック
             if x <= 0.0:
-                return 0.0
+                return 0.0                                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
             if x > cap:
                 x = cap
-            return x * x
+            return x * x                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-        def cost(v):
+        def cost(v):                                               # [関数定義] cost の処理実行ブロック
             z = float(self.z)
             Tb = float(self.Tb)
             s_km = float(self.s_km)
@@ -1091,7 +1091,7 @@ class MPCNode(Node):
             J += 1e4 * quad_penalty(term_soc_min - z)
             if soc_finish_target > 0.0:
                 J += w_soc_terminal * quad_penalty(z - soc_finish_target)
-            return J
+            return J                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
         bounds = list(zip(lb, ub))
         res = minimize(cost, x0, method='L-BFGS-B', bounds=bounds, options=dict(maxiter=150))
@@ -1105,9 +1105,9 @@ class MPCNode(Node):
             self.get_logger().warn('Upper MPC solve failed; reusing warm-start plan.')
             v_seq = x0
         v_seq_kmh = np.clip(v_seq * 3.6, 0.0, v_max_kmh)
-        return float(v_seq_kmh[0]), [float(v) for v in v_seq_kmh]
+        return float(v_seq_kmh[0]), [float(v) for v in v_seq_kmh]  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _mpc_solve_solar_distance(self, t0_utc: datetime, s0_km: float, x0=None):
+    def _mpc_solve_solar_distance(self, t0_utc: datetime, s0_km: float, x0=None):  # [関数定義] _mpc_solve_solar_distance の処理実行ブロック
         p = self.model.p
         horizon = build_upper_distance_horizon(
             mode=self.upper_horizon_mode,
@@ -1125,7 +1125,7 @@ class MPCNode(Node):
         seg_s = np.array(horizon.seg_s_km, dtype=float)
         Np = int(len(ds_seq))
         if Np <= 0:
-            return self.v_cmd, [{'v_kmh': float(self.v_cmd), 'dt_sec': float(p.dt)}]
+            return self.v_cmd, [{'v_kmh': float(self.v_cmd), 'dt_sec': float(p.dt)}]  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
         v_max_kmh = float(self.get_parameter('v_max_kmh').value)
         v_min_solver = max(0.1, float(self.upper_vmin_kmh))
@@ -1149,8 +1149,8 @@ class MPCNode(Node):
         denom = np.maximum(ctrl_s[idx_next] - ctrl_s[idx], 1.0e-6)
         alpha = (seg_s - ctrl_s[idx]) / denom
 
-        def expand_ctrl(u_vec):
-            return (1.0 - alpha) * u_vec[idx] + alpha * u_vec[idx_next]
+        def expand_ctrl(u_vec):                                    # [関数定義] expand_ctrl の処理実行ブロック
+            return (1.0 - alpha) * u_vec[idx] + alpha * u_vec[idx_next]  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
         w_dv_limit = float(self.get_parameter('w_dv_limit').value)
         dv_max_kmhps = float(self.get_parameter('dv_max_kmhps').value)
@@ -1160,15 +1160,15 @@ class MPCNode(Node):
         soc_finish_target = float(self.soc_finish_target)
         soc_day_end_tol = float(self.get_parameter('soc_day_end_tol').value)
 
-        def step_wait(t_utc, z, Tb, s_km):
+        def step_wait(t_utc, z, Tb, s_km):                         # [関数定義] step_wait の処理実行ブロック
             if self.drive_schedule is None:
-                return t_utc, z, Tb, 0.0
+                return t_utc, z, Tb, 0.0                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
             if self.drive_schedule.is_drive_time(t_utc):
-                return t_utc, z, Tb, 0.0
+                return t_utc, z, Tb, 0.0                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
             t_start = self.drive_schedule.next_drive_start(t_utc)
             dt_wait = max(0.0, (t_start - t_utc).total_seconds())
             if dt_wait <= 0.0:
-                return t_start, z, Tb, 0.0
+                return t_start, z, Tb, 0.0                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
             env = self._forecast_at_time(t_utc, drive=False)
             slope_pct = self._route_value(s_km, 'slope_pct', 0.0)
             headwind_ms = self._route_value(s_km, 'headwind_ms', env.get('headwind_ms', 0.0))
@@ -1177,9 +1177,9 @@ class MPCNode(Node):
             loss_int = float(out['losses_int'])
             z = self.model.soc_step(z, P_pack, dt_wait)
             Tb = Tb + (dt_wait / 1800.0) * (env['Tamb_C'] - Tb) + (loss_int * dt_wait) / 50000.0
-            return t_start, float(z), float(Tb), dt_wait
+            return t_start, float(z), float(Tb), dt_wait           # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-        def cost(u_vec):
+        def cost(u_vec):                                           # [関数定義] cost の処理実行ブロック
             z = float(self.z)
             Tb = float(self.Tb)
             s_km = float(s0_km)
@@ -1287,7 +1287,7 @@ class MPCNode(Node):
                 term_soc_min=term_soc_min,
                 soc_finish_target=soc_finish_target,
             )
-            return J
+            return J                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
         res = minimize(cost, x0, method='L-BFGS-B', bounds=bounds, options=dict(maxiter=self.upper_max_iter))
         if np.all(np.isfinite(res.x)):
@@ -1330,23 +1330,23 @@ class MPCNode(Node):
             s_km += ds_step_km
 
         v0_kmh = float(segments[0]['v_kmh']) if segments else float(self.v_cmd)
-        return v0_kmh, segments, u_seq
+        return v0_kmh, segments, u_seq                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _publish_upper_plan(self):
+    def _publish_upper_plan(self):                                 # [関数定義] _publish_upper_plan の処理実行ブロック
         if not self.v_plan_kmh:
             return
         msg = Float32MultiArray()
         msg.data = [float(self.plan_dt_sec)] + [float(v) for v in self.v_plan_kmh]
         self.pub_plan.publish(msg)
 
-    def _publish_lower_plan(self, v_seq_ms):
+    def _publish_lower_plan(self, v_seq_ms):                       # [関数定義] _publish_lower_plan の処理実行ブロック
         if not v_seq_ms:
             return
         msg = Float32MultiArray()
         msg.data = [float(self.lower_dt)] + [float(v * 3.6) for v in v_seq_ms]
         self.pub_lower_plan.publish(msg)
 
-    def _publish_plan_path(self, data):
+    def _publish_plan_path(self, data):                            # [関数定義] _publish_plan_path の処理実行ブロック
         if len(data) == 0:
             return
         path = Path()
@@ -1375,7 +1375,7 @@ class MPCNode(Node):
                 path.poses.append(pose)
         self.pub_path.publish(path)
 
-    def _publish_metrics(self, d0: dict, v_exec_kmh: float, s_for_profile: float):
+    def _publish_metrics(self, d0: dict, v_exec_kmh: float, s_for_profile: float):  # [関数定義] _publish_metrics の処理実行ブロック
         slope_pct = d0.get('slope_pct', 0.0)
         if self.route_profile is not None:
             slope_pct = self._route_value(s_for_profile, 'slope_pct', slope_pct)
@@ -1412,7 +1412,7 @@ class MPCNode(Node):
         ]
         self.pub_metrics.publish(msg)
 
-    def _publish_summary(self, v_exec_kmh: float):
+    def _publish_summary(self, v_exec_kmh: float):                 # [関数定義] _publish_summary の処理実行ブロック
         next_stop_dist_km = math.nan
         next_stop_eta_min = math.nan
         finish_dist_km = max(0.0, self.race_km - float(self.s_km))
@@ -1451,43 +1451,43 @@ class MPCNode(Node):
         ]
         self.pub_summary.publish(msg)
 
-    def _interp_upper_speed(self, t_sec: float) -> float:
+    def _interp_upper_speed(self, t_sec: float) -> float:          # [関数定義] _interp_upper_speed の処理実行ブロック
         if self.upper_plan_mode == 'distance' and self.v_plan_segments:
             acc = 0.0
             for seg in self.v_plan_segments:
                 acc_next = acc + seg['dt_sec']
                 if t_sec <= acc_next:
-                    return float(seg['v_kmh'])
+                    return float(seg['v_kmh'])                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
                 acc = acc_next
-            return float(self.v_plan_segments[-1]['v_kmh'])
+            return float(self.v_plan_segments[-1]['v_kmh'])        # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if not self.v_plan_kmh:
-            return float(self.v_upper_cmd)
+            return float(self.v_upper_cmd)                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
         dt = float(self.plan_dt_sec)
         if dt <= 0.0:
-            return float(self.v_plan_kmh[0])
+            return float(self.v_plan_kmh[0])                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         idx = t_sec / dt
         i = int(math.floor(idx))
         if i <= 0:
-            return float(self.v_plan_kmh[0])
+            return float(self.v_plan_kmh[0])                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if i >= len(self.v_plan_kmh) - 1:
-            return float(self.v_plan_kmh[-1])
+            return float(self.v_plan_kmh[-1])                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
         alpha = idx - i
-        return float((1.0 - alpha) * self.v_plan_kmh[i] + alpha * self.v_plan_kmh[i + 1])
+        return float((1.0 - alpha) * self.v_plan_kmh[i] + alpha * self.v_plan_kmh[i + 1])  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _distance_plan_speed(self, s_km: float) -> float:
+    def _distance_plan_speed(self, s_km: float) -> float:          # [関数定義] _distance_plan_speed の処理実行ブロック
         idx = plan_segment_index(self.v_plan_segments or [], s_km)
         if idx < 0:
-            return float(self.v_upper_cmd)
-        return float(self.v_plan_segments[idx]['v_kmh'])
+            return float(self.v_upper_cmd)                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return float(self.v_plan_segments[idx]['v_kmh'])           # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _tau_max_for_mode(self, maps, mode: str) -> float:
+    def _tau_max_for_mode(self, maps, mode: str) -> float:         # [関数定義] _tau_max_for_mode の処理実行ブロック
         key = mode if mode in maps else 'default'
         try:
-            return float(max(maps[key][1]))
+            return float(max(maps[key][1]))                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
         except Exception:
-            return 0.0
+            return 0.0                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _tau_limits(self):
+    def _tau_limits(self):                                         # [関数定義] _tau_limits の処理実行ブロック
         mode = str(self.model.drive_mode or 'default').lower()
         if mode in ('eco', 'power'):
             tau_drive = self._tau_max_for_mode(self.model.maps_drive, mode)
@@ -1501,16 +1501,16 @@ class MPCNode(Node):
                 self._tau_max_for_mode(self.model.maps_regen, 'default')
         if tau_regen <= 0.0:
             tau_regen = tau_drive
-        return tau_drive, tau_regen
+        return tau_drive, tau_regen                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _traction_force(self, tau_nm: float) -> float:
+    def _traction_force(self, tau_nm: float) -> float:             # [関数定義] _traction_force の処理実行ブロック
         p = self.model.p
         wheel_r = max(1e-3, float(p.wheel_radius))
         motor_count = int(p.motor_count) if int(p.motor_count) > 0 else int(p.driven_wheel_count or 1)
         motor_count = max(1, motor_count)
-        return float(tau_nm) * float(p.gear_ratio) * float(p.gear_eta) * motor_count / wheel_r
+        return float(tau_nm) * float(p.gear_ratio) * float(p.gear_eta) * motor_count / wheel_r  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _pack_from_tau(self, v_ms: float, tau_nm: float, z: float, Tb: float, env: dict):
+    def _pack_from_tau(self, v_ms: float, tau_nm: float, z: float, Tb: float, env: dict):  # [関数定義] _pack_from_tau の処理実行ブロック
         p = self.model.p
         wheel_r = max(1e-3, float(p.wheel_radius))
         motor_count = int(p.motor_count) if int(p.motor_count) > 0 else int(p.driven_wheel_count or 1)
@@ -1532,9 +1532,9 @@ class MPCNode(Node):
         V = float(iv['V'])
         Rint = float(iv['Rint'])
         loss_int = I * I * Rint
-        return dict(P_pack=P_pack, I=I, V=V, loss_int=loss_int, eff=eff, P_pv=P_pv, P_elec=P_elec)
+        return dict(P_pack=P_pack, I=I, V=V, loss_int=loss_int, eff=eff, P_pv=P_pv, P_elec=P_elec)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _build_lower_ref(self, base_time_utc, s_km: float, d0: dict):
+    def _build_lower_ref(self, base_time_utc, s_km: float, d0: dict):  # [関数定義] _build_lower_ref の処理実行ブロック
         ref = []
         s_tmp = float(s_km)
         offset = 0.0
@@ -1564,9 +1564,9 @@ class MPCNode(Node):
         if math.isfinite(speed_meas_kmh):
             seed_kmh = speed_meas_kmh
         ref = self._shape_lower_ref_seq(ref, seed_kmh)
-        return [float(v) / 3.6 for v in ref]
+        return [float(v) / 3.6 for v in ref]                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _lower_rollout(self, v0_ms: float, u_seq: np.ndarray, env: dict, z0: float, Tb0: float,
+    def _lower_rollout(self, v0_ms: float, u_seq: np.ndarray, env: dict, z0: float, Tb0: float,  # [関数定義] _lower_rollout の処理実行ブロック
                        tau_drive: float, tau_regen: float):
         p = self.model.p
         v = float(v0_ms)
@@ -1588,12 +1588,12 @@ class MPCNode(Node):
             z = z - (float(pack['P_pack']) * self.lower_dt / 3600.0) / float(p.E_nom_Wh)
             Tb = Tb + (self.lower_dt / 1800.0) * (env['Tamb_C'] - Tb) + (float(pack['loss_int']) * self.lower_dt) / 50000.0
             v_seq.append(float(v))
-        return v_seq
+        return v_seq                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _lower_mpc_solve(self, v0_ms: float, s0_km: float, z0: float, Tb0: float, env: dict, v_ref_seq):
+    def _lower_mpc_solve(self, v0_ms: float, s0_km: float, z0: float, Tb0: float, env: dict, v_ref_seq):  # [関数定義] _lower_mpc_solve の処理実行ブロック
         N = max(1, min(self.lower_N, len(v_ref_seq)))
         if N <= 0:
-            return np.zeros(1), [v0_ms], 'eco'
+            return np.zeros(1), [v0_ms], 'eco'                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
         v_ref_seq = v_ref_seq[:N]
         tau_drive, tau_regen = self._tau_limits()
         u0 = float(np.clip(self.lower_last_u, -1.0, 1.0))
@@ -1608,7 +1608,7 @@ class MPCNode(Node):
         w_T = float(self.get_parameter('w_T').value)
         rate_lim = float(self.throttle_rate_limit) / 100.0 if self.throttle_rate_limit > 0.0 else 0.0
 
-        def cost(u_vec):
+        def cost(u_vec):                                           # [関数定義] cost の処理実行ブロック
             v = float(v0_ms)
             z = float(z0)
             Tb = float(Tb0)
@@ -1652,7 +1652,7 @@ class MPCNode(Node):
                 J += 1e4 * max(0.0, p.soc_min - z) ** 2
                 J += 1e4 * max(0.0, z - p.soc_max) ** 2
                 u_prev = u
-            return J
+            return J                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
         res = minimize(cost, x0, method='L-BFGS-B', bounds=bounds, options=dict(maxiter=80))
         if np.all(np.isfinite(res.x)):
@@ -1668,9 +1668,9 @@ class MPCNode(Node):
         u0_cmd = float(u_seq[0]) if len(u_seq) > 0 else 0.0
         tau0 = u0_cmd * (tau_drive if u0_cmd >= 0.0 else tau_regen)
         mode = self.model.select_drive_mode(v0_ms, tau0)
-        return u_seq, v_pred, mode
+        return u_seq, v_pred, mode                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _step_solar(self):
+    def _step_solar(self):                                         # [関数定義] _step_solar の処理実行ブロック
         self._maybe_reload_forecast()
         k_now = self._current_bin_index()
         moved_to_new_bin = (self.last_bin is None) or (k_now != self.last_bin)
@@ -1908,7 +1908,7 @@ class MPCNode(Node):
         self.pub_status.publish(st)
         self._publish_mpc_state()
 
-    def _step_lower(self):
+    def _step_lower(self):                                         # [関数定義] _step_lower の処理実行ブロック
         if not self.hierarchical or self.timer_lower is None:
             return
         if not self.last_data:
@@ -1960,7 +1960,7 @@ class MPCNode(Node):
         self._publish_mpc_state()
 
     # -------------------- passo mode --------------------
-    def _init_passo(self):
+    def _init_passo(self):                                         # [関数定義] _init_passo の処理実行ブロック
         self.declare_parameter('stop_yaml', 'inputs/stop_points.yaml')
         self.declare_parameter('passo_dt', 1.0)
         self.declare_parameter('passo_horizon_steps', 10)
@@ -2030,64 +2030,64 @@ class MPCNode(Node):
         self.last_step_time = None
 
         # Subscriptions
-        self.create_subscription(Float32, '/vehicle/s_km', self._on_s_km, 10)
-        self.create_subscription(Float32, '/vehicle/speed_kmh', self._on_speed, 10)
-        self.create_subscription(Float32, '/vehicle/fuel_rate_lph', self._on_fuel, 10)
-        self.create_subscription(Float32, '/vehicle/throttle_pct', self._on_throttle, 10)
-        self.create_subscription(Float32, '/vehicle/obd_ok', self._on_obd_ok, 10)
-        self.create_subscription(Float32, '/vehicle/grade', self._on_grade, 10)
-        self.create_subscription(Float32, '/vehicle/idle_fuel_lph', self._on_idle_fuel, 10)
-        self.create_subscription(String, '/system/config', self._on_config, 10)
-        self.create_subscription(Bool, '/system/config_ready', self._on_config_ready, 10)
-        self.create_subscription(String, '/system/state', self._on_system_state, 10)
+        self.create_subscription(Float32, '/vehicle/s_km', self._on_s_km, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/speed_kmh', self._on_speed, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/fuel_rate_lph', self._on_fuel, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/throttle_pct', self._on_throttle, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/obd_ok', self._on_obd_ok, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/grade', self._on_grade, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/idle_fuel_lph', self._on_idle_fuel, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(String, '/system/config', self._on_config, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Bool, '/system/config_ready', self._on_config_ready, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(String, '/system/state', self._on_system_state, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
 
         # Publications
-        self.pub_speed = self.create_publisher(Float32, '/planner/speed_cmd', 10)
-        self.pub_path = self.create_publisher(Path, '/planner/trajectory', 10)
-        self.pub_status = self.create_publisher(Float32MultiArray, '/planner/status', 10)
-        self.pub_mpc_state = self.create_publisher(String, '/system/mpc_state', 10)
+        self.pub_speed = self.create_publisher(Float32, '/planner/speed_cmd', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_path = self.create_publisher(Path, '/planner/trajectory', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_status = self.create_publisher(Float32MultiArray, '/planner/status', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_mpc_state = self.create_publisher(String, '/system/mpc_state', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
 
         # Timer @1Hz
         self.timer = self.create_timer(1.0, self._step_passo)
         self.get_logger().info('MPCNode started (passo mode).')
 
-    def _on_s_km(self, msg: Float32):
+    def _on_s_km(self, msg: Float32):                              # [関数定義] _on_s_km の処理実行ブロック
         self.s_km = float(msg.data)
 
-    def _on_speed(self, msg: Float32):
+    def _on_speed(self, msg: Float32):                             # [関数定義] _on_speed の処理実行ブロック
         self.v_now = float(msg.data)
 
-    def _on_fuel(self, msg: Float32):
+    def _on_fuel(self, msg: Float32):                              # [関数定義] _on_fuel の処理実行ブロック
         self.fuel_rate_lph = float(msg.data)
 
-    def _on_throttle(self, msg: Float32):
+    def _on_throttle(self, msg: Float32):                          # [関数定義] _on_throttle の処理実行ブロック
         self.throttle_pct = float(msg.data)
 
-    def _on_obd_ok(self, msg: Float32):
+    def _on_obd_ok(self, msg: Float32):                            # [関数定義] _on_obd_ok の処理実行ブロック
         self.obd_ok = float(msg.data)
 
-    def _on_grade(self, msg: Float32):
+    def _on_grade(self, msg: Float32):                             # [関数定義] _on_grade の処理実行ブロック
         self.grade = float(msg.data)
 
-    def _on_idle_fuel(self, msg: Float32):
+    def _on_idle_fuel(self, msg: Float32):                         # [関数定義] _on_idle_fuel の処理実行ブロック
         self.idle_fuel_lph = float(msg.data)
         if np.isfinite(self.idle_fuel_lph):
             self.model_coeffs[0] = float(self.idle_fuel_lph)
 
-    def _on_config_ready(self, msg: Bool):
+    def _on_config_ready(self, msg: Bool):                         # [関数定義] _on_config_ready の処理実行ブロック
         self.config_ready = bool(msg.data)
 
-    def _on_system_state(self, msg: String):
+    def _on_system_state(self, msg: String):                       # [関数定義] _on_system_state の処理実行ブロック
         self.system_state = str(msg.data)
 
-    def _on_config(self, msg: String):
+    def _on_config(self, msg: String):                             # [関数定義] _on_config の処理実行ブロック
         try:
             cfg = yaml.safe_load(msg.data) or {}
         except Exception:
             return
         self._apply_config(cfg)
 
-    def _apply_config(self, cfg: dict):
+    def _apply_config(self, cfg: dict):                            # [関数定義] _apply_config の処理実行ブロック
         params = []
         for key in ['v_min_kmh', 'v_max_kmh', 'v_ref_kmh', 'w_fuel', 'w_speed', 'w_dv', 'w_stop',
                     'dv_max_kmhps']:
@@ -2120,7 +2120,7 @@ class MPCNode(Node):
         if 'stop_points_yaml' in cfg:
             self._load_stops(str(cfg['stop_points_yaml']))
 
-    def _stop_penalty_passo(self, s_km: float, v_kmh: float) -> float:
+    def _stop_penalty_passo(self, s_km: float, v_kmh: float) -> float:  # [関数定義] _stop_penalty_passo の処理実行ブロック
         v_ms = v_kmh / 3.6
         vmax_kmh = float(self.get_parameter('v_max_kmh').value)
         vmax_ms = vmax_kmh / 3.6
@@ -2132,17 +2132,17 @@ class MPCNode(Node):
             width_km = max(0.05, (dwell_s * vmax_ms) / 1000.0 * 0.5)
             if abs(s_km - s_stop) <= width_km:
                 pen += w_stop * (v_ms ** 2)
-        return pen
+        return pen                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _fuel_model_lph(self, v_kmh: float, acc_kmhps: float, grade: float) -> float:
+    def _fuel_model_lph(self, v_kmh: float, acc_kmhps: float, grade: float) -> float:  # [関数定義] _fuel_model_lph の処理実行ブロック
         a0, a1, a2, a3, a4 = self.model_coeffs
         a0_eff = a0
         if np.isfinite(self.idle_fuel_lph):
             a0_eff = float(self.idle_fuel_lph)
         fuel = a0_eff + a1 * v_kmh + a2 * (v_kmh ** 2) + a3 * (acc_kmhps ** 2) + a4 * grade * v_kmh
-        return max(0.0, float(fuel))
+        return max(0.0, float(fuel))                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _update_identification(self, now_sec: float, acc_kmhps: float):
+    def _update_identification(self, now_sec: float, acc_kmhps: float):  # [関数定義] _update_identification の処理実行ブロック
         if not self.online_id_enabled:
             return
         if self.obd_ok < 0.5:
@@ -2178,7 +2178,7 @@ class MPCNode(Node):
         self.id_rmse = rmse
         self.id_r2 = r2
 
-    def _solve_passo_mpc(self, w_fuel_override=None) -> np.ndarray:
+    def _solve_passo_mpc(self, w_fuel_override=None) -> np.ndarray:  # [関数定義] _solve_passo_mpc の処理実行ブロック
         v_min = float(self.get_parameter('v_min_kmh').value)
         v_max = float(self.get_parameter('v_max_kmh').value)
         v_ref = float(self.get_parameter('v_ref_kmh').value)
@@ -2197,7 +2197,7 @@ class MPCNode(Node):
 
         grade = float(self.grade) if np.isfinite(self.grade) else 0.0
 
-        def cost(v_vec):
+        def cost(v_vec):                                           # [関数定義] cost の処理実行ブロック
             s_km = float(self.s_km)
             v_prev = v0
             J = 0.0
@@ -2214,14 +2214,14 @@ class MPCNode(Node):
                 s_km += v_k * (self.dt / 3600.0)
                 J += self._stop_penalty_passo(s_km, v_k)
                 v_prev = v_k
-            return J
+            return J                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
         res = minimize(cost, x0, method='L-BFGS-B', bounds=bounds, options=dict(maxiter=120))
         if not np.all(np.isfinite(res.x)):
-            return x0
-        return np.array(res.x, dtype=float)
+            return x0                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return np.array(res.x, dtype=float)                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _publish_trajectory_passo(self, v_seq: np.ndarray):
+    def _publish_trajectory_passo(self, v_seq: np.ndarray):        # [関数定義] _publish_trajectory_passo の処理実行ブロック
         path = Path()
         path.header.stamp = self.get_clock().now().to_msg()
         path.header.frame_id = 'map'
@@ -2236,7 +2236,7 @@ class MPCNode(Node):
             path.poses.append(pose)
         self.pub_path.publish(path)
 
-    def _step_passo(self):
+    def _step_passo(self):                                         # [関数定義] _step_passo の処理実行ブロック
         now_sec = self.get_clock().now().nanoseconds / 1e9
         if self.last_step_time is None:
             dt_step = 0.0
@@ -2307,7 +2307,7 @@ class MPCNode(Node):
         self.pub_mpc_state.publish(String(data=str(self.mpc_state)))
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     rclpy.init()
     node = MPCNode()
     rclpy.spin(node)

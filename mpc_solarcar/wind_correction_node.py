@@ -1,12 +1,12 @@
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import os
 import tempfile
 import time
 from typing import Optional
 
-import pandas as pd
-import rclpy
-from rclpy.node import Node
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
+import rclpy                                                       # [ROS 2] ROS 2 Python クライアントライブラリ (rclpy) のインポート
+from rclpy.node import Node                                        # [ROS 2] ノード基底クラス Node のインポート
 from scipy.stats import norm
 from std_msgs.msg import Float32, Float32MultiArray, String
 
@@ -15,17 +15,17 @@ from .route_utils import interpolate_route_heading
 from .weather_utils import meteo_headwind_component_ms
 
 
-def finite(value, default=math.nan):
+def finite(value, default=math.nan):                               # [関数定義] finite の処理実行ブロック
     try:
         v = float(value)
         if math.isfinite(v):
-            return v
+            return v                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
     except Exception:
         pass
-    return default
+    return default                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-class WindCorrectionNode(Node):
+class WindCorrectionNode(Node):                                    # [クラス定義] WindCorrectionNode オブジェクトの設計
     WIND_STATE_KEYS = [
         'obs_headwind_ms',
         'forecast_now_ms',
@@ -41,7 +41,7 @@ class WindCorrectionNode(Node):
         'distance_weight_now',
     ]
 
-    def __init__(self):
+    def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
         super().__init__('wind_correction_node')
         self.declare_parameter('forecast_csv_in', 'data/weather/live_forecast_raw.csv')
         self.declare_parameter('forecast_csv_out', 'data/weather/live_forecast_corrected.csv')
@@ -100,20 +100,20 @@ class WindCorrectionNode(Node):
             'headwind_ms': math.nan,
         }
 
-        self.pub_wind_state = self.create_publisher(Float32MultiArray, '/planner/wind_state', 10)
-        self.pub_status = self.create_publisher(String, '/system/wind_model_status', 10)
+        self.pub_wind_state = self.create_publisher(Float32MultiArray, '/planner/wind_state', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_status = self.create_publisher(String, '/system/wind_model_status', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
 
-        self.create_subscription(Float32, '/vehicle/s_km', self._set_scalar('s_km'), 10)
-        self.create_subscription(Float32, '/vehicle/speed_kmh', self._set_scalar('speed_kmh'), 10)
-        self.create_subscription(Float32MultiArray, '/planner/upper_plan', self._on_upper_plan, 10)
-        self.create_subscription(Float32, '/vehicle/wind_speed_ms', self._set_dict(self.vehicle, 'wind_speed_ms'), 10)
-        self.create_subscription(Float32, '/vehicle/wind_dir_deg', self._set_dict(self.vehicle, 'wind_dir_deg'), 10)
-        self.create_subscription(Float32, '/vehicle/course_deg', self._set_dict(self.vehicle, 'course_deg'), 10)
-        self.create_subscription(Float32, '/vehicle/headwind_obs_ms', self._set_dict(self.vehicle, 'headwind_ms'), 10)
-        self.create_subscription(Float32, '/chase/wind_speed_ms', self._set_dict(self.chase, 'wind_speed_ms'), 10)
-        self.create_subscription(Float32, '/chase/wind_dir_deg', self._set_dict(self.chase, 'wind_dir_deg'), 10)
-        self.create_subscription(Float32, '/chase/course_deg', self._set_dict(self.chase, 'course_deg'), 10)
-        self.create_subscription(Float32, '/chase/headwind_obs_ms', self._set_dict(self.chase, 'headwind_ms'), 10)
+        self.create_subscription(Float32, '/vehicle/s_km', self._set_scalar('s_km'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/speed_kmh', self._set_scalar('speed_kmh'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32MultiArray, '/planner/upper_plan', self._on_upper_plan, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/wind_speed_ms', self._set_dict(self.vehicle, 'wind_speed_ms'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/wind_dir_deg', self._set_dict(self.vehicle, 'wind_dir_deg'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/course_deg', self._set_dict(self.vehicle, 'course_deg'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/headwind_obs_ms', self._set_dict(self.vehicle, 'headwind_ms'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/chase/wind_speed_ms', self._set_dict(self.chase, 'wind_speed_ms'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/chase/wind_dir_deg', self._set_dict(self.chase, 'wind_dir_deg'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/chase/course_deg', self._set_dict(self.chase, 'course_deg'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/chase/headwind_obs_ms', self._set_dict(self.chase, 'headwind_ms'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
 
         period = max(5.0, float(self.get_parameter('publish_period_sec').value))
         self.timer = self.create_timer(period, self._tick)
@@ -122,37 +122,37 @@ class WindCorrectionNode(Node):
             f'source={self.preferred_source}'
         )
 
-    def _set_scalar(self, key):
-        def _handler(msg):
+    def _set_scalar(self, key):                                    # [関数定義] _set_scalar の処理実行ブロック
+        def _handler(msg):                                         # [関数定義] _handler の処理実行ブロック
             setattr(self, key, finite(msg.data))
-        return _handler
+        return _handler                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _set_dict(self, target, key):
-        def _handler(msg):
+    def _set_dict(self, target, key):                              # [関数定義] _set_dict の処理実行ブロック
+        def _handler(msg):                                         # [関数定義] _handler の処理実行ブロック
             target[key] = finite(msg.data)
-        return _handler
+        return _handler                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _on_upper_plan(self, msg: Float32MultiArray):
+    def _on_upper_plan(self, msg: Float32MultiArray):              # [関数定義] _on_upper_plan の処理実行ブロック
         data = list(msg.data)
         self.plan_dt_sec = float(data[0]) if len(data) >= 1 else math.nan
         self.plan_upper = [float(v) for v in data[1:]] if len(data) >= 2 else []
 
-    def _reload_forecast_if_needed(self):
+    def _reload_forecast_if_needed(self):                          # [関数定義] _reload_forecast_if_needed の処理実行ブロック
         try:
             mtime = os.path.getmtime(self.forecast_csv_in)
         except Exception:
-            return False
+            return False                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if self.forecast_mtime is not None and mtime <= self.forecast_mtime:
-            return False
+            return False                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
         df = pd.read_csv(self.forecast_csv_in)
         if 'time' in df.columns:
             df['time'] = pd.to_datetime(df['time'], utc=True, errors='coerce')
             df = df.dropna(subset=['time']).sort_values('time').reset_index(drop=True)
         self.forecast_df = df
         self.forecast_mtime = mtime
-        return True
+        return True                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _pick_observation(self):
+    def _pick_observation(self):                                   # [関数定義] _pick_observation の処理実行ブロック
         candidates = []
         for code, name, state in (
             (1.0, 'vehicle', self.vehicle),
@@ -171,35 +171,35 @@ class WindCorrectionNode(Node):
                 comp = meteo_headwind_component_ms(wind_speed, wind_dir, course)
                 candidates.append((code, name, comp, course))
         if not candidates:
-            return 0.0, '', math.nan, math.nan
+            return 0.0, '', math.nan, math.nan                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if self.preferred_source == 'vehicle':
             for cand in candidates:
                 if cand[1] == 'vehicle':
-                    return cand
+                    return cand                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if self.preferred_source == 'chase':
             for cand in candidates:
                 if cand[1] == 'chase':
-                    return cand
-        return candidates[0]
+                    return cand                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return candidates[0]                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _route_heading_now(self):
+    def _route_heading_now(self):                                  # [関数定義] _route_heading_now の処理実行ブロック
         if self.route_df is None or not math.isfinite(self.s_km):
-            return math.nan
-        return interpolate_route_heading(self.route_df, self.s_km)
+            return math.nan                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return interpolate_route_heading(self.route_df, self.s_km)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _forecast_sigma_ms(self, row, lead_h: float):
+    def _forecast_sigma_ms(self, row, lead_h: float):              # [関数定義] _forecast_sigma_ms の処理実行ブロック
         for key in ('headwind_std_ms', 'wind_std_ms', 'headwind_sigma_ms'):
             value = finite(row.get(key, math.nan)) if isinstance(row, pd.Series) else math.nan
             if math.isfinite(value):
-                return max(self.min_sigma_ms, value)
+                return max(self.min_sigma_ms, value)               # [戻り値] 計算結果・計算状態の呼び出し元への返却
         var = self.forecast_sigma0_ms ** 2 + self.forecast_variance_growth_per_hour * max(0.0, lead_h)
-        return max(self.min_sigma_ms, math.sqrt(max(var, self.min_sigma_ms ** 2)))
+        return max(self.min_sigma_ms, math.sqrt(max(var, self.min_sigma_ms ** 2)))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _estimate_future_s_km(self, lead_sec: float):
+    def _estimate_future_s_km(self, lead_sec: float):              # [関数定義] _estimate_future_s_km の処理実行ブロック
         if not math.isfinite(self.s_km):
-            return math.nan
+            return math.nan                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if lead_sec <= 0.0:
-            return float(self.s_km)
+            return float(self.s_km)                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
         dist_km = 0.0
         remaining = float(lead_sec)
         if math.isfinite(self.plan_dt_sec) and self.plan_dt_sec > 0.0 and self.plan_upper:
@@ -212,21 +212,21 @@ class WindCorrectionNode(Node):
                 remaining -= step
         if remaining > 0.0 and math.isfinite(self.speed_kmh):
             dist_km += max(0.0, self.speed_kmh) * (remaining / 3600.0)
-        return float(self.s_km) + dist_km
+        return float(self.s_km) + dist_km                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _weight(self, ds_km: float, lead_h: float):
+    def _weight(self, ds_km: float, lead_h: float):                # [関数定義] _weight の処理実行ブロック
         if self.use_exp_distance_decay and math.isfinite(ds_km):
-            return math.exp(-max(0.0, ds_km) / self.correlation_distance_km)
-        return math.exp(-max(0.0, lead_h) / self.fallback_correlation_time_h)
+            return math.exp(-max(0.0, ds_km) / self.correlation_distance_km)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return math.exp(-max(0.0, lead_h) / self.fallback_correlation_time_h)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _compute_fcst_component(self, row, heading_deg: float):
+    def _compute_fcst_component(self, row, heading_deg: float):    # [関数定義] _compute_fcst_component の処理実行ブロック
         wind_speed = finite(row.get('wind_speed_ms', math.nan)) if isinstance(row, pd.Series) else math.nan
         wind_dir = finite(row.get('wind_dir_deg', math.nan)) if isinstance(row, pd.Series) else math.nan
         if math.isfinite(wind_speed) and math.isfinite(wind_dir) and math.isfinite(heading_deg):
-            return meteo_headwind_component_ms(wind_speed, wind_dir, heading_deg)
-        return finite(row.get('headwind_ms', math.nan))
+            return meteo_headwind_component_ms(wind_speed, wind_dir, heading_deg)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return finite(row.get('headwind_ms', math.nan))            # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _tick(self):
+    def _tick(self):                                               # [関数定義] _tick の処理実行ブロック
         reloaded = self._reload_forecast_if_needed()
         if self.forecast_df.empty:
             self.pub_status.publish(String(data='wind model waiting forecast'))
@@ -337,7 +337,7 @@ class WindCorrectionNode(Node):
         )
         self.pub_status.publish(String(data=status))
 
-    def _atomic_write_csv(self, df: pd.DataFrame, path: str):
+    def _atomic_write_csv(self, df: pd.DataFrame, path: str):      # [関数定義] _atomic_write_csv の処理実行ブロック
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
         fd, tmp_path = tempfile.mkstemp(prefix='windcorr_', suffix='.csv', dir=os.path.dirname(os.path.abspath(path)))
         os.close(fd)
@@ -355,7 +355,7 @@ class WindCorrectionNode(Node):
                     pass
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     rclpy.init()
     node = WindCorrectionNode()
     rclpy.spin(node)
@@ -363,5 +363,5 @@ def main():
     rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
     main()

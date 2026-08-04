@@ -1,17 +1,17 @@
 import json
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import socket
 import time
 
-import rclpy
-from rclpy.node import Node
+import rclpy                                                       # [ROS 2] ROS 2 Python クライアントライブラリ (rclpy) のインポート
+from rclpy.node import Node                                        # [ROS 2] ノード基底クラス Node のインポート
 from std_msgs.msg import Float32, String
 
 from .signal_utils import SmoothRateLimiter, finite_float, fresh_enough
 
 
-class SpeedCommandBridgeNode(Node):
-    def __init__(self):
+class SpeedCommandBridgeNode(Node):                                # [クラス定義] SpeedCommandBridgeNode オブジェクトの設計
+    def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
         super().__init__('speed_command_bridge_node')
         self.declare_parameter('output_speed_topic', '/vehicle/speed_cmd_kmh')
         self.declare_parameter('output_drive_mode_topic', '/vehicle/drive_mode_cmd')
@@ -63,50 +63,50 @@ class SpeedCommandBridgeNode(Node):
         )
         self.current_speed = self.safe_speed_kmh
 
-        self.pub_speed = self.create_publisher(Float32, self.output_speed_topic, 10)
-        self.pub_mode = self.create_publisher(String, self.output_drive_mode_topic, 10)
-        self.pub_status = self.create_publisher(String, '/system/command_status', 10)
+        self.pub_speed = self.create_publisher(Float32, self.output_speed_topic, 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_mode = self.create_publisher(String, self.output_drive_mode_topic, 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_status = self.create_publisher(String, '/system/command_status', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
 
-        self.create_subscription(Float32, '/planner/speed_cmd', self._on_speed, 10)
-        self.create_subscription(String, '/planner/drive_mode', self._on_mode, 10)
+        self.create_subscription(Float32, '/planner/speed_cmd', self._on_speed, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(String, '/planner/drive_mode', self._on_mode, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
         self.timer = self.create_timer(1.0 / self.publish_rate_hz, self._tick)
         self.get_logger().info(
             f'SpeedCommandBridgeNode started: topic={self.output_speed_topic}, rate={self.publish_rate_hz:.1f}Hz, '
             f'udp={self.udp_enabled}'
         )
 
-    def _on_speed(self, msg: Float32):
+    def _on_speed(self, msg: Float32):                             # [関数定義] _on_speed の処理実行ブロック
         value = finite_float(msg.data)
         if not math.isfinite(value):
             return
         self.last_speed_target = max(0.0, min(value, self.max_output_speed_kmh))
         self.last_speed_rx_time = time.monotonic()
 
-    def _on_mode(self, msg: String):
+    def _on_mode(self, msg: String):                               # [関数定義] _on_mode の処理実行ブロック
         mode = str(msg.data or '').strip()
         if not mode:
             return
         self.requested_mode = mode
         self.last_mode_rx_time = time.monotonic()
 
-    def _select_mode(self, now_mono: float):
+    def _select_mode(self, now_mono: float):                       # [関数定義] _select_mode の処理実行ブロック
         requested = self.requested_mode or self.output_mode
         if requested == self.output_mode:
-            return self.output_mode
+            return self.output_mode                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if (now_mono - self.last_mode_switch_time) < self.drive_mode_min_hold_sec:
-            return self.output_mode
+            return self.output_mode                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
         self.output_mode = requested
         self.last_mode_switch_time = now_mono
-        return self.output_mode
+        return self.output_mode                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _target_speed(self, now_mono: float):
+    def _target_speed(self, now_mono: float):                      # [関数定義] _target_speed の処理実行ブロック
         planner_fresh = fresh_enough(self.last_speed_rx_time, self.input_timeout_sec, now=now_mono)
         in_startup_hold = (now_mono - self.start_time) < self.startup_hold_sec
         if in_startup_hold or not planner_fresh:
-            return self.safe_speed_kmh, planner_fresh, in_startup_hold
-        return self.last_speed_target, planner_fresh, in_startup_hold
+            return self.safe_speed_kmh, planner_fresh, in_startup_hold  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return self.last_speed_target, planner_fresh, in_startup_hold  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _tick(self):
+    def _tick(self):                                               # [関数定義] _tick の処理実行ブロック
         now_mono = time.monotonic()
         target_speed, planner_fresh, in_startup_hold = self._target_speed(now_mono)
         self.current_speed = float(self.speed_filter.update(target_speed, now=now_mono))
@@ -116,7 +116,7 @@ class SpeedCommandBridgeNode(Node):
         self.pub_mode.publish(String(data=str(mode)))
         self._send_status(planner_fresh=planner_fresh, in_startup_hold=in_startup_hold)
 
-    def _send_status(self, planner_fresh: bool, in_startup_hold: bool):
+    def _send_status(self, planner_fresh: bool, in_startup_hold: bool):  # [関数定義] _send_status の処理実行ブロック
         age = math.inf
         if self.last_speed_rx_time is not None:
             age = max(0.0, time.monotonic() - self.last_speed_rx_time)
@@ -140,7 +140,7 @@ class SpeedCommandBridgeNode(Node):
                 status += f' udp_error={exc}'
         self.pub_status.publish(String(data=status))
 
-    def destroy_node(self):
+    def destroy_node(self):                                        # [関数定義] destroy_node の処理実行ブロック
         try:
             if self.sock is not None:
                 self.sock.close()
@@ -149,7 +149,7 @@ class SpeedCommandBridgeNode(Node):
         super().destroy_node()
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     rclpy.init()
     node = SpeedCommandBridgeNode()
     rclpy.spin(node)

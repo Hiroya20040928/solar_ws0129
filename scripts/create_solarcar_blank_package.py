@@ -24,7 +24,7 @@ PROJECT_PACKAGES = [
 BLANK_PROJECT_CSV_DIRS = ("data/route", "data/weather", "data/identification/raw", "maps")
 
 
-def patch_blank_manual(dst_root: Path) -> None:
+def patch_blank_manual(dst_root: Path) -> None:                    # [関数定義] patch_blank_manual の処理実行ブロック
     md_path = dst_root / "docs" / "solar_all_in_one_manual" / "solar_all_in_one_manual.md"
     tex_path = dst_root / "docs" / "solar_all_in_one_manual" / "solar_all_in_one_manual.tex"
 
@@ -79,7 +79,7 @@ def patch_blank_manual(dst_root: Path) -> None:
     compile_tex(tex_path)
 
 
-def patch_blank_entrypoint(dst_root: Path) -> None:
+def patch_blank_entrypoint(dst_root: Path) -> None:                # [関数定義] patch_blank_entrypoint の処理実行ブロック
     path = dst_root / "SolarSim.ps1"
     text = path.read_text(encoding="utf-8")
     text = text.replace(
@@ -89,7 +89,7 @@ def patch_blank_entrypoint(dst_root: Path) -> None:
     path.write_text(text, encoding="utf-8", newline="\n")
 
 
-def reset_project_inputs(dst_root: Path) -> list[str]:
+def reset_project_inputs(dst_root: Path) -> list[str]:             # [関数定義] reset_project_inputs の処理実行ブロック
     """Remove sample race/environment/map values while retaining CSV schemas."""
     reset: list[str] = []
     for project_name in PROJECT_PACKAGES:
@@ -109,10 +109,10 @@ def reset_project_inputs(dst_root: Path) -> list[str]:
         if schedule.exists():
             schedule.write_text("windows: []\n", encoding="utf-8")
             reset.append(schedule.relative_to(dst_root).as_posix())
-    return sorted(reset)
+    return sorted(reset)                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_readme(dst_root: Path, removed: list[str]) -> None:
+def write_readme(dst_root: Path, removed: list[str]) -> None:      # [関数定義] write_readme の処理実行ブロック
     readme = dst_root / "README_SOLAR_BLANK.md"
     lines = [
         "# ソーラーカー空パッケージ",
@@ -192,7 +192,7 @@ def write_readme(dst_root: Path, removed: list[str]) -> None:
     root_readme.write_text(notice + full_manual, encoding="utf-8")
 
 
-def write_manifest(dst_root: Path, removed: list[str], copied: list[str], reset_inputs: list[str]) -> None:
+def write_manifest(dst_root: Path, removed: list[str], copied: list[str], reset_inputs: list[str]) -> None:  # [関数定義] write_manifest の処理実行ブロック
     payload = {
         "generated_at": datetime.now().isoformat(),
         "source_root": "repository-export-source",
@@ -209,7 +209,7 @@ def write_manifest(dst_root: Path, removed: list[str], copied: list[str], reset_
     )
 
 
-def build_blank_copy(output_dir: Path, force: bool) -> Path:
+def build_blank_copy(output_dir: Path, force: bool) -> Path:       # [関数定義] build_blank_copy の処理実行ブロック
     base.prepare_output_dir(output_dir, source_root=ROOT, force=force)
 
     copied: list[str] = []
@@ -248,17 +248,17 @@ def build_blank_copy(output_dir: Path, force: bool) -> Path:
     write_readme(output_dir, removed)
     write_manifest(output_dir, removed, copied, reset_inputs)
     base.refresh_quality_artifacts(output_dir)
-    return output_dir
+    return output_dir                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:                            # [関数定義] parse_args の処理実行ブロック
     parser = argparse.ArgumentParser(description="Create a blank solar-car distribution copy with template packages only.")
-    parser.add_argument("--output_dir", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--force", action="store_true", help="Replace the output directory if it already exists.")
-    return parser.parse_args()
+    parser.add_argument("--output_dir", type=Path, default=DEFAULT_OUTPUT)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--force", action="store_true", help="Replace the output directory if it already exists.")  # [CLI引数] コマンドライン実行引数の定義
+    return parser.parse_args()                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def main() -> None:
+def main() -> None:                                                # [関数定義] main の処理実行ブロック
     args = parse_args()
     output_dir = build_blank_copy(args.output_dir.resolve(), force=args.force)
     print(output_dir)

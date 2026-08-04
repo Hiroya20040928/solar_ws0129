@@ -12,24 +12,24 @@ $ErrorActionPreference = 'Stop'
 function Normalize-WslText {
     param([string]$Text)
     if ($null -eq $Text) {
-        return ''
+        return ''                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     }
-    return ([string]$Text).Replace("`0", '').Trim()
+    return ([string]$Text).Replace("`0", '').Trim()                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 }
 
 function Resolve-WslDistro {
     param([string]$Preferred)
     if ($Preferred) {
-        return (Normalize-WslText $Preferred)
+        return (Normalize-WslText $Preferred)                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
     }
     $installed = (& wsl.exe -l -q) | ForEach-Object { Normalize-WslText $_ } | Where-Object { $_ }
     foreach ($candidate in @('Ubuntu-22.04', 'Ubuntu', 'Ubuntu-24.04')) {
         if ($installed -contains $candidate) {
-            return $candidate
+            return $candidate                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
         }
     }
     if ($installed.Count -gt 0) {
-        return $installed[0]
+        return $installed[0]                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
     }
     throw 'WSL distro was not found.'
 }
@@ -40,12 +40,12 @@ function Resolve-WslArgPath {
         [string]$PathValue
     )
     if ([string]::IsNullOrWhiteSpace($PathValue)) {
-        return ''
+        return ''                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     }
     if ([System.IO.Path]::IsPathRooted($PathValue)) {
-        return (& wsl.exe -d $TargetDistro wslpath -a $PathValue).Trim()
+        return (& wsl.exe -d $TargetDistro wslpath -a $PathValue).Trim()  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     }
-    return ($PathValue -replace '\\', '/')
+    return ($PathValue -replace '\\', '/')                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
 }
 
 function Invoke-WslRepoCommand {
@@ -77,21 +77,21 @@ function Wait-ForDashboard {
             try {
                 $res = Invoke-RestMethod -Uri $uri -Method Get -TimeoutSec 2
                 if ($null -ne $res.ts) {
-                    return $uri
+                    return $uri                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
                 }
             } catch {
             }
         }
         Start-Sleep -Milliseconds 750
     }
-    return $null
+    return $null                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 }
 
 function Get-ProfileDashboardPort {
     param([string]$ProfilePath)
     $resolved = Join-Path $repoRoot $ProfilePath
     if (-not (Test-Path $resolved)) {
-        return 8080
+        return 8080                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
     }
     $inRuntime = $false
     foreach ($line in Get-Content $resolved) {
@@ -103,10 +103,10 @@ function Get-ProfileDashboardPort {
             break
         }
         if ($inRuntime -and $line -match '^\s*dashboard_port\s*:\s*([0-9]+)\s*$') {
-            return [int]$Matches[1]
+            return [int]$Matches[1]                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
         }
     }
-    return 8080
+    return 8080                                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
 }
 
 function Get-ProfileSimulationReportPath {
@@ -117,7 +117,7 @@ function Get-ProfileSimulationReportPath {
     $reportHtml = ''
     $latestManifest = ''
     if (-not (Test-Path $resolved)) {
-        return (Join-Path $repoRoot (Join-Path $outputDir "$outputPrefix`_report.html"))
+        return (Join-Path $repoRoot (Join-Path $outputDir "$outputPrefix`_report.html"))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     }
     $inSimulation = $false
     foreach ($line in Get-Content $resolved) {
@@ -161,18 +161,18 @@ function Get-ProfileSimulationReportPath {
                 if (-not [System.IO.Path]::IsPathRooted($candidate)) {
                     $candidate = Join-Path $repoRoot $candidate
                 }
-                return $candidate
+                return $candidate                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
             }
         } catch {
         }
     }
     if (-not [string]::IsNullOrWhiteSpace($reportHtml)) {
         if ([System.IO.Path]::IsPathRooted($reportHtml)) {
-            return $reportHtml
+            return $reportHtml                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
         }
-        return (Join-Path $repoRoot $reportHtml)
+        return (Join-Path $repoRoot $reportHtml)                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
     }
-    return (Join-Path $repoRoot (Join-Path $outputDir "$outputPrefix`_report.html"))
+    return (Join-Path $repoRoot (Join-Path $outputDir "$outputPrefix`_report.html"))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 }
 
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path

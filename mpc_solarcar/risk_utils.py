@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import numpy as np
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
 
 
 @dataclass(frozen=True)
-class ScenarioRiskConfig:
+class ScenarioRiskConfig:                                          # [クラス定義] ScenarioRiskConfig オブジェクトの設計
     """Risk settings for a score-maximizing multi-scenario evaluation."""
 
     cvar_alpha: float = 0.90
@@ -16,7 +16,7 @@ class ScenarioRiskConfig:
     infeasible_score: float = -1.0e9
 
 
-def normalized_scenario_weights(weights) -> np.ndarray:
+def normalized_scenario_weights(weights) -> np.ndarray:            # [関数定義] normalized_scenario_weights の処理実行ブロック
     values = np.asarray(weights, dtype=float)
     if values.ndim != 1 or len(values) == 0:
         raise ValueError("scenario weights must be a non-empty one-dimensional array")
@@ -25,10 +25,10 @@ def normalized_scenario_weights(weights) -> np.ndarray:
     total = float(np.sum(values))
     if total <= 0.0:
         raise ValueError("scenario weights must have positive total mass")
-    return values / total
+    return values / total                                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def weighted_cvar(losses, weights, alpha: float = 0.90) -> float:
+def weighted_cvar(losses, weights, alpha: float = 0.90) -> float:  # [関数定義] weighted_cvar の処理実行ブロック
     """Return upper-tail CVaR for a finite weighted empirical loss distribution."""
     loss_values = np.asarray(losses, dtype=float)
     probability = normalized_scenario_weights(weights)
@@ -50,10 +50,10 @@ def weighted_cvar(losses, weights, alpha: float = 0.90) -> float:
         remaining -= included
         if remaining <= 1.0e-15:
             break
-    return float(tail_sum / tail_mass)
+    return float(tail_sum / tail_mass)                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def aggregate_scenario_scores(
+def aggregate_scenario_scores(                                     # [関数定義] aggregate_scenario_scores の処理実行ブロック
     scores,
     weights,
     feasible,
@@ -100,7 +100,7 @@ def aggregate_scenario_scores(
             float(config.infeasible_score) - failure_probability,
         )
 
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "score": aggregate_score,
         "risk_adjusted_score": float(risk_adjusted_score),
         "score_mean": mean_score,

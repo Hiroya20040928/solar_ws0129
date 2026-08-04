@@ -7,12 +7,12 @@ import sys
 from mpc_solarcar.solar_profile import get_section, load_profile
 
 
-def run(cmd):
+def run(cmd):                                                      # [関数定義] run の処理実行ブロック
     print('RUN', ' '.join(cmd))
     subprocess.run(cmd, check=True)
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     ap = argparse.ArgumentParser()
     ap.add_argument('--profile_yaml', required=True)
     ap.add_argument('--input_dir', default='')
@@ -80,5 +80,5 @@ def main():
     print(f'identification outputs saved under: {output_dir}')
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
     main()

@@ -1,13 +1,13 @@
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import threading
 import time
 
 import can
-import rclpy
-from rclpy.node import Node
+import rclpy                                                       # [ROS 2] ROS 2 Python クライアントライブラリ (rclpy) のインポート
+from rclpy.node import Node                                        # [ROS 2] ノード基底クラス Node のインポート
 from rcl_interfaces.msg import SetParametersResult
 from std_msgs.msg import Float32
-import numpy as np
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
 
 
 OBD_RESPONSE_IDS = range(0x7E8, 0x7F0)
@@ -16,8 +16,8 @@ EXTENDED_RESP_MASK = 0x1FFFFF00
 EXTENDED_RESP_VALUE = 0x18DAF100
 
 
-class CanObdNode(Node):
-    def __init__(self):
+class CanObdNode(Node):                                            # [クラス定義] CanObdNode オブジェクトの設計
+    def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
         super().__init__('can_obd_node')
         self.declare_parameter('can_interface', 'can0')
         self.declare_parameter('request_rate_hz', 10.0)
@@ -45,13 +45,13 @@ class CanObdNode(Node):
         self.response_id_value = int(self.get_parameter('response_id_value').value)
         self.enabled = bool(self.get_parameter('enabled').value)
 
-        self.pub_speed = self.create_publisher(Float32, '/vehicle/speed_kmh', 10)
-        self.pub_rpm = self.create_publisher(Float32, '/vehicle/rpm', 10)
-        self.pub_throttle = self.create_publisher(Float32, '/vehicle/throttle_pct', 10)
-        self.pub_maf = self.create_publisher(Float32, '/vehicle/maf_gps', 10)
-        self.pub_fuel = self.create_publisher(Float32, '/vehicle/fuel_rate_lph', 10)
-        self.pub_obd_ok = self.create_publisher(Float32, '/vehicle/obd_ok', 10)
-        self.pub_idle = self.create_publisher(Float32, '/vehicle/idle_fuel_lph', 10)
+        self.pub_speed = self.create_publisher(Float32, '/vehicle/speed_kmh', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_rpm = self.create_publisher(Float32, '/vehicle/rpm', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_throttle = self.create_publisher(Float32, '/vehicle/throttle_pct', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_maf = self.create_publisher(Float32, '/vehicle/maf_gps', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_fuel = self.create_publisher(Float32, '/vehicle/fuel_rate_lph', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_obd_ok = self.create_publisher(Float32, '/vehicle/obd_ok', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_idle = self.create_publisher(Float32, '/vehicle/idle_fuel_lph', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
 
         self.values = {
             'speed_kmh': math.nan,
@@ -87,7 +87,7 @@ class CanObdNode(Node):
 
         self.get_logger().info('CanObdNode started.')
 
-    def _on_parameters(self, params):
+    def _on_parameters(self, params):                              # [関数定義] _on_parameters の処理実行ブロック
         for param in params:
             if param.name == 'use_extended_id':
                 self.use_extended_id = bool(param.value)
@@ -101,9 +101,9 @@ class CanObdNode(Node):
                 self._update_pid_lists(pid_allowlist=param.value)
             elif param.name == 'enabled':
                 self.enabled = bool(param.value)
-        return SetParametersResult(successful=True)
+        return SetParametersResult(successful=True)                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _update_pid_lists(self, pid_allowlist=None):
+    def _update_pid_lists(self, pid_allowlist=None):               # [関数定義] _update_pid_lists の処理実行ブロック
         if pid_allowlist is None:
             pid_allowlist = self.get_parameter('pid_allowlist').value
         allowlist = [int(pid) for pid in pid_allowlist] if pid_allowlist else []
@@ -122,22 +122,22 @@ class CanObdNode(Node):
             self.pending_caps = [0x00, 0x20, 0x40, 0x60, 0x80]
         self.request_index = 0
 
-    def _open_bus(self):
+    def _open_bus(self):                                           # [関数定義] _open_bus の処理実行ブロック
         try:
             bus = can.interface.Bus(channel=self.can_interface, bustype='socketcan')
             self.get_logger().info(f'Opened CAN interface {self.can_interface}')
-            return bus
+            return bus                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
         except Exception as exc:
             self._warn_throttle(f'Failed to open CAN {self.can_interface}: {exc}')
-            return None
+            return None                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _warn_throttle(self, msg: str, interval_sec: float = 5.0):
+    def _warn_throttle(self, msg: str, interval_sec: float = 5.0):  # [関数定義] _warn_throttle の処理実行ブロック
         now = time.monotonic()
         if now - self.last_warn_time >= interval_sec:
             self.get_logger().warn(msg)
             self.last_warn_time = now
 
-    def _rx_loop(self):
+    def _rx_loop(self):                                            # [関数定義] _rx_loop の処理実行ブロック
         while rclpy.ok() and not self.stop_event.is_set():
             if self.bus is None:
                 now = time.monotonic()
@@ -162,7 +162,7 @@ class CanObdNode(Node):
                 continue
             self._handle_message(msg)
 
-    def _handle_message(self, msg):
+    def _handle_message(self, msg):                                # [関数定義] _handle_message の処理実行ブロック
         if msg.is_extended_id != self.use_extended_id:
             return
         if not self._match_response_id(msg.arbitration_id):
@@ -197,7 +197,7 @@ class CanObdNode(Node):
         elif pid == 0x5E and len(data) >= 5:
             self.values['fuel_rate_lph'] = float((data[3] * 256 + data[4]) / 20.0)
 
-    def _send_request(self):
+    def _send_request(self):                                       # [関数定義] _send_request の処理実行ブロック
         if self.bus is None or not self.enabled:
             return
         pid = None
@@ -221,14 +221,14 @@ class CanObdNode(Node):
         except Exception as exc:
             self._warn_throttle(f'CAN send error: {exc}')
 
-    def _match_response_id(self, arb_id: int) -> bool:
+    def _match_response_id(self, arb_id: int) -> bool:             # [関数定義] _match_response_id の処理実行ブロック
         if self.response_id_mask != 0:
-            return (arb_id & self.response_id_mask) == self.response_id_value
+            return (arb_id & self.response_id_mask) == self.response_id_value  # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if self.use_extended_id:
-            return (arb_id & EXTENDED_RESP_MASK) == EXTENDED_RESP_VALUE
-        return arb_id in OBD_RESPONSE_IDS
+            return (arb_id & EXTENDED_RESP_MASK) == EXTENDED_RESP_VALUE  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return arb_id in OBD_RESPONSE_IDS                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _update_idle_calibration(self, speed_kmh, fuel_rate_lph):
+    def _update_idle_calibration(self, speed_kmh, fuel_rate_lph):  # [関数定義] _update_idle_calibration の処理実行ブロック
         allow_recalib = bool(self.get_parameter('idle_recalib_enabled').value)
         if np_isfinite(self.idle_fuel_lph) and not allow_recalib:
             return
@@ -254,25 +254,25 @@ class CanObdNode(Node):
             self.idle_start_time = None
             self.idle_samples = []
 
-    def _robust_median(self, samples):
+    def _robust_median(self, samples):                             # [関数定義] _robust_median の処理実行ブロック
         if not samples:
-            return math.nan
+            return math.nan                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
         arr = np.array([s for s in samples if np_isfinite(s)], dtype=float)
         if arr.size == 0:
-            return math.nan
+            return math.nan                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
         q1 = np.percentile(arr, 25)
         q3 = np.percentile(arr, 75)
         iqr = q3 - q1
         if iqr <= 0.0:
-            return float(np.median(arr))
+            return float(np.median(arr))                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
         lower = q1 - 1.5 * iqr
         upper = q3 + 1.5 * iqr
         filtered = arr[(arr >= lower) & (arr <= upper)]
         if filtered.size == 0:
             filtered = arr
-        return float(np.median(filtered))
+        return float(np.median(filtered))                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _publish(self):
+    def _publish(self):                                            # [関数定義] _publish の処理実行ブロック
         now = time.monotonic()
         max_no_response = float(self.get_parameter('max_no_response_sec').value)
         if self.last_response_time is None or (now - self.last_response_time) > max_no_response:
@@ -313,12 +313,12 @@ class CanObdNode(Node):
         self._pub_float(self.pub_obd_ok, obd_ok)
         self._pub_float(self.pub_idle, self.idle_fuel_lph)
 
-    def _pub_float(self, pub, value):
+    def _pub_float(self, pub, value):                              # [関数定義] _pub_float の処理実行ブロック
         msg = Float32()
         msg.data = float(value) if np_isfinite(value) else math.nan
         pub.publish(msg)
 
-    def destroy_node(self):
+    def destroy_node(self):                                        # [関数定義] destroy_node の処理実行ブロック
         self.stop_event.set()
         with self.bus_lock:
             if self.bus is not None:
@@ -330,14 +330,14 @@ class CanObdNode(Node):
         super().destroy_node()
 
 
-def np_isfinite(val) -> bool:
+def np_isfinite(val) -> bool:                                      # [関数定義] np_isfinite の処理実行ブロック
     try:
-        return math.isfinite(float(val))
+        return math.isfinite(float(val))                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
     except Exception:
-        return False
+        return False                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     rclpy.init()
     node = CanObdNode()
     rclpy.spin(node)

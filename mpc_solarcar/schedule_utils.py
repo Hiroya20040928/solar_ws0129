@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime, time as dtime, timedelta, timezone
 from typing import List, Optional, Tuple
 
-import yaml
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
 
 try:
     from zoneinfo import ZoneInfo
@@ -11,41 +11,41 @@ except Exception:  # pragma: no cover - fallback for older Python
     ZoneInfo = None
 
 
-def _parse_utc(ts: str) -> Optional[datetime]:
+def _parse_utc(ts: str) -> Optional[datetime]:                     # [関数定義] _parse_utc の処理実行ブロック
     try:
         if ts.endswith('Z'):
             ts = ts[:-1] + '+00:00'
         dt = datetime.fromisoformat(ts)
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
-        return dt.astimezone(timezone.utc)
+        return dt.astimezone(timezone.utc)                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
     except Exception:
-        return None
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _parse_time_hhmm(s: str) -> Optional[dtime]:
+def _parse_time_hhmm(s: str) -> Optional[dtime]:                   # [関数定義] _parse_time_hhmm の処理実行ブロック
     try:
         parts = s.strip().split(':')
         if len(parts) < 2:
-            return None
-        return dtime(hour=int(parts[0]), minute=int(parts[1]))
+            return None                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return dtime(hour=int(parts[0]), minute=int(parts[1]))     # [戻り値] 計算結果・計算状態の呼び出し元への返却
     except Exception:
-        return None
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
 @dataclass
-class DriveWindow:
+class DriveWindow:                                                 # [クラス定義] DriveWindow オブジェクトの設計
     start_utc: datetime
     end_utc: datetime
     v_min_kmh: float
     v_max_kmh: float
 
-    def contains(self, t_utc: datetime) -> bool:
-        return self.start_utc <= t_utc < self.end_utc
+    def contains(self, t_utc: datetime) -> bool:                   # [関数定義] contains の処理実行ブロック
+        return self.start_utc <= t_utc < self.end_utc              # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
 @dataclass
-class DailyWindow:
+class DailyWindow:                                                 # [クラス定義] DailyWindow オブジェクトの設計
     start_local: dtime
     end_local: dtime
     tz: str
@@ -53,40 +53,40 @@ class DailyWindow:
     v_min_kmh: float
     v_max_kmh: float
 
-    def contains(self, t_utc: datetime) -> bool:
+    def contains(self, t_utc: datetime) -> bool:                   # [関数定義] contains の処理実行ブロック
         if ZoneInfo is None:
-            return False
+            return False                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
         try:
             tzinfo = ZoneInfo(self.tz)
         except Exception:
-            return False
+            return False                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
         local_dt = t_utc.astimezone(tzinfo)
         if self.days is not None and local_dt.weekday() not in self.days:
-            return False
+            return False                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
         start = self.start_local
         end = self.end_local
         now_t = local_dt.time()
         if start <= end:
-            return start <= now_t < end
+            return start <= now_t < end                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
         # wraps midnight
-        return now_t >= start or now_t < end
+        return now_t >= start or now_t < end                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-class DriveSchedule:
-    def __init__(self, windows: List[DriveWindow], daily: List[DailyWindow], deny_by_default: bool):
+class DriveSchedule:                                               # [クラス定義] DriveSchedule オブジェクトの設計
+    def __init__(self, windows: List[DriveWindow], daily: List[DailyWindow], deny_by_default: bool):  # [関数定義] __init__ の処理実行ブロック
         self.windows = windows
         self.daily = daily
         self.deny_by_default = deny_by_default
 
     @classmethod
-    def from_yaml(cls, path: str) -> Optional['DriveSchedule']:
+    def from_yaml(cls, path: str) -> Optional['DriveSchedule']:    # [関数定義] from_yaml の処理実行ブロック
         if not path or not os.path.exists(path):
-            return None
+            return None                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
         try:
             with open(path, 'r', encoding='utf-8') as f:
                 cfg = yaml.safe_load(f) or {}
         except Exception:
-            return None
+            return None                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
         deny_by_default = bool(cfg.get('deny_by_default', False))
         windows = []
         for w in cfg.get('drive_windows', []) or []:
@@ -113,9 +113,9 @@ class DriveSchedule:
             vmin = float(w.get('v_min_kmh', 0.0))
             vmax = float(w.get('v_max_kmh', 130.0))
             daily.append(DailyWindow(start, end, tz, days, vmin, vmax))
-        return cls(windows, daily, deny_by_default)
+        return cls(windows, daily, deny_by_default)                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def speed_limits(self, t_utc: datetime) -> Optional[Tuple[float, float]]:
+    def speed_limits(self, t_utc: datetime) -> Optional[Tuple[float, float]]:  # [関数定義] speed_limits の処理実行ブロック
         limits = []
         for w in self.windows:
             if w.contains(t_utc):
@@ -126,20 +126,20 @@ class DriveSchedule:
         if limits:
             vmin = max(l[0] for l in limits)
             vmax = min(l[1] for l in limits)
-            return vmin, vmax
+            return vmin, vmax                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if self.deny_by_default:
-            return 0.0, 0.0
-        return None
+            return 0.0, 0.0                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def is_drive_time(self, t_utc: datetime) -> bool:
+    def is_drive_time(self, t_utc: datetime) -> bool:              # [関数定義] is_drive_time の処理実行ブロック
         limits = self.speed_limits(t_utc)
         if limits is None:
-            return not self.deny_by_default
-        return limits[1] > 0.0
+            return not self.deny_by_default                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return limits[1] > 0.0                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def next_drive_start(self, t_utc: datetime) -> datetime:
+    def next_drive_start(self, t_utc: datetime) -> datetime:       # [関数定義] next_drive_start の処理実行ブロック
         if self.is_drive_time(t_utc):
-            return t_utc
+            return t_utc                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
         candidates = []
         for w in self.windows:
             if t_utc < w.start_utc:
@@ -177,14 +177,14 @@ class DriveSchedule:
                     start_local = datetime.combine(local_dt.date() + timedelta(days=1), w.start_local, tzinfo)
             candidates.append(start_local.astimezone(timezone.utc))
         if candidates:
-            return min(candidates)
-        return t_utc
+            return min(candidates)                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return t_utc                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def current_drive_window(self, t_utc: datetime):
+    def current_drive_window(self, t_utc: datetime):               # [関数定義] current_drive_window の処理実行ブロック
         """Return (start_utc, end_utc) if t_utc is inside a drive window, else None."""
         for w in self.windows:
             if w.contains(t_utc):
-                return w.start_utc, w.end_utc
+                return w.start_utc, w.end_utc                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
         for w in self.daily:
             if ZoneInfo is None:
                 continue
@@ -213,5 +213,5 @@ class DriveSchedule:
                 else:
                     start_local = datetime.combine(local_dt.date() - timedelta(days=1), start, tzinfo)
                     end_local = datetime.combine(local_dt.date(), end, tzinfo)
-            return start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc)
-        return None
+            return start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却

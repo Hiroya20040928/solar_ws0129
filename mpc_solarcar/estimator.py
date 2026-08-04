@@ -1,14 +1,14 @@
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 from collections import deque
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-import numpy as np
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
 from scipy.optimize import minimize
 
 
 @dataclass
-class MheInput:
+class MheInput:                                                    # [クラス定義] MheInput オブジェクトの設計
     v_ms: float
     slope_pct: float
     G_poa: float
@@ -19,15 +19,15 @@ class MheInput:
 
 
 @dataclass
-class MheMeas:
+class MheMeas:                                                     # [クラス定義] MheMeas オブジェクトの設計
     soc: Optional[float] = None
     Tb: Optional[float] = None
     I: Optional[float] = None
     V: Optional[float] = None
 
 
-class BatteryMHE:
-    def __init__(
+class BatteryMHE:                                                  # [クラス定義] BatteryMHE オブジェクトの設計
+    def __init__(                                                  # [関数定義] __init__ の処理実行ブロック
         self,
         model,
         horizon_steps: int = 12,
@@ -49,10 +49,10 @@ class BatteryMHE:
         self.soc_bounds = soc_bounds
         self.tb_bounds = tb_bounds
 
-    def push(self, u: MheInput, y: MheMeas):
+    def push(self, u: MheInput, y: MheMeas):                       # [関数定義] push の処理実行ブロック
         self.samples.append((u, y))
 
-    def _simulate(self, z0: float, Tb0: float):
+    def _simulate(self, z0: float, Tb0: float):                    # [関数定義] _simulate の処理実行ブロック
         z = float(z0)
         Tb = float(Tb0)
         outputs = []
@@ -75,13 +75,13 @@ class BatteryMHE:
             Tb_next = Tb + (dt / 1800.0) * (u.Tamb_C - Tb) + (loss_int * dt) / 50000.0
             outputs.append((z_next, Tb_next, I, V))
             z, Tb = z_next, Tb_next
-        return outputs, z, Tb
+        return outputs, z, Tb                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def estimate(self, z_init: float, Tb_init: float) -> Tuple[float, float]:
+    def estimate(self, z_init: float, Tb_init: float) -> Tuple[float, float]:  # [関数定義] estimate の処理実行ブロック
         if len(self.samples) < 2:
-            return z_init, Tb_init
+            return z_init, Tb_init                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-        def cost(x):
+        def cost(x):                                               # [関数定義] cost の処理実行ブロック
             z0, Tb0 = float(x[0]), float(x[1])
             J = self.w_prior * ((z0 - z_init) ** 2 + (Tb0 - Tb_init) ** 2)
             outputs, _, _ = self._simulate(z0, Tb0)
@@ -94,13 +94,13 @@ class BatteryMHE:
                     J += self.w_i * (I_pred - meas.I) ** 2
                 if meas.V is not None and math.isfinite(meas.V):
                     J += self.w_v * (V_pred - meas.V) ** 2
-            return J
+            return J                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
         x0 = np.array([float(z_init), float(Tb_init)], dtype=float)
         bounds = [self.soc_bounds, self.tb_bounds]
         res = minimize(cost, x0, method='L-BFGS-B', bounds=bounds, options=dict(maxiter=80))
         if not res.success:
-            return z_init, Tb_init
+            return z_init, Tb_init                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
         z0, Tb0 = float(res.x[0]), float(res.x[1])
         _, zN, TbN = self._simulate(z0, Tb0)
-        return float(zN), float(TbN)
+        return float(zN), float(TbN)                               # [戻り値] 計算結果・計算状態の呼び出し元への返却

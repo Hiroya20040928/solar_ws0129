@@ -9,9 +9,9 @@ import sys
 from pathlib import Path
 
 import matplotlib
-import numpy as np
-import pandas as pd
-import yaml
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
 
 ROOT = Path(__file__).resolve().parents[1]
 if os.fspath(ROOT) not in sys.path:
@@ -60,27 +60,27 @@ WEATHER_DAILY_COLUMNS = [
 ]
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:                            # [関数定義] parse_args の処理実行ブロック
     parser = argparse.ArgumentParser()
-    parser.add_argument("--vehicle-replay", type=Path, required=True)
-    parser.add_argument("--battery-replay", type=Path, required=True)
-    parser.add_argument("--end-to-end-replay", type=Path)
-    parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--profile", type=Path)
-    parser.add_argument("--rint-map", type=Path)
-    parser.add_argument("--rint-scale", type=float)
-    parser.add_argument("--r-line-ohm", type=float)
-    parser.add_argument("--r-polarization-ohm", type=float)
-    parser.add_argument("--high-soc-threshold", type=float, default=0.85)
-    return parser.parse_args()
+    parser.add_argument("--vehicle-replay", type=Path, required=True)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--battery-replay", type=Path, required=True)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--end-to-end-replay", type=Path)          # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--output-dir", type=Path, required=True)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--profile", type=Path)                    # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--rint-map", type=Path)                   # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--rint-scale", type=float)                # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--r-line-ohm", type=float)                # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--r-polarization-ohm", type=float)        # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--high-soc-threshold", type=float, default=0.85)  # [CLI引数] コマンドライン実行引数の定義
+    return parser.parse_args()                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def rmse(values: pd.Series) -> float:
+def rmse(values: pd.Series) -> float:                              # [関数定義] rmse の処理実行ブロック
     array = pd.to_numeric(values, errors="coerce").dropna().to_numpy(dtype=float)
-    return float(np.sqrt(np.mean(np.square(array)))) if len(array) else float("nan")
+    return float(np.sqrt(np.mean(np.square(array)))) if len(array) else float("nan")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def clean_power_rows(frame: pd.DataFrame) -> pd.DataFrame:
+def clean_power_rows(frame: pd.DataFrame) -> pd.DataFrame:         # [関数定義] clean_power_rows の処理実行ブロック
     excluded = frame.get("exclude_power_fit", pd.Series(False, index=frame.index))
     if excluded.dtype != bool:
         excluded = excluded.astype(str).str.lower().isin({"true", "1", "yes"})
@@ -90,27 +90,27 @@ def clean_power_rows(frame: pd.DataFrame) -> pd.DataFrame:
     mask = (~excluded.fillna(True)) & (speed >= 12.0) & observed.notna() & predicted.notna()
     out = frame.loc[mask].copy()
     out["power_residual_w"] = observed.loc[mask] - predicted.loc[mask]
-    return out.sort_values("time_utc").reset_index(drop=True)
+    return out.sort_values("time_utc").reset_index(drop=True)      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def all_clean_power_residual(frame: pd.DataFrame) -> pd.Series:
+def all_clean_power_residual(frame: pd.DataFrame) -> pd.Series:    # [関数定義] all_clean_power_residual の処理実行ブロック
     excluded = frame.get("exclude_power_fit", pd.Series(False, index=frame.index))
     if excluded.dtype != bool:
         excluded = excluded.astype(str).str.lower().isin({"true", "1", "yes"})
     observed = pd.to_numeric(frame.get("battery_power_w_obs"), errors="coerce")
     predicted = pd.to_numeric(frame.get("battery_power_w_pred"), errors="coerce")
     mask = (~excluded.fillna(True)) & observed.notna() & predicted.notna()
-    return observed.loc[mask] - predicted.loc[mask]
+    return observed.loc[mask] - predicted.loc[mask]                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def exclusion_mask(frame: pd.DataFrame, column: str) -> pd.Series:
+def exclusion_mask(frame: pd.DataFrame, column: str) -> pd.Series:  # [関数定義] exclusion_mask の処理実行ブロック
     excluded = frame.get(column, pd.Series(False, index=frame.index))
     if excluded.dtype != bool:
         excluded = excluded.astype(str).str.lower().isin({"true", "1", "yes"})
-    return excluded.fillna(True).astype(bool)
+    return excluded.fillna(True).astype(bool)                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def clean_voltage_rows(frame: pd.DataFrame) -> pd.DataFrame:
+def clean_voltage_rows(frame: pd.DataFrame) -> pd.DataFrame:       # [関数定義] clean_voltage_rows の処理実行ブロック
     required = {
         "battery_voltage_v_obs",
         "battery_voltage_v_pred",
@@ -118,7 +118,7 @@ def clean_voltage_rows(frame: pd.DataFrame) -> pd.DataFrame:
         "soc_pred",
     }
     if not required.issubset(frame.columns):
-        return pd.DataFrame()
+        return pd.DataFrame()                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
     work = frame.copy()
     for column in required:
         work[column] = pd.to_numeric(work[column], errors="coerce")
@@ -133,10 +133,10 @@ def clean_voltage_rows(frame: pd.DataFrame) -> pd.DataFrame:
     work["voltage_residual_v"] = (
         work["battery_voltage_v_obs"] - work["battery_voltage_v_pred"]
     )
-    return work.reset_index(drop=True)
+    return work.reset_index(drop=True)                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def voltage_soc_current_metrics(frame: pd.DataFrame) -> pd.DataFrame:
+def voltage_soc_current_metrics(frame: pd.DataFrame) -> pd.DataFrame:  # [関数定義] voltage_soc_current_metrics の処理実行ブロック
     """Report voltage error without hiding SoC-current interaction in one RMSE."""
     work = clean_voltage_rows(frame)
     columns = [
@@ -149,7 +149,7 @@ def voltage_soc_current_metrics(frame: pd.DataFrame) -> pd.DataFrame:
         "rmse_v",
     ]
     if work.empty:
-        return pd.DataFrame(columns=columns)
+        return pd.DataFrame(columns=columns)                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
     work["soc_bin"] = pd.cut(
         work["soc_pred"], VOLTAGE_SOC_BINS, include_lowest=True
     )
@@ -158,7 +158,7 @@ def voltage_soc_current_metrics(frame: pd.DataFrame) -> pd.DataFrame:
     )
     rows: list[dict[str, object]] = []
 
-    def append(group: str, soc_bin: str, current_bin: str, values: pd.Series) -> None:
+    def append(group: str, soc_bin: str, current_bin: str, values: pd.Series) -> None:  # [関数定義] append の処理実行ブロック
         finite = pd.to_numeric(values, errors="coerce").dropna()
         rows.append(
             {
@@ -186,10 +186,10 @@ def voltage_soc_current_metrics(frame: pd.DataFrame) -> pd.DataFrame:
             str(current_label),
             group["voltage_residual_v"],
         )
-    return pd.DataFrame(rows, columns=columns)
+    return pd.DataFrame(rows, columns=columns)                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def _bilinear_values(
+def _bilinear_values(                                              # [関数定義] _bilinear_values の処理実行ブロック
     x_grid: np.ndarray,
     y_grid: np.ndarray,
     values: np.ndarray,
@@ -209,7 +209,7 @@ def _bilinear_values(
     y1 = y_grid[j + 1]
     wx = np.divide(x - x0, x1 - x0, out=np.zeros_like(x), where=x1 != x0)
     wy = np.divide(y - y0, y1 - y0, out=np.zeros_like(y), where=y1 != y0)
-    return (
+    return (                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         (1.0 - wx) * (1.0 - wy) * values[i, j]
         + wx * (1.0 - wy) * values[i + 1, j]
         + (1.0 - wx) * wy * values[i, j + 1]
@@ -217,7 +217,7 @@ def _bilinear_values(
     )
 
 
-def high_soc_rint_counterfactual(
+def high_soc_rint_counterfactual(                                  # [関数定義] high_soc_rint_counterfactual の処理実行ブロック
     frame: pd.DataFrame,
     rint_map_path: Path,
     *,
@@ -240,13 +240,13 @@ def high_soc_rint_counterfactual(
         "battery_voltage_v_pred",
     }
     if not required.issubset(frame.columns):
-        return {
+        return {                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
             "available": False,
             "reason": f"missing replay columns: {sorted(required.difference(frame.columns))}",
         }
     map_path = Path(rint_map_path).resolve()
     if not map_path.is_file():
-        return {"available": False, "reason": f"Rint map does not exist: {map_path}"}
+        return {"available": False, "reason": f"Rint map does not exist: {map_path}"}  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     temperature_grid, soc_grid, rint_map = read_Rint_map(map_path)
     threshold = float(np.clip(high_soc_threshold, soc_grid[0], soc_grid[-1]))
     work = frame.copy()
@@ -357,7 +357,7 @@ def high_soc_rint_counterfactual(
             np.asarray([soc_grid[-1]]),
         )[0]
     )
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "available": True,
         "validation_status": "diagnostic_only_not_an_identified_replacement",
         "method": "same-current and same-SoC local replay counterfactual; Rint map is held flat above the threshold while OCV, line resistance, polarization voltage, and all fitted states remain unchanged",
@@ -381,10 +381,10 @@ def high_soc_rint_counterfactual(
     }
 
 
-def regime_metrics(frame: pd.DataFrame) -> pd.DataFrame:
+def regime_metrics(frame: pd.DataFrame) -> pd.DataFrame:           # [関数定義] regime_metrics の処理実行ブロック
     rows: list[dict[str, object]] = []
 
-    def append_group(group_name: str, label: str, values: pd.Series) -> None:
+    def append_group(group_name: str, label: str, values: pd.Series) -> None:  # [関数定義] append_group の処理実行ブロック
         rows.append(
             {
                 "group": group_name,
@@ -407,10 +407,10 @@ def regime_metrics(frame: pd.DataFrame) -> pd.DataFrame:
         )
         for label, group in frame.groupby(categories, observed=True):
             append_group(column, str(label), group["power_residual_w"])
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows)                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def weather_and_cruise_metrics(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float | int]]:
+def weather_and_cruise_metrics(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float | int]]:  # [関数定義] weather_and_cruise_metrics の処理実行ブロック
     """Summarize weather plausibility and gross vehicle load near 70 km/h.
 
     Battery power in the replay is net of PV.  Adding the synchronized PV
@@ -494,10 +494,10 @@ def weather_and_cruise_metrics(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[
             ),
             "cruise_70kmh_gross_vehicle_power_rmse_w": rmse(residual),
         }
-    return daily, cruise_summary
+    return daily, cruise_summary                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def align_soc(vehicle: pd.DataFrame, battery: pd.DataFrame, end_to_end: pd.DataFrame | None) -> pd.DataFrame:
+def align_soc(vehicle: pd.DataFrame, battery: pd.DataFrame, end_to_end: pd.DataFrame | None) -> pd.DataFrame:  # [関数定義] align_soc の処理実行ブロック
     columns = [column for column in ("time_utc", "s_km", "day", "soc_pred") if column in vehicle]
     aligned = vehicle[columns].copy().rename(columns={"soc_pred": "vehicle_soc"})
     aligned["time_utc"] = pd.to_datetime(aligned["time_utc"], format="mixed", utc=True)
@@ -517,10 +517,10 @@ def align_soc(vehicle: pd.DataFrame, battery: pd.DataFrame, end_to_end: pd.DataF
             pd.to_numeric(aligned["end_to_end_soc"], errors="coerce")
             - pd.to_numeric(aligned["battery_conditional_soc"], errors="coerce")
         )
-    return aligned
+    return aligned                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def threshold_crossings(aligned: pd.DataFrame, column: str) -> dict[str, object]:
+def threshold_crossings(aligned: pd.DataFrame, column: str) -> dict[str, object]:  # [関数定義] threshold_crossings の処理実行ブロック
     result: dict[str, object] = {}
     absolute = pd.to_numeric(aligned[column], errors="coerce").abs()
     for threshold in (0.02, 0.05, 0.10):
@@ -539,10 +539,10 @@ def threshold_crossings(aligned: pd.DataFrame, column: str) -> dict[str, object]
             "signed_soc_difference": float(row[column]),
         }
     result["terminal_signed_soc_difference"] = float(aligned[column].dropna().iloc[-1])
-    return result
+    return result                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def plot_audit(clean: pd.DataFrame, aligned: pd.DataFrame, output: Path) -> None:
+def plot_audit(clean: pd.DataFrame, aligned: pd.DataFrame, output: Path) -> None:  # [関数定義] plot_audit の処理実行ブロック
     fig, axes = plt.subplots(2, 1, figsize=(11.0, 7.2), constrained_layout=True)
     axes[0].scatter(clean["s_km"], clean["power_residual_w"], s=2, alpha=0.16, color="#174a5b")
     residual_by_time = pd.Series(
@@ -585,7 +585,7 @@ def plot_audit(clean: pd.DataFrame, aligned: pd.DataFrame, output: Path) -> None
     plt.close(fig)
 
 
-def rint_context_from_profile(profile_path: Path) -> dict[str, object]:
+def rint_context_from_profile(profile_path: Path) -> dict[str, object]:  # [関数定義] rint_context_from_profile の処理実行ブロック
     profile_path = Path(profile_path).resolve()
     with profile_path.open("r", encoding="utf-8") as handle:
         cfg = yaml.safe_load(handle) or {}
@@ -600,7 +600,7 @@ def rint_context_from_profile(profile_path: Path) -> dict[str, object]:
         )
     map_path = next((path for path in candidates if path.is_file()), candidates[0] if candidates else None)
     model = cfg.get("model", {}) or {}
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "rint_map_path": map_path,
         "rint_scale": float(model.get("rint_scale", 1.0)),
         "r_line_ohm": float(model.get("r_line_ohm", 0.0)),
@@ -608,7 +608,7 @@ def rint_context_from_profile(profile_path: Path) -> dict[str, object]:
     }
 
 
-def run_audit(
+def run_audit(                                                     # [関数定義] run_audit の処理実行ブロック
     vehicle_path: Path,
     battery_path: Path,
     end_path: Path | None,
@@ -691,10 +691,10 @@ def run_audit(
     (output_dir / "residual_audit.json").write_text(
         json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    return payload
+    return payload                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def main() -> None:
+def main() -> None:                                                # [関数定義] main の処理実行ブロック
     args = parse_args()
     context = {
         "rint_map_path": args.rint_map,

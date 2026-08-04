@@ -1,24 +1,24 @@
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import time
 
-import rclpy
-import yaml
-from rclpy.node import Node
+import rclpy                                                       # [ROS 2] ROS 2 Python クライアントライブラリ (rclpy) のインポート
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
+from rclpy.node import Node                                        # [ROS 2] ノード基底クラス Node のインポート
 from std_msgs.msg import Float32, Float32MultiArray, String
 
 
-def finite(value, default=math.nan):
+def finite(value, default=math.nan):                               # [関数定義] finite の処理実行ブロック
     try:
         v = float(value)
         if math.isfinite(v):
-            return v
+            return v                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
     except Exception:
         pass
-    return default
+    return default                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-class SolarAutoCalNode(Node):
-    def __init__(self):
+class SolarAutoCalNode(Node):                                      # [クラス定義] SolarAutoCalNode オブジェクトの設計
+    def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
         super().__init__('solar_autocal_node')
         self.declare_parameter('publish_period_sec', 30.0)
         self.declare_parameter('stationary_speed_kmh', 2.0)
@@ -80,21 +80,21 @@ class SolarAutoCalNode(Node):
         self._prev_speed = math.nan
         self._prev_speed_time = None
 
-        self.create_subscription(Float32, '/vehicle/speed_kmh', self._on_speed, 10)
-        self.create_subscription(Float32, '/vehicle/batt_voltage_v', self._on_v, 10)
-        self.create_subscription(Float32, '/vehicle/batt_current_a', self._on_i, 10)
-        self.create_subscription(Float32MultiArray, '/planner/env', self._on_env, 10)
-        self.create_subscription(Float32MultiArray, '/planner/metrics', self._on_metrics, 10)
+        self.create_subscription(Float32, '/vehicle/speed_kmh', self._on_speed, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/batt_voltage_v', self._on_v, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/vehicle/batt_current_a', self._on_i, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32MultiArray, '/planner/env', self._on_env, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32MultiArray, '/planner/metrics', self._on_metrics, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
 
-        self.pub_cal = self.create_publisher(String, '/planner/calibration', 10)
-        self.pub_state = self.create_publisher(Float32MultiArray, '/planner/calibration_state', 10)
-        self.pub_status = self.create_publisher(String, '/system/calibration_status', 10)
+        self.pub_cal = self.create_publisher(String, '/planner/calibration', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_state = self.create_publisher(Float32MultiArray, '/planner/calibration_state', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_status = self.create_publisher(String, '/system/calibration_status', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
 
         period = max(5.0, float(self.get_parameter('publish_period_sec').value))
         self.timer = self.create_timer(period, self._tick)
         self.get_logger().info('SolarAutoCalNode started.')
 
-    def _on_speed(self, msg: Float32):
+    def _on_speed(self, msg: Float32):                             # [関数定義] _on_speed の処理実行ブロック
         now = time.monotonic()
         speed = finite(msg.data)
         if math.isfinite(speed) and self._prev_speed_time is not None and math.isfinite(self._prev_speed):
@@ -105,7 +105,7 @@ class SolarAutoCalNode(Node):
         self._prev_speed = speed
         self._prev_speed_time = now
 
-    def _on_v(self, msg: Float32):
+    def _on_v(self, msg: Float32):                                 # [関数定義] _on_v の処理実行ブロック
         v = finite(msg.data)
         i = finite(self._last_current if hasattr(self, '_last_current') else math.nan)
         if math.isfinite(v) and math.isfinite(i):
@@ -113,7 +113,7 @@ class SolarAutoCalNode(Node):
             self.last_pack_time = time.monotonic()
         self._last_voltage = v
 
-    def _on_i(self, msg: Float32):
+    def _on_i(self, msg: Float32):                                 # [関数定義] _on_i の処理実行ブロック
         i = finite(msg.data)
         v = finite(self._last_voltage if hasattr(self, '_last_voltage') else math.nan)
         if math.isfinite(v) and math.isfinite(i):
@@ -121,34 +121,34 @@ class SolarAutoCalNode(Node):
             self.last_pack_time = time.monotonic()
         self._last_current = i
 
-    def _on_env(self, msg: Float32MultiArray):
+    def _on_env(self, msg: Float32MultiArray):                     # [関数定義] _on_env の処理実行ブロック
         data = list(msg.data)
         if len(data) >= 4:
             self.ghi = finite(data[0], 0.0)
             self.slope_pct = finite(data[3], 0.0)
             self.last_env_time = time.monotonic()
 
-    def _on_metrics(self, msg: Float32MultiArray):
+    def _on_metrics(self, msg: Float32MultiArray):                 # [関数定義] _on_metrics の処理実行ブロック
         data = list(msg.data)
         if len(data) >= 9:
             self.pred_solar_w = finite(data[5], 0.0)
             self.pred_pack_w = finite(data[8], math.nan)
             self.last_metrics_time = time.monotonic()
 
-    def _ema(self, old, new):
+    def _ema(self, old, new):                                      # [関数定義] _ema の処理実行ブロック
         if not math.isfinite(new):
-            return old
+            return old                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if not math.isfinite(old):
-            return new
-        return (1.0 - self.alpha) * old + self.alpha * new
+            return new                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return (1.0 - self.alpha) * old + self.alpha * new         # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _clamp(self, val, lo, hi):
-        return max(lo, min(hi, val))
+    def _clamp(self, val, lo, hi):                                 # [関数定義] _clamp の処理実行ブロック
+        return max(lo, min(hi, val))                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _fresh(self, timestamp, now):
-        return timestamp is not None and (now - timestamp) <= self.measurement_timeout_sec
+    def _fresh(self, timestamp, now):                              # [関数定義] _fresh の処理実行ブロック
+        return timestamp is not None and (now - timestamp) <= self.measurement_timeout_sec  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _tick(self):
+    def _tick(self):                                               # [関数定義] _tick の処理実行ブロック
         now = time.monotonic()
         status = 'collecting'
 
@@ -224,7 +224,7 @@ class SolarAutoCalNode(Node):
         self.pub_status.publish(String(data=status))
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     rclpy.init()
     node = SolarAutoCalNode()
     rclpy.spin(node)

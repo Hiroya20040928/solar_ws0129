@@ -2,13 +2,13 @@
 import argparse
 import os
 
-import pandas as pd
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
 
 from mpc_solarcar.solar_profile import get_path, get_section, load_profile, merged_dict
 from mpc_solarcar.weather_utils import fetch_openmeteo_forecast, write_forecast_csv
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     ap = argparse.ArgumentParser()
     ap.add_argument('--profile_yaml', required=True)
     ap.add_argument('--latitude', type=float, default=None)
@@ -69,5 +69,5 @@ def main():
     print(f'forecast saved: {out_csv}')
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
     main()

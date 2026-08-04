@@ -10,7 +10,7 @@ import json
 import shutil
 from pathlib import Path
 
-import yaml
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,26 +20,26 @@ DEFAULT_OUTPUT = ROOT / "project_packages" / "bwsc2027_operational"
 REGULATIONS = ROOT / "inputs" / "regulations" / "bwsc2027" / "2027_BWSC_Event_Regulations_V1.0.pdf"
 
 
-def sha256(path: Path) -> str:
+def sha256(path: Path) -> str:                                     # [関数定義] sha256 の処理実行ブロック
     digest = hashlib.sha256()
     with path.open("rb") as stream:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
-    return digest.hexdigest()
+    return digest.hexdigest()                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def copy(source: Path, destination: Path) -> None:
+def copy(source: Path, destination: Path) -> None:                 # [関数定義] copy の処理実行ブロック
     if not source.is_file():
         raise FileNotFoundError(source)
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, destination)
 
 
-def load_yaml(path: Path) -> dict:
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+def load_yaml(path: Path) -> dict:                                 # [関数定義] load_yaml の処理実行ブロック
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_yaml(path: Path, payload: dict) -> None:
+def write_yaml(path: Path, payload: dict) -> None:                 # [関数定義] write_yaml の処理実行ブロック
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         yaml.safe_dump(payload, sort_keys=False, allow_unicode=True),
@@ -47,8 +47,8 @@ def write_yaml(path: Path, payload: dict) -> None:
     )
 
 
-def local_paths(map_set: str) -> dict[str, str]:
-    return {
+def local_paths(map_set: str) -> dict[str, str]:                   # [関数定義] local_paths の処理実行ブロック
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "route_waypoints_csv": "route/provisional_2025_waypoints.csv",
         "route_profile_csv": "route/provisional_2025_profile.csv",
         "speed_profile_csv": "route/provisional_2025_speed.csv",
@@ -72,7 +72,7 @@ def local_paths(map_set: str) -> dict[str, str]:
     }
 
 
-def configure_profile(base: dict, *, name: str, map_set: str, candidate: bool) -> dict:
+def configure_profile(base: dict, *, name: str, map_set: str, candidate: bool) -> dict:  # [関数定義] configure_profile の処理実行ブロック
     cfg = json.loads(json.dumps(base))
     meta = cfg.setdefault("meta", {})
     meta["name"] = name
@@ -103,10 +103,10 @@ def configure_profile(base: dict, *, name: str, map_set: str, candidate: bool) -
     cfg["identification"]["terminal_consistency_yaml"] = f"vehicle/{map_set}_terminal.yaml"
     cfg.setdefault("mpc", {})["race_km"] = 3026.9
     cfg["mpc"]["upper_horizon_km"] = 3026.9
-    return cfg
+    return cfg                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def build(output: Path, *, update_existing: bool = False) -> None:
+def build(output: Path, *, update_existing: bool = False) -> None:  # [関数定義] build の処理実行ブロック
     if output.exists() and not update_existing:
         raise FileExistsError(f"refusing to overwrite existing package: {output}")
     output.mkdir(parents=True, exist_ok=update_existing)
@@ -348,15 +348,15 @@ More optimizer iterations alone cannot fix missing observability, inconsistent t
             )
 
 
-def main() -> int:
+def main() -> int:                                                 # [関数定義] main の処理実行ブロック
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--update-existing", action="store_true")
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument("--update-existing", action="store_true")  # [CLI引数] コマンドライン実行引数の定義
     args = parser.parse_args()
     output = args.output.resolve() if args.output.is_absolute() else (ROOT / args.output).resolve()
     build(output, update_existing=args.update_existing)
     print(output)
-    return 0
+    return 0                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
 if __name__ == "__main__":

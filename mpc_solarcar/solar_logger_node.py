@@ -1,10 +1,10 @@
 import csv
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import os
 from datetime import datetime, timezone
 
-import rclpy
-from rclpy.node import Node
+import rclpy                                                       # [ROS 2] ROS 2 Python クライアントライブラリ (rclpy) のインポート
+from rclpy.node import Node                                        # [ROS 2] ノード基底クラス Node のインポート
 from std_msgs.msg import Float32, Float32MultiArray, Float64, String
 
 
@@ -82,8 +82,8 @@ ARRAY_TOPICS = {
 }
 
 
-class SolarLoggerNode(Node):
-    def __init__(self):
+class SolarLoggerNode(Node):                                       # [クラス定義] SolarLoggerNode オブジェクトの設計
+    def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
         super().__init__("solar_logger_node")
         self.declare_parameter("log_dir", "outputs/logs")
         self.declare_parameter("file_prefix", "solar_live")
@@ -112,21 +112,21 @@ class SolarLoggerNode(Node):
 
         self._topic_subscriptions = []
         for field, topic in FLOAT_TOPICS.items():
-            self._topic_subscriptions.append(self.create_subscription(Float32, topic, self._set_float(field), 10))
+            self._topic_subscriptions.append(self.create_subscription(Float32, topic, self._set_float(field), 10))  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
         for field, topic in FLOAT64_TOPICS.items():
-            self._topic_subscriptions.append(self.create_subscription(Float64, topic, self._set_float(field), 10))
+            self._topic_subscriptions.append(self.create_subscription(Float64, topic, self._set_float(field), 10))  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
         for field, topic in STRING_TOPICS.items():
-            self._topic_subscriptions.append(self.create_subscription(String, topic, self._set_string(field), 10))
+            self._topic_subscriptions.append(self.create_subscription(String, topic, self._set_string(field), 10))  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
         for topic, fields in ARRAY_TOPICS.items():
-            self._topic_subscriptions.append(self.create_subscription(Float32MultiArray, topic, self._set_array(fields), 10))
+            self._topic_subscriptions.append(self.create_subscription(Float32MultiArray, topic, self._set_array(fields), 10))  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
 
         output_speed_topic = str(self.get_parameter("output_speed_topic").value)
         output_mode_topic = str(self.get_parameter("output_drive_mode_topic").value)
         self._topic_subscriptions.append(
-            self.create_subscription(Float32, output_speed_topic, self._set_float("output_speed_cmd_kmh"), 10)
+            self.create_subscription(Float32, output_speed_topic, self._set_float("output_speed_cmd_kmh"), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
         )
         self._topic_subscriptions.append(
-            self.create_subscription(String, output_mode_topic, self._set_string("output_drive_mode"), 10)
+            self.create_subscription(String, output_mode_topic, self._set_string("output_drive_mode"), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
         )
 
         self.csv_file = open(self.log_path, "w", encoding="utf-8", newline="")
@@ -136,38 +136,38 @@ class SolarLoggerNode(Node):
         self.timer = self.create_timer(1.0 / rate_hz, self._write_row)
         self.get_logger().info(f"Solar logger started: {self.log_path}")
 
-    def _set_float(self, field):
-        def handler(msg):
+    def _set_float(self, field):                                   # [関数定義] _set_float の処理実行ブロック
+        def handler(msg):                                          # [関数定義] handler の処理実行ブロック
             try:
                 self.latest[field] = float(msg.data)
             except (TypeError, ValueError):
                 self.latest[field] = math.nan
 
-        return handler
+        return handler                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _set_string(self, field):
-        def handler(msg):
+    def _set_string(self, field):                                  # [関数定義] _set_string の処理実行ブロック
+        def handler(msg):                                          # [関数定義] handler の処理実行ブロック
             self.latest[field] = str(msg.data).replace("\r", "").replace("\n", "\\n")
 
-        return handler
+        return handler                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _set_array(self, fields):
-        def handler(msg):
+    def _set_array(self, fields):                                  # [関数定義] _set_array の処理実行ブロック
+        def handler(msg):                                          # [関数定義] handler の処理実行ブロック
             values = list(msg.data)
             for idx, field in enumerate(fields):
                 self.latest[field] = float(values[idx]) if idx < len(values) else math.nan
 
-        return handler
+        return handler                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     @staticmethod
-    def _clean_float(value):
+    def _clean_float(value):                                       # [関数定義] _clean_float の処理実行ブロック
         try:
             value = float(value)
         except (TypeError, ValueError):
-            return ""
-        return value if math.isfinite(value) else ""
+            return ""                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return value if math.isfinite(value) else ""               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-    def _write_row(self):
+    def _write_row(self):                                          # [関数定義] _write_row の処理実行ブロック
         self.latest["t_ros_sec"] = self.get_clock().now().nanoseconds / 1.0e9
         self.latest["t_wall_utc"] = datetime.now(timezone.utc).isoformat()
         row = {}
@@ -180,7 +180,7 @@ class SolarLoggerNode(Node):
             self.csv_file.flush()
             self.rows_since_flush = 0
 
-    def destroy_node(self):
+    def destroy_node(self):                                        # [関数定義] destroy_node の処理実行ブロック
         try:
             self.csv_file.flush()
             self.csv_file.close()
@@ -189,7 +189,7 @@ class SolarLoggerNode(Node):
         super().destroy_node()
 
 
-def main():
+def main():                                                        # [メイン関数] エントリーポイント関数
     rclpy.init()
     node = SolarLoggerNode()
     try:

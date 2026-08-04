@@ -53,19 +53,19 @@ TOPIC_RE = re.compile(
 )
 
 
-def sha256(path: Path) -> str:
+def sha256(path: Path) -> str:                                     # [関数定義] sha256 の処理実行ブロック
     digest = hashlib.sha256()
     with path.open("rb") as stream:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
-    return digest.hexdigest()
+    return digest.hexdigest()                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def skipped(path: Path) -> bool:
-    return any(part in SKIP_PARTS for part in path.parts)
+def skipped(path: Path) -> bool:                                   # [関数定義] skipped の処理実行ブロック
+    return any(part in SKIP_PARTS for part in path.parts)          # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def iter_source_files(root: Path) -> Iterable[Path]:
+def iter_source_files(root: Path) -> Iterable[Path]:               # [関数定義] iter_source_files の処理実行ブロック
     for name in TOP_LEVEL:
         path = root / name
         if path.is_file():
@@ -79,7 +79,7 @@ def iter_source_files(root: Path) -> Iterable[Path]:
                 yield path
 
 
-def iter_workspace_files(root: Path) -> Iterable[Path]:
+def iter_workspace_files(root: Path) -> Iterable[Path]:            # [関数定義] iter_workspace_files の処理実行ブロック
     for current, dirs, files in os.walk(root, topdown=True, followlinks=False):
         dirs[:] = sorted(
             name
@@ -98,50 +98,50 @@ def iter_workspace_files(root: Path) -> Iterable[Path]:
                 continue
 
 
-def first_text_line(text: str) -> str:
+def first_text_line(text: str) -> str:                             # [関数定義] first_text_line の処理実行ブロック
     for line in text.splitlines():
         value = line.strip().lstrip("#").strip()
         if value:
-            return value[:240]
-    return ""
+            return value[:240]                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return ""                                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def infer_role(rel: str) -> str:
+def infer_role(rel: str) -> str:                                   # [関数定義] infer_role の処理実行ブロック
     name = Path(rel).name
     if rel.startswith("launch/"):
-        return "ROS 2 launch entry"
+        return "ROS 2 launch entry"                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if rel.startswith("mpc_solarcar/"):
         if name.endswith("_node.py"):
-            return "ROS 2 runtime node"
-        return "runtime library/model"
+            return "ROS 2 runtime node"                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return "runtime library/model"                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if rel.startswith("scripts/"):
         if "identification" in name or name.startswith("fit_"):
-            return "vehicle identification tool"
+            return "vehicle identification tool"                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if "report" in name or "workbook" in name or "inventory" in name:
-            return "documentation/report generator"
+            return "documentation/report generator"                # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if "package" in name:
-            return "package builder"
+            return "package builder"                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if "tune" in name or "learn" in name:
-            return "offline self-learning tool"
+            return "offline self-learning tool"                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
         if "sim" in name:
-            return "offline simulation tool"
-        return "operations/support script"
+            return "offline simulation tool"                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return "operations/support script"                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if rel.startswith("config/") or rel.startswith("templates/"):
-        return "configuration/template"
+        return "configuration/template"                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if rel.startswith("dashboard/"):
-        return "dashboard asset"
+        return "dashboard asset"                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if name == "SolarSim.ps1":
-        return "PowerShell all-in-one entry"
+        return "PowerShell all-in-one entry"                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if name in {"setup.py", "package.xml"}:
-        return "ROS 2 packaging metadata"
-    return "package asset"
+        return "ROS 2 packaging metadata"                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return "package asset"                                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def inspect_python(text: str) -> tuple[str, str, str, str]:
+def inspect_python(text: str) -> tuple[str, str, str, str]:        # [関数定義] inspect_python の処理実行ブロック
     try:
         tree = ast.parse(text)
     except SyntaxError as exc:
-        return "", "", "", f"syntax error: {exc.msg} at {exc.lineno}"
+        return "", "", "", f"syntax error: {exc.msg} at {exc.lineno}"  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     doc = ast.get_docstring(tree) or ""
     classes = [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
     functions = [
@@ -155,7 +155,7 @@ def inspect_python(text: str) -> tuple[str, str, str, str]:
             imports.extend(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom):
             imports.append(node.module or "")
-    return (
+    return (                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         doc.splitlines()[0][:240] if doc else "",
         ", ".join(classes),
         ", ".join(functions),
@@ -163,7 +163,7 @@ def inspect_python(text: str) -> tuple[str, str, str, str]:
     )
 
 
-def source_row(root: Path, path: Path) -> dict[str, object]:
+def source_row(root: Path, path: Path) -> dict[str, object]:       # [関数定義] source_row の処理実行ブロック
     rel = path.relative_to(root).as_posix()
     data = path.read_bytes()
     text = ""
@@ -174,7 +174,7 @@ def source_row(root: Path, path: Path) -> dict[str, object]:
     if path.suffix.lower() == ".py":
         doc, classes, functions, imports = inspect_python(text)
     topics = ", ".join(sorted(set(TOPIC_RE.findall(text))))
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "path": rel,
         "role": infer_role(rel),
         "summary": doc,
@@ -188,7 +188,7 @@ def source_row(root: Path, path: Path) -> dict[str, object]:
     }
 
 
-def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
+def write_csv(path: Path, rows: list[dict[str, object]]) -> None:  # [関数定義] write_csv の処理実行ブロック
     path.parent.mkdir(parents=True, exist_ok=True)
     fields = list(rows[0].keys()) if rows else ["path"]
     with path.open("w", encoding="utf-8-sig", newline="") as stream:
@@ -197,7 +197,7 @@ def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
         writer.writerows(rows)
 
 
-def write_markdown(path: Path, rows: list[dict[str, object]]) -> None:
+def write_markdown(path: Path, rows: list[dict[str, object]]) -> None:  # [関数定義] write_markdown の処理実行ブロック
     by_role: dict[str, list[dict[str, object]]] = {}
     for row in rows:
         by_role.setdefault(str(row["role"]), []).append(row)
@@ -222,10 +222,10 @@ def write_markdown(path: Path, rows: list[dict[str, object]]) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def main() -> int:
+def main() -> int:                                                 # [関数定義] main の処理実行ブロック
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
-    parser.add_argument(
+    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])  # [CLI引数] コマンドライン実行引数の定義
+    parser.add_argument(                                           # [CLI引数] コマンドライン実行引数の定義
         "--output-dir",
         type=Path,
         default=Path("docs/package_inventory"),
@@ -251,7 +251,7 @@ def main() -> int:
     print(f"source assets: {len(rows)}")
     print(f"workspace files: {len(manifest)}")
     print(out)
-    return 0
+    return 0                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
 if __name__ == "__main__":

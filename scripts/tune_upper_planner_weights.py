@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import os
 import shutil
 import subprocess
@@ -18,9 +18,9 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import yaml
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -73,7 +73,7 @@ LITERATURE = [
 
 
 @dataclass
-class TermSpec:
+class TermSpec:                                                    # [クラス定義] TermSpec オブジェクトの設計
     name: str
     lo: float
     hi: float
@@ -82,29 +82,29 @@ class TermSpec:
 
 
 @dataclass
-class ScenarioSpec:
+class ScenarioSpec:                                                # [クラス定義] ScenarioSpec オブジェクトの設計
     name: str
     cfg_overrides: Dict[str, object]
     cli_overrides: Dict[str, object]
     weight: float
 
 
-def read_yaml(path: Path) -> dict:
+def read_yaml(path: Path) -> dict:                                 # [関数定義] read_yaml の処理実行ブロック
     with path.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+        return yaml.safe_load(f) or {}                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def write_yaml(path: Path, payload: dict) -> None:
+def write_yaml(path: Path, payload: dict) -> None:                 # [関数定義] write_yaml の処理実行ブロック
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="\n") as f:
         yaml.safe_dump(payload, f, sort_keys=False, allow_unicode=True)
 
 
-def ensure_dir(path: Path) -> None:
+def ensure_dir(path: Path) -> None:                                # [関数定義] ensure_dir の処理実行ブロック
     path.mkdir(parents=True, exist_ok=True)
 
 
-def log_trial_to_tensorboard(writer, prefix: str, result: Dict[str, object], step: int) -> None:
+def log_trial_to_tensorboard(writer, prefix: str, result: Dict[str, object], step: int) -> None:  # [関数定義] log_trial_to_tensorboard の処理実行ブロック
     if writer is None:
         return
     scalar_keys = [
@@ -133,19 +133,19 @@ def log_trial_to_tensorboard(writer, prefix: str, result: Dict[str, object], ste
             continue
 
 
-def repo_relative(path_like) -> str:
+def repo_relative(path_like) -> str:                               # [関数定義] repo_relative の処理実行ブロック
     raw = str(path_like or "").strip()
     if not raw:
-        return ""
+        return ""                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     path = Path(raw)
     try:
         resolved = path.resolve() if path.is_absolute() else (ROOT / path).resolve()
-        return os.fspath(resolved.relative_to(ROOT)).replace("\\", "/")
+        return os.fspath(resolved.relative_to(ROOT)).replace("\\", "/")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     except Exception:
-        return raw.replace("\\", "/")
+        return raw.replace("\\", "/")                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def failed_scenario_result(
+def failed_scenario_result(                                        # [関数定義] failed_scenario_result の処理実行ブロック
     scenario_name: str,
     scenario_weight: float,
     upper_cost: Dict[str, float],
@@ -162,7 +162,7 @@ def failed_scenario_result(
     sim_log_path: Path,
 ) -> Dict[str, object]:
     active_terms = active_upper_cost_terms(UpperCostConfig(**upper_cost), threshold=1.0e-4)
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "score": -1.0e9,
         "final_distance_km": 0.0,
         "avg_speed_kmh": 0.0,
@@ -197,7 +197,7 @@ def failed_scenario_result(
     }
 
 
-def compile_tex(tex_path: Path) -> Path:
+def compile_tex(tex_path: Path) -> Path:                           # [関数定義] compile_tex の処理実行ブロック
     pdf_path = tex_path.with_suffix(".pdf")
     for _ in range(2):
         res = subprocess.run(
@@ -211,10 +211,10 @@ def compile_tex(tex_path: Path) -> Path:
             raise subprocess.CalledProcessError(res.returncode, res.args)
     if not pdf_path.exists():
         raise FileNotFoundError(pdf_path)
-    return pdf_path
+    return pdf_path                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def latex_escape(text: str) -> str:
+def latex_escape(text: str) -> str:                                # [関数定義] latex_escape の処理実行ブロック
     repl = {
         "\\": r"\textbackslash{}",
         "&": r"\&",
@@ -230,30 +230,30 @@ def latex_escape(text: str) -> str:
     out = str(text)
     for src, dst in repl.items():
         out = out.replace(src, dst)
-    return out
+    return out                                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def format_override_value(value) -> str:
+def format_override_value(value) -> str:                           # [関数定義] format_override_value の処理実行ブロック
     if isinstance(value, bool):
-        return "true" if value else "false"
+        return "true" if value else "false"                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if isinstance(value, int):
-        return str(value)
+        return str(value)                                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if isinstance(value, float):
         if math.isfinite(value):
-            return f"{value:.12g}"
-        return "0"
-    return str(value)
+            return f"{value:.12g}"                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return "0"                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return str(value)                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def speed_series(df: pd.DataFrame) -> pd.Series:
+def speed_series(df: pd.DataFrame) -> pd.Series:                   # [関数定義] speed_series の処理実行ブロック
     if "v_exec_kmh" in df.columns:
-        return df["v_exec_kmh"].astype(float)
+        return df["v_exec_kmh"].astype(float)                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if "v_cmd_kmh" in df.columns:
-        return df["v_cmd_kmh"].astype(float)
-    return pd.Series(np.zeros(len(df), dtype=float))
+        return df["v_cmd_kmh"].astype(float)                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return pd.Series(np.zeros(len(df), dtype=float))               # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def upper_cost_specs(
+def upper_cost_specs(                                              # [関数定義] upper_cost_specs の処理実行ブロック
     cfg: UpperCostConfig,
     *,
     include_progress_terms: bool = False,
@@ -292,10 +292,10 @@ def upper_cost_specs(
                 ),
             ]
         )
-    return specs
+    return specs                                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def vector_to_weights(specs: List[TermSpec], vec: np.ndarray, base_cfg: UpperCostConfig) -> Dict[str, float]:
+def vector_to_weights(specs: List[TermSpec], vec: np.ndarray, base_cfg: UpperCostConfig) -> Dict[str, float]:  # [関数定義] vector_to_weights の処理実行ブロック
     weights = base_cfg.to_dict()
     for spec, raw in zip(specs, vec):
         logv = float(np.clip(raw, spec.lo, spec.hi))
@@ -303,10 +303,10 @@ def vector_to_weights(specs: List[TermSpec], vec: np.ndarray, base_cfg: UpperCos
         if value < spec.threshold:
             value = 0.0
         weights[spec.name] = float(value)
-    return weights
+    return weights                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def mirror_legacy_weights(cfg: dict, upper_cost: Dict[str, float]) -> None:
+def mirror_legacy_weights(cfg: dict, upper_cost: Dict[str, float]) -> None:  # [関数定義] mirror_legacy_weights の処理実行ブロック
     mpc = cfg.setdefault("mpc", {})
     mpc["upper_cost"] = upper_cost
     mpc["w_dv"] = float(upper_cost.get("w_speed_smooth", mpc.get("w_dv", 30.0)))
@@ -319,7 +319,7 @@ def mirror_legacy_weights(cfg: dict, upper_cost: Dict[str, float]) -> None:
     mpc["w_soc_terminal"] = float(upper_cost.get("w_soc_terminal", mpc.get("w_soc_terminal", 0.0)))
 
 
-def build_reference_free_profile(
+def build_reference_free_profile(                                  # [関数定義] build_reference_free_profile の処理実行ブロック
     profile_yaml: Path,
     output_dir: Path,
     *,
@@ -353,18 +353,18 @@ def build_reference_free_profile(
             upper_cost["reserve_soc_max_extra"] = 0.0
     out_path = output_dir / "self_learning_reference_free_profile.yaml"
     write_yaml(out_path, cfg)
-    return out_path, removed_reference
+    return out_path, removed_reference                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def default_scenarios(profile_yaml: Path, *, mode: str = "nominal") -> List[ScenarioSpec]:
+def default_scenarios(profile_yaml: Path, *, mode: str = "nominal") -> List[ScenarioSpec]:  # [関数定義] default_scenarios の処理実行ブロック
     if str(mode).strip().lower() == "nominal":
-        return [ScenarioSpec("nominal", cfg_overrides={}, cli_overrides={}, weight=1.0)]
+        return [ScenarioSpec("nominal", cfg_overrides={}, cli_overrides={}, weight=1.0)]  # [戻り値] 計算結果・計算状態の呼び出し元への返却
     cfg = read_yaml(profile_yaml)
     model = cfg.get("model", {}) if isinstance(cfg, dict) else {}
     base_cda = float(model.get("CdA", 0.08))
     base_crr = float(model.get("Crr", 0.008))
     base_aux = float(model.get("P_aux", 0.0))
-    return [
+    return [                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         ScenarioSpec("nominal", cfg_overrides={}, cli_overrides={}, weight=0.5),
         ScenarioSpec(
             "low_solar_high_load",
@@ -397,7 +397,7 @@ def default_scenarios(profile_yaml: Path, *, mode: str = "nominal") -> List[Scen
     ]
 
 
-def run_single_scenario(
+def run_single_scenario(                                           # [関数定義] run_single_scenario の処理実行ブロック
     profile_yaml: Path,
     output_dir: Path,
     candidate_name: str,
@@ -525,10 +525,10 @@ def run_single_scenario(
         json.dumps(result, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
-    return result
+    return result                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def evaluate_simulation(
+def evaluate_simulation(                                           # [関数定義] evaluate_simulation の処理実行ブロック
     profile_yaml: Path,
     summary: Dict[str, object],
     sim_df: pd.DataFrame,
@@ -599,7 +599,7 @@ def evaluate_simulation(
         - (5.0 * elapsed_hours if finish_reached else 0.0)
     )
 
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "score": float(score),
         "final_distance_km": float(summary["final_distance_km"]),
         "avg_speed_kmh": float(summary.get("avg_speed_kmh", 0.0)),
@@ -621,7 +621,7 @@ def evaluate_simulation(
     }
 
 
-def aggregate_candidate(candidate: str, scenario_results: List[Dict[str, object]], weights: Dict[str, float]) -> Dict[str, object]:
+def aggregate_candidate(candidate: str, scenario_results: List[Dict[str, object]], weights: Dict[str, float]) -> Dict[str, object]:  # [関数定義] aggregate_candidate の処理実行ブロック
     if not scenario_results:
         raise ValueError("scenario_results is empty")
     scenario_weights = np.array([max(0.0, float(row.get("scenario_weight", 0.0))) for row in scenario_results], dtype=float)
@@ -661,10 +661,10 @@ def aggregate_candidate(candidate: str, scenario_results: List[Dict[str, object]
         "nominal_out_csv": nominal.get("out_csv", ""),
         "nominal_detail_csv": nominal.get("detail_csv", ""),
     }
-    return result
+    return result                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def run_candidate(
+def run_candidate(                                                 # [関数定義] run_candidate の処理実行ブロック
     profile_yaml: Path,
     output_dir: Path,
     candidate_name: str,
@@ -692,10 +692,10 @@ def run_candidate(
         json.dumps(result, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
-    return result
+    return result                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def save_trial_checkpoint(output_dir: Path, trials: List[Dict[str, object]], best_result: Dict[str, object] | None) -> None:
+def save_trial_checkpoint(output_dir: Path, trials: List[Dict[str, object]], best_result: Dict[str, object] | None) -> None:  # [関数定義] save_trial_checkpoint の処理実行ブロック
     if trials:
         pd.DataFrame(trials).to_csv(output_dir / "trial_results_partial.csv", index=False)
     if best_result is not None:
@@ -705,12 +705,12 @@ def save_trial_checkpoint(output_dir: Path, trials: List[Dict[str, object]], bes
         )
 
 
-def csv_row_count(path: Path) -> int:
+def csv_row_count(path: Path) -> int:                              # [関数定義] csv_row_count の処理実行ブロック
     with path.open("r", encoding="utf-8", errors="ignore") as f:
-        return max(0, sum(1 for _ in f) - 1)
+        return max(0, sum(1 for _ in f) - 1)                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def summarize_path(path: Path) -> Dict[str, object]:
+def summarize_path(path: Path) -> Dict[str, object]:               # [関数定義] summarize_path の処理実行ブロック
     suffix = path.suffix.lower()
     summary = {
         "path": os.fspath(path),
@@ -721,7 +721,7 @@ def summarize_path(path: Path) -> Dict[str, object]:
         "column_names": "",
     }
     if not path.exists():
-        return summary
+        return summary                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
     if suffix == ".csv":
         try:
             header = pd.read_csv(path, nrows=0)
@@ -730,12 +730,12 @@ def summarize_path(path: Path) -> Dict[str, object]:
             summary["column_names"] = ", ".join(str(col) for col in header.columns[:12])
         except Exception:
             pass
-    return summary
+    return summary                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def dataframe_to_markdown(df: pd.DataFrame) -> str:
+def dataframe_to_markdown(df: pd.DataFrame) -> str:                # [関数定義] dataframe_to_markdown の処理実行ブロック
     if df.empty:
-        return "(none)"
+        return "(none)"                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
     cols = [str(col) for col in df.columns]
     lines = [
         "| " + " | ".join(cols) + " |",
@@ -744,10 +744,10 @@ def dataframe_to_markdown(df: pd.DataFrame) -> str:
     for _, row in df.iterrows():
         vals = [str(row[col]).replace("\n", " ") for col in df.columns]
         lines.append("| " + " | ".join(vals) + " |")
-    return "\n".join(lines)
+    return "\n".join(lines)                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def flatten_scalars(prefix: str, payload, rows: List[Dict[str, object]]) -> None:
+def flatten_scalars(prefix: str, payload, rows: List[Dict[str, object]]) -> None:  # [関数定義] flatten_scalars の処理実行ブロック
     if isinstance(payload, dict):
         for key, value in payload.items():
             next_prefix = f"{prefix}.{key}" if prefix else str(key)
@@ -757,7 +757,7 @@ def flatten_scalars(prefix: str, payload, rows: List[Dict[str, object]]) -> None
         rows.append({"key": prefix, "value": payload})
 
 
-def build_current_asset_manifests(profile_yaml: Path, fit_summary: dict, output_dir: Path) -> Dict[str, Path]:
+def build_current_asset_manifests(profile_yaml: Path, fit_summary: dict, output_dir: Path) -> Dict[str, Path]:  # [関数定義] build_current_asset_manifests の処理実行ブロック
     profile_cfg = read_yaml(profile_yaml)
     paths_cfg = profile_cfg.get("paths", {}) if isinstance(profile_cfg, dict) else {}
 
@@ -816,14 +816,14 @@ def build_current_asset_manifests(profile_yaml: Path, fit_summary: dict, output_
     md_path = output_dir / "current_maps_and_coefficients.md"
     md_path.write_text("\n".join(md_lines), encoding="utf-8", newline="\n")
 
-    return {
+    return {                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
         "files_csv": files_csv,
         "scalars_csv": scalars_csv,
         "markdown": md_path,
     }
 
 
-def render_report(
+def render_report(                                                 # [関数定義] render_report の処理実行ブロック
     output_dir: Path,
     source_profile_yaml: Path,
     eval_profile_yaml: Path,
@@ -975,8 +975,8 @@ def render_report(
     active_terms = active_upper_cost_terms(UpperCostConfig(**best_weights), threshold=1.0e-4)
     inactive_terms = sorted(set(best_weights.keys()) - set(active_terms.keys()))
 
-    def tex_path_rel(path: Path) -> str:
-        return latex_escape(os.path.relpath(path, report_dir)).replace("%", r"\%")
+    def tex_path_rel(path: Path) -> str:                           # [関数定義] tex_path_rel の処理実行ブロック
+        return latex_escape(os.path.relpath(path, report_dir)).replace("%", r"\%")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     tex = f"""
 \\documentclass[a4paper,11pt]{{article}}
@@ -1337,10 +1337,10 @@ weighted final SoC [-] & {float(baseline_result['final_soc']):.4f} & {float(tune
         md_lines.append(f"- {item['label']}: [{item['title']}]({item['url']})")
     md_path = report_dir / "self_learning_upper_planner_report.md"
     md_path.write_text("\n".join(md_lines) + "\n", encoding="utf-8", newline="\n")
-    return tex_path, md_path
+    return tex_path, md_path                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
 
-def main() -> None:
+def main() -> None:                                                # [関数定義] main の処理実行ブロック
     ap = argparse.ArgumentParser()
     ap.add_argument("--profile_yaml", default=os.fspath(DEFAULT_PROFILE))
     ap.add_argument("--output_profile_yaml", default="")
