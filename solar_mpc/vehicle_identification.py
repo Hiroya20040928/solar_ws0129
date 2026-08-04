@@ -59,45 +59,6 @@ for candidate in (SCRIPT_DIR, ROOT):
     if raw not in sys.path:
         sys.path.insert(0, raw)
 
-from build_bwsc2025_fitted_package import (
-    BATTERY_PACK_MAX_CHARGE_V,
-    BATTERY_NOMINAL_VOLTAGE_V,
-    INVALID_PACK_VOLTAGE_MIN_V,
-    ROOT,
-    TIMEZONE_LOCAL,
-    BatteryFitResult,
-    MotionFitResult,
-    PostRefineResult,
-    PvFitResult,
-    attach_archive_pv_model,
-    build_grounded_map_assets,
-    build_stage_anchors,
-    build_model_from_map_assets,
-    build_model_from_profile_cfg,
-    compile_tex,
-    dcir_observations,
-    ensure_dir,
-    fit_battery_parameters,
-    fit_map_shapes,
-    fit_motion_parameters,
-    fit_pv_parameters,
-    fit_regen_utilization,
-    fit_stop_tilt_fraction,
-    has_identified_polarization_maps,
-    infer_soc_from_loaded_state,
-    joint_refine_parameters,
-    joint_replay,
-    load_profile_yaml,
-    metrics_from_replay,
-    motion_power_prediction,
-    post_refine_replay_scalars,
-    replay_segment_start_mask,
-    resample_for_fit,
-    soc_fit_upper_bound,
-    write_current_maps_and_coefficients,
-    write_scaled_maps,
-)
-from audit_identification_residuals import run_audit as run_residual_audit
 
 
 FIT_QUALITY_PRESETS: Dict[str, Dict[str, Any]] = {
