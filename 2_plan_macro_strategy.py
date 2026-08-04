@@ -1908,30 +1908,10 @@ from datetime import datetime, timezone
 
 class WeatherFetchNode:                                      # [クラス定義] WeatherFetchNode オブジェクトの設計
     def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
-        self.declare_parameter('provider', 'openmeteo')
-        self.declare_parameter('forecast_csv', 'data/weather/live_forecast.csv')
-        self.declare_parameter('gps_topic', '/chase/gps')
-        self.declare_parameter('fetch_period_sec', 3600.0)
-        self.declare_parameter('forecast_days', 3)
-        self.declare_parameter('step_minutes', 10)
-        self.declare_parameter('timezone_name', 'Australia/Darwin')
-        self.declare_parameter('fallback_latitude', -12.4634)
-        self.declare_parameter('fallback_longitude', 130.8456)
-        self.declare_parameter('tcell_gain', 0.03)
 
-        self.provider = str(self.get_parameter('provider').value).lower()
-        self.forecast_csv = resolve_path(self.get_parameter('forecast_csv').value)
-        self.fetch_period_sec = float(self.get_parameter('fetch_period_sec').value)
-        self.forecast_days = int(self.get_parameter('forecast_days').value)
-        self.step_minutes = int(self.get_parameter('step_minutes').value)
-        self.timezone_name = str(self.get_parameter('timezone_name').value)
-        self.tcell_gain = float(self.get_parameter('tcell_gain').value)
-        self.lat = float(self.get_parameter('fallback_latitude').value)
-        self.lon = float(self.get_parameter('fallback_longitude').value)
         self.has_gps = False
         self.last_status = 'waiting for first fetch'
 
-        gps_topic = str(self.get_parameter('gps_topic').value)
         self.create_subscription(NavSatFix, gps_topic, self._on_gps, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
         self.pub_status = self.create_publisher(String, '/system/forecast_status', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
 

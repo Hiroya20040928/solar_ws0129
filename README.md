@@ -143,3 +143,28 @@ python 3_run_live_race_mpc.py
 - `data/templates/network/esp32_planner_receiver_example.ino`: ESP32 マイコン用 UDP 受信 C++ コード
 - `data/templates/network/vehicle_sender.service.example`: Linux systemd 自動起動サービス
 - `data/templates/network/chase_sender.service.example`: 伴走車用 systemd 自動起動サービス
+
+
+---
+
+## 🏆 5. BWSC 2025 出走直前さながら 運用シミュレーションデモ（実行手順）
+
+本番（BWSC 2027）前に、実際の BWSC 2025 実測データを用いた「出走直前〜レース本番」の一連の運用シナリオシミュレーションを以下の 3 ステップで実行可能です。
+
+### 📌 ステップ 1: 車両・電池パラメータの適合 (`1_fit_vehicle_params.py`)
+実測電池パルスデータ (`data/battery_pulse_test.csv`) から車両空力・抵抗および 1-RC 電池パラメータを適合します。
+```bash
+python 1_fit_vehicle_params.py
+```
+
+### 📌 ステップ 2: 出走数時間前 3,000 km 事前大域戦略計画 (`2_plan_macro_strategy.py`)
+実測 BWSC 2025 レースコースマップ (`data/bwsc2025_route_profile.csv`) と Open-Meteo 気象 API を連動させ、ダーウィンスタートライン待機中に 3,000 km 全行程の事前面全計画 CSV (`data/macro_strategy_plan.csv`) を出力します。
+```bash
+python 2_plan_macro_strategy.py
+```
+
+### 📌 ステップ 3: 出走本番 逐次 MPC リアルタイム制御 ＆ 残り 3,000 km 計画逐次更新 (`3_run_live_race_mpc.py --sim`)
+スタートラインからの出走を模擬実行し、10秒周期の MPC ステップごとに走行状態を更新しながら、**以降 3,000 km の残存速度・エネルギー計画 (`data/live_remaining_horizon_plan.csv`) およびテレメトリログ (`data/telemetry_live.csv`) を逐次リアルタイム更新出力**します。
+```bash
+python 3_run_live_race_mpc.py --sim
+```

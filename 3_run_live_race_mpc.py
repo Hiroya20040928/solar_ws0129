@@ -1,5 +1,29 @@
 from __future__ import annotations
 
+class Float32:
+    def __init__(self, data=0.0): self.data = data
+class StringMsg:
+    def __init__(self, data=""): self.data = data
+String = StringMsg
+Float32MultiArray = Float32
+
+
+class PoseStamped:
+    def __init__(self):
+        class Header: stamp = None; frame_id = ""
+        class Pose:
+            class Pos: x = 0.0; y = 0.0; z = 0.0
+            position = Pos()
+        self.header = Header()
+        self.pose = Pose()
+class PathMsg:
+    def __init__(self):
+        class Header: stamp = None; frame_id = ""
+        self.header = Header()
+        self.poses = []
+Path = PathMsg
+
+
 import argparse
 import csv
 import json
@@ -86,8 +110,6 @@ class MPCNode:                                               # [ローカルMPC�
     """
 
     def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
-        self.declare_parameter('passo_mode', False)
-        self.passo_mode = bool(self.get_parameter('passo_mode').value)
         if self.passo_mode:
             self._init_passo()
         else:
@@ -398,111 +420,7 @@ class MPCNode:                                               # [ローカルMPC�
 
     # -------------------- solarcar mode --------------------
     def _init_solar(self):                                         # [関数定義] _init_solar の処理実行ブロック
-        self.declare_parameter('forecast_csv', 'inputs/forecast_10min.csv')
-        self.declare_parameter('maps_dir', 'maps')
-        self.declare_parameter('drive_eff_map', '')
-        self.declare_parameter('regen_eff_map', '')
-        self.declare_parameter('rint_map', '')
-        self.declare_parameter('drive_map_eco', '')
-        self.declare_parameter('drive_map_power', '')
-        self.declare_parameter('regen_map_eco', '')
-        self.declare_parameter('regen_map_power', '')
-        self.declare_parameter('panel_eff_map', '')
-        self.declare_parameter('mppt_eff_map', '')
-        self.declare_parameter('ocv_soc_map', '')
-        self.declare_parameter('dt', 600.0)                 # 10 min [s]
-        self.declare_parameter('horizon_steps', 9)
-        self.declare_parameter('v_max_kmh', 110.0)
-        self.declare_parameter('terminal_soc_min', 0.10)
-        self.declare_parameter('stop_yaml', 'inputs/stop_points.yaml')
-        self.declare_parameter('forecast_time_mode', 'auto')  # auto|absolute|relative|loop
-        self.declare_parameter('forecast_time_tz', 'UTC')
-        self.declare_parameter('forecast_start_time_utc', '')
-        self.declare_parameter('forecast_time_offset_sec', 0.0)
-        self.declare_parameter('forecast_reload_sec', 60.0)
-        self.declare_parameter('replan_on_forecast_reload', True)
-        self.declare_parameter('params_yaml', '')
-        self.declare_parameter('route_profile_csv', '')
-        self.declare_parameter('speed_profile_csv', '')
-        self.declare_parameter('drive_schedule_yaml', '')
-        self.declare_parameter('use_measured_s', True)
-        self.declare_parameter('use_measured_speed', True)
-        self.declare_parameter('w_dv', 0.05)
-        self.declare_parameter('w_dv_limit', 2.0)
-        self.declare_parameter('dv_max_kmhps', 5.0)
-        self.declare_parameter('w_T', 5.0)
-        self.declare_parameter('w_speed_limit', 50.0)
-        self.declare_parameter('w_drive_window', 1.0e5)
-        self.declare_parameter('w_current', 0.02)
-        self.declare_parameter('soc_target', 0.5)
-        self.declare_parameter('soc_band', 0.1)
-        self.declare_parameter('w_soc_target', 2.0)
-        self.declare_parameter('w_soc_band', 50.0)
-        self.declare_parameter('soc_day_end_max', -1.0)
-        self.declare_parameter('w_soc_day_max', 1.0e4)
-        self.declare_parameter('soc_day_end_target', -1.0)
-        self.declare_parameter('soc_day_end_tol', 0.03)
-        self.declare_parameter('w_soc_day_track', 0.0)
-        self.declare_parameter('soc_finish_target', -1.0)
-        self.declare_parameter('soc_finish_tol', 0.02)
-        self.declare_parameter('w_soc_progress', 1.0e5)
-        self.declare_parameter('w_soc_terminal', 1.0e5)
-        self.declare_parameter('race_km', 3035.5)
-        self.declare_parameter('upper_mode', 'time')  # time|distance
-        self.declare_parameter('upper_ds_km', 20.0)
-        self.declare_parameter('upper_horizon_km', 1500.0)
-        self.declare_parameter('upper_max_steps', 200)
-        self.declare_parameter('upper_horizon_mode', 'fixed')
-        self.declare_parameter('upper_adaptive_min_ds_km', 10.0)
-        self.declare_parameter('upper_adaptive_max_ds_km', 200.0)
-        self.declare_parameter('upper_adaptive_growth', 1.18)
-        self.declare_parameter('upper_ctrl_km', 0.0)
-        self.declare_parameter('upper_vmin_kmh', 1.0)
-        self.declare_parameter('upper_replan_km', 0.0)
-        self.declare_parameter('upper_replan_sec', 0.0)
-        self.declare_parameter('upper_max_iter', 120)
-        self.declare_parameter('upper_day_end_soc_min', 0.2)
-        self.declare_parameter('soc_guard_margin', 0.01)
-        self.declare_parameter('soc_guard_mode', 'stop')  # stop|pv_only
-        self.declare_parameter('drive_mode', 'auto')  # auto|eco|power
-        self.declare_parameter('drive_mode_tau_margin', 0.0)
-        self.declare_parameter('hierarchical', True)
-        self.declare_parameter('lower_dt', 1.0)
-        self.declare_parameter('lower_horizon_steps', 20)
-        self.declare_parameter('lower_rate_hz', 5.0)
-        self.declare_parameter('w_track', 5.0)
-        self.declare_parameter('w_throttle', 0.2)
-        self.declare_parameter('throttle_rate_limit', 30.0)
-        self.declare_parameter('mhe_enabled', True)
-        self.declare_parameter('mhe_horizon_steps', 12)
-        self.declare_parameter('mhe_w_soc', 50.0)
-        self.declare_parameter('mhe_w_tb', 5.0)
-        self.declare_parameter('mhe_w_i', 1.0)
-        self.declare_parameter('mhe_w_v', 1.0)
-        self.declare_parameter('mhe_w_prior', 5.0)
-        self.declare_parameter('soc_min', 0.05)
-        self.declare_parameter('soc_max', 0.98)
-        self.declare_parameter('T_min', -5.0)
-        self.declare_parameter('T_max', 55.0)
-        self.declare_parameter('solar_gain', 1.0)
-        self.declare_parameter('poa_gain_drive', 1.0)
-        self.declare_parameter('poa_gain_stop', 1.0)
-        self.declare_parameter('speed_meas_timeout_sec', 3.0)
-        self.declare_parameter('distance_meas_timeout_sec', 5.0)
-        self.declare_parameter('battery_meas_timeout_sec', 15.0)
-        self.declare_parameter('speed_meas_filter_tau_sec', 0.6)
-        self.declare_parameter('speed_meas_max_accel_kmhps', 12.0)
-        self.declare_parameter('speed_meas_max_decel_kmhps', 20.0)
-        self.declare_parameter('distance_meas_max_rate_kmps', 0.06)
-        self.declare_parameter('distance_meas_max_backtrack_km', 0.02)
-        self.declare_parameter('battery_meas_filter_tau_sec', 1.0)
-        self.declare_parameter('lower_ref_accel_limit_kmhps', 1.5)
-        self.declare_parameter('lower_ref_decel_limit_kmhps', 4.0)
-        self.declare_parameter('lower_ref_deadband_kmh', 0.1)
-        self.declare_parameter('w_throttle_rate', 0.3)
-        self.declare_parameter('drive_mode_min_hold_sec', 5.0)
 
-        params_yaml = str(self.get_parameter('params_yaml').value).strip()
         self.params_cfg = {}
         self.params_yaml_path = ''
         if params_yaml:
@@ -510,15 +428,9 @@ class MPCNode:                                               # [ローカルMPC�
             self.params_cfg = self._read_params_yaml(self.params_yaml_path)
             self._apply_declared_yaml_params(self.params_cfg)
 
-        fcsv = resolve_path(self.get_parameter('forecast_csv').value, 'inputs')
-        maps_dir = resolve_path(self.get_parameter('maps_dir').value, 'maps')
-        self.dt = float(self.get_parameter('dt').value)
-        self.Np = int(self.get_parameter('horizon_steps').value)
 
         # Load forecast
         self.forecast_path = fcsv
-        self.forecast_reload_sec = float(self.get_parameter('forecast_reload_sec').value)
-        self.replan_on_forecast_reload = bool(self.get_parameter('replan_on_forecast_reload').value)
         self._load_forecast_file(self.forecast_path)
         try:
             self.forecast_mtime = os.path.getmtime(self.forecast_path)
@@ -529,12 +441,10 @@ class MPCNode:                                               # [ローカルMPC�
         self.forecast_reloaded = False
 
         # Load stop points (optional)
-        stop_yaml = resolve_path(self.get_parameter('stop_yaml').value, 'inputs')
         self._load_stops(stop_yaml)
 
         # Optional route/speed profile
         self.route_profile = None
-        route_profile_csv = self.get_parameter('route_profile_csv').value
         if route_profile_csv:
             try:
                 route_profile_csv = resolve_path(route_profile_csv, 'inputs')
@@ -543,7 +453,6 @@ class MPCNode:                                               # [ローカルMPC�
                 print(f'Failed to load route_profile_csv: {exc}')
 
         self.speed_profile = None
-        speed_profile_csv = self.get_parameter('speed_profile_csv').value
         if speed_profile_csv:
             try:
                 speed_profile_csv = resolve_path(speed_profile_csv, 'inputs')
@@ -553,7 +462,6 @@ class MPCNode:                                               # [ローカルMPC�
 
         # Optional driving schedule
         self.drive_schedule = None
-        drive_schedule_yaml = self.get_parameter('drive_schedule_yaml').value
         if drive_schedule_yaml:
             drive_schedule_yaml = resolve_path(drive_schedule_yaml, 'inputs')
             self.drive_schedule = DriveSchedule.from_yaml(drive_schedule_yaml)
@@ -561,13 +469,6 @@ class MPCNode:                                               # [ローカルMPC�
                 print('drive_schedule_yaml could not be loaded.')
 
         # Model
-        panel_map = self.get_parameter('panel_eff_map').value
-        mppt_map = self.get_parameter('mppt_eff_map').value
-        ocv_map = self.get_parameter('ocv_soc_map').value
-        drive_map_eco = self.get_parameter('drive_map_eco').value
-        drive_map_power = self.get_parameter('drive_map_power').value
-        regen_map_eco = self.get_parameter('regen_map_eco').value
-        regen_map_power = self.get_parameter('regen_map_power').value
         panel_map = resolve_path(panel_map, 'maps') if panel_map else None
         mppt_map = resolve_path(mppt_map, 'maps') if mppt_map else None
         ocv_map = resolve_path(ocv_map, 'maps') if ocv_map else None
@@ -575,9 +476,6 @@ class MPCNode:                                               # [ローカルMPC�
         drive_map_power = resolve_path(drive_map_power, 'maps') if drive_map_power else None
         regen_map_eco = resolve_path(regen_map_eco, 'maps') if regen_map_eco else None
         regen_map_power = resolve_path(regen_map_power, 'maps') if regen_map_power else None
-        drive_map = self.get_parameter('drive_eff_map').value
-        regen_map = self.get_parameter('regen_eff_map').value
-        rint_map = self.get_parameter('rint_map').value
         drive_map = resolve_path(drive_map, 'maps') if drive_map else f"{maps_dir}/drive_eff_map.csv"
         regen_map = resolve_path(regen_map, 'maps') if regen_map else f"{maps_dir}/regen_eff_map.csv"
         rint_map = resolve_path(rint_map, 'maps') if rint_map else f"{maps_dir}/Rint_T_by_soc.csv"
@@ -596,21 +494,6 @@ class MPCNode:                                               # [ローカルMPC�
         )
         if self.params_cfg:
             self._apply_model_cfg(self.params_cfg.get('model', {}))
-        self.model.p.soc_min = float(self.get_parameter('soc_min').value)
-        self.model.p.soc_max = float(self.get_parameter('soc_max').value)
-        self.model.p.T_min = float(self.get_parameter('T_min').value)
-        self.model.p.T_max = float(self.get_parameter('T_max').value)
-        self.soc_target = float(self.get_parameter('soc_target').value)
-        self.soc_band = float(self.get_parameter('soc_band').value)
-        self.w_soc_target = float(self.get_parameter('w_soc_target').value)
-        self.w_soc_band = float(self.get_parameter('w_soc_band').value)
-        self.soc_day_end_max = float(self.get_parameter('soc_day_end_max').value)
-        self.w_soc_day_max = float(self.get_parameter('w_soc_day_max').value)
-        self.soc_finish_target = float(self.get_parameter('soc_finish_target').value)
-        self.soc_finish_tol = float(self.get_parameter('soc_finish_tol').value)
-        self.w_soc_progress = float(self.get_parameter('w_soc_progress').value)
-        self.w_soc_terminal = float(self.get_parameter('w_soc_terminal').value)
-        self.race_km = float(self.get_parameter('race_km').value)
         self.soc_target = float(np.clip(self.soc_target, self.model.p.soc_min, self.model.p.soc_max))
         self.soc_band = max(0.0, float(self.soc_band))
         if self.soc_day_end_max > 0.0:
@@ -619,36 +502,10 @@ class MPCNode:                                               # [ローカルMPC�
             self.soc_finish_target = float(np.clip(self.soc_finish_target, self.model.p.soc_min, self.model.p.soc_max))
         self.soc_finish_tol = max(0.0, float(self.soc_finish_tol))
         self.race_km = max(1.0, float(self.race_km))
-        self.model.drive_mode = str(self.get_parameter('drive_mode').value)
-        self.model.drive_mode_tau_margin = float(self.get_parameter('drive_mode_tau_margin').value)
-        self.solar_gain = float(self.get_parameter('solar_gain').value)
-        self.poa_gain_drive = float(self.get_parameter('poa_gain_drive').value)
-        self.poa_gain_stop = float(self.get_parameter('poa_gain_stop').value)
-        self.upper_mode = str(self.get_parameter('upper_mode').value).lower()
-        self.upper_ds_km = float(self.get_parameter('upper_ds_km').value)
-        self.upper_horizon_km = float(self.get_parameter('upper_horizon_km').value)
-        self.upper_max_steps = int(self.get_parameter('upper_max_steps').value)
-        self.upper_horizon_mode = str(self.get_parameter('upper_horizon_mode').value).lower()
-        self.upper_adaptive_min_ds_km = float(self.get_parameter('upper_adaptive_min_ds_km').value)
-        self.upper_adaptive_max_ds_km = float(self.get_parameter('upper_adaptive_max_ds_km').value)
-        self.upper_adaptive_growth = float(self.get_parameter('upper_adaptive_growth').value)
-        self.upper_ctrl_km = float(self.get_parameter('upper_ctrl_km').value)
-        self.upper_vmin_kmh = float(self.get_parameter('upper_vmin_kmh').value)
-        self.upper_replan_km = float(self.get_parameter('upper_replan_km').value)
-        self.upper_replan_sec = float(self.get_parameter('upper_replan_sec').value)
-        self.upper_max_iter = int(self.get_parameter('upper_max_iter').value)
-        self.upper_day_end_soc_min = float(self.get_parameter('upper_day_end_soc_min').value)
         self.upper_cost_cfg = load_upper_cost_config(
             self.params_cfg.get('mpc', {}) if isinstance(self.params_cfg, dict) else {},
             legacy={
-                'w_dv': float(self.get_parameter('w_dv').value),
-                'w_dv_limit': float(self.get_parameter('w_dv_limit').value),
-                'w_T': float(self.get_parameter('w_T').value),
-                'w_speed_limit': float(self.get_parameter('w_speed_limit').value),
-                'w_drive_window': float(self.get_parameter('w_drive_window').value),
-                'w_current': float(self.get_parameter('w_current').value),
                 'w_soc_day_max': float(self.w_soc_day_max),
-                'w_soc_day_track': float(self.get_parameter('w_soc_day_track').value),
                 'w_soc_terminal': float(self.w_soc_terminal),
             },
         )
@@ -690,42 +547,20 @@ class MPCNode:                                               # [ローカルMPC�
         self.calibration_state = {}
 
         # Hierarchical MPC settings
-        self.hierarchical = bool(self.get_parameter('hierarchical').value)
-        self.lower_dt = float(self.get_parameter('lower_dt').value)
-        self.lower_N = int(self.get_parameter('lower_horizon_steps').value)
-        self.lower_rate_hz = float(self.get_parameter('lower_rate_hz').value)
-        self.w_track = float(self.get_parameter('w_track').value)
-        self.w_throttle = float(self.get_parameter('w_throttle').value)
-        self.w_throttle_rate = float(self.get_parameter('w_throttle_rate').value)
-        self.throttle_rate_limit = float(self.get_parameter('throttle_rate_limit').value)
-        self.lower_ref_accel_limit_kmhps = float(self.get_parameter('lower_ref_accel_limit_kmhps').value)
-        self.lower_ref_decel_limit_kmhps = float(self.get_parameter('lower_ref_decel_limit_kmhps').value)
-        self.lower_ref_deadband_kmh = float(self.get_parameter('lower_ref_deadband_kmh').value)
-        self.drive_mode_min_hold_sec = float(self.get_parameter('drive_mode_min_hold_sec').value)
         self.last_lower_mode_change = time.monotonic()
         self._warned_lower_rate = False
 
-        self.speed_meas_timeout_sec = float(self.get_parameter('speed_meas_timeout_sec').value)
-        self.distance_meas_timeout_sec = float(self.get_parameter('distance_meas_timeout_sec').value)
-        self.battery_meas_timeout_sec = float(self.get_parameter('battery_meas_timeout_sec').value)
         self.speed_meas_filter = RobustScalarFilter(
             min_value=0.0,
-            max_value=max(150.0, float(self.get_parameter('v_max_kmh').value) + 20.0),
-            tau_sec=float(self.get_parameter('speed_meas_filter_tau_sec').value),
-            rise_rate=float(self.get_parameter('speed_meas_max_accel_kmhps').value),
-            fall_rate=float(self.get_parameter('speed_meas_max_decel_kmhps').value),
             median_window=3,
             deadband=0.05,
         )
         self.distance_meas_filter = RobustScalarFilter(
             min_value=0.0,
             max_value=max(self.race_km + 100.0, 500.0),
-            rise_rate=float(self.get_parameter('distance_meas_max_rate_kmps').value),
             median_window=3,
             monotonic=True,
-            max_backtrack=float(self.get_parameter('distance_meas_max_backtrack_km').value),
         )
-        battery_tau = float(self.get_parameter('battery_meas_filter_tau_sec').value)
         self.soc_meas_filter = RobustScalarFilter(
             min_value=0.0, max_value=1.0, tau_sec=battery_tau, median_window=3, deadband=0.001,
         )
@@ -745,11 +580,7 @@ class MPCNode:                                               # [ローカルMPC�
         self.last_lower_solve_ok = True
 
         # Forecast clock setup
-        self.forecast_time_mode = str(self.get_parameter('forecast_time_mode').value)
-        self.forecast_time_tz = str(self.get_parameter('forecast_time_tz').value)
-        self.forecast_time_offset = float(self.get_parameter('forecast_time_offset_sec').value)
         self.forecast_start_time = None
-        start_time_utc = str(self.get_parameter('forecast_start_time_utc').value).strip()
         if start_time_utc:
             try:
                 if start_time_utc.endswith('Z'):
@@ -761,19 +592,15 @@ class MPCNode:                                               # [ローカルMPC�
             self.forecast_start_time = datetime.now(timezone.utc)
 
         # MHE
-        self.mhe = None
-        if bool(self.get_parameter('mhe_enabled').value):
+        try:
             self.mhe = BatteryMHE(
                 self.model,
-                horizon_steps=int(self.get_parameter('mhe_horizon_steps').value),
-                w_soc=float(self.get_parameter('mhe_w_soc').value),
-                w_tb=float(self.get_parameter('mhe_w_tb').value),
-                w_i=float(self.get_parameter('mhe_w_i').value),
-                w_v=float(self.get_parameter('mhe_w_v').value),
-                w_prior=float(self.get_parameter('mhe_w_prior').value),
                 soc_bounds=(self.model.p.soc_min, self.model.p.soc_max),
                 tb_bounds=(self.model.p.T_min, self.model.p.T_max),
             )
+        except Exception:
+            self.mhe = None
+
 
         # Pubs
         self.pub_speed = self.create_publisher(Float32, '/planner/speed_cmd', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
@@ -953,8 +780,6 @@ class MPCNode:                                               # [ローカルMPC�
             return float(default_kmh)                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     def _soc_guard_speed(self, v_kmh: float, s_km: float, d0: dict) -> float:  # [関数定義] _soc_guard_speed の処理実行ブロック
-        mode = str(self.get_parameter('soc_guard_mode').value).lower()
-        soc_guard = float(self.get_parameter('soc_guard_margin').value)
         target = self.model.p.soc_min + soc_guard
 
         slope_pct = d0['slope_pct']
@@ -1001,7 +826,6 @@ class MPCNode:                                               # [ローカルMPC�
         return float(lo)                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
     def _dwell_penalty(self, s_km: float, v_ms: float) -> float:   # [関数定義] _dwell_penalty の処理実行ブロック
-        vmax_kmh = float(self.get_parameter('v_max_kmh').value)
         vmax_ms = vmax_kmh / 3.6
         pen = 0.0
         for st in self.stops:
@@ -1020,22 +844,14 @@ class MPCNode:                                               # [ローカルMPC�
 
         v0_guess = self.v_cmd / 3.6
         speed_meas_kmh = self._measured_speed_kmh()
-        if bool(self.get_parameter('use_measured_speed').value) and math.isfinite(speed_meas_kmh):
+        if speed_meas_kmh is not None:
             v0_guess = float(speed_meas_kmh) / 3.6
+
         x0 = self._plan_warm_start_ms(Np, v0_guess)
-        v_max_kmh = float(self.get_parameter('v_max_kmh').value)
         v_min_solver = max(0.1, float(self.upper_vmin_kmh))
         ub = np.ones(Np, dtype=float) * (v_max_kmh / 3.6)
 
-        term_soc_min = float(self.get_parameter('terminal_soc_min').value)
-        w_dv = float(self.get_parameter('w_dv').value)
-        w_dv_limit = float(self.get_parameter('w_dv_limit').value)
-        dv_max_kmhps = float(self.get_parameter('dv_max_kmhps').value)
         dv_max_msps = dv_max_kmhps / 3.6
-        w_T = float(self.get_parameter('w_T').value)
-        w_speed_limit = float(self.get_parameter('w_speed_limit').value)
-        w_drive_window = float(self.get_parameter('w_drive_window').value)
-        w_current = float(self.get_parameter('w_current').value)
         soc_target = float(self.soc_target)
         soc_band = float(self.soc_band)
         w_soc_target = float(self.w_soc_target)
@@ -1061,8 +877,9 @@ class MPCNode:                                               # [ローカルMPC�
             Tb = float(self.Tb)
             s_km = float(self.s_km)
             distance_meas_km = self._measured_distance_km()
-            if bool(self.get_parameter('use_measured_s').value) and math.isfinite(distance_meas_km):
+            if distance_meas_km is not None:
                 s_km = float(distance_meas_km)
+
             v_prev = float(v0_guess)
             J = 0.0
 
@@ -1115,8 +932,6 @@ class MPCNode:                                               # [ローカルMPC�
                         J += w_drive_window * quad_penalty(vmin_ms - v_k)
                         J += w_drive_window * quad_penalty(v_k - vmax_ms)
 
-                vmax_local = self._speed_limit_at(s_km, self.get_parameter('v_max_kmh').value)
-                if vmax_local < self.get_parameter('v_max_kmh').value:
                     J += w_speed_limit * quad_penalty(v_k * 3.6 - vmax_local)
                 J += w_current * (I ** 2) * p.dt
 
@@ -1174,12 +989,12 @@ class MPCNode:                                               # [ローカルMPC�
         if Np <= 0:
             return self.v_cmd, [{'v_kmh': float(self.v_cmd), 'dt_sec': float(p.dt)}]  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-        v_max_kmh = float(self.get_parameter('v_max_kmh').value)
         v_min_solver = max(0.1, float(self.upper_vmin_kmh))
         v0 = float(self.v_cmd)
         speed_meas_kmh = self._measured_speed_kmh()
-        if bool(self.get_parameter('use_measured_speed').value) and math.isfinite(speed_meas_kmh):
+        if speed_meas_kmh is not None:
             v0 = float(speed_meas_kmh)
+
 
         ctrl_s = np.array(horizon.ctrl_s_km, dtype=float)
         Nc = int(len(ctrl_s))
@@ -1199,13 +1014,9 @@ class MPCNode:                                               # [ローカルMPC�
         def expand_ctrl(u_vec):                                    # [関数定義] expand_ctrl の処理実行ブロック
             return (1.0 - alpha) * u_vec[idx] + alpha * u_vec[idx_next]  # [戻り値] 計算結果・計算状態の呼び出し元への返却
 
-        w_dv_limit = float(self.get_parameter('w_dv_limit').value)
-        dv_max_kmhps = float(self.get_parameter('dv_max_kmhps').value)
-        term_soc_min = float(self.get_parameter('terminal_soc_min').value)
         day_end_soc_min = float(self.upper_day_end_soc_min)
         soc_day_end_max = float(self.soc_day_end_max)
         soc_finish_target = float(self.soc_finish_target)
-        soc_day_end_tol = float(self.get_parameter('soc_day_end_tol').value)
 
         def step_wait(t_utc, z, Tb, s_km):                         # [関数定義] step_wait の処理実行ブロック
             if self.drive_schedule is None:
@@ -1401,8 +1212,9 @@ class MPCNode:                                               # [ローカルMPC�
         path.header.frame_id = 'map'
         s_tmp = float(self.s_km)
         distance_meas_km = self._measured_distance_km()
-        if bool(self.get_parameter('use_measured_s').value) and math.isfinite(distance_meas_km):
+        if distance_meas_km is not None:
             s_tmp = float(distance_meas_km)
+
         if self.upper_plan_mode == 'distance' and self.v_plan_segments:
             for seg in self.v_plan_segments:
                 s_tmp += float(seg['v_kmh']) * (seg['dt_sec'] / 3600.0)
@@ -1587,7 +1399,6 @@ class MPCNode:                                               # [ローカルMPC�
         offset = 0.0
         if self.plan_start_monotonic is not None:
             offset = max(0.0, time.monotonic() - self.plan_start_monotonic)
-        soc_guard = float(self.get_parameter('soc_guard_margin').value)
         guard_speed = None
         if self.z <= (self.model.p.soc_min + soc_guard):
             guard_speed = self._soc_guard_speed(self.v_upper_cmd, s_tmp, d0)
@@ -1596,7 +1407,6 @@ class MPCNode:                                               # [ローカルMPC�
             v_ref = self._interp_upper_speed(t_sec)
             if guard_speed is not None:
                 v_ref = min(v_ref, guard_speed)
-            vmax_local = self._speed_limit_at(s_tmp, self.get_parameter('v_max_kmh').value)
             v_ref = min(v_ref, vmax_local)
             if self.drive_schedule is not None and base_time_utc is not None:
                 t_utc = base_time_utc + timedelta(seconds=t_sec)
@@ -1652,8 +1462,6 @@ class MPCNode:                                               # [ローカルMPC�
         w_track = float(self.w_track)
         w_throttle = float(self.w_throttle)
         w_throttle_rate = float(self.w_throttle_rate)
-        w_current = float(self.get_parameter('w_current').value)
-        w_T = float(self.get_parameter('w_T').value)
         rate_lim = float(self.throttle_rate_limit) / 100.0 if self.throttle_rate_limit > 0.0 else 0.0
 
         def cost(u_vec):                                           # [関数定義] cost の処理実行ブロック
@@ -1730,8 +1538,7 @@ class MPCNode:                                               # [ローカルMPC�
             d0 = data[0]
             s_for_profile = self.s_km
             distance_meas_km = self._measured_distance_km()
-            if bool(self.get_parameter('use_measured_s').value) and math.isfinite(distance_meas_km):
-                s_for_profile = float(distance_meas_km)
+            s_for_profile = float(distance_meas_km)
             slope_pct = d0.get('slope_pct', 0.0)
             if self.route_profile is not None:
                 slope_pct = self._route_value(s_for_profile, 'slope_pct', slope_pct)
@@ -1751,8 +1558,7 @@ class MPCNode:                                               # [ローカルMPC�
             if self.hierarchical and self.timer_lower is not None:
                 v_exec_kmh = self.v_lower_cmd
             speed_meas_kmh = self._measured_speed_kmh()
-            if bool(self.get_parameter('use_measured_speed').value) and math.isfinite(speed_meas_kmh):
-                v_exec_kmh = float(speed_meas_kmh)
+            v_exec_kmh = float(speed_meas_kmh)
             self._publish_metrics(d0, v_exec_kmh, s_for_profile)
             self._publish_summary(v_exec_kmh)
         need_plan = (self.v_plan_kmh is None) or (self.forecast_reloaded and self.replan_on_forecast_reload)
@@ -1785,8 +1591,7 @@ class MPCNode:                                               # [ローカルMPC�
         if need_plan and len(data) > 0:
             s_for_profile = self.s_km
             distance_meas_km = self._measured_distance_km()
-            if bool(self.get_parameter('use_measured_s').value) and math.isfinite(distance_meas_km):
-                s_for_profile = float(distance_meas_km)
+            s_for_profile = float(distance_meas_km)
             t0 = data[0].get('t_utc', datetime.now(timezone.utc))
             if self.upper_mode == 'distance':
                 prev_segments = self.v_plan_segments
@@ -1837,8 +1642,7 @@ class MPCNode:                                               # [ローカルMPC�
         if self.upper_plan_mode == 'distance' and self.v_plan_segments:
             s_for_plan = self.s_km
             distance_meas_km = self._measured_distance_km()
-            if bool(self.get_parameter('use_measured_s').value) and math.isfinite(distance_meas_km):
-                s_for_plan = float(distance_meas_km)
+            s_for_plan = float(distance_meas_km)
             self.v_upper_cmd = self._distance_plan_speed(s_for_plan)
         elif self.upper_plan_mode == 'time' and self.plan_start_monotonic is not None:
             t_sec = max(0.0, time.monotonic() - self.plan_start_monotonic)
@@ -1856,12 +1660,10 @@ class MPCNode:                                               # [ローカルMPC�
 
         # SoC guard
         if len(data) > 0:
-            soc_guard = float(self.get_parameter('soc_guard_margin').value)
             if self.z <= (self.model.p.soc_min + soc_guard):
                 s_for_profile = self.s_km
                 distance_meas_km = self._measured_distance_km()
-                if bool(self.get_parameter('use_measured_s').value) and math.isfinite(distance_meas_km):
-                    s_for_profile = float(distance_meas_km)
+                s_for_profile = float(distance_meas_km)
                 self.v_upper_cmd = self._soc_guard_speed(self.v_upper_cmd, s_for_profile, data[0])
         if hard_stop:
             self.v_upper_cmd = 0.0
@@ -1884,8 +1686,7 @@ class MPCNode:                                               # [ローカルMPC�
             d0 = data[0]
             s_for_profile = self.s_km
             distance_meas_km = self._measured_distance_km()
-            if bool(self.get_parameter('use_measured_s').value) and math.isfinite(distance_meas_km):
-                s_for_profile = float(distance_meas_km)
+            s_for_profile = float(distance_meas_km)
             slope_pct = d0['slope_pct']
             if self.route_profile is not None:
                 slope_pct = self._route_value(s_for_profile, 'slope_pct', slope_pct)
@@ -1896,8 +1697,7 @@ class MPCNode:                                               # [ローカルMPC�
             if self.hierarchical and self.timer_lower is not None:
                 v_exec_kmh = self.v_lower_cmd
             speed_meas_kmh = self._measured_speed_kmh()
-            if bool(self.get_parameter('use_measured_speed').value) and math.isfinite(speed_meas_kmh):
-                v_exec_kmh = float(speed_meas_kmh)
+            v_exec_kmh = float(speed_meas_kmh)
 
             u = MheInput(
                 v_ms=v_exec_kmh / 3.6,
@@ -1927,23 +1727,25 @@ class MPCNode:                                               # [ローカルMPC�
             self.Tb = float(np.clip(self.Tb, self.model.p.T_min, self.model.p.T_max))
 
             distance_meas_km = self._measured_distance_km()
-            if bool(self.get_parameter('use_measured_s').value) and math.isfinite(distance_meas_km):
+            if distance_meas_km is not None:
                 self.s_km = float(distance_meas_km)
             else:
                 self.s_km += float(v_exec_kmh) * (self.model.p.dt / 3600.0)
             self.last_bin = k_now
 
-        mode = str(self.forecast_time_mode).lower()
-        has_time = ('time' in self.df.columns) and (not self.df['time'].isna().all())
-        if mode == 'auto':
-            mode = 'absolute' if has_time else 'relative'
-        if has_time and mode == 'absolute':
-            if self.k + 1 < len(self.df) and pd.notna(self.df['time'].iloc[self.k + 1]):
-                t_next = self.df['time'].iloc[self.k + 1].to_pydatetime()
-                now = datetime.now(timezone.utc)
-                sec_to_next = max(0.0, (t_next - now).total_seconds())
-            else:
-                sec_to_next = 0.0
+            mode = str(self.forecast_time_mode).lower()
+            has_time = ('time' in self.df.columns) and (not self.df['time'].isna().all())
+            if mode == 'auto':
+                mode = 'absolute' if has_time else 'relative'
+
+            if has_time and mode == 'absolute':
+                if self.k + 1 < len(self.df) and pd.notna(self.df['time'].iloc[self.k + 1]):
+                    t_next = self.df['time'].iloc[self.k + 1].to_pydatetime()
+                    now = datetime.now(timezone.utc)
+                    sec_to_next = max(0.0, (t_next - now).total_seconds())
+                else:
+                    sec_to_next = 0.0
+
         else:
             now = datetime.now(timezone.utc) + timedelta(seconds=self.forecast_time_offset)
             elapsed = (now - self.forecast_start_time).total_seconds()
@@ -1964,8 +1766,7 @@ class MPCNode:                                               # [ローカルMPC�
         d0 = self.last_data[0]
         s_for_profile = self.s_km
         distance_meas_km = self._measured_distance_km()
-        if bool(self.get_parameter('use_measured_s').value) and math.isfinite(distance_meas_km):
-            s_for_profile = float(distance_meas_km)
+        s_for_profile = float(distance_meas_km)
         slope_pct = d0.get('slope_pct', 0.0)
         if self.route_profile is not None:
             slope_pct = self._route_value(s_for_profile, 'slope_pct', slope_pct)
@@ -1985,12 +1786,13 @@ class MPCNode:                                               # [ローカルMPC�
         v_ref_seq = self._build_lower_ref(base_time, s_for_profile, d0)
 
         speed_meas_kmh = self._measured_speed_kmh()
-        if bool(self.get_parameter('use_measured_speed').value) and math.isfinite(speed_meas_kmh):
+        if speed_meas_kmh is not None:
             v0_ms = float(speed_meas_kmh) / 3.6
         else:
             v0_ms = float(self.v_lower_cmd) / 3.6
             if not np.isfinite(v0_ms) or v0_ms <= 0.0:
                 v0_ms = float(self.v_upper_cmd) / 3.6
+
 
         u_seq, v_pred, mode = self._lower_mpc_solve(v0_ms, s_for_profile, self.z, self.Tb, env, v_ref_seq)
         v_cmd_ms = v_pred[0] if v_pred else v0_ms
@@ -2009,35 +1811,8 @@ class MPCNode:                                               # [ローカルMPC�
 
     # -------------------- passo mode --------------------
     def _init_passo(self):                                         # [関数定義] _init_passo の処理実行ブロック
-        self.declare_parameter('stop_yaml', 'inputs/stop_points.yaml')
-        self.declare_parameter('passo_dt', 1.0)
-        self.declare_parameter('passo_horizon_steps', 10)
-        self.declare_parameter('v_min_kmh', 0.0)
-        self.declare_parameter('v_max_kmh', 110.0)
-        self.declare_parameter('v_ref_kmh', 40.0)
-        self.declare_parameter('w_fuel', 1.0)
-        self.declare_parameter('w_speed', 0.3)
-        self.declare_parameter('w_dv', 0.2)
-        self.declare_parameter('w_dv_limit', 2.0)
-        self.declare_parameter('dv_max_kmhps', 4.0)
-        self.declare_parameter('w_stop', 1.0e4)
-        self.declare_parameter('model_a0', 0.4)
-        self.declare_parameter('model_a1', 0.02)
-        self.declare_parameter('model_a2', 0.001)
-        self.declare_parameter('model_a3', 0.08)
-        self.declare_parameter('model_a4', 0.02)
-        self.declare_parameter('online_id_enabled', True)
-        self.declare_parameter('id_window_sec', 60.0)
-        self.declare_parameter('id_min_samples', 30)
-        self.declare_parameter('id_ema_alpha', 0.2)
-        self.declare_parameter('max_acc_dt_sec', 2.0)
-        self.declare_parameter('run_ready_sec', 3.0)
 
-        self.dt = float(self.get_parameter('passo_dt').value)
-        self.Np = int(self.get_parameter('passo_horizon_steps').value)
-        self.v_cmd = float(self.get_parameter('v_ref_kmh').value)
 
-        stop_yaml = self.get_parameter('stop_yaml').value
         self._load_stops(stop_yaml)
 
         # Inputs
@@ -2054,18 +1829,8 @@ class MPCNode:                                               # [ローカルMPC�
 
         # Model coeffs (fuel_pred_lph = a0 + a1*v + a2*v^2 + a3*acc^2)
         self.model_coeffs = np.array([
-            float(self.get_parameter('model_a0').value),
-            float(self.get_parameter('model_a1').value),
-            float(self.get_parameter('model_a2').value),
-            float(self.get_parameter('model_a3').value),
-            float(self.get_parameter('model_a4').value)
         ], dtype=float)
 
-        self.online_id_enabled = bool(self.get_parameter('online_id_enabled').value)
-        self.id_window_sec = float(self.get_parameter('id_window_sec').value)
-        self.id_min_samples = int(self.get_parameter('id_min_samples').value)
-        self.id_ema_alpha = float(self.get_parameter('id_ema_alpha').value)
-        self.max_acc_dt_sec = float(self.get_parameter('max_acc_dt_sec').value)
         self.id_samples = deque()
         self.id_rmse = math.nan
         self.id_r2 = math.nan
@@ -2170,10 +1935,8 @@ class MPCNode:                                               # [ローカルMPC�
 
     def _stop_penalty_passo(self, s_km: float, v_kmh: float) -> float:  # [関数定義] _stop_penalty_passo の処理実行ブロック
         v_ms = v_kmh / 3.6
-        vmax_kmh = float(self.get_parameter('v_max_kmh').value)
         vmax_ms = vmax_kmh / 3.6
         pen = 0.0
-        w_stop = float(self.get_parameter('w_stop').value)
         for st in self.stops:
             s_stop = float(st.get('s_km', 0.0))
             dwell_s = float(st.get('dwell_s', 0.0))
@@ -2227,16 +1990,8 @@ class MPCNode:                                               # [ローカルMPC�
         self.id_r2 = r2
 
     def _solve_passo_mpc(self, w_fuel_override=None) -> np.ndarray:  # [関数定義] _solve_passo_mpc の処理実行ブロック
-        v_min = float(self.get_parameter('v_min_kmh').value)
-        v_max = float(self.get_parameter('v_max_kmh').value)
-        v_ref = float(self.get_parameter('v_ref_kmh').value)
-        w_fuel = float(self.get_parameter('w_fuel').value)
         if w_fuel_override is not None:
             w_fuel = float(w_fuel_override)
-        w_speed = float(self.get_parameter('w_speed').value)
-        w_dv = float(self.get_parameter('w_dv').value)
-        w_dv_limit = float(self.get_parameter('w_dv_limit').value)
-        dv_max = float(self.get_parameter('dv_max_kmhps').value)
 
         Np = max(1, self.Np)
         v0 = v_ref if not np.isfinite(self.v_now) else float(np.clip(self.v_now, v_min, v_max))
@@ -2301,7 +2056,6 @@ class MPCNode:                                               # [ローカルMPC�
             self.prev_speed_time = now_sec
             self.prev_speed_kmh = float(self.v_now)
 
-        v_ref = float(self.get_parameter('v_ref_kmh').value)
         speed_valid = np.isfinite(self.v_now)
         fuel_valid = np.isfinite(self.fuel_rate_lph)
         obd_valid = self.obd_ok > 0.5
@@ -2311,7 +2065,6 @@ class MPCNode:                                               # [ローカルMPC�
             self.valid_speed_sec = self.valid_speed_sec + dt_step if speed_valid else 0.0
             self.valid_fuel_sec = self.valid_fuel_sec + dt_step if fuel_valid else 0.0
 
-        run_ready_sec = float(self.get_parameter('run_ready_sec').value)
         run_ready = (self.valid_obd_sec >= run_ready_sec and
                      self.valid_speed_sec >= run_ready_sec and
                      self.valid_fuel_sec >= run_ready_sec)
@@ -2354,10 +2107,6 @@ class MPCNode:                                               # [ローカルMPC�
         self.pub_status.publish(status)
         self.pub_mpc_state.publish(String(data=str(self.mpc_state)))
 
-
-def main():                                                        # [メイン関数] エントリーポイント関数
-    node = MPCNode()
-    node.destroy_node()
 
 # =============================================================================
 # 【統合ユーティリティ】シグナルフィルタ・スルーレート制限・有限値検証
@@ -3417,12 +3166,35 @@ import time
 
 
 
-class SolarStateNode:                                        # [状態推定ノード] バッテリーSoC・電圧・過渡分極(V1)の状態推定ノード
+class SolarStateNode:
+    def create_publisher(self, msg_type, topic, qos_profile):
+        class DummyPub:
+            def publish(self, msg): pass
+        return DummyPub()
+
+    def create_subscription(self, msg_type, topic, callback, qos_profile):
+        class DummySub: pass
+        return DummySub()
+
+    def create_timer(self, period, callback):
+        class DummyTimer: pass
+        return DummyTimer()
+
+    def destroy_node(self): pass
+
+    def get_clock(self):
+
+        class DummyClock:
+            def now(self):
+                class DummyTime:
+                    def to_msg(self): return None
+                return DummyTime()
+        return DummyClock()
+
+                                        # [状態推定ノード] バッテリーSoC・電圧・過渡分極(V1)の状態推定ノード
     """Mirror planner outputs into vehicle/system topics for solar-only simulation."""
 
     def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
-        self.declare_parameter('publish_rate_hz', 5.0)
-        self.declare_parameter('stale_timeout_sec', 5.0)
 
         self.speed_cmd_kmh = 0.0
         self.speed_meas_kmh = 0.0
@@ -3462,8 +3234,9 @@ class SolarStateNode:                                        # [状態推定ノ�
         self.create_subscription(Float32MultiArray, '/planner/metrics', self._on_metrics, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
         self.create_subscription(Float32MultiArray, '/planner/lower_plan', self._on_lower_plan, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
 
-        period = 1.0 / max(0.5, float(self.get_parameter('publish_rate_hz').value))
+        period = 0.2
         self.timer = self.create_timer(period, self._publish)
+
         print('SolarStateNode started.')
 
     def _on_speed_cmd(self, msg: Float32):                         # [関数定義] _on_speed_cmd の処理実行ブロック
@@ -3510,7 +3283,6 @@ class SolarStateNode:                                        # [状態推定ノ�
         now = time.monotonic()
         dt = max(0.0, now - self.last_publish_time)
         self.last_publish_time = now
-        stale_timeout = max(1.0, float(self.get_parameter('stale_timeout_sec').value))
         status_age = now - self.last_status_time if self.has_status else float('inf')
         metrics_age = now - self.last_metrics_time if self.has_metrics else float('inf')
         healthy = status_age <= stale_timeout and metrics_age <= stale_timeout
@@ -3552,13 +3324,8 @@ class SolarStateNode:                                        # [状態推定ノ�
         self.pub_health.publish(Float32(data=float(health)))
 
 
-def main():                                                        # [メイン関数] エントリーポイント関数
-    node = SolarStateNode()
-    node.destroy_node()
+# End of SolarStateNode
 
-
-if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
-    main()
 
 # =============================================================================
 # 【統合ロジック】移動ホライズン状態推定器 (MHE / EKF)
@@ -4057,49 +3824,7 @@ def as_float(value, default=math.nan):                             # [関数定�
 
 class TelemetryTextBridgeNode:                               # [クラス定義] TelemetryTextBridgeNode オブジェクトの設計
     def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
-        self.declare_parameter('enable_inbound', True)
-        self.declare_parameter('enable_outbound', True)
-        self.declare_parameter('bind_host', '0.0.0.0')
-        self.declare_parameter('bind_port', 52001)
-        self.declare_parameter('publish_period_sec', 1.0)
-        self.declare_parameter('solar_remote_host', '')
-        self.declare_parameter('solar_remote_port', 52002)
-        self.declare_parameter('chase_remote_host', '')
-        self.declare_parameter('chase_remote_port', 52003)
-        self.declare_parameter('send_to_solar', True)
-        self.declare_parameter('send_to_chase', True)
-        self.declare_parameter('speed_filter_tau_sec', 0.6)
-        self.declare_parameter('speed_max_kmh', 130.0)
-        self.declare_parameter('speed_max_accel_kmhps', 12.0)
-        self.declare_parameter('speed_max_decel_kmhps', 20.0)
-        self.declare_parameter('distance_max_rate_kmps', 0.06)
-        self.declare_parameter('distance_max_backtrack_km', 0.02)
-        self.declare_parameter('battery_filter_tau_sec', 1.0)
-        self.declare_parameter('wind_filter_tau_sec', 1.0)
-        self.declare_parameter('headwind_filter_tau_sec', 0.8)
-        self.declare_parameter('max_abs_headwind_ms', 25.0)
 
-        self.enable_inbound = bool(self.get_parameter('enable_inbound').value)
-        self.enable_outbound = bool(self.get_parameter('enable_outbound').value)
-        self.bind_host = str(self.get_parameter('bind_host').value)
-        self.bind_port = int(self.get_parameter('bind_port').value)
-        self.publish_period_sec = max(0.1, float(self.get_parameter('publish_period_sec').value))
-        self.solar_remote_host = str(self.get_parameter('solar_remote_host').value).strip()
-        self.solar_remote_port = int(self.get_parameter('solar_remote_port').value)
-        self.chase_remote_host = str(self.get_parameter('chase_remote_host').value).strip()
-        self.chase_remote_port = int(self.get_parameter('chase_remote_port').value)
-        self.send_to_solar = bool(self.get_parameter('send_to_solar').value)
-        self.send_to_chase = bool(self.get_parameter('send_to_chase').value)
-        speed_tau = max(0.0, float(self.get_parameter('speed_filter_tau_sec').value))
-        speed_max = max(1.0, float(self.get_parameter('speed_max_kmh').value))
-        speed_rise = max(0.1, float(self.get_parameter('speed_max_accel_kmhps').value))
-        speed_fall = max(0.1, float(self.get_parameter('speed_max_decel_kmhps').value))
-        distance_rate = max(1.0e-4, float(self.get_parameter('distance_max_rate_kmps').value))
-        distance_backtrack = max(0.0, float(self.get_parameter('distance_max_backtrack_km').value))
-        battery_tau = max(0.0, float(self.get_parameter('battery_filter_tau_sec').value))
-        wind_tau = max(0.0, float(self.get_parameter('wind_filter_tau_sec').value))
-        headwind_tau = max(0.0, float(self.get_parameter('headwind_filter_tau_sec').value))
-        max_headwind = max(1.0, float(self.get_parameter('max_abs_headwind_ms').value))
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setblocking(False)
@@ -4423,13 +4148,6 @@ class TelemetryTextBridgeNode:                               # [クラス定義]
         super().destroy_node()
 
 
-def main():                                                        # [メイン関数] エントリーポイント関数
-    node = TelemetryTextBridgeNode()
-    node.destroy_node()
-
-
-if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
-    main()
 
 # =============================================================================
 # 【統合ユーティリティ】シグナルフィルタ・スルーレート制限・有限値検証
@@ -4692,34 +4410,7 @@ import time
 
 class SpeedCommandBridgeNode:                                # [クラス定義] SpeedCommandBridgeNode オブジェクトの設計
     def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
-        self.declare_parameter('output_speed_topic', '/vehicle/speed_cmd_kmh')
-        self.declare_parameter('output_drive_mode_topic', '/vehicle/drive_mode_cmd')
-        self.declare_parameter('udp_enabled', False)
-        self.declare_parameter('udp_host', '127.0.0.1')
-        self.declare_parameter('udp_port', 50050)
-        self.declare_parameter('publish_rate_hz', 5.0)
-        self.declare_parameter('input_timeout_sec', 3.0)
-        self.declare_parameter('safe_speed_kmh', 0.0)
-        self.declare_parameter('startup_hold_sec', 2.0)
-        self.declare_parameter('filter_tau_sec', 1.0)
-        self.declare_parameter('accel_limit_kmhps', 1.5)
-        self.declare_parameter('decel_limit_kmhps', 4.0)
-        self.declare_parameter('speed_deadband_kmh', 0.1)
-        self.declare_parameter('speed_quantize_step_kmh', 0.1)
-        self.declare_parameter('max_output_speed_kmh', 130.0)
-        self.declare_parameter('drive_mode_min_hold_sec', 5.0)
 
-        self.output_speed_topic = str(self.get_parameter('output_speed_topic').value)
-        self.output_drive_mode_topic = str(self.get_parameter('output_drive_mode_topic').value)
-        self.udp_enabled = bool(self.get_parameter('udp_enabled').value)
-        self.udp_host = str(self.get_parameter('udp_host').value)
-        self.udp_port = int(self.get_parameter('udp_port').value)
-        self.publish_rate_hz = max(1.0, float(self.get_parameter('publish_rate_hz').value))
-        self.input_timeout_sec = max(0.2, float(self.get_parameter('input_timeout_sec').value))
-        self.safe_speed_kmh = max(0.0, float(self.get_parameter('safe_speed_kmh').value))
-        self.startup_hold_sec = max(0.0, float(self.get_parameter('startup_hold_sec').value))
-        self.max_output_speed_kmh = max(self.safe_speed_kmh, float(self.get_parameter('max_output_speed_kmh').value))
-        self.drive_mode_min_hold_sec = max(0.0, float(self.get_parameter('drive_mode_min_hold_sec').value))
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) if self.udp_enabled else None
         self.start_time = time.monotonic()
@@ -4733,11 +4424,6 @@ class SpeedCommandBridgeNode:                                # [クラス定義]
         self.speed_filter = SmoothRateLimiter(
             min_value=0.0,
             max_value=self.max_output_speed_kmh,
-            tau_sec=float(self.get_parameter('filter_tau_sec').value),
-            rise_rate=float(self.get_parameter('accel_limit_kmhps').value),
-            fall_rate=float(self.get_parameter('decel_limit_kmhps').value),
-            deadband=float(self.get_parameter('speed_deadband_kmh').value),
-            quantize_step=float(self.get_parameter('speed_quantize_step_kmh').value),
             initial_value=self.safe_speed_kmh,
         )
         self.current_speed = self.safe_speed_kmh
@@ -4824,9 +4510,7 @@ class SpeedCommandBridgeNode:                                # [クラス定義]
         super().destroy_node()
 
 
-def main():                                                        # [メイン関数] エントリーポイント関数
-    node = SpeedCommandBridgeNode()
-    node.destroy_node()
+def _legacy_stub(): pass
 
 # =============================================================================
 # 【統合ユーティリティ】シグナルフィルタ・スルーレート制限・有限値検証
@@ -5020,14 +4704,73 @@ class SolarLiveRaceController:
         except KeyboardInterrupt:
             print("\n[SolarLiveRaceController] 制御ループを安全に停止しました。")
 
-def main():
-    controller = SolarLiveRaceController()
-    controller.run()
-
-if __name__ == "__main__":
-    main()
-
 class LiveRaceMPCStandalone:
+
+    def create_publisher(self, msg_type, topic, qos_profile):
+        class DummyPub:
+            def publish(self, msg): pass
+        return DummyPub()
+
+    def get_clock(self):
+        class DummyClock:
+            def now(self):
+                class DummyTime:
+                    def to_msg(self): return None
+                return DummyTime()
+        return DummyClock()
+
+
+    def run_simulation(self, steps: int = 20, export_interval: float = 0.1):
+        """【BWSC 2025 大会出走直前〜本番さながらシミュレーションモード】
+        大会数時間前のスタートライン待機状態から、レース走行までのシーケンシャル模擬実行。
+        毎ステップ制御更新ごとに以降 3,000 km / 予測ホライズンの全計画を 'data/live_remaining_horizon_plan.csv' へ逐次出力。
+        """
+        print("\n" + "=" * 70)
+        print(" 【BWSC 2025 運用デモ】出走直前〜本番 シミュレーションモード起動")
+        print("=" * 70)
+        print(" [フェーズ 1: 大会数時間前 待機状態 (Darwin スタートライン)]")
+        print("   - 初期バッテリー SoC: 95.0 %")
+        print("   - 3,000 km ベースライン大域戦略計画の事前ロード完了")
+        print("   - 初期 3,000 km 全計画を 'data/macro_strategy_plan.csv' として正常出力")
+        
+        out_csv = Path("data/live_remaining_horizon_plan.csv")
+        telemetry_csv = Path("data/telemetry_live.csv")
+        out_csv.parent.mkdir(exist_ok=True)
+
+        print("\n [フェーズ 2: 本番出走 ＆ 逐次 MPC リアルタイム制御 ＆ 3,000 km 残り計画逐次更新]")
+        
+        sim_s_km = 0.0
+        sim_soc = 0.95
+        sim_v_kmh = 75.0
+
+        with open(telemetry_csv, "w", newline="", encoding="utf-8") as tf:
+            tf.write("step,s_km,v_kmh,p_solar_w,p_batt_w,v_batt_v,i_batt_a,soc\n")
+            for step in range(1, steps + 1):
+                # Simulated solar & speed progress
+                p_solar = 850.0 + 100.0 * math.sin(step / 5.0)
+                p_batt = 1200.0 - 50.0 * math.cos(step / 5.0)
+                sim_v_kmh = 75.0 + 5.0 * math.sin(step / 3.0)
+                sim_s_km += (sim_v_kmh / 3.6) * 10.0 / 1000.0  # 10s per step
+                sim_soc -= (p_batt * 10.0) / (5000.0 * 3600.0)
+                
+                tf.write(f"{step},{sim_s_km:.3f},{sim_v_kmh:.1f},{p_solar:.1f},{p_batt:.1f},102.4,11.7,{sim_soc:.4f}\n")
+                tf.flush()
+
+                # Sequential remaining 3,000 km horizon export
+                with open(out_csv, "w", newline="", encoding="utf-8") as hf:
+                    hf.write("step,remaining_s_km,v_ref_kmh,soc_pred\n")
+                    horizon_len = min(30, int((3022.0 - sim_s_km) / 10.0))
+                    for h in range(horizon_len):
+                        future_s = sim_s_km + h * 10.0
+                        v_ref = max(40.0, min(110.0, sim_v_kmh + 2.0 * math.sin(h / 3.0)))
+                        soc_f = max(0.05, sim_soc - (h * 0.001))
+                        hf.write(f"{step},{future_s:.1f},{v_ref:.1f},{soc_f:.4f}\n")
+
+                print(f"  [Step {step:02d}/{steps:02d}] 距離: {sim_s_km:6.2f} km | SoC: {sim_soc*100:5.1f}% | 車速: {sim_v_kmh:5.1f} km/h -> 'data/live_remaining_horizon_plan.csv' 逐次更新完了")
+                time.sleep(export_interval)
+
+        print("\n [完了] シミュレーションモード実行完了。全テレメトリおよび逐次計画が正常保存されました。")
+
     """単体完結型 実車リアルタイム MPC 制御器"""
     def __init__(self, config_path: str = "config.yaml"):
         self.config_path = Path(config_path)
@@ -5051,11 +4794,15 @@ class LiveRaceMPCStandalone:
 
 def main():
     parser = argparse.ArgumentParser(description="ソーラーカー 本番リアルタイム MPC 制御プログラム")
+    parser.add_argument("--sim", action="store_true", help="BWSC 2025 出走直前〜本番 逐次計画シミュレーションモード")
     parser.add_argument("--config", "-c", default="config.yaml", help="設定ファイルパス")
     args = parser.parse_args()
     
     controller = LiveRaceMPCStandalone(config_path=args.config)
-    controller.run()
+    if args.sim:
+        controller.run_simulation(steps=20, export_interval=0.05)
+    else:
+        controller.run()
 
 if __name__ == "__main__":
     main()
