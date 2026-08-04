@@ -1,3 +1,25 @@
+from __future__ import annotations
+
+import json
+import math
+import os
+import socket
+import sys
+import time
+from pathlib import Path
+
+import casadi as ca
+import numpy as np
+import yaml
+
+import rclpy                                                        # [ライブラリ] ROS 2 Python クライアントライブラリ
+from rclpy.node import Node                                         # [クラス定義] ROS 2 ノード基本クラス
+from std_msgs.msg import String, Float64, Float64MultiArray         # [メッセージ] ROS 2 標準メッセージ型
+
+# =============================================================================
+# 【最高級統合ノード】ソーラーカー本番制御・状態推定・WiFi通信統合 ROS 2 ノード
+# =============================================================================
+
 # -*- coding: utf-8 -*-
 import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import os
@@ -3360,3 +3382,1635 @@ def read_1d_map(path):                                             # [関数定�
     x = df.index.values.astype(float)
     y = df.iloc[:, 0].values.astype(float)
     return x, y                                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+import time
+
+import rclpy                                                       # [ROS 2] ROS 2 Python クライアントライブラリ (rclpy) のインポート
+from rclpy.node import Node                                        # [ROS 2] ノード基底クラス Node のインポート
+
+from std_msgs.msg import Float32, Float32MultiArray, String
+
+
+class SolarStateNode(Node):                                        # [状態推定ノード] バッテリーSoC・電圧・過渡分極(V1)の状態推定ノード
+    """Mirror planner outputs into vehicle/system topics for solar-only simulation."""
+
+    def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
+        super().__init__('solar_state_node')
+        self.declare_parameter('publish_rate_hz', 5.0)
+        self.declare_parameter('stale_timeout_sec', 5.0)
+
+        self.speed_cmd_kmh = 0.0
+        self.speed_meas_kmh = 0.0
+        self.throttle_pct = 0.0
+        self.drive_mode = 'auto'
+        self.soc = 0.80
+        self.tb_c = 25.0
+        self.s_km = 0.0
+        self.status_s_km = 0.0
+        self.batt_current_a = 0.0
+        self.batt_voltage_v = 0.0
+        self.forecast_k = 0.0
+        self.sec_to_next = 0.0
+        self.has_status = False
+        self.has_metrics = False
+        self.last_status_time = 0.0
+        self.last_metrics_time = 0.0
+        self.last_lower_plan_time = 0.0
+        self.last_publish_time = time.monotonic()
+
+        self.pub_speed = self.create_publisher(Float32, '/vehicle/speed_kmh', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_s_km = self.create_publisher(Float32, '/vehicle/s_km', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_soc = self.create_publisher(Float32, '/vehicle/batt_soc', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_tb = self.create_publisher(Float32, '/vehicle/batt_temp_c', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_ibatt = self.create_publisher(Float32, '/vehicle/batt_current_a', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vbatt = self.create_publisher(Float32, '/vehicle/batt_voltage_v', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_throttle = self.create_publisher(Float32, '/vehicle/throttle_pct', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_state = self.create_publisher(String, '/system/state', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_diag = self.create_publisher(String, '/system/diag', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_mpc_state = self.create_publisher(String, '/system/mpc_state', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_health = self.create_publisher(Float32, '/system/health', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+
+        self.create_subscription(Float32, '/planner/speed_cmd', self._on_speed_cmd, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/planner/throttle_cmd_pct', self._on_throttle, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(String, '/planner/drive_mode', self._on_drive_mode, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32MultiArray, '/planner/status', self._on_status, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32MultiArray, '/planner/metrics', self._on_metrics, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32MultiArray, '/planner/lower_plan', self._on_lower_plan, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+
+        period = 1.0 / max(0.5, float(self.get_parameter('publish_rate_hz').value))
+        self.timer = self.create_timer(period, self._publish)
+        self.get_logger().info('SolarStateNode started.')
+
+    def _on_speed_cmd(self, msg: Float32):                         # [関数定義] _on_speed_cmd の処理実行ブロック
+        self.speed_cmd_kmh = float(msg.data)
+        self.speed_meas_kmh = float(msg.data)
+
+    def _on_throttle(self, msg: Float32):                          # [関数定義] _on_throttle の処理実行ブロック
+        self.throttle_pct = float(msg.data)
+
+    def _on_drive_mode(self, msg: String):                         # [関数定義] _on_drive_mode の処理実行ブロック
+        self.drive_mode = str(msg.data)
+
+    def _on_status(self, msg: Float32MultiArray):                  # [関数定義] _on_status の処理実行ブロック
+        data = list(msg.data)
+        if len(data) < 5:
+            return
+        self.soc = float(data[0])
+        self.tb_c = float(data[1])
+        self.status_s_km = float(data[2])
+        if not self.has_status:
+            self.s_km = float(data[2])
+        self.forecast_k = float(data[3])
+        self.sec_to_next = float(data[4])
+        self.has_status = True
+        self.last_status_time = time.monotonic()
+
+    def _on_metrics(self, msg: Float32MultiArray):                 # [関数定義] _on_metrics の処理実行ブロック
+        data = list(msg.data)
+        if len(data) < 7:
+            return
+        self.batt_voltage_v = float(data[0])
+        self.batt_current_a = float(data[1])
+        self.soc = float(data[2])
+        self.speed_cmd_kmh = float(data[6])
+        self.speed_meas_kmh = float(data[6])
+        self.has_metrics = True
+        self.last_metrics_time = time.monotonic()
+
+    def _on_lower_plan(self, msg: Float32MultiArray):              # [関数定義] _on_lower_plan の処理実行ブロック
+        if len(msg.data) > 1:
+            self.last_lower_plan_time = time.monotonic()
+
+    def _publish(self):                                            # [関数定義] _publish の処理実行ブロック
+        now = time.monotonic()
+        dt = max(0.0, now - self.last_publish_time)
+        self.last_publish_time = now
+        stale_timeout = max(1.0, float(self.get_parameter('stale_timeout_sec').value))
+        status_age = now - self.last_status_time if self.has_status else float('inf')
+        metrics_age = now - self.last_metrics_time if self.has_metrics else float('inf')
+        healthy = status_age <= stale_timeout and metrics_age <= stale_timeout
+
+        self.s_km = max(self.s_km, self.status_s_km)
+        self.s_km += float(self.speed_meas_kmh) * (dt / 3600.0)
+
+        self.pub_speed.publish(Float32(data=float(self.speed_meas_kmh)))
+        self.pub_s_km.publish(Float32(data=float(self.s_km)))
+        self.pub_soc.publish(Float32(data=float(self.soc)))
+        self.pub_tb.publish(Float32(data=float(self.tb_c)))
+        self.pub_ibatt.publish(Float32(data=float(self.batt_current_a)))
+        self.pub_vbatt.publish(Float32(data=float(self.batt_voltage_v)))
+        self.pub_throttle.publish(Float32(data=float(self.throttle_pct)))
+
+        if not self.has_status:
+            state = 'STARTING'
+        elif healthy:
+            state = 'RUNNING'
+        else:
+            state = 'STALE'
+
+        if healthy:
+            diag = f'forecast_k={self.forecast_k:.0f}, next={self.sec_to_next:.0f}s'
+        elif self.has_status or self.has_metrics:
+            diag = 'planner topics became stale'
+        else:
+            diag = 'waiting for planner topics'
+
+        if self.last_lower_plan_time > 0.0 and (now - self.last_lower_plan_time) <= stale_timeout:
+            mpc_state = 'HIERARCHICAL'
+        else:
+            mpc_state = 'UPPER_ONLY'
+
+        health = 1.0 if healthy else (0.5 if self.has_status or self.has_metrics else 0.0)
+        self.pub_state.publish(String(data=state))
+        self.pub_diag.publish(String(data=diag))
+        self.pub_mpc_state.publish(String(data=mpc_state))
+        self.pub_health.publish(Float32(data=float(health)))
+
+
+def main():                                                        # [メイン関数] エントリーポイント関数
+    rclpy.init()
+    node = SolarStateNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
+    main()
+
+# =============================================================================
+# 【統合ロジック】移動ホライズン状態推定器 (MHE / EKF)
+# =============================================================================
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
+from collections import deque
+from dataclasses import dataclass
+from typing import Optional, Tuple
+
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+from scipy.optimize import minimize
+
+
+@dataclass
+class MheInput:                                                    # [クラス定義] MheInput オブジェクトの設計
+    v_ms: float
+    slope_pct: float
+    G_poa: float
+    Tcell_C: float
+    Tamb_C: float
+    headwind_ms: float
+    dt: float
+
+
+@dataclass
+class MheMeas:                                                     # [クラス定義] MheMeas オブジェクトの設計
+    soc: Optional[float] = None
+    Tb: Optional[float] = None
+    I: Optional[float] = None
+    V: Optional[float] = None
+
+
+class BatteryMHE:                                                  # [クラス定義] BatteryMHE オブジェクトの設計
+    def __init__(                                                  # [関数定義] __init__ の処理実行ブロック
+        self,
+        model,
+        horizon_steps: int = 12,
+        w_soc: float = 50.0,
+        w_tb: float = 5.0,
+        w_i: float = 1.0,
+        w_v: float = 1.0,
+        w_prior: float = 5.0,
+        soc_bounds: Tuple[float, float] = (0.05, 0.98),
+        tb_bounds: Tuple[float, float] = (-10.0, 65.0),
+    ):
+        self.model = model
+        self.samples = deque(maxlen=max(2, int(horizon_steps)))
+        self.w_soc = float(w_soc)
+        self.w_tb = float(w_tb)
+        self.w_i = float(w_i)
+        self.w_v = float(w_v)
+        self.w_prior = float(w_prior)
+        self.soc_bounds = soc_bounds
+        self.tb_bounds = tb_bounds
+
+    def push(self, u: MheInput, y: MheMeas):                       # [関数定義] push の処理実行ブロック
+        self.samples.append((u, y))
+
+    def _simulate(self, z0: float, Tb0: float):                    # [関数定義] _simulate の処理実行ブロック
+        z = float(z0)
+        Tb = float(Tb0)
+        outputs = []
+        for (u, _) in self.samples:
+            out = self.model.electrical_balance(
+                u.v_ms,
+                u.slope_pct,
+                z,
+                Tb,
+                u.G_poa,
+                u.Tcell_C,
+                headwind_ms=u.headwind_ms,
+            )
+            I = float(out['I'])
+            V = float(out['V'])
+            P_pack = float(out['P_pack'])
+            loss_int = float(out['losses_int'])
+            dt = float(u.dt)
+            z_next = self.model.soc_step(z, P_pack, dt)
+            Tb_next = Tb + (dt / 1800.0) * (u.Tamb_C - Tb) + (loss_int * dt) / 50000.0
+            outputs.append((z_next, Tb_next, I, V))
+            z, Tb = z_next, Tb_next
+        return outputs, z, Tb                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def estimate(self, z_init: float, Tb_init: float) -> Tuple[float, float]:  # [関数定義] estimate の処理実行ブロック
+        if len(self.samples) < 2:
+            return z_init, Tb_init                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        def cost(x):                                               # [関数定義] cost の処理実行ブロック
+            z0, Tb0 = float(x[0]), float(x[1])
+            J = self.w_prior * ((z0 - z_init) ** 2 + (Tb0 - Tb_init) ** 2)
+            outputs, _, _ = self._simulate(z0, Tb0)
+            for (_, meas), (z_pred, Tb_pred, I_pred, V_pred) in zip(self.samples, outputs):
+                if meas.soc is not None and math.isfinite(meas.soc):
+                    J += self.w_soc * (z_pred - meas.soc) ** 2
+                if meas.Tb is not None and math.isfinite(meas.Tb):
+                    J += self.w_tb * (Tb_pred - meas.Tb) ** 2
+                if meas.I is not None and math.isfinite(meas.I):
+                    J += self.w_i * (I_pred - meas.I) ** 2
+                if meas.V is not None and math.isfinite(meas.V):
+                    J += self.w_v * (V_pred - meas.V) ** 2
+            return J                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        x0 = np.array([float(z_init), float(Tb_init)], dtype=float)
+        bounds = [self.soc_bounds, self.tb_bounds]
+        res = minimize(cost, x0, method='L-BFGS-B', bounds=bounds, options=dict(maxiter=80))
+        if not res.success:
+            return z_init, Tb_init                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        z0, Tb0 = float(res.x[0]), float(res.x[1])
+        _, zN, TbN = self._simulate(z0, Tb0)
+        return float(zN), float(TbN)                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+# =============================================================================
+# 【統合物理モデル】車両・電池物理パラメータ定義
+# =============================================================================
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+from dataclasses import dataclass
+
+try:
+    import casadi as ca                                            # [最適化エンジン] 数値最適化・自動微分ライブラリ CasADi のインポート
+except ImportError:
+    class _CasadiCompat:                                           # [クラス定義] _CasadiCompat オブジェクトの設計
+        class SX:                                                  # [クラス定義] SX オブジェクトの設計
+            pass
+
+        class MX:                                                  # [クラス定義] MX オブジェクトの設計
+            pass
+
+        @staticmethod
+        def fmax(a, b):                                            # [関数定義] fmax の処理実行ブロック
+            return max(a, b)                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        @staticmethod
+        def fmin(a, b):                                            # [関数定義] fmin の処理実行ブロック
+            return min(a, b)                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        @staticmethod
+        def atan(x):                                               # [関数定義] atan の処理実行ブロック
+            return math.atan(x)                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        @staticmethod
+        def cos(x):                                                # [関数定義] cos の処理実行ブロック
+            return math.cos(x)                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        @staticmethod
+        def sin(x):                                                # [関数定義] sin の処理実行ブロック
+            return math.sin(x)                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        @staticmethod
+        def sqrt(x):                                               # [関数定義] sqrt の処理実行ブロック
+            return math.sqrt(x)                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        @staticmethod
+        def fabs(x):                                               # [関数定義] fabs の処理実行ブロック
+            return abs(x)                                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    ca = _CasadiCompat()
+
+def _is_symbolic(x):                                               # [関数定義] _is_symbolic の処理実行ブロック
+    return isinstance(x, (ca.SX, ca.MX)) or (hasattr(x, 'is_symbolic') and x.is_symbolic())  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+@dataclass
+class Params:                                                      # [クラス定義] Params オブジェクトの設計
+    dt: float=600.0
+    rho: float=1.18
+    CdA: float=0.13
+    Crr: float=0.002
+    Crr_per_wheel: float=0.0
+    m: float=250.0
+    g: float=9.80665
+    P_aux: float=60.0
+    gear_eta: float=0.98
+    gear_ratio: float=6.0
+    wheel_radius: float=0.28
+    wheel_count: int=4
+    driven_wheel_count: int=2
+    motor_count: int=1
+    motor_type: str='generic'
+    inverter_eta: float=1.0
+    pv_area: float=6.0
+    pv_eta_ref: float=0.23
+    pv_mu_p: float=-0.0045
+    mppt_eta: float=0.95
+    panel_gain: float=1.0
+    E_nom_Wh: float=3055.0
+    V_min: float=260.0
+    V_max: float=400.0
+    I_max: float=120.0
+    I_chg_min: float=-90.0
+    T_max: float=55.0
+    T_min: float=-5.0
+    soc_min: float=0.05
+    soc_max: float=0.98
+    grade_scale: float=1.0
+    drive_eff_scale: float=1.0
+    regen_eff_scale: float=1.0
+    rint_scale: float=1.0
+    r_line_ohm: float=0.01
+    eta_charge: float=1.0
+
+class SolarCarModel:                                               # [車両モデルクラス] ソーラーカーの空力・転がり・発電・電池の統合物理モデル
+    def __init__(self, drive_map_path, regen_map_path, Rint_map_path,  # [関数定義] __init__ の処理実行ブロック
+                 params=None, panel_eff_map_path=None, mppt_eff_map_path=None,
+                 drive_map_eco_path=None, drive_map_power_path=None,
+                 regen_map_eco_path=None, regen_map_power_path=None,
+                 ocv_soc_map_path=None):
+        self.p = params or Params()
+        self.drive_power_gain = 1.0
+        self.aux_power_override_w = None
+        self.v_grid, self.tau_grid, self.Z_drv = read_eff_map(drive_map_path)
+        self.v_gridR, self.tau_gridR, self.Z_reg = read_eff_map(regen_map_path)
+        self.drive_mode = 'auto'
+        self.drive_mode_default = 'eco'
+        self.drive_mode_tau_margin = 0.0
+        self.maps_drive = {
+            'default': (self.v_grid, self.tau_grid, self.Z_drv),
+        }
+        self.maps_regen = {
+            'default': (self.v_gridR, self.tau_gridR, self.Z_reg),
+        }
+        if drive_map_eco_path:
+            self.maps_drive['eco'] = read_eff_map(drive_map_eco_path)
+        if drive_map_power_path:
+            self.maps_drive['power'] = read_eff_map(drive_map_power_path)
+        if regen_map_eco_path:
+            self.maps_regen['eco'] = read_eff_map(regen_map_eco_path)
+        if regen_map_power_path:
+            self.maps_regen['power'] = read_eff_map(regen_map_power_path)
+        self._update_mode_limits()
+        self.Tg, self.zg, self.Rmap = read_Rint_map(Rint_map_path)
+        self.panel_eff_map = None
+        self.mppt_eff_map = None
+        if panel_eff_map_path:
+            try:
+                self.Gg, self.Tcg, self.Z_panel = read_map(panel_eff_map_path)
+                self.panel_eff_map = True
+            except Exception:
+                self.panel_eff_map = None
+        if mppt_eff_map_path:
+            try:
+                self.Gm, self.Tm, self.Z_mppt = read_map(mppt_eff_map_path)
+                self.mppt_eff_map = True
+            except Exception:
+                self.mppt_eff_map = None
+        self.ocv_soc_map = None
+        if ocv_soc_map_path:
+            try:
+                self.soc_grid, self.ocv_grid = read_1d_map(ocv_soc_map_path)
+                self.ocv_soc_map = True
+            except Exception:
+                self.ocv_soc_map = None
+
+    def eff_drive(self, v_ms, tau_nm):                             # [関数定義] eff_drive の処理実行ブロック
+        if _is_symbolic(v_ms) or _is_symbolic(tau_nm):
+            v = ca.fabs(v_ms); t = ca.fabs(tau_nm)
+            vN = v/35.0; tN = t/60.0
+            eff = 0.92 - 0.08*vN*vN - 0.06*ca.sqrt(tN+1e-9)
+            eff = eff * float(self.p.drive_eff_scale)
+            return ca.fmin(0.99, ca.fmax(0.55, eff))               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        mode = self._select_mode(float(v_ms), float(abs(tau_nm)))
+        v_grid, t_grid, Z = self.maps_drive.get(mode, self.maps_drive['default'])
+        eff = float(bilinear_interp(v_grid, t_grid, Z, float(v_ms), float(abs(tau_nm))))
+        eff *= float(self.p.drive_eff_scale)
+        return float(np.clip(eff, 0.55, 0.99))                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def eff_regen(self, v_ms, tau_nm):                             # [関数定義] eff_regen の処理実行ブロック
+        if _is_symbolic(v_ms) or _is_symbolic(tau_nm):
+            v = ca.fabs(v_ms); t = ca.fabs(tau_nm)
+            vN = v/35.0; tN = t/60.0
+            eff = 0.70 + 0.12*vN - 0.05*(tN-0.3)*(tN-0.3)
+            eff = eff * float(self.p.regen_eff_scale or self.p.drive_eff_scale)
+            return ca.fmin(0.95, ca.fmax(0.40, eff))               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        mode = self._select_mode(float(v_ms), float(abs(tau_nm)))
+        v_grid, t_grid, Z = self.maps_regen.get(mode, self.maps_regen['default'])
+        eff = float(bilinear_interp(v_grid, t_grid, Z, float(v_ms), float(abs(tau_nm))))
+        eff *= float(self.p.regen_eff_scale or self.p.drive_eff_scale)
+        return float(np.clip(eff, 0.40, 0.95))                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def _update_mode_limits(self):                                 # [関数定義] _update_mode_limits の処理実行ブロック
+        self.tau_max = {}
+        for k, (_, t_grid, _) in self.maps_drive.items():
+            try:
+                self.tau_max[k] = float(max(t_grid))
+            except Exception:
+                self.tau_max[k] = 0.0
+
+    def _select_mode(self, v_ms: float, tau_nm: float) -> str:     # [関数定義] _select_mode の処理実行ブロック
+        mode = str(self.drive_mode or 'default').lower()
+        if mode in ('eco', 'power'):
+            return mode                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        # auto
+        eco_max = self.tau_max.get('eco', self.tau_max.get('default', 0.0))
+        margin = float(self.drive_mode_tau_margin or 0.0)
+        if tau_nm > (eco_max + margin):
+            return 'power' if 'power' in self.maps_drive else 'default'  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return 'eco' if 'eco' in self.maps_drive else 'default'    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def select_drive_mode(self, v_ms: float, tau_nm: float) -> str:  # [関数定義] select_drive_mode の処理実行ブロック
+        return self._select_mode(v_ms, abs(tau_nm))                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def R_int(self, T_C, z):                                       # [関数定義] R_int の処理実行ブロック
+        if _is_symbolic(T_C) or _is_symbolic(z):
+            R0=0.015; R_T=0.0002*(25.0-T_C); R_z=0.01*(1.0-z)
+            return (R0+R_T+R_z) * float(self.p.rint_scale)         # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        else:
+            return float(self.p.rint_scale) * float(bilinear_interp(self.Tg, self.zg, self.Rmap, T_C, z))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def pv_power_mppt(self, G_poa, T_cell_C):                      # [関数定義] pv_power_mppt の処理実行ブロック
+        if self.panel_eff_map:
+            eta_panel = bilinear_interp(self.Gg, self.Tcg, self.Z_panel, float(G_poa), float(T_cell_C))
+            eta_panel = max(0.0, float(eta_panel))
+        else:
+            eta_panel = self.p.pv_eta_ref*(1.0+self.p.pv_mu_p*(T_cell_C-25.0))
+            eta_panel = ca.fmax(0.0, eta_panel)
+        eta_panel *= float(self.p.panel_gain)
+        P_pv = eta_panel*self.p.pv_area*G_poa
+        if self.mppt_eff_map:
+            eta_mppt = bilinear_interp(self.Gm, self.Tm, self.Z_mppt, float(G_poa), float(T_cell_C))
+            eta_mppt = max(0.0, float(eta_mppt))
+            return eta_mppt*P_pv                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return self.p.mppt_eta*P_pv                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def _scaled_slope_pct(self, slope_pct):                        # [関数定義] _scaled_slope_pct の処理実行ブロック
+        return slope_pct * float(self.p.grade_scale)               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def charge_efficiency(self, P_pack) -> float:                  # [関数定義] charge_efficiency の処理実行ブロック
+        try:
+            p_pack = float(P_pack)
+        except Exception:
+            return 1.0                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return float(self.p.eta_charge) if p_pack < 0.0 else 1.0   # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def soc_step(self, z: float, P_pack: float, dt_sec: float) -> float:  # [関数定義] soc_step の処理実行ブロック
+        eta = self.charge_efficiency(P_pack)
+        return float(z) - eta * (float(P_pack) * float(dt_sec) / 3600.0) / max(float(self.p.E_nom_Wh), 1.0e-6)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def ocv_from_soc(self, z):                                     # [関数定義] ocv_from_soc の処理実行ブロック
+        if _is_symbolic(z) or not self.ocv_soc_map:
+            z_clamped = ca.fmin(self.p.soc_max, ca.fmax(self.p.soc_min, z))
+            return self.p.V_min + (self.p.V_max - self.p.V_min) * z_clamped  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        zc = float(np.clip(z, self.p.soc_min, self.p.soc_max))
+        return float(np.interp(zc, self.soc_grid, self.ocv_grid))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def load_ocv_map(self, path: str) -> bool:                     # [関数定義] load_ocv_map の処理実行ブロック
+        try:
+            self.soc_grid, self.ocv_grid = read_1d_map(path)
+            self.ocv_soc_map = True
+            return True                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        except Exception:
+            self.ocv_soc_map = None
+            return False                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def resistive_forces(self, v_ms, slope_pct, headwind_ms=0.0):  # [関数定義] resistive_forces の処理実行ブロック
+        if _is_symbolic(v_ms) or _is_symbolic(slope_pct) or _is_symbolic(headwind_ms):
+            v_rel = ca.fmax(0.0, v_ms + headwind_ms)
+            theta = ca.atan(self._scaled_slope_pct(slope_pct) / 100.0)
+            F_aero = 0.5 * self.p.rho * self.p.CdA * v_rel ** 2
+            N = self.p.m * self.p.g * ca.cos(theta)
+            Crr_eff = self.p.Crr
+            if self.p.Crr_per_wheel and self.p.wheel_count:
+                Crr_eff = self.p.Crr_per_wheel * float(self.p.wheel_count)
+            F_roll = Crr_eff * N
+            F_grade = self.p.m * self.p.g * ca.sin(theta)
+            F_total = F_aero + F_roll + F_grade
+            return dict(F_aero=F_aero, F_roll=F_roll, F_grade=F_grade,  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+                        F_total=F_total, theta=theta)
+        v_rel = max(0.0, float(v_ms) + float(headwind_ms))
+        theta = math.atan(float(self._scaled_slope_pct(slope_pct)) / 100.0)
+        F_aero = 0.5 * self.p.rho * self.p.CdA * v_rel ** 2
+        N = self.p.m * self.p.g * math.cos(theta)
+        Crr_eff = self.p.Crr
+        if self.p.Crr_per_wheel and self.p.wheel_count:
+            Crr_eff = self.p.Crr_per_wheel * float(self.p.wheel_count)
+        F_roll = Crr_eff * N
+        F_grade = self.p.m * self.p.g * math.sin(theta)
+        F_total = F_aero + F_roll + F_grade
+        return dict(F_aero=F_aero, F_roll=F_roll, F_grade=F_grade,  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+                    F_total=F_total, theta=theta)
+
+    def battery_iv(self, P_pack, z, Tbat_C):                       # [関数定義] battery_iv の処理実行ブロック
+        OCV = self.ocv_from_soc(z)
+        Rint = self.R_int(Tbat_C, ca.fmin(0.95, ca.fmax(0.1, z)))
+        Rline = float(self.p.r_line_ohm)
+        Rtot = Rint + Rline
+        a = Rtot
+        b = -OCV
+        c = P_pack
+        disc = ca.fmax(b * b - 4 * a * c, 0.0)
+        I = (OCV - ca.sqrt(disc)) / (2 * Rtot)
+        V = OCV - I * Rtot
+        return dict(I=I, V=V, OCV=OCV, Rint=Rint, Rline=Rline)     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def mech_power(self, v_ms, slope_pct, headwind_ms=0.0):        # [関数定義] mech_power の処理実行ブロック
+        v_rel = ca.fmax(0.0, v_ms + headwind_ms)
+        P_aero = 0.5*self.p.rho*self.p.CdA*v_rel**3
+        theta  = ca.atan(self._scaled_slope_pct(slope_pct)/100.0)
+        N = self.p.m*self.p.g*ca.cos(theta)
+        Crr_eff = self.p.Crr
+        if self.p.Crr_per_wheel and self.p.wheel_count:
+            Crr_eff = self.p.Crr_per_wheel * float(self.p.wheel_count)
+        P_roll = Crr_eff*N*v_ms
+        P_grade= self.p.m*self.p.g*ca.sin(theta)*v_ms
+        drive_power = (P_aero + P_roll + P_grade) * float(self.drive_power_gain)
+        aux_power = float(self.aux_power_override_w) if self.aux_power_override_w is not None else float(self.p.P_aux)
+        return drive_power + aux_power                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def torque_from_mech(self, P_mech, v_ms, wheel_radius=None, ratio=None):  # [関数定義] torque_from_mech の処理実行ブロック
+        if wheel_radius is None:
+            wheel_radius = self.p.wheel_radius
+        if ratio is None:
+            ratio = self.p.gear_ratio
+        eps=1e-3
+        omega_w = v_ms/wheel_radius
+        T_w = P_mech/(omega_w+eps)
+        T_m = T_w/ratio
+        return T_m, omega_w*ratio                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def electrical_balance(self, v_ms, slope_pct, z, Tbat_C, G_poa, Tcell_C, headwind_ms=0.0):  # [関数定義] electrical_balance の処理実行ブロック
+        P_pv = self.pv_power_mppt(G_poa, Tcell_C)
+        P_mech = self.mech_power(v_ms, slope_pct, headwind_ms)
+        P_mech_pos = ca.fmax(P_mech, 0.0)
+        P_mech_neg = ca.fmax(-P_mech, 0.0)
+        Tm_drv, _ = self.torque_from_mech(P_mech_pos, v_ms)
+        eff_drv = self.eff_drive(v_ms, Tm_drv)
+        P_dc_to_drv = P_mech_pos/(eff_drv*self.p.gear_eta*self.p.inverter_eta)
+        Tm_reg, _ = self.torque_from_mech(P_mech_neg, v_ms)
+        eff_reg = self.eff_regen(v_ms, Tm_reg)
+        P_reg_to_dc = eff_reg*self.p.gear_eta*self.p.inverter_eta*P_mech_neg
+        P_pack = P_dc_to_drv - P_reg_to_dc - P_pv
+        OCV = self.ocv_from_soc(z)
+        Rint = self.R_int(Tbat_C, ca.fmin(0.95, ca.fmax(0.1, z)))
+        Rline = float(self.p.r_line_ohm); Rtot = Rint + Rline
+        a = Rtot; b=-OCV; c=P_pack
+        disc = ca.fmax(b*b-4*a*c, 0.0)
+        I = (OCV - ca.sqrt(disc))/(2*Rtot)
+        V = OCV - I*Rtot
+        losses_line = I*I*Rline; losses_int = I*I*Rint
+        aux_power = float(self.aux_power_override_w) if self.aux_power_override_w is not None else float(self.p.P_aux)
+        P_mech_wheel = P_mech - aux_power
+        return dict(P_pv=P_pv, P_mech=P_mech, P_mech_wheel=P_mech_wheel,  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+                    P_pack=P_pack, I=I, V=V,
+                    losses_line=losses_line, losses_int=losses_int,
+                    OCV=OCV, Rint=Rint, Rline=Rline,
+                    P_dc_to_drv=P_dc_to_drv, P_reg_to_dc=P_reg_to_dc,
+                    eff_drv=eff_drv, eff_reg=eff_reg)
+
+# =============================================================================
+# 【統合ユーティリティ】マップ読み込み・2D/1D線形補間関数群
+# =============================================================================
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
+def bilinear_interp(xg, yg, Z, x, y):                              # [関数定義] bilinear_interp の処理実行ブロック
+    xg = np.asarray(xg); yg=np.asarray(yg); Z=np.asarray(Z)
+    x = np.clip(x, xg[0], xg[-1]); y=np.clip(y, yg[0], yg[-1])
+    i = np.searchsorted(xg, x)-1; i=np.clip(i,0,len(xg)-2)
+    j = np.searchsorted(yg, y)-1; j=np.clip(j,0,len(yg)-2)
+    x0,x1=xg[i],xg[i+1]; y0,y1=yg[j],yg[j+1]
+    Z00=Z[i,j]; Z10=Z[i+1,j]; Z01=Z[i,j+1]; Z11=Z[i+1,j+1]
+    wx=0 if x1==x0 else (x-x0)/(x1-x0)
+    wy=0 if y1==y0 else (y-y0)/(y1-y0)
+    return (1-wx)*(1-wy)*Z00 + wx*(1-wy)*Z10 + (1-wx)*wy*Z01 + wx*wy*Z11  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+def read_eff_map(path):                                            # [関数定義] read_eff_map の処理実行ブロック
+    df = pd.read_csv(path, index_col=0)
+    return df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+def read_Rint_map(path):                                           # [関数定義] read_Rint_map の処理実行ブロック
+    df = pd.read_csv(path, index_col=0)
+    return df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+def read_map(path):                                                # [関数定義] read_map の処理実行ブロック
+    df = pd.read_csv(path, index_col=0)
+    return df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+def read_1d_map(path):                                             # [関数定義] read_1d_map の処理実行ブロック
+    df = pd.read_csv(path)
+    if df.shape[1] >= 2:
+        x = df.iloc[:, 0].values.astype(float)
+        y = df.iloc[:, 1].values.astype(float)
+        return x, y                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    df = pd.read_csv(path, index_col=0)
+    x = df.index.values.astype(float)
+    y = df.iloc[:, 0].values.astype(float)
+    return x, y                                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+import json
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
+import socket
+import time
+from typing import Dict
+
+import rclpy                                                       # [ROS 2] ROS 2 Python クライアントライブラリ (rclpy) のインポート
+from rclpy.node import Node                                        # [ROS 2] ノード基底クラス Node のインポート
+from sensor_msgs.msg import NavSatFix
+from std_msgs.msg import Float32, Float32MultiArray, String
+
+
+
+def as_float(value, default=math.nan):                             # [関数定義] as_float の処理実行ブロック
+    return finite_float(value, default=default)                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+class TelemetryTextBridgeNode(Node):                               # [クラス定義] TelemetryTextBridgeNode オブジェクトの設計
+    def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
+        super().__init__('telemetry_text_bridge_node')
+        self.declare_parameter('enable_inbound', True)
+        self.declare_parameter('enable_outbound', True)
+        self.declare_parameter('bind_host', '0.0.0.0')
+        self.declare_parameter('bind_port', 52001)
+        self.declare_parameter('publish_period_sec', 1.0)
+        self.declare_parameter('solar_remote_host', '')
+        self.declare_parameter('solar_remote_port', 52002)
+        self.declare_parameter('chase_remote_host', '')
+        self.declare_parameter('chase_remote_port', 52003)
+        self.declare_parameter('send_to_solar', True)
+        self.declare_parameter('send_to_chase', True)
+        self.declare_parameter('speed_filter_tau_sec', 0.6)
+        self.declare_parameter('speed_max_kmh', 130.0)
+        self.declare_parameter('speed_max_accel_kmhps', 12.0)
+        self.declare_parameter('speed_max_decel_kmhps', 20.0)
+        self.declare_parameter('distance_max_rate_kmps', 0.06)
+        self.declare_parameter('distance_max_backtrack_km', 0.02)
+        self.declare_parameter('battery_filter_tau_sec', 1.0)
+        self.declare_parameter('wind_filter_tau_sec', 1.0)
+        self.declare_parameter('headwind_filter_tau_sec', 0.8)
+        self.declare_parameter('max_abs_headwind_ms', 25.0)
+
+        self.enable_inbound = bool(self.get_parameter('enable_inbound').value)
+        self.enable_outbound = bool(self.get_parameter('enable_outbound').value)
+        self.bind_host = str(self.get_parameter('bind_host').value)
+        self.bind_port = int(self.get_parameter('bind_port').value)
+        self.publish_period_sec = max(0.1, float(self.get_parameter('publish_period_sec').value))
+        self.solar_remote_host = str(self.get_parameter('solar_remote_host').value).strip()
+        self.solar_remote_port = int(self.get_parameter('solar_remote_port').value)
+        self.chase_remote_host = str(self.get_parameter('chase_remote_host').value).strip()
+        self.chase_remote_port = int(self.get_parameter('chase_remote_port').value)
+        self.send_to_solar = bool(self.get_parameter('send_to_solar').value)
+        self.send_to_chase = bool(self.get_parameter('send_to_chase').value)
+        speed_tau = max(0.0, float(self.get_parameter('speed_filter_tau_sec').value))
+        speed_max = max(1.0, float(self.get_parameter('speed_max_kmh').value))
+        speed_rise = max(0.1, float(self.get_parameter('speed_max_accel_kmhps').value))
+        speed_fall = max(0.1, float(self.get_parameter('speed_max_decel_kmhps').value))
+        distance_rate = max(1.0e-4, float(self.get_parameter('distance_max_rate_kmps').value))
+        distance_backtrack = max(0.0, float(self.get_parameter('distance_max_backtrack_km').value))
+        battery_tau = max(0.0, float(self.get_parameter('battery_filter_tau_sec').value))
+        wind_tau = max(0.0, float(self.get_parameter('wind_filter_tau_sec').value))
+        headwind_tau = max(0.0, float(self.get_parameter('headwind_filter_tau_sec').value))
+        max_headwind = max(1.0, float(self.get_parameter('max_abs_headwind_ms').value))
+
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setblocking(False)
+        if self.enable_inbound:
+            self.sock.bind((self.bind_host, self.bind_port))
+
+        self.pub_network_status = self.create_publisher(String, '/system/network_status', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+
+        self.pub_vehicle_speed = self.create_publisher(Float32, '/vehicle/speed_kmh', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_soc = self.create_publisher(Float32, '/vehicle/batt_soc', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_temp = self.create_publisher(Float32, '/vehicle/batt_temp_c', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_current = self.create_publisher(Float32, '/vehicle/batt_current_a', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_voltage = self.create_publisher(Float32, '/vehicle/batt_voltage_v', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_dist = self.create_publisher(Float32, '/vehicle/s_km', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_alt = self.create_publisher(Float32, '/vehicle/altitude_m', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_gps = self.create_publisher(NavSatFix, '/vehicle/gps', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_wind_speed = self.create_publisher(Float32, '/vehicle/wind_speed_ms', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_wind_dir = self.create_publisher(Float32, '/vehicle/wind_dir_deg', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_course = self.create_publisher(Float32, '/vehicle/course_deg', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_vehicle_headwind = self.create_publisher(Float32, '/vehicle/headwind_obs_ms', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+
+        self.pub_chase_speed = self.create_publisher(Float32, '/chase/speed_kmh', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_chase_alt = self.create_publisher(Float32, '/chase/altitude_m', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_chase_gps = self.create_publisher(NavSatFix, '/chase/gps', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_chase_wind_speed = self.create_publisher(Float32, '/chase/wind_speed_ms', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_chase_wind_dir = self.create_publisher(Float32, '/chase/wind_dir_deg', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_chase_course = self.create_publisher(Float32, '/chase/course_deg', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_chase_headwind = self.create_publisher(Float32, '/chase/headwind_obs_ms', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+
+        self.outbound_state: Dict[str, object] = {
+            'speed_cmd_kmh': math.nan,
+            'upper_speed_cmd_kmh': math.nan,
+            'drive_mode': '',
+            'race_progress_pct': math.nan,
+            'next_stop_dist_km': math.nan,
+            'next_stop_eta_min': math.nan,
+            'finish_dist_km': math.nan,
+            'finish_eta_h': math.nan,
+            'avg_plan_speed_kmh': math.nan,
+            'headwind_plan_ms': math.nan,
+            'headwind_mu_ms': math.nan,
+            'headwind_sigma_ms': math.nan,
+            'headwind_lo95_ms': math.nan,
+            'headwind_hi95_ms': math.nan,
+            'network_status': '',
+        }
+        self.last_inbound_summary = 'waiting inbound telemetry'
+        self.last_tx_summary = 'tx=idle'
+        self.last_sender = ''
+        self.last_rx_time = 0.0
+        self.last_tx_time = 0.0
+        self.filters = {
+            ('vehicle', 'speed_kmh'): RobustScalarFilter(
+                min_value=0.0, max_value=speed_max, tau_sec=speed_tau,
+                rise_rate=speed_rise, fall_rate=speed_fall, median_window=3, deadband=0.05,
+            ),
+            ('chase', 'speed_kmh'): RobustScalarFilter(
+                min_value=0.0, max_value=speed_max, tau_sec=speed_tau,
+                rise_rate=speed_rise, fall_rate=speed_fall, median_window=3, deadband=0.05,
+            ),
+            ('vehicle', 'batt_soc'): RobustScalarFilter(
+                min_value=0.0, max_value=1.0, tau_sec=battery_tau, median_window=3, deadband=0.001,
+            ),
+            ('vehicle', 'batt_temp_c'): RobustScalarFilter(
+                min_value=-40.0, max_value=100.0, tau_sec=battery_tau, median_window=3, deadband=0.02,
+            ),
+            ('vehicle', 'batt_current_a'): RobustScalarFilter(
+                min_value=-200.0, max_value=200.0, tau_sec=battery_tau, median_window=3, deadband=0.05,
+            ),
+            ('vehicle', 'batt_voltage_v'): RobustScalarFilter(
+                min_value=0.0, max_value=200.0, tau_sec=battery_tau, median_window=3, deadband=0.02,
+            ),
+            ('vehicle', 's_km'): RobustScalarFilter(
+                min_value=0.0, max_value=5000.0, rise_rate=distance_rate, median_window=3,
+                monotonic=True, max_backtrack=distance_backtrack,
+            ),
+            ('vehicle', 'alt_m'): RobustScalarFilter(
+                min_value=-500.0, max_value=5000.0, tau_sec=1.0, median_window=3, deadband=0.1,
+            ),
+            ('chase', 'alt_m'): RobustScalarFilter(
+                min_value=-500.0, max_value=5000.0, tau_sec=1.0, median_window=3, deadband=0.1,
+            ),
+            ('vehicle', 'wind_speed_ms'): RobustScalarFilter(
+                min_value=0.0, max_value=35.0, tau_sec=wind_tau, rise_rate=8.0, fall_rate=8.0, median_window=3, deadband=0.02,
+            ),
+            ('chase', 'wind_speed_ms'): RobustScalarFilter(
+                min_value=0.0, max_value=35.0, tau_sec=wind_tau, rise_rate=8.0, fall_rate=8.0, median_window=3, deadband=0.02,
+            ),
+            ('vehicle', 'headwind_ms'): RobustScalarFilter(
+                min_value=-max_headwind, max_value=max_headwind, tau_sec=headwind_tau,
+                rise_rate=10.0, fall_rate=10.0, median_window=3, deadband=0.02,
+            ),
+            ('chase', 'headwind_ms'): RobustScalarFilter(
+                min_value=-max_headwind, max_value=max_headwind, tau_sec=headwind_tau,
+                rise_rate=10.0, fall_rate=10.0, median_window=3, deadband=0.02,
+            ),
+        }
+
+        self.create_subscription(Float32, '/planner/speed_cmd', self._set_out_float('speed_cmd_kmh'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32, '/planner/upper_speed_cmd', self._set_out_float('upper_speed_cmd_kmh'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(String, '/planner/drive_mode', self._set_out_str('drive_mode'), 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32MultiArray, '/planner/summary', self._on_summary, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(Float32MultiArray, '/planner/wind_state', self._on_wind_state, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+
+        self.rx_timer = self.create_timer(0.05, self._poll_inbound)
+        self.tx_timer = self.create_timer(self.publish_period_sec, self._publish_outbound)
+        self.status_timer = self.create_timer(1.0, self._publish_status)
+        self.get_logger().info(
+            f'TelemetryTextBridgeNode started: inbound={self.enable_inbound} {self.bind_host}:{self.bind_port}, '
+            f'outbound={self.enable_outbound}'
+        )
+
+    def _set_out_float(self, key):                                 # [関数定義] _set_out_float の処理実行ブロック
+        def _handler(msg):                                         # [関数定義] _handler の処理実行ブロック
+            self.outbound_state[key] = float(msg.data)
+        return _handler                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def _set_out_str(self, key):                                   # [関数定義] _set_out_str の処理実行ブロック
+        def _handler(msg):                                         # [関数定義] _handler の処理実行ブロック
+            self.outbound_state[key] = str(msg.data)
+        return _handler                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def _on_summary(self, msg: Float32MultiArray):                 # [関数定義] _on_summary の処理実行ブロック
+        data = list(msg.data)
+        keys = [
+            'race_progress_pct',
+            'next_stop_dist_km',
+            'next_stop_eta_min',
+            'finish_dist_km',
+            'finish_eta_h',
+            'avg_plan_speed_kmh',
+        ]
+        for i, key in enumerate(keys):
+            self.outbound_state[key] = float(data[i]) if i < len(data) else math.nan
+
+    def _on_wind_state(self, msg: Float32MultiArray):              # [関数定義] _on_wind_state の処理実行ブロック
+        data = list(msg.data)
+        mapping = {
+            6: 'headwind_mu_ms',
+            7: 'headwind_sigma_ms',
+            8: 'headwind_lo95_ms',
+            9: 'headwind_hi95_ms',
+            10: 'headwind_plan_ms',
+        }
+        for idx, key in mapping.items():
+            self.outbound_state[key] = float(data[idx]) if idx < len(data) else math.nan
+
+    def _publish_status(self):                                     # [関数定義] _publish_status の処理実行ブロック
+        age = time.monotonic() - self.last_rx_time if self.last_rx_time > 0.0 else math.inf
+        rx = 'never' if not math.isfinite(age) else f'{age:.1f}s ago'
+        sender = self.last_sender or '--'
+        tx_age = time.monotonic() - self.last_tx_time if self.last_tx_time > 0.0 else math.inf
+        tx = 'never' if not math.isfinite(tx_age) else f'{tx_age:.1f}s ago'
+        status = f'rx={rx} from={sender} tx={tx} {self.last_inbound_summary} {self.last_tx_summary}'
+        self.outbound_state['network_status'] = status
+        self.pub_network_status.publish(String(data=status))
+
+    def _poll_inbound(self):                                       # [関数定義] _poll_inbound の処理実行ブロック
+        if not self.enable_inbound:
+            return
+        while True:
+            try:
+                payload, addr = self.sock.recvfrom(65535)
+            except BlockingIOError:
+                break
+            except Exception as exc:
+                self.last_inbound_summary = f'rx error: {exc}'
+                break
+            try:
+                text = payload.decode('utf-8').strip()
+                if not text:
+                    continue
+                obj = json.loads(text)
+            except Exception as exc:
+                self.last_inbound_summary = f'bad json: {exc}'
+                continue
+            self.last_sender = f'{addr[0]}:{addr[1]}'
+            self.last_rx_time = time.monotonic()
+            self._handle_payload(obj)
+
+    def _handle_payload(self, obj):                                # [関数定義] _handle_payload の処理実行ブロック
+        if not isinstance(obj, dict):
+            self.last_inbound_summary = 'ignored non-object payload'
+            return
+
+        payload_type = str(obj.get('type', '') or obj.get('kind', '')).lower()
+        if 'vehicle' in obj and isinstance(obj['vehicle'], dict):
+            self._publish_vehicle(obj['vehicle'])
+        if 'chase' in obj and isinstance(obj['chase'], dict):
+            self._publish_chase(obj['chase'])
+
+        if payload_type in ('vehicle', 'vehicle_state', 'solar', 'solarcar'):
+            self._publish_vehicle(obj)
+        elif payload_type in ('chase', 'chase_state', 'escort', 'support'):
+            self._publish_chase(obj)
+        elif payload_type in ('bundle', 'telemetry_bundle'):
+            pass
+
+        self.last_inbound_summary = f'type={payload_type or "auto"} keys={",".join(sorted(obj.keys())[:6])}'
+
+    def _publish_vehicle(self, data: Dict):                        # [関数定義] _publish_vehicle の処理実行ブロック
+        self._publish_filtered_float('vehicle', self.pub_vehicle_speed, data, 'speed_kmh')
+        soc = as_float(data.get('soc', data.get('batt_soc', math.nan)))
+        if math.isfinite(soc) and soc > 1.5:
+            soc /= 100.0
+        if math.isfinite(soc):
+            filtered_soc = self._filter_value('vehicle', 'batt_soc', soc)
+            if math.isfinite(filtered_soc):
+                self.pub_vehicle_soc.publish(Float32(data=float(filtered_soc)))
+        self._publish_filtered_float('vehicle', self.pub_vehicle_temp, data, 'batt_temp_c')
+        self._publish_filtered_float('vehicle', self.pub_vehicle_current, data, 'batt_current_a')
+        self._publish_filtered_float('vehicle', self.pub_vehicle_voltage, data, 'batt_voltage_v')
+        self._publish_filtered_float('vehicle', self.pub_vehicle_dist, data, 's_km')
+        self._publish_filtered_float('vehicle', self.pub_vehicle_alt, data, 'alt_m', aliases=('altitude_m',))
+        self._publish_filtered_float('vehicle', self.pub_vehicle_wind_speed, data, 'wind_speed_ms')
+        self._publish_bounded_float(self.pub_vehicle_wind_dir, data, 'wind_dir_deg', 0.0, 360.0)
+        self._publish_bounded_float(self.pub_vehicle_course, data, 'course_deg', 0.0, 360.0)
+        self._publish_filtered_float('vehicle', self.pub_vehicle_headwind, data, 'headwind_ms', aliases=('headwind_obs_ms',))
+        self._publish_navsat(self.pub_vehicle_gps, data)
+
+    def _publish_chase(self, data: Dict):                          # [関数定義] _publish_chase の処理実行ブロック
+        self._publish_filtered_float('chase', self.pub_chase_speed, data, 'speed_kmh')
+        self._publish_filtered_float('chase', self.pub_chase_alt, data, 'alt_m', aliases=('altitude_m',))
+        self._publish_filtered_float('chase', self.pub_chase_wind_speed, data, 'wind_speed_ms')
+        self._publish_bounded_float(self.pub_chase_wind_dir, data, 'wind_dir_deg', 0.0, 360.0)
+        self._publish_bounded_float(self.pub_chase_course, data, 'course_deg', 0.0, 360.0)
+        self._publish_filtered_float('chase', self.pub_chase_headwind, data, 'headwind_ms', aliases=('headwind_obs_ms',))
+        self._publish_navsat(self.pub_chase_gps, data)
+
+    def _publish_filtered_float(self, prefix, publisher, data, key, aliases=()):  # [関数定義] _publish_filtered_float の処理実行ブロック
+        for name in (key,) + tuple(aliases):
+            value = as_float(data.get(name, math.nan))
+            if math.isfinite(value):
+                filtered = self._filter_value(prefix, key, value)
+                if math.isfinite(filtered):
+                    publisher.publish(Float32(data=float(filtered)))
+                return
+
+    def _publish_bounded_float(self, publisher, data, key, lo, hi, aliases=()):  # [関数定義] _publish_bounded_float の処理実行ブロック
+        for name in (key,) + tuple(aliases):
+            value = as_float(data.get(name, math.nan))
+            if math.isfinite(value):
+                publisher.publish(Float32(data=float(max(lo, min(hi, value)))))
+                return
+
+    def _filter_value(self, prefix, key, value):                   # [関数定義] _filter_value の処理実行ブロック
+        filt = self.filters.get((prefix, key))
+        if filt is None:
+            return finite_float(value)                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return filt.update(value)                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def _publish_navsat(self, publisher, data):                    # [関数定義] _publish_navsat の処理実行ブロック
+        lat = as_float(data.get('lat', data.get('latitude', math.nan)))
+        lon = as_float(data.get('lon', data.get('longitude', math.nan)))
+        if not math.isfinite(lat) or not math.isfinite(lon):
+            return
+        if abs(lat) > 90.0 or abs(lon) > 180.0:
+            return
+        alt = as_float(data.get('alt_m', data.get('altitude_m', data.get('altitude', math.nan))))
+        msg = NavSatFix()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = 'gps'
+        msg.latitude = float(lat)
+        msg.longitude = float(lon)
+        msg.altitude = float(alt) if math.isfinite(alt) else 0.0
+        publisher.publish(msg)
+
+    def _publish_outbound(self):                                   # [関数定義] _publish_outbound の処理実行ブロック
+        if not self.enable_outbound:
+            return
+        snapshot = {
+            'type': 'planner_command',
+            'schema': 'solar_v1',
+            'ts_unix': time.time(),
+            'planner': {
+                'speed_cmd_kmh': self._clean(self.outbound_state.get('speed_cmd_kmh')),
+                'upper_speed_cmd_kmh': self._clean(self.outbound_state.get('upper_speed_cmd_kmh')),
+                'drive_mode': str(self.outbound_state.get('drive_mode', '') or ''),
+            },
+            'summary': {
+                'race_progress_pct': self._clean(self.outbound_state.get('race_progress_pct')),
+                'next_stop_dist_km': self._clean(self.outbound_state.get('next_stop_dist_km')),
+                'next_stop_eta_min': self._clean(self.outbound_state.get('next_stop_eta_min')),
+                'finish_dist_km': self._clean(self.outbound_state.get('finish_dist_km')),
+                'finish_eta_h': self._clean(self.outbound_state.get('finish_eta_h')),
+                'avg_plan_speed_kmh': self._clean(self.outbound_state.get('avg_plan_speed_kmh')),
+            },
+            'wind': {
+                'plan_headwind_ms': self._clean(self.outbound_state.get('headwind_plan_ms')),
+                'mean_headwind_ms': self._clean(self.outbound_state.get('headwind_mu_ms')),
+                'std_headwind_ms': self._clean(self.outbound_state.get('headwind_sigma_ms')),
+                'lo95_headwind_ms': self._clean(self.outbound_state.get('headwind_lo95_ms')),
+                'hi95_headwind_ms': self._clean(self.outbound_state.get('headwind_hi95_ms')),
+            },
+            'network_status': str(self.outbound_state.get('network_status', '') or ''),
+        }
+        payload = json.dumps(snapshot, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+        sent = []
+        if self.send_to_solar and self.solar_remote_host:
+            self.sock.sendto(payload, (self.solar_remote_host, self.solar_remote_port))
+            sent.append(f'solar={self.solar_remote_host}:{self.solar_remote_port}')
+        if self.send_to_chase and self.chase_remote_host:
+            self.sock.sendto(payload, (self.chase_remote_host, self.chase_remote_port))
+            sent.append(f'chase={self.chase_remote_host}:{self.chase_remote_port}')
+        if sent:
+            self.last_tx_time = time.monotonic()
+            self.last_tx_summary = 'tx[' + ','.join(sent) + ']'
+        else:
+            self.last_tx_summary = 'tx=idle'
+
+    def _clean(self, value):                                       # [関数定義] _clean の処理実行ブロック
+        try:
+            v = float(value)
+            if math.isfinite(v):
+                return float(v)                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        except Exception:
+            pass
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def destroy_node(self):                                        # [関数定義] destroy_node の処理実行ブロック
+        try:
+            self.sock.close()
+        except Exception:
+            pass
+        super().destroy_node()
+
+
+def main():                                                        # [メイン関数] エントリーポイント関数
+    rclpy.init()
+    node = TelemetryTextBridgeNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
+    main()
+
+# =============================================================================
+# 【統合ユーティリティ】シグナルフィルタ・スルーレート制限・有限値検証
+# =============================================================================
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
+import time
+from collections import deque
+
+
+def finite_float(value, default=math.nan):                         # [関数定義] finite_float の処理実行ブロック
+    try:
+        v = float(value)
+        if math.isfinite(v):
+            return v                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    except Exception:
+        pass
+    return default                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def clamp(value, lo=None, hi=None):                                # [関数定義] clamp の処理実行ブロック
+    v = float(value)
+    if lo is not None:
+        v = max(float(lo), v)
+    if hi is not None:
+        v = min(float(hi), v)
+    return v                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def fresh_enough(timestamp, timeout_sec, now=None):                # [関数定義] fresh_enough の処理実行ブロック
+    if timestamp is None:
+        return False                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if timeout_sec is None or float(timeout_sec) <= 0.0:
+        return True                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if now is None:
+        now = time.monotonic()
+    return (float(now) - float(timestamp)) <= float(timeout_sec)   # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def slew_limit(previous, target, dt, rise_rate=None, fall_rate=None):  # [関数定義] slew_limit の処理実行ブロック
+    prev = float(previous)
+    tgt = float(target)
+    dt = max(0.0, float(dt))
+    if not math.isfinite(prev) or dt <= 0.0:
+        return tgt                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    delta = tgt - prev
+    if delta >= 0.0 and rise_rate is not None and math.isfinite(float(rise_rate)) and float(rise_rate) > 0.0:
+        delta = min(delta, float(rise_rate) * dt)
+    if delta < 0.0 and fall_rate is not None and math.isfinite(float(fall_rate)) and float(fall_rate) > 0.0:
+        delta = max(delta, -float(fall_rate) * dt)
+    return prev + delta                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+class SmoothRateLimiter:                                           # [クラス定義] SmoothRateLimiter オブジェクトの設計
+    def __init__(                                                  # [関数定義] __init__ の処理実行ブロック
+        self,
+        *,
+        min_value=None,
+        max_value=None,
+        tau_sec=0.0,
+        rise_rate=None,
+        fall_rate=None,
+        deadband=0.0,
+        quantize_step=0.0,
+        initial_value=math.nan,
+    ):
+        self.min_value = min_value
+        self.max_value = max_value
+        self.tau_sec = max(0.0, float(tau_sec))
+        self.rise_rate = rise_rate
+        self.fall_rate = fall_rate
+        self.deadband = max(0.0, float(deadband))
+        self.quantize_step = max(0.0, float(quantize_step))
+        self.value = float(initial_value) if math.isfinite(finite_float(initial_value)) else math.nan
+        self.last_time = None
+
+    def reset(self, value=math.nan, now=None):                     # [関数定義] reset の処理実行ブロック
+        self.value = finite_float(value)
+        self.last_time = time.monotonic() if now is None else float(now)
+        return self.value                                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def update(self, target, now=None):                            # [関数定義] update の処理実行ブロック
+        tgt = finite_float(target)
+        if not math.isfinite(tgt):
+            return self.value                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        tgt = clamp(tgt, self.min_value, self.max_value)
+        now_mono = time.monotonic() if now is None else float(now)
+        if not math.isfinite(self.value):
+            self.value = tgt
+            self.last_time = now_mono
+            return self.value                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        dt = 0.0 if self.last_time is None else max(1.0e-3, now_mono - float(self.last_time))
+        if self.tau_sec > 0.0 and dt > 0.0:
+            alpha = 1.0 - math.exp(-dt / self.tau_sec)
+            candidate = self.value + alpha * (tgt - self.value)
+        else:
+            candidate = tgt
+
+        candidate = slew_limit(self.value, candidate, dt, self.rise_rate, self.fall_rate)
+        candidate = clamp(candidate, self.min_value, self.max_value)
+
+        if self.deadband > 0.0 and abs(candidate - self.value) < self.deadband:
+            candidate = self.value
+
+        if self.quantize_step > 0.0:
+            candidate = round(candidate / self.quantize_step) * self.quantize_step
+
+        self.value = clamp(candidate, self.min_value, self.max_value)
+        self.last_time = now_mono
+        return self.value                                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+class RobustScalarFilter:                                          # [クラス定義] RobustScalarFilter オブジェクトの設計
+    def __init__(                                                  # [関数定義] __init__ の処理実行ブロック
+        self,
+        *,
+        min_value=None,
+        max_value=None,
+        tau_sec=0.0,
+        rise_rate=None,
+        fall_rate=None,
+        deadband=0.0,
+        quantize_step=0.0,
+        median_window=1,
+        monotonic=False,
+        max_backtrack=0.0,
+        initial_value=math.nan,
+    ):
+        self.min_value = min_value
+        self.max_value = max_value
+        self.monotonic = bool(monotonic)
+        self.max_backtrack = max(0.0, float(max_backtrack))
+        self.window = deque(maxlen=max(1, int(median_window)))
+        self.smoother = SmoothRateLimiter(
+            min_value=min_value,
+            max_value=max_value,
+            tau_sec=tau_sec,
+            rise_rate=rise_rate,
+            fall_rate=fall_rate,
+            deadband=deadband,
+            quantize_step=quantize_step,
+            initial_value=initial_value,
+        )
+
+    @property
+    def value(self):                                               # [関数定義] value の処理実行ブロック
+        return self.smoother.value                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    @property
+    def last_time(self):                                           # [関数定義] last_time の処理実行ブロック
+        return self.smoother.last_time                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def reset(self, value=math.nan, now=None):                     # [関数定義] reset の処理実行ブロック
+        self.window.clear()
+        v = finite_float(value)
+        if math.isfinite(v):
+            self.window.append(v)
+        return self.smoother.reset(v, now=now)                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def update(self, raw_value, now=None):                         # [関数定義] update の処理実行ブロック
+        value = finite_float(raw_value)
+        if not math.isfinite(value):
+            return self.value                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        value = clamp(value, self.min_value, self.max_value)
+        self.window.append(value)
+        candidate = value
+        if len(self.window) > 1:
+            seq = sorted(self.window)
+            candidate = float(seq[len(seq) // 2])
+        if self.monotonic and math.isfinite(self.value):
+            candidate = max(candidate, float(self.value) - self.max_backtrack)
+        return self.smoother.update(candidate, now=now)            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+# =============================================================================
+# 【統合通信プロトコル】テレメトリ構造体・パケット定義
+# =============================================================================
+"""Timestamp validation shared by the WiFi telemetry receiver and tests."""
+
+
+from dataclasses import dataclass
+from datetime import datetime, timezone
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
+
+
+@dataclass(frozen=True)
+class TimestampValidation:                                         # [クラス定義] TimestampValidation オブジェクトの設計
+    accepted: bool
+    source_unix: float | None
+    age_sec: float | None
+    reason: str
+
+
+def parse_source_timestamp(payload: dict) -> float | None:         # [関数定義] parse_source_timestamp の処理実行ブロック
+    """Return a UTC Unix timestamp from the supported wire-format fields."""
+    for key in ("ts_unix", "timestamp_unix", "time_unix"):
+        if key not in payload:
+            continue
+        try:
+            value = float(payload[key])
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(value):
+            return value                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    for key in ("timestamp_utc", "ts_utc", "time_utc"):
+        raw = str(payload.get(key, "")).strip()
+        if not raw:
+            continue
+        try:
+            parsed = datetime.fromisoformat(raw[:-1] + "+00:00" if raw.endswith("Z") else raw)
+        except ValueError:
+            continue
+        if parsed.tzinfo is None:
+            continue
+        return parsed.astimezone(timezone.utc).timestamp()         # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return None                                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def validate_source_timestamp(                                     # [関数定義] validate_source_timestamp の処理実行ブロック
+    payload: dict,
+    *,
+    now_unix: float,
+    last_source_unix: float | None,
+    required: bool,
+    max_age_sec: float,
+    max_future_skew_sec: float,
+    max_out_of_order_sec: float,
+) -> TimestampValidation:
+    """Reject stale, future, duplicate, or excessively reordered UDP packets."""
+    source_unix = parse_source_timestamp(payload)
+    if source_unix is None:
+        if required:
+            return TimestampValidation(False, None, None, "missing_or_invalid_timestamp")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return TimestampValidation(True, None, None, "timestamp_not_required")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    age_sec = float(now_unix) - source_unix
+    if age_sec > max(0.0, float(max_age_sec)):
+        return TimestampValidation(False, source_unix, age_sec, "stale_packet")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if age_sec < -max(0.0, float(max_future_skew_sec)):
+        return TimestampValidation(False, source_unix, age_sec, "future_packet")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if last_source_unix is not None:
+        tolerance = max(0.0, float(max_out_of_order_sec))
+        if source_unix == last_source_unix:
+            return TimestampValidation(False, source_unix, age_sec, "duplicate_packet")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        if source_unix < last_source_unix - tolerance:
+            return TimestampValidation(False, source_unix, age_sec, "out_of_order_packet")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return TimestampValidation(True, source_unix, age_sec, "ok")   # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def utc_iso_now() -> str:                                          # [関数定義] utc_iso_now の処理実行ブロック
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+import json
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
+import socket
+import time
+
+import rclpy                                                       # [ROS 2] ROS 2 Python クライアントライブラリ (rclpy) のインポート
+from rclpy.node import Node                                        # [ROS 2] ノード基底クラス Node のインポート
+from std_msgs.msg import Float32, String
+
+
+
+class SpeedCommandBridgeNode(Node):                                # [クラス定義] SpeedCommandBridgeNode オブジェクトの設計
+    def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック
+        super().__init__('speed_command_bridge_node')
+        self.declare_parameter('output_speed_topic', '/vehicle/speed_cmd_kmh')
+        self.declare_parameter('output_drive_mode_topic', '/vehicle/drive_mode_cmd')
+        self.declare_parameter('udp_enabled', False)
+        self.declare_parameter('udp_host', '127.0.0.1')
+        self.declare_parameter('udp_port', 50050)
+        self.declare_parameter('publish_rate_hz', 5.0)
+        self.declare_parameter('input_timeout_sec', 3.0)
+        self.declare_parameter('safe_speed_kmh', 0.0)
+        self.declare_parameter('startup_hold_sec', 2.0)
+        self.declare_parameter('filter_tau_sec', 1.0)
+        self.declare_parameter('accel_limit_kmhps', 1.5)
+        self.declare_parameter('decel_limit_kmhps', 4.0)
+        self.declare_parameter('speed_deadband_kmh', 0.1)
+        self.declare_parameter('speed_quantize_step_kmh', 0.1)
+        self.declare_parameter('max_output_speed_kmh', 130.0)
+        self.declare_parameter('drive_mode_min_hold_sec', 5.0)
+
+        self.output_speed_topic = str(self.get_parameter('output_speed_topic').value)
+        self.output_drive_mode_topic = str(self.get_parameter('output_drive_mode_topic').value)
+        self.udp_enabled = bool(self.get_parameter('udp_enabled').value)
+        self.udp_host = str(self.get_parameter('udp_host').value)
+        self.udp_port = int(self.get_parameter('udp_port').value)
+        self.publish_rate_hz = max(1.0, float(self.get_parameter('publish_rate_hz').value))
+        self.input_timeout_sec = max(0.2, float(self.get_parameter('input_timeout_sec').value))
+        self.safe_speed_kmh = max(0.0, float(self.get_parameter('safe_speed_kmh').value))
+        self.startup_hold_sec = max(0.0, float(self.get_parameter('startup_hold_sec').value))
+        self.max_output_speed_kmh = max(self.safe_speed_kmh, float(self.get_parameter('max_output_speed_kmh').value))
+        self.drive_mode_min_hold_sec = max(0.0, float(self.get_parameter('drive_mode_min_hold_sec').value))
+
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) if self.udp_enabled else None
+        self.start_time = time.monotonic()
+        self.last_speed_target = self.safe_speed_kmh
+        self.last_speed_rx_time = None
+        self.requested_mode = 'auto'
+        self.last_mode_rx_time = None
+        self.output_mode = 'auto'
+        self.last_mode_switch_time = self.start_time
+
+        self.speed_filter = SmoothRateLimiter(
+            min_value=0.0,
+            max_value=self.max_output_speed_kmh,
+            tau_sec=float(self.get_parameter('filter_tau_sec').value),
+            rise_rate=float(self.get_parameter('accel_limit_kmhps').value),
+            fall_rate=float(self.get_parameter('decel_limit_kmhps').value),
+            deadband=float(self.get_parameter('speed_deadband_kmh').value),
+            quantize_step=float(self.get_parameter('speed_quantize_step_kmh').value),
+            initial_value=self.safe_speed_kmh,
+        )
+        self.current_speed = self.safe_speed_kmh
+
+        self.pub_speed = self.create_publisher(Float32, self.output_speed_topic, 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_mode = self.create_publisher(String, self.output_drive_mode_topic, 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+        self.pub_status = self.create_publisher(String, '/system/command_status', 10)  # [ROS 2 送信] 制御・指令トピックのパブリッシュ設定
+
+        self.create_subscription(Float32, '/planner/speed_cmd', self._on_speed, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.create_subscription(String, '/planner/drive_mode', self._on_mode, 10)  # [ROS 2 受信] センサ・状態トピックの受信用コールバック設定
+        self.timer = self.create_timer(1.0 / self.publish_rate_hz, self._tick)
+        self.get_logger().info(
+            f'SpeedCommandBridgeNode started: topic={self.output_speed_topic}, rate={self.publish_rate_hz:.1f}Hz, '
+            f'udp={self.udp_enabled}'
+        )
+
+    def _on_speed(self, msg: Float32):                             # [関数定義] _on_speed の処理実行ブロック
+        value = finite_float(msg.data)
+        if not math.isfinite(value):
+            return
+        self.last_speed_target = max(0.0, min(value, self.max_output_speed_kmh))
+        self.last_speed_rx_time = time.monotonic()
+
+    def _on_mode(self, msg: String):                               # [関数定義] _on_mode の処理実行ブロック
+        mode = str(msg.data or '').strip()
+        if not mode:
+            return
+        self.requested_mode = mode
+        self.last_mode_rx_time = time.monotonic()
+
+    def _select_mode(self, now_mono: float):                       # [関数定義] _select_mode の処理実行ブロック
+        requested = self.requested_mode or self.output_mode
+        if requested == self.output_mode:
+            return self.output_mode                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        if (now_mono - self.last_mode_switch_time) < self.drive_mode_min_hold_sec:
+            return self.output_mode                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        self.output_mode = requested
+        self.last_mode_switch_time = now_mono
+        return self.output_mode                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def _target_speed(self, now_mono: float):                      # [関数定義] _target_speed の処理実行ブロック
+        planner_fresh = fresh_enough(self.last_speed_rx_time, self.input_timeout_sec, now=now_mono)
+        in_startup_hold = (now_mono - self.start_time) < self.startup_hold_sec
+        if in_startup_hold or not planner_fresh:
+            return self.safe_speed_kmh, planner_fresh, in_startup_hold  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return self.last_speed_target, planner_fresh, in_startup_hold  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def _tick(self):                                               # [関数定義] _tick の処理実行ブロック
+        now_mono = time.monotonic()
+        target_speed, planner_fresh, in_startup_hold = self._target_speed(now_mono)
+        self.current_speed = float(self.speed_filter.update(target_speed, now=now_mono))
+        mode = self._select_mode(now_mono)
+
+        self.pub_speed.publish(Float32(data=float(self.current_speed)))
+        self.pub_mode.publish(String(data=str(mode)))
+        self._send_status(planner_fresh=planner_fresh, in_startup_hold=in_startup_hold)
+
+    def _send_status(self, planner_fresh: bool, in_startup_hold: bool):  # [関数定義] _send_status の処理実行ブロック
+        age = math.inf
+        if self.last_speed_rx_time is not None:
+            age = max(0.0, time.monotonic() - self.last_speed_rx_time)
+        rx_age = 'never' if not math.isfinite(age) else f'{age:.1f}s'
+        fallback = 'startup_hold' if in_startup_hold else ('stale_input' if not planner_fresh else 'tracking')
+        status = (
+            f'target={self.last_speed_target:.2f} out={self.current_speed:.2f} km/h '
+            f'rx_age={rx_age} mode={self.output_mode} req_mode={self.requested_mode} state={fallback}'
+        )
+        if self.sock is not None:
+            payload = json.dumps({
+                'speed_kmh': self.current_speed,
+                'drive_mode': self.output_mode,
+                'target_speed_kmh': self.last_speed_target,
+                'state': fallback,
+            }).encode('utf-8')
+            try:
+                self.sock.sendto(payload, (self.udp_host, self.udp_port))
+                status += f' udp={self.udp_host}:{self.udp_port}'
+            except Exception as exc:
+                status += f' udp_error={exc}'
+        self.pub_status.publish(String(data=status))
+
+    def destroy_node(self):                                        # [関数定義] destroy_node の処理実行ブロック
+        try:
+            if self.sock is not None:
+                self.sock.close()
+        except Exception:
+            pass
+        super().destroy_node()
+
+
+def main():                                                        # [メイン関数] エントリーポイント関数
+    rclpy.init()
+    node = SpeedCommandBridgeNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+# =============================================================================
+# 【統合ユーティリティ】シグナルフィルタ・スルーレート制限・有限値検証
+# =============================================================================
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
+import time
+from collections import deque
+
+
+def finite_float(value, default=math.nan):                         # [関数定義] finite_float の処理実行ブロック
+    try:
+        v = float(value)
+        if math.isfinite(v):
+            return v                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    except Exception:
+        pass
+    return default                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def clamp(value, lo=None, hi=None):                                # [関数定義] clamp の処理実行ブロック
+    v = float(value)
+    if lo is not None:
+        v = max(float(lo), v)
+    if hi is not None:
+        v = min(float(hi), v)
+    return v                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def fresh_enough(timestamp, timeout_sec, now=None):                # [関数定義] fresh_enough の処理実行ブロック
+    if timestamp is None:
+        return False                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if timeout_sec is None or float(timeout_sec) <= 0.0:
+        return True                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if now is None:
+        now = time.monotonic()
+    return (float(now) - float(timestamp)) <= float(timeout_sec)   # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def slew_limit(previous, target, dt, rise_rate=None, fall_rate=None):  # [関数定義] slew_limit の処理実行ブロック
+    prev = float(previous)
+    tgt = float(target)
+    dt = max(0.0, float(dt))
+    if not math.isfinite(prev) or dt <= 0.0:
+        return tgt                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    delta = tgt - prev
+    if delta >= 0.0 and rise_rate is not None and math.isfinite(float(rise_rate)) and float(rise_rate) > 0.0:
+        delta = min(delta, float(rise_rate) * dt)
+    if delta < 0.0 and fall_rate is not None and math.isfinite(float(fall_rate)) and float(fall_rate) > 0.0:
+        delta = max(delta, -float(fall_rate) * dt)
+    return prev + delta                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+class SmoothRateLimiter:                                           # [クラス定義] SmoothRateLimiter オブジェクトの設計
+    def __init__(                                                  # [関数定義] __init__ の処理実行ブロック
+        self,
+        *,
+        min_value=None,
+        max_value=None,
+        tau_sec=0.0,
+        rise_rate=None,
+        fall_rate=None,
+        deadband=0.0,
+        quantize_step=0.0,
+        initial_value=math.nan,
+    ):
+        self.min_value = min_value
+        self.max_value = max_value
+        self.tau_sec = max(0.0, float(tau_sec))
+        self.rise_rate = rise_rate
+        self.fall_rate = fall_rate
+        self.deadband = max(0.0, float(deadband))
+        self.quantize_step = max(0.0, float(quantize_step))
+        self.value = float(initial_value) if math.isfinite(finite_float(initial_value)) else math.nan
+        self.last_time = None
+
+    def reset(self, value=math.nan, now=None):                     # [関数定義] reset の処理実行ブロック
+        self.value = finite_float(value)
+        self.last_time = time.monotonic() if now is None else float(now)
+        return self.value                                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def update(self, target, now=None):                            # [関数定義] update の処理実行ブロック
+        tgt = finite_float(target)
+        if not math.isfinite(tgt):
+            return self.value                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        tgt = clamp(tgt, self.min_value, self.max_value)
+        now_mono = time.monotonic() if now is None else float(now)
+        if not math.isfinite(self.value):
+            self.value = tgt
+            self.last_time = now_mono
+            return self.value                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        dt = 0.0 if self.last_time is None else max(1.0e-3, now_mono - float(self.last_time))
+        if self.tau_sec > 0.0 and dt > 0.0:
+            alpha = 1.0 - math.exp(-dt / self.tau_sec)
+            candidate = self.value + alpha * (tgt - self.value)
+        else:
+            candidate = tgt
+
+        candidate = slew_limit(self.value, candidate, dt, self.rise_rate, self.fall_rate)
+        candidate = clamp(candidate, self.min_value, self.max_value)
+
+        if self.deadband > 0.0 and abs(candidate - self.value) < self.deadband:
+            candidate = self.value
+
+        if self.quantize_step > 0.0:
+            candidate = round(candidate / self.quantize_step) * self.quantize_step
+
+        self.value = clamp(candidate, self.min_value, self.max_value)
+        self.last_time = now_mono
+        return self.value                                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+class RobustScalarFilter:                                          # [クラス定義] RobustScalarFilter オブジェクトの設計
+    def __init__(                                                  # [関数定義] __init__ の処理実行ブロック
+        self,
+        *,
+        min_value=None,
+        max_value=None,
+        tau_sec=0.0,
+        rise_rate=None,
+        fall_rate=None,
+        deadband=0.0,
+        quantize_step=0.0,
+        median_window=1,
+        monotonic=False,
+        max_backtrack=0.0,
+        initial_value=math.nan,
+    ):
+        self.min_value = min_value
+        self.max_value = max_value
+        self.monotonic = bool(monotonic)
+        self.max_backtrack = max(0.0, float(max_backtrack))
+        self.window = deque(maxlen=max(1, int(median_window)))
+        self.smoother = SmoothRateLimiter(
+            min_value=min_value,
+            max_value=max_value,
+            tau_sec=tau_sec,
+            rise_rate=rise_rate,
+            fall_rate=fall_rate,
+            deadband=deadband,
+            quantize_step=quantize_step,
+            initial_value=initial_value,
+        )
+
+    @property
+    def value(self):                                               # [関数定義] value の処理実行ブロック
+        return self.smoother.value                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    @property
+    def last_time(self):                                           # [関数定義] last_time の処理実行ブロック
+        return self.smoother.last_time                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def reset(self, value=math.nan, now=None):                     # [関数定義] reset の処理実行ブロック
+        self.window.clear()
+        v = finite_float(value)
+        if math.isfinite(v):
+            self.window.append(v)
+        return self.smoother.reset(v, now=now)                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def update(self, raw_value, now=None):                         # [関数定義] update の処理実行ブロック
+        value = finite_float(raw_value)
+        if not math.isfinite(value):
+            return self.value                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        value = clamp(value, self.min_value, self.max_value)
+        self.window.append(value)
+        candidate = value
+        if len(self.window) > 1:
+            seq = sorted(self.window)
+            candidate = float(seq[len(seq) // 2])
+        if self.monotonic and math.isfinite(self.value):
+            candidate = max(candidate, float(self.value) - self.max_backtrack)
+        return self.smoother.update(candidate, now=now)            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+def main(args=None):                                                # [メイン処理] ソーラーカー本番リアルタイムライブノード起動
+    rclpy.init(args=args)
+    node = SolarRaceLiveNode() if 'SolarRaceLiveNode' in globals() else MPCNode()  # [ノード生成] 統合ライブ制御ノードインスタンス化
+    try:
+        rclpy.spin(node)                                           # [イベントループ] ROS 2 メッセージ受送信ループ実行
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()                                         # [解放] ROS 2 ノード破棄
+        rclpy.shutdown()                                           # [終了処理] ROS 2 通信シャットダウン
+
+if __name__ == '__main__':
+    main()

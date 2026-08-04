@@ -3,10 +3,10 @@ from setuptools import setup
 
 package_name = 'mpc_solarcar'
 
-def collect_data_files(src_dir):                                   # [関数定義] collect_data_files の処理実行ブロック
+def collect_data_files(src_dir):
     collected = []
     if not os.path.isdir(src_dir):
-        return collected                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return collected
     for root, dirs, files in os.walk(src_dir):
         dirs[:] = [d for d in dirs if d != '__pycache__']
         if not files:
@@ -15,7 +15,7 @@ def collect_data_files(src_dir):                                   # [関数定�
             os.path.join('share', package_name, root),
             [os.path.join(root, f) for f in files],
         ))
-    return collected                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return collected
 
 data_files = [
     ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
@@ -43,24 +43,13 @@ setup(
     zip_safe=True,
     maintainer='you',
     maintainer_email='you@example.com',
-    description='ROS2 nodes for solar car MPC with simulated GPS and real-time WiFi telemetry.',
+    description='Ultimate All-in-One Solar Car MPC execution package.',
     license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'gps_sim_node = mpc_solarcar.gps_sim_node:main',
-            'mpc_node = mpc_solarcar.mpc_node:main',
-            'panel_node = mpc_solarcar.panel_node:main',
-            'solar_state_node = mpc_solarcar.solar_state_node:main',
-            'distance_node = mpc_solarcar.distance_node:main',
-            'logger_node = mpc_solarcar.logger_node:main',
-            'preflight_node = mpc_solarcar.preflight_node:main',
-            'grade_node = mpc_solarcar.grade_node:main',
-            'weather_fetch_node = mpc_solarcar.weather_fetch_node:main',
-            'solar_autocal_node = mpc_solarcar.solar_autocal_node:main',
-            'speed_command_bridge_node = mpc_solarcar.speed_command_bridge_node:main',
-            'telemetry_text_bridge_node = mpc_solarcar.telemetry_text_bridge_node:main',
-            'wind_correction_node = mpc_solarcar.wind_correction_node:main',
+            'solar_race_live_node = mpc_solarcar.solar_race_live_node:main',
+            'solar_macro_planner_node = mpc_solarcar.solar_macro_planner_node:main',
         ],
     },
 )
