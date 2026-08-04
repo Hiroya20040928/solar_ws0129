@@ -1,3 +1,4 @@
+from __future__ import annotations
 import json
 import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
 import socket
@@ -9,7 +10,6 @@ from rclpy.node import Node                                        # [ROS 2] ノ
 from sensor_msgs.msg import NavSatFix
 from std_msgs.msg import Float32, Float32MultiArray, String
 
-from .signal_utils import RobustScalarFilter, finite_float
 
 
 def as_float(value, default=math.nan):                             # [関数定義] as_float の処理実行ブロック
@@ -399,3 +399,254 @@ def main():                                                        # [メイン�
 
 if __name__ == '__main__':                                         # [直接実行スクリプト] スクリプト直接起動時のメイン実行ブロック
     main()
+
+# =============================================================================
+# 【統合ユーティリティ】シグナルフィルタ・スルーレート制限・有限値検証
+# =============================================================================
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
+import time
+from collections import deque
+
+
+def finite_float(value, default=math.nan):                         # [関数定義] finite_float の処理実行ブロック
+    try:
+        v = float(value)
+        if math.isfinite(v):
+            return v                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    except Exception:
+        pass
+    return default                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def clamp(value, lo=None, hi=None):                                # [関数定義] clamp の処理実行ブロック
+    v = float(value)
+    if lo is not None:
+        v = max(float(lo), v)
+    if hi is not None:
+        v = min(float(hi), v)
+    return v                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def fresh_enough(timestamp, timeout_sec, now=None):                # [関数定義] fresh_enough の処理実行ブロック
+    if timestamp is None:
+        return False                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if timeout_sec is None or float(timeout_sec) <= 0.0:
+        return True                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if now is None:
+        now = time.monotonic()
+    return (float(now) - float(timestamp)) <= float(timeout_sec)   # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def slew_limit(previous, target, dt, rise_rate=None, fall_rate=None):  # [関数定義] slew_limit の処理実行ブロック
+    prev = float(previous)
+    tgt = float(target)
+    dt = max(0.0, float(dt))
+    if not math.isfinite(prev) or dt <= 0.0:
+        return tgt                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    delta = tgt - prev
+    if delta >= 0.0 and rise_rate is not None and math.isfinite(float(rise_rate)) and float(rise_rate) > 0.0:
+        delta = min(delta, float(rise_rate) * dt)
+    if delta < 0.0 and fall_rate is not None and math.isfinite(float(fall_rate)) and float(fall_rate) > 0.0:
+        delta = max(delta, -float(fall_rate) * dt)
+    return prev + delta                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+class SmoothRateLimiter:                                           # [クラス定義] SmoothRateLimiter オブジェクトの設計
+    def __init__(                                                  # [関数定義] __init__ の処理実行ブロック
+        self,
+        *,
+        min_value=None,
+        max_value=None,
+        tau_sec=0.0,
+        rise_rate=None,
+        fall_rate=None,
+        deadband=0.0,
+        quantize_step=0.0,
+        initial_value=math.nan,
+    ):
+        self.min_value = min_value
+        self.max_value = max_value
+        self.tau_sec = max(0.0, float(tau_sec))
+        self.rise_rate = rise_rate
+        self.fall_rate = fall_rate
+        self.deadband = max(0.0, float(deadband))
+        self.quantize_step = max(0.0, float(quantize_step))
+        self.value = float(initial_value) if math.isfinite(finite_float(initial_value)) else math.nan
+        self.last_time = None
+
+    def reset(self, value=math.nan, now=None):                     # [関数定義] reset の処理実行ブロック
+        self.value = finite_float(value)
+        self.last_time = time.monotonic() if now is None else float(now)
+        return self.value                                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def update(self, target, now=None):                            # [関数定義] update の処理実行ブロック
+        tgt = finite_float(target)
+        if not math.isfinite(tgt):
+            return self.value                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        tgt = clamp(tgt, self.min_value, self.max_value)
+        now_mono = time.monotonic() if now is None else float(now)
+        if not math.isfinite(self.value):
+            self.value = tgt
+            self.last_time = now_mono
+            return self.value                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        dt = 0.0 if self.last_time is None else max(1.0e-3, now_mono - float(self.last_time))
+        if self.tau_sec > 0.0 and dt > 0.0:
+            alpha = 1.0 - math.exp(-dt / self.tau_sec)
+            candidate = self.value + alpha * (tgt - self.value)
+        else:
+            candidate = tgt
+
+        candidate = slew_limit(self.value, candidate, dt, self.rise_rate, self.fall_rate)
+        candidate = clamp(candidate, self.min_value, self.max_value)
+
+        if self.deadband > 0.0 and abs(candidate - self.value) < self.deadband:
+            candidate = self.value
+
+        if self.quantize_step > 0.0:
+            candidate = round(candidate / self.quantize_step) * self.quantize_step
+
+        self.value = clamp(candidate, self.min_value, self.max_value)
+        self.last_time = now_mono
+        return self.value                                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+class RobustScalarFilter:                                          # [クラス定義] RobustScalarFilter オブジェクトの設計
+    def __init__(                                                  # [関数定義] __init__ の処理実行ブロック
+        self,
+        *,
+        min_value=None,
+        max_value=None,
+        tau_sec=0.0,
+        rise_rate=None,
+        fall_rate=None,
+        deadband=0.0,
+        quantize_step=0.0,
+        median_window=1,
+        monotonic=False,
+        max_backtrack=0.0,
+        initial_value=math.nan,
+    ):
+        self.min_value = min_value
+        self.max_value = max_value
+        self.monotonic = bool(monotonic)
+        self.max_backtrack = max(0.0, float(max_backtrack))
+        self.window = deque(maxlen=max(1, int(median_window)))
+        self.smoother = SmoothRateLimiter(
+            min_value=min_value,
+            max_value=max_value,
+            tau_sec=tau_sec,
+            rise_rate=rise_rate,
+            fall_rate=fall_rate,
+            deadband=deadband,
+            quantize_step=quantize_step,
+            initial_value=initial_value,
+        )
+
+    @property
+    def value(self):                                               # [関数定義] value の処理実行ブロック
+        return self.smoother.value                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    @property
+    def last_time(self):                                           # [関数定義] last_time の処理実行ブロック
+        return self.smoother.last_time                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def reset(self, value=math.nan, now=None):                     # [関数定義] reset の処理実行ブロック
+        self.window.clear()
+        v = finite_float(value)
+        if math.isfinite(v):
+            self.window.append(v)
+        return self.smoother.reset(v, now=now)                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def update(self, raw_value, now=None):                         # [関数定義] update の処理実行ブロック
+        value = finite_float(raw_value)
+        if not math.isfinite(value):
+            return self.value                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        value = clamp(value, self.min_value, self.max_value)
+        self.window.append(value)
+        candidate = value
+        if len(self.window) > 1:
+            seq = sorted(self.window)
+            candidate = float(seq[len(seq) // 2])
+        if self.monotonic and math.isfinite(self.value):
+            candidate = max(candidate, float(self.value) - self.max_backtrack)
+        return self.smoother.update(candidate, now=now)            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+# =============================================================================
+# 【統合通信プロトコル】テレメトリ構造体・パケット定義
+# =============================================================================
+"""Timestamp validation shared by the WiFi telemetry receiver and tests."""
+
+
+from dataclasses import dataclass
+from datetime import datetime, timezone
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
+
+
+@dataclass(frozen=True)
+class TimestampValidation:                                         # [クラス定義] TimestampValidation オブジェクトの設計
+    accepted: bool
+    source_unix: float | None
+    age_sec: float | None
+    reason: str
+
+
+def parse_source_timestamp(payload: dict) -> float | None:         # [関数定義] parse_source_timestamp の処理実行ブロック
+    """Return a UTC Unix timestamp from the supported wire-format fields."""
+    for key in ("ts_unix", "timestamp_unix", "time_unix"):
+        if key not in payload:
+            continue
+        try:
+            value = float(payload[key])
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(value):
+            return value                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    for key in ("timestamp_utc", "ts_utc", "time_utc"):
+        raw = str(payload.get(key, "")).strip()
+        if not raw:
+            continue
+        try:
+            parsed = datetime.fromisoformat(raw[:-1] + "+00:00" if raw.endswith("Z") else raw)
+        except ValueError:
+            continue
+        if parsed.tzinfo is None:
+            continue
+        return parsed.astimezone(timezone.utc).timestamp()         # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return None                                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def validate_source_timestamp(                                     # [関数定義] validate_source_timestamp の処理実行ブロック
+    payload: dict,
+    *,
+    now_unix: float,
+    last_source_unix: float | None,
+    required: bool,
+    max_age_sec: float,
+    max_future_skew_sec: float,
+    max_out_of_order_sec: float,
+) -> TimestampValidation:
+    """Reject stale, future, duplicate, or excessively reordered UDP packets."""
+    source_unix = parse_source_timestamp(payload)
+    if source_unix is None:
+        if required:
+            return TimestampValidation(False, None, None, "missing_or_invalid_timestamp")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return TimestampValidation(True, None, None, "timestamp_not_required")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    age_sec = float(now_unix) - source_unix
+    if age_sec > max(0.0, float(max_age_sec)):
+        return TimestampValidation(False, source_unix, age_sec, "stale_packet")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if age_sec < -max(0.0, float(max_future_skew_sec)):
+        return TimestampValidation(False, source_unix, age_sec, "future_packet")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if last_source_unix is not None:
+        tolerance = max(0.0, float(max_out_of_order_sec))
+        if source_unix == last_source_unix:
+            return TimestampValidation(False, source_unix, age_sec, "duplicate_packet")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        if source_unix < last_source_unix - tolerance:
+            return TimestampValidation(False, source_unix, age_sec, "out_of_order_packet")  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return TimestampValidation(True, source_unix, age_sec, "ok")   # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def utc_iso_now() -> str:                                          # [関数定義] utc_iso_now の処理実行ブロック
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")  # [戻り値] 計算結果・計算状態の呼び出し元への返却

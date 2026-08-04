@@ -1,7 +1,7 @@
+from __future__ import annotations
 #!/usr/bin/env python3
 """Generate auditable source and workspace inventories for the ROS 2 package."""
 
-from __future__ import annotations
 
 import argparse
 import ast

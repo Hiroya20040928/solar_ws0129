@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
 from __future__ import annotations
+#!/usr/bin/env python3
 
 import argparse
 import json
@@ -33,9 +33,6 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from mpc_solarcar.model import Params, SolarCarModel
-from mpc_solarcar.route_utils import interpolate_profile, interpolate_route, interpolate_route_heading
-from mpc_solarcar.utils_maps import bilinear_interp
 
 DEFAULT_SRC_PACKAGE_NAME = "bwsc2025_public"
 DEFAULT_PACKAGE_NAME = "bwsc2025_fitted_mle4"
@@ -3594,3 +3591,513 @@ def main() -> None:                                                # [関数定�
 
 if __name__ == "__main__":
     main()
+
+# =============================================================================
+# 【統合ユーティリティ】パス解決・ルート補間・スケジューラー・気象インターフェース
+# =============================================================================
+import os
+from pathlib import Path
+
+try:
+    from ament_index_python.packages import get_package_share_directory  # type: ignore
+except Exception:  # pragma: no cover - non-ROS fallback
+    get_package_share_directory = None
+
+
+PKG_NAME = 'mpc_solarcar'
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def resolve_path(path: str, default_subdir: str = '') -> str:      # [関数定義] resolve_path の処理実行ブロック
+    """Resolve a path relative to CWD or package share.
+
+    - If absolute, return as-is.                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    - If exists relative to CWD, return it.                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    - Otherwise, resolve under <pkg_share>/<default_subdir> (or directly under share).
+    """
+    if path is None:
+        return path                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    path = os.path.expanduser(str(path))
+    if os.path.isabs(path):
+        return path                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if os.path.exists(path):
+        return path                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if get_package_share_directory is not None:
+        pkg_share = get_package_share_directory(PKG_NAME)
+    else:
+        pkg_share = os.fspath(REPO_ROOT)
+    if default_subdir:
+        subdir = default_subdir.strip('/\\')
+        if path.startswith(subdir + os.sep) or path == subdir:
+            return os.path.join(pkg_share, path)                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return os.path.join(pkg_share, subdir, path)               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return os.path.join(pkg_share, path)                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
+
+
+def _interp_field(d, y, s_km, default=0.0):                        # [関数定義] _interp_field の処理実行ブロック
+    if len(d) < 2:
+        return float(default)                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    s = np.clip(s_km, d[0], d[-1])
+    i = np.searchsorted(d, s) - 1
+    i = np.clip(i, 0, len(d) - 2)
+    t = 0.0 if d[i + 1] == d[i] else (s - d[i]) / (d[i + 1] - d[i])
+    return float((1 - t) * y[i] + t * y[i + 1])                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def interpolate_route(route_df, s_km):                             # [関数定義] interpolate_route の処理実行ブロック
+    d = route_df['dist_km'].values
+    lat = route_df['lat'].values
+    lon = route_df['lon'].values
+    latp = _interp_field(d, lat, s_km, default=float(lat[0]) if len(lat) else 0.0)
+    lonp = _interp_field(d, lon, s_km, default=float(lon[0]) if len(lon) else 0.0)
+    return latp, lonp                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def interpolate_route_with_alt(route_df, s_km):                    # [関数定義] interpolate_route_with_alt の処理実行ブロック
+    lat, lon = interpolate_route(route_df, s_km)
+    alt = None
+    for col in ('alt_m', 'altitude_m', 'elev_m'):
+        if col in route_df.columns:
+            d = route_df['dist_km'].values
+            alt = _interp_field(d, route_df[col].values, s_km, default=float(route_df[col].values[0]))
+            break
+    return lat, lon, alt                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def interpolate_profile(route_df, s_km, field: str, default: float = 0.0) -> float:  # [関数定義] interpolate_profile の処理実行ブロック
+    if field not in route_df.columns:
+        return float(default)                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    d = route_df['dist_km'].values
+    return _interp_field(d, route_df[field].values, s_km, default=default)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def bearing_deg(lat1, lon1, lat2, lon2):                           # [関数定義] bearing_deg の処理実行ブロック
+    lat1r = np.deg2rad(float(lat1))
+    lon1r = np.deg2rad(float(lon1))
+    lat2r = np.deg2rad(float(lat2))
+    lon2r = np.deg2rad(float(lon2))
+    dlon = lon2r - lon1r
+    y = np.sin(dlon) * np.cos(lat2r)
+    x = np.cos(lat1r) * np.sin(lat2r) - np.sin(lat1r) * np.cos(lat2r) * np.cos(dlon)
+    brng = np.rad2deg(np.arctan2(y, x))
+    return float((brng + 360.0) % 360.0)                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def interpolate_route_heading(route_df, s_km, span_km: float = 1.0):  # [関数定義] interpolate_route_heading の処理実行ブロック
+    if route_df is None or len(route_df) < 2:
+        return 0.0                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    s0 = max(float(route_df['dist_km'].iloc[0]), float(s_km) - max(0.1, span_km))
+    s1 = min(float(route_df['dist_km'].iloc[-1]), float(s_km) + max(0.1, span_km))
+    if s1 <= s0:
+        d = route_df['dist_km'].values
+        i = int(np.clip(np.searchsorted(d, float(s_km)), 1, len(d) - 1))
+        lat1 = float(route_df.iloc[i - 1]['lat'])
+        lon1 = float(route_df.iloc[i - 1]['lon'])
+        lat2 = float(route_df.iloc[i]['lat'])
+        lon2 = float(route_df.iloc[i]['lon'])
+        return bearing_deg(lat1, lon1, lat2, lon2)                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    lat1, lon1 = interpolate_route(route_df, s0)
+    lat2, lon2 = interpolate_route(route_df, s1)
+    return bearing_deg(lat1, lon1, lat2, lon2)                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+import os
+from dataclasses import dataclass
+from datetime import datetime, time as dtime, timedelta, timezone
+from typing import List, Optional, Tuple
+
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
+
+try:
+    from zoneinfo import ZoneInfo
+except Exception:  # pragma: no cover - fallback for older Python
+    ZoneInfo = None
+
+
+def _parse_utc(ts: str) -> Optional[datetime]:                     # [関数定義] _parse_utc の処理実行ブロック
+    try:
+        if ts.endswith('Z'):
+            ts = ts[:-1] + '+00:00'
+        dt = datetime.fromisoformat(ts)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    except Exception:
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def _parse_time_hhmm(s: str) -> Optional[dtime]:                   # [関数定義] _parse_time_hhmm の処理実行ブロック
+    try:
+        parts = s.strip().split(':')
+        if len(parts) < 2:
+            return None                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return dtime(hour=int(parts[0]), minute=int(parts[1]))     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    except Exception:
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+@dataclass
+class DriveWindow:                                                 # [クラス定義] DriveWindow オブジェクトの設計
+    start_utc: datetime
+    end_utc: datetime
+    v_min_kmh: float
+    v_max_kmh: float
+
+    def contains(self, t_utc: datetime) -> bool:                   # [関数定義] contains の処理実行ブロック
+        return self.start_utc <= t_utc < self.end_utc              # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+@dataclass
+class DailyWindow:                                                 # [クラス定義] DailyWindow オブジェクトの設計
+    start_local: dtime
+    end_local: dtime
+    tz: str
+    days: Optional[List[int]]
+    v_min_kmh: float
+    v_max_kmh: float
+
+    def contains(self, t_utc: datetime) -> bool:                   # [関数定義] contains の処理実行ブロック
+        if ZoneInfo is None:
+            return False                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        try:
+            tzinfo = ZoneInfo(self.tz)
+        except Exception:
+            return False                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        local_dt = t_utc.astimezone(tzinfo)
+        if self.days is not None and local_dt.weekday() not in self.days:
+            return False                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        start = self.start_local
+        end = self.end_local
+        now_t = local_dt.time()
+        if start <= end:
+            return start <= now_t < end                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        # wraps midnight
+        return now_t >= start or now_t < end                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+class DriveSchedule:                                               # [クラス定義] DriveSchedule オブジェクトの設計
+    def __init__(self, windows: List[DriveWindow], daily: List[DailyWindow], deny_by_default: bool):  # [関数定義] __init__ の処理実行ブロック
+        self.windows = windows
+        self.daily = daily
+        self.deny_by_default = deny_by_default
+
+    @classmethod
+    def from_yaml(cls, path: str) -> Optional['DriveSchedule']:    # [関数定義] from_yaml の処理実行ブロック
+        if not path or not os.path.exists(path):
+            return None                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                cfg = yaml.safe_load(f) or {}
+        except Exception:
+            return None                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        deny_by_default = bool(cfg.get('deny_by_default', False))
+        windows = []
+        for w in cfg.get('drive_windows', []) or []:
+            start = _parse_utc(str(w.get('start_utc', '')))
+            end = _parse_utc(str(w.get('end_utc', '')))
+            if start is None or end is None:
+                continue
+            vmin = float(w.get('v_min_kmh', 0.0))
+            vmax = float(w.get('v_max_kmh', 130.0))
+            windows.append(DriveWindow(start, end, vmin, vmax))
+        daily = []
+        for w in cfg.get('daily_windows', []) or []:
+            start = _parse_time_hhmm(str(w.get('start_local', '')))
+            end = _parse_time_hhmm(str(w.get('end_local', '')))
+            tz = str(w.get('tz', 'UTC'))
+            if start is None or end is None:
+                continue
+            days = w.get('days', None)
+            if days is not None:
+                try:
+                    days = [int(d) for d in days]
+                except Exception:
+                    days = None
+            vmin = float(w.get('v_min_kmh', 0.0))
+            vmax = float(w.get('v_max_kmh', 130.0))
+            daily.append(DailyWindow(start, end, tz, days, vmin, vmax))
+        return cls(windows, daily, deny_by_default)                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def speed_limits(self, t_utc: datetime) -> Optional[Tuple[float, float]]:  # [関数定義] speed_limits の処理実行ブロック
+        limits = []
+        for w in self.windows:
+            if w.contains(t_utc):
+                limits.append((w.v_min_kmh, w.v_max_kmh))
+        for w in self.daily:
+            if w.contains(t_utc):
+                limits.append((w.v_min_kmh, w.v_max_kmh))
+        if limits:
+            vmin = max(l[0] for l in limits)
+            vmax = min(l[1] for l in limits)
+            return vmin, vmax                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        if self.deny_by_default:
+            return 0.0, 0.0                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def is_drive_time(self, t_utc: datetime) -> bool:              # [関数定義] is_drive_time の処理実行ブロック
+        limits = self.speed_limits(t_utc)
+        if limits is None:
+            return not self.deny_by_default                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return limits[1] > 0.0                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def next_drive_start(self, t_utc: datetime) -> datetime:       # [関数定義] next_drive_start の処理実行ブロック
+        if self.is_drive_time(t_utc):
+            return t_utc                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        candidates = []
+        for w in self.windows:
+            if t_utc < w.start_utc:
+                candidates.append(w.start_utc)
+        for w in self.daily:
+            if ZoneInfo is None:
+                continue
+            try:
+                tzinfo = ZoneInfo(w.tz)
+            except Exception:
+                continue
+            local_dt = t_utc.astimezone(tzinfo)
+            if w.days is not None and local_dt.weekday() not in w.days:
+                # move to next allowed weekday
+                days_ahead = 1
+                while w.days is not None and ((local_dt + timedelta(days=days_ahead)).weekday() not in w.days) and days_ahead < 8:
+                    days_ahead += 1
+                start_date = (local_dt + timedelta(days=days_ahead)).date()
+                start_local = datetime.combine(start_date, w.start_local, tzinfo)
+                candidates.append(start_local.astimezone(timezone.utc))
+                continue
+            now_t = local_dt.time()
+            if w.start_local <= w.end_local:
+                if now_t < w.start_local:
+                    start_local = datetime.combine(local_dt.date(), w.start_local, tzinfo)
+                else:
+                    start_local = datetime.combine(local_dt.date() + timedelta(days=1), w.start_local, tzinfo)
+            else:
+                # wraps midnight
+                if now_t < w.end_local:
+                    start_local = datetime.combine(local_dt.date(), w.start_local, tzinfo)
+                elif now_t < w.start_local:
+                    start_local = datetime.combine(local_dt.date(), w.start_local, tzinfo)
+                else:
+                    start_local = datetime.combine(local_dt.date() + timedelta(days=1), w.start_local, tzinfo)
+            candidates.append(start_local.astimezone(timezone.utc))
+        if candidates:
+            return min(candidates)                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return t_utc                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def current_drive_window(self, t_utc: datetime):               # [関数定義] current_drive_window の処理実行ブロック
+        """Return (start_utc, end_utc) if t_utc is inside a drive window, else None."""
+        for w in self.windows:
+            if w.contains(t_utc):
+                return w.start_utc, w.end_utc                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        for w in self.daily:
+            if ZoneInfo is None:
+                continue
+            try:
+                tzinfo = ZoneInfo(w.tz)
+            except Exception:
+                continue
+            local_dt = t_utc.astimezone(tzinfo)
+            if w.days is not None and local_dt.weekday() not in w.days:
+                continue
+            start = w.start_local
+            end = w.end_local
+            now_t = local_dt.time()
+            if start <= end:
+                if not (start <= now_t < end):
+                    continue
+                start_local = datetime.combine(local_dt.date(), start, tzinfo)
+                end_local = datetime.combine(local_dt.date(), end, tzinfo)
+            else:
+                # wraps midnight
+                if not (now_t >= start or now_t < end):
+                    continue
+                if now_t >= start:
+                    start_local = datetime.combine(local_dt.date(), start, tzinfo)
+                    end_local = datetime.combine(local_dt.date() + timedelta(days=1), end, tzinfo)
+                else:
+                    start_local = datetime.combine(local_dt.date() - timedelta(days=1), start, tzinfo)
+                    end_local = datetime.combine(local_dt.date(), end, tzinfo)
+            return start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+import json
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
+import urllib.parse
+import urllib.request
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List
+
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
+
+
+OPENMETEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
+
+
+def _fetch_json(url: str, timeout_sec: float = 20.0) -> Dict:      # [関数定義] _fetch_json の処理実行ブロック
+    req = urllib.request.Request(url, headers={'User-Agent': 'solarcar-weather-fetch/1.0'})
+    with urllib.request.urlopen(req, timeout=timeout_sec) as res:
+        return json.loads(res.read().decode('utf-8'))              # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def build_openmeteo_url(latitude: float, longitude: float, timezone_name: str, forecast_days: int) -> str:  # [関数定義] build_openmeteo_url の処理実行ブロック
+    params = {
+        'latitude': f'{latitude:.6f}',
+        'longitude': f'{longitude:.6f}',
+        'timezone': timezone_name,
+        'forecast_days': str(max(1, int(forecast_days))),
+        'hourly': 'temperature_2m,shortwave_radiation,windspeed_10m,winddirection_10m',
+    }
+    return OPENMETEO_FORECAST_URL + '?' + urllib.parse.urlencode(params)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def wrap_angle_deg(angle_deg: float) -> float:                     # [関数定義] wrap_angle_deg の処理実行ブロック
+    return float((float(angle_deg) + 360.0) % 360.0)               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def signed_angle_diff_deg(a_deg: float, b_deg: float) -> float:    # [関数定義] signed_angle_diff_deg の処理実行ブロック
+    return float((float(a_deg) - float(b_deg) + 180.0) % 360.0 - 180.0)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def meteo_headwind_component_ms(wind_speed_ms: float, wind_from_deg: float, heading_deg: float) -> float:  # [関数定義] meteo_headwind_component_ms の処理実行ブロック
+    """Project a meteorological wind direction onto the route heading.
+
+    `wind_from_deg` follows the usual convention: the direction the wind is coming from,
+    measured clockwise from north. Positive output means headwind, negative means tailwind.
+    """
+    if not math.isfinite(float(wind_speed_ms)):
+        return 0.0                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if not math.isfinite(float(wind_from_deg)) or not math.isfinite(float(heading_deg)):
+        return float(wind_speed_ms)                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    delta = math.radians(signed_angle_diff_deg(float(wind_from_deg), float(heading_deg)))
+    return float(wind_speed_ms) * math.cos(delta)                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def fetch_openmeteo_forecast(                                      # [関数定義] fetch_openmeteo_forecast の処理実行ブロック
+    latitude: float,
+    longitude: float,
+    timezone_name: str = 'UTC',
+    forecast_days: int = 3,
+    step_minutes: int = 10,
+    tcell_gain: float = 0.03,
+    timeout_sec: float = 20.0,
+) -> pd.DataFrame:
+    url = build_openmeteo_url(latitude, longitude, timezone_name, forecast_days)
+    payload = _fetch_json(url, timeout_sec=timeout_sec)
+    hourly = payload.get('hourly', {})
+    times = hourly.get('time', [])
+    ghi = hourly.get('shortwave_radiation', [])
+    temp = hourly.get('temperature_2m', [])
+    wind_kmh = hourly.get('windspeed_10m', [])
+    wind_dir = hourly.get('winddirection_10m', [])
+    rows: List[Dict] = []
+    for idx, t_str in enumerate(times):
+        try:
+            t_local = datetime.fromisoformat(t_str)
+            if t_local.tzinfo is None:
+                t_local = t_local.replace(tzinfo=timezone.utc)
+            t_utc = t_local.astimezone(timezone.utc)
+        except Exception:
+            continue
+        g = float(ghi[idx]) if idx < len(ghi) and ghi[idx] is not None else 0.0
+        tamb = float(temp[idx]) if idx < len(temp) and temp[idx] is not None else 25.0
+        w_kmh = float(wind_kmh[idx]) if idx < len(wind_kmh) and wind_kmh[idx] is not None else 0.0
+        w_dir = float(wind_dir[idx]) if idx < len(wind_dir) and wind_dir[idx] is not None else 0.0
+        w_ms = w_kmh / 3.6
+        rows.append({
+            'time': t_utc.isoformat(),
+            'GHI': g,
+            'Tamb_C': tamb,
+            'Tcell_C': tamb + max(0.0, g) * float(tcell_gain),
+            'wind_speed_ms': w_ms,
+            'wind_dir_deg': wrap_angle_deg(w_dir),
+            # Raw forecast does not know the actual route heading at this stage.
+            # Keep the direct headwind input neutral and let the wind correction node
+            # project the forecast onto the route before the planner consumes it.
+            'headwind_ms': 0.0,
+        })
+
+    df = pd.DataFrame(rows)
+    if df.empty or step_minutes >= 60:
+        return df                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    df['time'] = pd.to_datetime(df['time'], utc=True, errors='coerce')
+    df = df.dropna(subset=['time']).set_index('time').sort_index()
+    if df.empty:
+        return df.reset_index(drop=False)                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    target_index = pd.date_range(
+        start=df.index[0],
+        end=df.index[-1],
+        freq=f'{int(step_minutes)}min',
+        tz='UTC',
+    )
+    df = df.reindex(df.index.union(target_index)).interpolate(method='time').reindex(target_index)
+    df = df.reset_index().rename(columns={'index': 'time'})
+    df['time'] = df['time'].dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+    return df                                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def write_forecast_csv(df: pd.DataFrame, out_csv: str):            # [関数定義] write_forecast_csv の処理実行ブロック
+    if df is None:
+        raise ValueError('Forecast dataframe is None')
+    df.to_csv(out_csv, index=False)
+
+
+import os
+from typing import Any, Dict, Tuple
+
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
+
+
+
+def load_profile(profile_yaml: str) -> Tuple[str, Dict[str, Any]]:  # [関数定義] load_profile の処理実行ブロック
+    """Load a unified solar workflow profile YAML."""
+    resolved = resolve_path(profile_yaml, 'config')
+    with open(resolved, 'r', encoding='utf-8') as f:
+        cfg = yaml.safe_load(f) or {}
+    if not isinstance(cfg, dict):
+        raise ValueError(f'Profile YAML must be a mapping: {resolved}')
+    return os.path.abspath(resolved), cfg                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def get_section(cfg: Dict[str, Any], name: str) -> Dict[str, Any]:  # [関数定義] get_section の処理実行ブロック
+    value = cfg.get(name, {})
+    return value if isinstance(value, dict) else {}                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def get_value(cfg: Dict[str, Any], section: str, key: str, default: Any = None) -> Any:  # [関数定義] get_value の処理実行ブロック
+    return get_section(cfg, section).get(key, default)             # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def merged_dict(*parts: Dict[str, Any]) -> Dict[str, Any]:         # [関数定義] merged_dict の処理実行ブロック
+    merged: Dict[str, Any] = {}
+    for part in parts:
+        if isinstance(part, dict):
+            merged.update(part)
+    return merged                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def resolve_profile_asset(profile_yaml: str, asset_path: str) -> str:  # [関数定義] resolve_profile_asset の処理実行ブロック
+    if asset_path is None:
+        return ''                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    raw = os.path.expanduser(str(asset_path)).strip()
+    if not raw:
+        return ''                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if os.path.isabs(raw):
+        return raw                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    profile_dir = os.path.dirname(os.path.abspath(profile_yaml))
+    candidate = os.path.normpath(os.path.join(profile_dir, raw))
+    if os.path.exists(candidate):
+        return candidate                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if os.path.exists(raw):
+        return os.path.abspath(raw)                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return resolve_path(raw)                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def get_path(cfg: Dict[str, Any], profile_yaml: str, key: str, default: str = '') -> str:  # [関数定義] get_path の処理実行ブロック
+    return resolve_profile_asset(profile_yaml, get_value(cfg, 'paths', key, default))  # [戻り値] 計算結果・計算状態の呼び出し元への返却

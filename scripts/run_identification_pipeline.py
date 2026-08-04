@@ -4,7 +4,6 @@ import os
 import subprocess
 import sys
 
-from mpc_solarcar.solar_profile import get_section, load_profile
 
 
 def run(cmd):                                                      # [関数定義] run の処理実行ブロック

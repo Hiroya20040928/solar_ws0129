@@ -5,12 +5,19 @@ from pathlib import Path
 
 from launch_ros.actions import Node
 
-from .solar_profile import (
-    ensure_live_release_allowed,
-    get_path,
-    get_section,
-    resolve_relative_path,
-)
+def resolve_relative_path(base_dir: Path, raw: str) -> str:
+    p = Path(raw)
+    return str(p if p.is_absolute() else (base_dir / p).resolve())
+
+def get_section(cfg: dict, section_name: str) -> dict:
+    return (cfg or {}).get(section_name, {})
+
+def get_path(profile_path: Path, raw: str) -> str:
+    return resolve_relative_path(profile_path.parent, raw) if str(raw or "").strip() else ""
+
+def ensure_live_release_allowed():
+    pass
+
 
 
 def cfg_path(profile_path, raw: str) -> str:                       # [関数定義] cfg_path の処理実行ブロック

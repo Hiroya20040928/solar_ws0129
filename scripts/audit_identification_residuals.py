@@ -1,6 +1,6 @@
+from __future__ import annotations
 """Audit replay residual structure and long-horizon SoC divergence."""
 
-from __future__ import annotations
 
 import argparse
 import json
@@ -17,7 +17,6 @@ ROOT = Path(__file__).resolve().parents[1]
 if os.fspath(ROOT) not in sys.path:
     sys.path.insert(0, os.fspath(ROOT))
 
-from mpc_solarcar.utils_maps import read_Rint_map
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt

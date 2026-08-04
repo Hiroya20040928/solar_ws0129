@@ -57,4 +57,3 @@ def main():                                                        # [メイン�
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
-

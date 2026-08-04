@@ -1,7 +1,7 @@
+from __future__ import annotations
 #!/usr/bin/env python3
 """Perform a reproducible static and profile-contract audit of solar code."""
 
-from __future__ import annotations
 
 import argparse
 import ast

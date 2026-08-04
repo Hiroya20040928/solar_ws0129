@@ -19,14 +19,6 @@ from geometry_msgs.msg import PoseStamped
 
 from scipy.optimize import minimize
 
-from .model import SolarCarModel, Params
-from .path_utils import resolve_path
-from .route_utils import interpolate_profile
-from .schedule_utils import DriveSchedule
-from .estimator import BatteryMHE, MheInput, MheMeas
-from .signal_utils import RobustScalarFilter, finite_float, fresh_enough, slew_limit
-from .upper_cost import load_upper_cost_config, upper_stage_cost, upper_terminal_cost, quad_penalty
-from .upper_horizon import build_upper_distance_horizon, plan_segment_index
 
 
 class MPCNode(Node):                                               # [ローカルMPCノード] 周期的(10s)に後退ホライズン最適化を実行する主ROS2ノード
@@ -2313,3 +2305,1058 @@ def main():                                                        # [メイン�
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
+
+# =============================================================================
+# 【統合ユーティリティ】シグナルフィルタ・スルーレート制限・有限値検証
+# =============================================================================
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
+import time
+from collections import deque
+
+
+def finite_float(value, default=math.nan):                         # [関数定義] finite_float の処理実行ブロック
+    try:
+        v = float(value)
+        if math.isfinite(v):
+            return v                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    except Exception:
+        pass
+    return default                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def clamp(value, lo=None, hi=None):                                # [関数定義] clamp の処理実行ブロック
+    v = float(value)
+    if lo is not None:
+        v = max(float(lo), v)
+    if hi is not None:
+        v = min(float(hi), v)
+    return v                                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def fresh_enough(timestamp, timeout_sec, now=None):                # [関数定義] fresh_enough の処理実行ブロック
+    if timestamp is None:
+        return False                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if timeout_sec is None or float(timeout_sec) <= 0.0:
+        return True                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if now is None:
+        now = time.monotonic()
+    return (float(now) - float(timestamp)) <= float(timeout_sec)   # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def slew_limit(previous, target, dt, rise_rate=None, fall_rate=None):  # [関数定義] slew_limit の処理実行ブロック
+    prev = float(previous)
+    tgt = float(target)
+    dt = max(0.0, float(dt))
+    if not math.isfinite(prev) or dt <= 0.0:
+        return tgt                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    delta = tgt - prev
+    if delta >= 0.0 and rise_rate is not None and math.isfinite(float(rise_rate)) and float(rise_rate) > 0.0:
+        delta = min(delta, float(rise_rate) * dt)
+    if delta < 0.0 and fall_rate is not None and math.isfinite(float(fall_rate)) and float(fall_rate) > 0.0:
+        delta = max(delta, -float(fall_rate) * dt)
+    return prev + delta                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+class SmoothRateLimiter:                                           # [クラス定義] SmoothRateLimiter オブジェクトの設計
+    def __init__(                                                  # [関数定義] __init__ の処理実行ブロック
+        self,
+        *,
+        min_value=None,
+        max_value=None,
+        tau_sec=0.0,
+        rise_rate=None,
+        fall_rate=None,
+        deadband=0.0,
+        quantize_step=0.0,
+        initial_value=math.nan,
+    ):
+        self.min_value = min_value
+        self.max_value = max_value
+        self.tau_sec = max(0.0, float(tau_sec))
+        self.rise_rate = rise_rate
+        self.fall_rate = fall_rate
+        self.deadband = max(0.0, float(deadband))
+        self.quantize_step = max(0.0, float(quantize_step))
+        self.value = float(initial_value) if math.isfinite(finite_float(initial_value)) else math.nan
+        self.last_time = None
+
+    def reset(self, value=math.nan, now=None):                     # [関数定義] reset の処理実行ブロック
+        self.value = finite_float(value)
+        self.last_time = time.monotonic() if now is None else float(now)
+        return self.value                                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def update(self, target, now=None):                            # [関数定義] update の処理実行ブロック
+        tgt = finite_float(target)
+        if not math.isfinite(tgt):
+            return self.value                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        tgt = clamp(tgt, self.min_value, self.max_value)
+        now_mono = time.monotonic() if now is None else float(now)
+        if not math.isfinite(self.value):
+            self.value = tgt
+            self.last_time = now_mono
+            return self.value                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        dt = 0.0 if self.last_time is None else max(1.0e-3, now_mono - float(self.last_time))
+        if self.tau_sec > 0.0 and dt > 0.0:
+            alpha = 1.0 - math.exp(-dt / self.tau_sec)
+            candidate = self.value + alpha * (tgt - self.value)
+        else:
+            candidate = tgt
+
+        candidate = slew_limit(self.value, candidate, dt, self.rise_rate, self.fall_rate)
+        candidate = clamp(candidate, self.min_value, self.max_value)
+
+        if self.deadband > 0.0 and abs(candidate - self.value) < self.deadband:
+            candidate = self.value
+
+        if self.quantize_step > 0.0:
+            candidate = round(candidate / self.quantize_step) * self.quantize_step
+
+        self.value = clamp(candidate, self.min_value, self.max_value)
+        self.last_time = now_mono
+        return self.value                                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+class RobustScalarFilter:                                          # [クラス定義] RobustScalarFilter オブジェクトの設計
+    def __init__(                                                  # [関数定義] __init__ の処理実行ブロック
+        self,
+        *,
+        min_value=None,
+        max_value=None,
+        tau_sec=0.0,
+        rise_rate=None,
+        fall_rate=None,
+        deadband=0.0,
+        quantize_step=0.0,
+        median_window=1,
+        monotonic=False,
+        max_backtrack=0.0,
+        initial_value=math.nan,
+    ):
+        self.min_value = min_value
+        self.max_value = max_value
+        self.monotonic = bool(monotonic)
+        self.max_backtrack = max(0.0, float(max_backtrack))
+        self.window = deque(maxlen=max(1, int(median_window)))
+        self.smoother = SmoothRateLimiter(
+            min_value=min_value,
+            max_value=max_value,
+            tau_sec=tau_sec,
+            rise_rate=rise_rate,
+            fall_rate=fall_rate,
+            deadband=deadband,
+            quantize_step=quantize_step,
+            initial_value=initial_value,
+        )
+
+    @property
+    def value(self):                                               # [関数定義] value の処理実行ブロック
+        return self.smoother.value                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    @property
+    def last_time(self):                                           # [関数定義] last_time の処理実行ブロック
+        return self.smoother.last_time                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def reset(self, value=math.nan, now=None):                     # [関数定義] reset の処理実行ブロック
+        self.window.clear()
+        v = finite_float(value)
+        if math.isfinite(v):
+            self.window.append(v)
+        return self.smoother.reset(v, now=now)                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def update(self, raw_value, now=None):                         # [関数定義] update の処理実行ブロック
+        value = finite_float(raw_value)
+        if not math.isfinite(value):
+            return self.value                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        value = clamp(value, self.min_value, self.max_value)
+        self.window.append(value)
+        candidate = value
+        if len(self.window) > 1:
+            seq = sorted(self.window)
+            candidate = float(seq[len(seq) // 2])
+        if self.monotonic and math.isfinite(self.value):
+            candidate = max(candidate, float(self.value) - self.max_backtrack)
+        return self.smoother.update(candidate, now=now)            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+# =============================================================================
+# 【統合ユーティリティ】パス解決・ルート補間・スケジューラー・気象インターフェース
+# =============================================================================
+import os
+from pathlib import Path
+
+try:
+    from ament_index_python.packages import get_package_share_directory  # type: ignore
+except Exception:  # pragma: no cover - non-ROS fallback
+    get_package_share_directory = None
+
+
+PKG_NAME = 'mpc_solarcar'
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def resolve_path(path: str, default_subdir: str = '') -> str:      # [関数定義] resolve_path の処理実行ブロック
+    """Resolve a path relative to CWD or package share.
+
+    - If absolute, return as-is.                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    - If exists relative to CWD, return it.                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    - Otherwise, resolve under <pkg_share>/<default_subdir> (or directly under share).
+    """
+    if path is None:
+        return path                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    path = os.path.expanduser(str(path))
+    if os.path.isabs(path):
+        return path                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if os.path.exists(path):
+        return path                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if get_package_share_directory is not None:
+        pkg_share = get_package_share_directory(PKG_NAME)
+    else:
+        pkg_share = os.fspath(REPO_ROOT)
+    if default_subdir:
+        subdir = default_subdir.strip('/\\')
+        if path.startswith(subdir + os.sep) or path == subdir:
+            return os.path.join(pkg_share, path)                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return os.path.join(pkg_share, subdir, path)               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return os.path.join(pkg_share, path)                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
+
+
+def _interp_field(d, y, s_km, default=0.0):                        # [関数定義] _interp_field の処理実行ブロック
+    if len(d) < 2:
+        return float(default)                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    s = np.clip(s_km, d[0], d[-1])
+    i = np.searchsorted(d, s) - 1
+    i = np.clip(i, 0, len(d) - 2)
+    t = 0.0 if d[i + 1] == d[i] else (s - d[i]) / (d[i + 1] - d[i])
+    return float((1 - t) * y[i] + t * y[i + 1])                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def interpolate_route(route_df, s_km):                             # [関数定義] interpolate_route の処理実行ブロック
+    d = route_df['dist_km'].values
+    lat = route_df['lat'].values
+    lon = route_df['lon'].values
+    latp = _interp_field(d, lat, s_km, default=float(lat[0]) if len(lat) else 0.0)
+    lonp = _interp_field(d, lon, s_km, default=float(lon[0]) if len(lon) else 0.0)
+    return latp, lonp                                              # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def interpolate_route_with_alt(route_df, s_km):                    # [関数定義] interpolate_route_with_alt の処理実行ブロック
+    lat, lon = interpolate_route(route_df, s_km)
+    alt = None
+    for col in ('alt_m', 'altitude_m', 'elev_m'):
+        if col in route_df.columns:
+            d = route_df['dist_km'].values
+            alt = _interp_field(d, route_df[col].values, s_km, default=float(route_df[col].values[0]))
+            break
+    return lat, lon, alt                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def interpolate_profile(route_df, s_km, field: str, default: float = 0.0) -> float:  # [関数定義] interpolate_profile の処理実行ブロック
+    if field not in route_df.columns:
+        return float(default)                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    d = route_df['dist_km'].values
+    return _interp_field(d, route_df[field].values, s_km, default=default)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def bearing_deg(lat1, lon1, lat2, lon2):                           # [関数定義] bearing_deg の処理実行ブロック
+    lat1r = np.deg2rad(float(lat1))
+    lon1r = np.deg2rad(float(lon1))
+    lat2r = np.deg2rad(float(lat2))
+    lon2r = np.deg2rad(float(lon2))
+    dlon = lon2r - lon1r
+    y = np.sin(dlon) * np.cos(lat2r)
+    x = np.cos(lat1r) * np.sin(lat2r) - np.sin(lat1r) * np.cos(lat2r) * np.cos(dlon)
+    brng = np.rad2deg(np.arctan2(y, x))
+    return float((brng + 360.0) % 360.0)                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def interpolate_route_heading(route_df, s_km, span_km: float = 1.0):  # [関数定義] interpolate_route_heading の処理実行ブロック
+    if route_df is None or len(route_df) < 2:
+        return 0.0                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    s0 = max(float(route_df['dist_km'].iloc[0]), float(s_km) - max(0.1, span_km))
+    s1 = min(float(route_df['dist_km'].iloc[-1]), float(s_km) + max(0.1, span_km))
+    if s1 <= s0:
+        d = route_df['dist_km'].values
+        i = int(np.clip(np.searchsorted(d, float(s_km)), 1, len(d) - 1))
+        lat1 = float(route_df.iloc[i - 1]['lat'])
+        lon1 = float(route_df.iloc[i - 1]['lon'])
+        lat2 = float(route_df.iloc[i]['lat'])
+        lon2 = float(route_df.iloc[i]['lon'])
+        return bearing_deg(lat1, lon1, lat2, lon2)                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    lat1, lon1 = interpolate_route(route_df, s0)
+    lat2, lon2 = interpolate_route(route_df, s1)
+    return bearing_deg(lat1, lon1, lat2, lon2)                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+import os
+from dataclasses import dataclass
+from datetime import datetime, time as dtime, timedelta, timezone
+from typing import List, Optional, Tuple
+
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
+
+try:
+    from zoneinfo import ZoneInfo
+except Exception:  # pragma: no cover - fallback for older Python
+    ZoneInfo = None
+
+
+def _parse_utc(ts: str) -> Optional[datetime]:                     # [関数定義] _parse_utc の処理実行ブロック
+    try:
+        if ts.endswith('Z'):
+            ts = ts[:-1] + '+00:00'
+        dt = datetime.fromisoformat(ts)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)                         # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    except Exception:
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def _parse_time_hhmm(s: str) -> Optional[dtime]:                   # [関数定義] _parse_time_hhmm の処理実行ブロック
+    try:
+        parts = s.strip().split(':')
+        if len(parts) < 2:
+            return None                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return dtime(hour=int(parts[0]), minute=int(parts[1]))     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    except Exception:
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+@dataclass
+class DriveWindow:                                                 # [クラス定義] DriveWindow オブジェクトの設計
+    start_utc: datetime
+    end_utc: datetime
+    v_min_kmh: float
+    v_max_kmh: float
+
+    def contains(self, t_utc: datetime) -> bool:                   # [関数定義] contains の処理実行ブロック
+        return self.start_utc <= t_utc < self.end_utc              # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+@dataclass
+class DailyWindow:                                                 # [クラス定義] DailyWindow オブジェクトの設計
+    start_local: dtime
+    end_local: dtime
+    tz: str
+    days: Optional[List[int]]
+    v_min_kmh: float
+    v_max_kmh: float
+
+    def contains(self, t_utc: datetime) -> bool:                   # [関数定義] contains の処理実行ブロック
+        if ZoneInfo is None:
+            return False                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        try:
+            tzinfo = ZoneInfo(self.tz)
+        except Exception:
+            return False                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        local_dt = t_utc.astimezone(tzinfo)
+        if self.days is not None and local_dt.weekday() not in self.days:
+            return False                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        start = self.start_local
+        end = self.end_local
+        now_t = local_dt.time()
+        if start <= end:
+            return start <= now_t < end                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        # wraps midnight
+        return now_t >= start or now_t < end                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+class DriveSchedule:                                               # [クラス定義] DriveSchedule オブジェクトの設計
+    def __init__(self, windows: List[DriveWindow], daily: List[DailyWindow], deny_by_default: bool):  # [関数定義] __init__ の処理実行ブロック
+        self.windows = windows
+        self.daily = daily
+        self.deny_by_default = deny_by_default
+
+    @classmethod
+    def from_yaml(cls, path: str) -> Optional['DriveSchedule']:    # [関数定義] from_yaml の処理実行ブロック
+        if not path or not os.path.exists(path):
+            return None                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                cfg = yaml.safe_load(f) or {}
+        except Exception:
+            return None                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        deny_by_default = bool(cfg.get('deny_by_default', False))
+        windows = []
+        for w in cfg.get('drive_windows', []) or []:
+            start = _parse_utc(str(w.get('start_utc', '')))
+            end = _parse_utc(str(w.get('end_utc', '')))
+            if start is None or end is None:
+                continue
+            vmin = float(w.get('v_min_kmh', 0.0))
+            vmax = float(w.get('v_max_kmh', 130.0))
+            windows.append(DriveWindow(start, end, vmin, vmax))
+        daily = []
+        for w in cfg.get('daily_windows', []) or []:
+            start = _parse_time_hhmm(str(w.get('start_local', '')))
+            end = _parse_time_hhmm(str(w.get('end_local', '')))
+            tz = str(w.get('tz', 'UTC'))
+            if start is None or end is None:
+                continue
+            days = w.get('days', None)
+            if days is not None:
+                try:
+                    days = [int(d) for d in days]
+                except Exception:
+                    days = None
+            vmin = float(w.get('v_min_kmh', 0.0))
+            vmax = float(w.get('v_max_kmh', 130.0))
+            daily.append(DailyWindow(start, end, tz, days, vmin, vmax))
+        return cls(windows, daily, deny_by_default)                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def speed_limits(self, t_utc: datetime) -> Optional[Tuple[float, float]]:  # [関数定義] speed_limits の処理実行ブロック
+        limits = []
+        for w in self.windows:
+            if w.contains(t_utc):
+                limits.append((w.v_min_kmh, w.v_max_kmh))
+        for w in self.daily:
+            if w.contains(t_utc):
+                limits.append((w.v_min_kmh, w.v_max_kmh))
+        if limits:
+            vmin = max(l[0] for l in limits)
+            vmax = min(l[1] for l in limits)
+            return vmin, vmax                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        if self.deny_by_default:
+            return 0.0, 0.0                                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def is_drive_time(self, t_utc: datetime) -> bool:              # [関数定義] is_drive_time の処理実行ブロック
+        limits = self.speed_limits(t_utc)
+        if limits is None:
+            return not self.deny_by_default                        # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return limits[1] > 0.0                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def next_drive_start(self, t_utc: datetime) -> datetime:       # [関数定義] next_drive_start の処理実行ブロック
+        if self.is_drive_time(t_utc):
+            return t_utc                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        candidates = []
+        for w in self.windows:
+            if t_utc < w.start_utc:
+                candidates.append(w.start_utc)
+        for w in self.daily:
+            if ZoneInfo is None:
+                continue
+            try:
+                tzinfo = ZoneInfo(w.tz)
+            except Exception:
+                continue
+            local_dt = t_utc.astimezone(tzinfo)
+            if w.days is not None and local_dt.weekday() not in w.days:
+                # move to next allowed weekday
+                days_ahead = 1
+                while w.days is not None and ((local_dt + timedelta(days=days_ahead)).weekday() not in w.days) and days_ahead < 8:
+                    days_ahead += 1
+                start_date = (local_dt + timedelta(days=days_ahead)).date()
+                start_local = datetime.combine(start_date, w.start_local, tzinfo)
+                candidates.append(start_local.astimezone(timezone.utc))
+                continue
+            now_t = local_dt.time()
+            if w.start_local <= w.end_local:
+                if now_t < w.start_local:
+                    start_local = datetime.combine(local_dt.date(), w.start_local, tzinfo)
+                else:
+                    start_local = datetime.combine(local_dt.date() + timedelta(days=1), w.start_local, tzinfo)
+            else:
+                # wraps midnight
+                if now_t < w.end_local:
+                    start_local = datetime.combine(local_dt.date(), w.start_local, tzinfo)
+                elif now_t < w.start_local:
+                    start_local = datetime.combine(local_dt.date(), w.start_local, tzinfo)
+                else:
+                    start_local = datetime.combine(local_dt.date() + timedelta(days=1), w.start_local, tzinfo)
+            candidates.append(start_local.astimezone(timezone.utc))
+        if candidates:
+            return min(candidates)                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return t_utc                                               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def current_drive_window(self, t_utc: datetime):               # [関数定義] current_drive_window の処理実行ブロック
+        """Return (start_utc, end_utc) if t_utc is inside a drive window, else None."""
+        for w in self.windows:
+            if w.contains(t_utc):
+                return w.start_utc, w.end_utc                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        for w in self.daily:
+            if ZoneInfo is None:
+                continue
+            try:
+                tzinfo = ZoneInfo(w.tz)
+            except Exception:
+                continue
+            local_dt = t_utc.astimezone(tzinfo)
+            if w.days is not None and local_dt.weekday() not in w.days:
+                continue
+            start = w.start_local
+            end = w.end_local
+            now_t = local_dt.time()
+            if start <= end:
+                if not (start <= now_t < end):
+                    continue
+                start_local = datetime.combine(local_dt.date(), start, tzinfo)
+                end_local = datetime.combine(local_dt.date(), end, tzinfo)
+            else:
+                # wraps midnight
+                if not (now_t >= start or now_t < end):
+                    continue
+                if now_t >= start:
+                    start_local = datetime.combine(local_dt.date(), start, tzinfo)
+                    end_local = datetime.combine(local_dt.date() + timedelta(days=1), end, tzinfo)
+                else:
+                    start_local = datetime.combine(local_dt.date() - timedelta(days=1), start, tzinfo)
+                    end_local = datetime.combine(local_dt.date(), end, tzinfo)
+            return start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return None                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+import json
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
+import urllib.parse
+import urllib.request
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List
+
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
+
+
+OPENMETEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
+
+
+def _fetch_json(url: str, timeout_sec: float = 20.0) -> Dict:      # [関数定義] _fetch_json の処理実行ブロック
+    req = urllib.request.Request(url, headers={'User-Agent': 'solarcar-weather-fetch/1.0'})
+    with urllib.request.urlopen(req, timeout=timeout_sec) as res:
+        return json.loads(res.read().decode('utf-8'))              # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def build_openmeteo_url(latitude: float, longitude: float, timezone_name: str, forecast_days: int) -> str:  # [関数定義] build_openmeteo_url の処理実行ブロック
+    params = {
+        'latitude': f'{latitude:.6f}',
+        'longitude': f'{longitude:.6f}',
+        'timezone': timezone_name,
+        'forecast_days': str(max(1, int(forecast_days))),
+        'hourly': 'temperature_2m,shortwave_radiation,windspeed_10m,winddirection_10m',
+    }
+    return OPENMETEO_FORECAST_URL + '?' + urllib.parse.urlencode(params)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def wrap_angle_deg(angle_deg: float) -> float:                     # [関数定義] wrap_angle_deg の処理実行ブロック
+    return float((float(angle_deg) + 360.0) % 360.0)               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def signed_angle_diff_deg(a_deg: float, b_deg: float) -> float:    # [関数定義] signed_angle_diff_deg の処理実行ブロック
+    return float((float(a_deg) - float(b_deg) + 180.0) % 360.0 - 180.0)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def meteo_headwind_component_ms(wind_speed_ms: float, wind_from_deg: float, heading_deg: float) -> float:  # [関数定義] meteo_headwind_component_ms の処理実行ブロック
+    """Project a meteorological wind direction onto the route heading.
+
+    `wind_from_deg` follows the usual convention: the direction the wind is coming from,
+    measured clockwise from north. Positive output means headwind, negative means tailwind.
+    """
+    if not math.isfinite(float(wind_speed_ms)):
+        return 0.0                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if not math.isfinite(float(wind_from_deg)) or not math.isfinite(float(heading_deg)):
+        return float(wind_speed_ms)                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    delta = math.radians(signed_angle_diff_deg(float(wind_from_deg), float(heading_deg)))
+    return float(wind_speed_ms) * math.cos(delta)                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def fetch_openmeteo_forecast(                                      # [関数定義] fetch_openmeteo_forecast の処理実行ブロック
+    latitude: float,
+    longitude: float,
+    timezone_name: str = 'UTC',
+    forecast_days: int = 3,
+    step_minutes: int = 10,
+    tcell_gain: float = 0.03,
+    timeout_sec: float = 20.0,
+) -> pd.DataFrame:
+    url = build_openmeteo_url(latitude, longitude, timezone_name, forecast_days)
+    payload = _fetch_json(url, timeout_sec=timeout_sec)
+    hourly = payload.get('hourly', {})
+    times = hourly.get('time', [])
+    ghi = hourly.get('shortwave_radiation', [])
+    temp = hourly.get('temperature_2m', [])
+    wind_kmh = hourly.get('windspeed_10m', [])
+    wind_dir = hourly.get('winddirection_10m', [])
+    rows: List[Dict] = []
+    for idx, t_str in enumerate(times):
+        try:
+            t_local = datetime.fromisoformat(t_str)
+            if t_local.tzinfo is None:
+                t_local = t_local.replace(tzinfo=timezone.utc)
+            t_utc = t_local.astimezone(timezone.utc)
+        except Exception:
+            continue
+        g = float(ghi[idx]) if idx < len(ghi) and ghi[idx] is not None else 0.0
+        tamb = float(temp[idx]) if idx < len(temp) and temp[idx] is not None else 25.0
+        w_kmh = float(wind_kmh[idx]) if idx < len(wind_kmh) and wind_kmh[idx] is not None else 0.0
+        w_dir = float(wind_dir[idx]) if idx < len(wind_dir) and wind_dir[idx] is not None else 0.0
+        w_ms = w_kmh / 3.6
+        rows.append({
+            'time': t_utc.isoformat(),
+            'GHI': g,
+            'Tamb_C': tamb,
+            'Tcell_C': tamb + max(0.0, g) * float(tcell_gain),
+            'wind_speed_ms': w_ms,
+            'wind_dir_deg': wrap_angle_deg(w_dir),
+            # Raw forecast does not know the actual route heading at this stage.
+            # Keep the direct headwind input neutral and let the wind correction node
+            # project the forecast onto the route before the planner consumes it.
+            'headwind_ms': 0.0,
+        })
+
+    df = pd.DataFrame(rows)
+    if df.empty or step_minutes >= 60:
+        return df                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    df['time'] = pd.to_datetime(df['time'], utc=True, errors='coerce')
+    df = df.dropna(subset=['time']).set_index('time').sort_index()
+    if df.empty:
+        return df.reset_index(drop=False)                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    target_index = pd.date_range(
+        start=df.index[0],
+        end=df.index[-1],
+        freq=f'{int(step_minutes)}min',
+        tz='UTC',
+    )
+    df = df.reindex(df.index.union(target_index)).interpolate(method='time').reindex(target_index)
+    df = df.reset_index().rename(columns={'index': 'time'})
+    df['time'] = df['time'].dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+    return df                                                      # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def write_forecast_csv(df: pd.DataFrame, out_csv: str):            # [関数定義] write_forecast_csv の処理実行ブロック
+    if df is None:
+        raise ValueError('Forecast dataframe is None')
+    df.to_csv(out_csv, index=False)
+
+
+import os
+from typing import Any, Dict, Tuple
+
+import yaml                                                        # [設定処理] プロファイル・設定ファイル読込用 PyYAML ライブラリのインポート
+
+
+
+def load_profile(profile_yaml: str) -> Tuple[str, Dict[str, Any]]:  # [関数定義] load_profile の処理実行ブロック
+    """Load a unified solar workflow profile YAML."""
+    resolved = resolve_path(profile_yaml, 'config')
+    with open(resolved, 'r', encoding='utf-8') as f:
+        cfg = yaml.safe_load(f) or {}
+    if not isinstance(cfg, dict):
+        raise ValueError(f'Profile YAML must be a mapping: {resolved}')
+    return os.path.abspath(resolved), cfg                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def get_section(cfg: Dict[str, Any], name: str) -> Dict[str, Any]:  # [関数定義] get_section の処理実行ブロック
+    value = cfg.get(name, {})
+    return value if isinstance(value, dict) else {}                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def get_value(cfg: Dict[str, Any], section: str, key: str, default: Any = None) -> Any:  # [関数定義] get_value の処理実行ブロック
+    return get_section(cfg, section).get(key, default)             # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def merged_dict(*parts: Dict[str, Any]) -> Dict[str, Any]:         # [関数定義] merged_dict の処理実行ブロック
+    merged: Dict[str, Any] = {}
+    for part in parts:
+        if isinstance(part, dict):
+            merged.update(part)
+    return merged                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def resolve_profile_asset(profile_yaml: str, asset_path: str) -> str:  # [関数定義] resolve_profile_asset の処理実行ブロック
+    if asset_path is None:
+        return ''                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    raw = os.path.expanduser(str(asset_path)).strip()
+    if not raw:
+        return ''                                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if os.path.isabs(raw):
+        return raw                                                 # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    profile_dir = os.path.dirname(os.path.abspath(profile_yaml))
+    candidate = os.path.normpath(os.path.join(profile_dir, raw))
+    if os.path.exists(candidate):
+        return candidate                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    if os.path.exists(raw):
+        return os.path.abspath(raw)                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    return resolve_path(raw)                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+def get_path(cfg: Dict[str, Any], profile_yaml: str, key: str, default: str = '') -> str:  # [関数定義] get_path の処理実行ブロック
+    return resolve_profile_asset(profile_yaml, get_value(cfg, 'paths', key, default))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+
+# =============================================================================
+# 【統合物理モデル】車両運動方程式 & 1-RC 電池等価回路モデル
+# =============================================================================
+import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+from dataclasses import dataclass
+
+try:
+    import casadi as ca                                            # [最適化エンジン] 数値最適化・自動微分ライブラリ CasADi のインポート
+except ImportError:
+    class _CasadiCompat:                                           # [クラス定義] _CasadiCompat オブジェクトの設計
+        class SX:                                                  # [クラス定義] SX オブジェクトの設計
+            pass
+
+        class MX:                                                  # [クラス定義] MX オブジェクトの設計
+            pass
+
+        @staticmethod
+        def fmax(a, b):                                            # [関数定義] fmax の処理実行ブロック
+            return max(a, b)                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        @staticmethod
+        def fmin(a, b):                                            # [関数定義] fmin の処理実行ブロック
+            return min(a, b)                                       # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        @staticmethod
+        def atan(x):                                               # [関数定義] atan の処理実行ブロック
+            return math.atan(x)                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        @staticmethod
+        def cos(x):                                                # [関数定義] cos の処理実行ブロック
+            return math.cos(x)                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        @staticmethod
+        def sin(x):                                                # [関数定義] sin の処理実行ブロック
+            return math.sin(x)                                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        @staticmethod
+        def sqrt(x):                                               # [関数定義] sqrt の処理実行ブロック
+            return math.sqrt(x)                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+        @staticmethod
+        def fabs(x):                                               # [関数定義] fabs の処理実行ブロック
+            return abs(x)                                          # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    ca = _CasadiCompat()
+
+def _is_symbolic(x):                                               # [関数定義] _is_symbolic の処理実行ブロック
+    return isinstance(x, (ca.SX, ca.MX)) or (hasattr(x, 'is_symbolic') and x.is_symbolic())  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+@dataclass
+class Params:                                                      # [クラス定義] Params オブジェクトの設計
+    dt: float=600.0
+    rho: float=1.18
+    CdA: float=0.13
+    Crr: float=0.002
+    Crr_per_wheel: float=0.0
+    m: float=250.0
+    g: float=9.80665
+    P_aux: float=60.0
+    gear_eta: float=0.98
+    gear_ratio: float=6.0
+    wheel_radius: float=0.28
+    wheel_count: int=4
+    driven_wheel_count: int=2
+    motor_count: int=1
+    motor_type: str='generic'
+    inverter_eta: float=1.0
+    pv_area: float=6.0
+    pv_eta_ref: float=0.23
+    pv_mu_p: float=-0.0045
+    mppt_eta: float=0.95
+    panel_gain: float=1.0
+    E_nom_Wh: float=3055.0
+    V_min: float=260.0
+    V_max: float=400.0
+    I_max: float=120.0
+    I_chg_min: float=-90.0
+    T_max: float=55.0
+    T_min: float=-5.0
+    soc_min: float=0.05
+    soc_max: float=0.98
+    grade_scale: float=1.0
+    drive_eff_scale: float=1.0
+    regen_eff_scale: float=1.0
+    rint_scale: float=1.0
+    r_line_ohm: float=0.01
+    eta_charge: float=1.0
+
+class SolarCarModel:                                               # [車両モデルクラス] ソーラーカーの空力・転がり・発電・電池の統合物理モデル
+    def __init__(self, drive_map_path, regen_map_path, Rint_map_path,  # [関数定義] __init__ の処理実行ブロック
+                 params=None, panel_eff_map_path=None, mppt_eff_map_path=None,
+                 drive_map_eco_path=None, drive_map_power_path=None,
+                 regen_map_eco_path=None, regen_map_power_path=None,
+                 ocv_soc_map_path=None):
+        self.p = params or Params()
+        self.drive_power_gain = 1.0
+        self.aux_power_override_w = None
+        self.v_grid, self.tau_grid, self.Z_drv = read_eff_map(drive_map_path)
+        self.v_gridR, self.tau_gridR, self.Z_reg = read_eff_map(regen_map_path)
+        self.drive_mode = 'auto'
+        self.drive_mode_default = 'eco'
+        self.drive_mode_tau_margin = 0.0
+        self.maps_drive = {
+            'default': (self.v_grid, self.tau_grid, self.Z_drv),
+        }
+        self.maps_regen = {
+            'default': (self.v_gridR, self.tau_gridR, self.Z_reg),
+        }
+        if drive_map_eco_path:
+            self.maps_drive['eco'] = read_eff_map(drive_map_eco_path)
+        if drive_map_power_path:
+            self.maps_drive['power'] = read_eff_map(drive_map_power_path)
+        if regen_map_eco_path:
+            self.maps_regen['eco'] = read_eff_map(regen_map_eco_path)
+        if regen_map_power_path:
+            self.maps_regen['power'] = read_eff_map(regen_map_power_path)
+        self._update_mode_limits()
+        self.Tg, self.zg, self.Rmap = read_Rint_map(Rint_map_path)
+        self.panel_eff_map = None
+        self.mppt_eff_map = None
+        if panel_eff_map_path:
+            try:
+                self.Gg, self.Tcg, self.Z_panel = read_map(panel_eff_map_path)
+                self.panel_eff_map = True
+            except Exception:
+                self.panel_eff_map = None
+        if mppt_eff_map_path:
+            try:
+                self.Gm, self.Tm, self.Z_mppt = read_map(mppt_eff_map_path)
+                self.mppt_eff_map = True
+            except Exception:
+                self.mppt_eff_map = None
+        self.ocv_soc_map = None
+        if ocv_soc_map_path:
+            try:
+                self.soc_grid, self.ocv_grid = read_1d_map(ocv_soc_map_path)
+                self.ocv_soc_map = True
+            except Exception:
+                self.ocv_soc_map = None
+
+    def eff_drive(self, v_ms, tau_nm):                             # [関数定義] eff_drive の処理実行ブロック
+        if _is_symbolic(v_ms) or _is_symbolic(tau_nm):
+            v = ca.fabs(v_ms); t = ca.fabs(tau_nm)
+            vN = v/35.0; tN = t/60.0
+            eff = 0.92 - 0.08*vN*vN - 0.06*ca.sqrt(tN+1e-9)
+            eff = eff * float(self.p.drive_eff_scale)
+            return ca.fmin(0.99, ca.fmax(0.55, eff))               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        mode = self._select_mode(float(v_ms), float(abs(tau_nm)))
+        v_grid, t_grid, Z = self.maps_drive.get(mode, self.maps_drive['default'])
+        eff = float(bilinear_interp(v_grid, t_grid, Z, float(v_ms), float(abs(tau_nm))))
+        eff *= float(self.p.drive_eff_scale)
+        return float(np.clip(eff, 0.55, 0.99))                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def eff_regen(self, v_ms, tau_nm):                             # [関数定義] eff_regen の処理実行ブロック
+        if _is_symbolic(v_ms) or _is_symbolic(tau_nm):
+            v = ca.fabs(v_ms); t = ca.fabs(tau_nm)
+            vN = v/35.0; tN = t/60.0
+            eff = 0.70 + 0.12*vN - 0.05*(tN-0.3)*(tN-0.3)
+            eff = eff * float(self.p.regen_eff_scale or self.p.drive_eff_scale)
+            return ca.fmin(0.95, ca.fmax(0.40, eff))               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        mode = self._select_mode(float(v_ms), float(abs(tau_nm)))
+        v_grid, t_grid, Z = self.maps_regen.get(mode, self.maps_regen['default'])
+        eff = float(bilinear_interp(v_grid, t_grid, Z, float(v_ms), float(abs(tau_nm))))
+        eff *= float(self.p.regen_eff_scale or self.p.drive_eff_scale)
+        return float(np.clip(eff, 0.40, 0.95))                     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def _update_mode_limits(self):                                 # [関数定義] _update_mode_limits の処理実行ブロック
+        self.tau_max = {}
+        for k, (_, t_grid, _) in self.maps_drive.items():
+            try:
+                self.tau_max[k] = float(max(t_grid))
+            except Exception:
+                self.tau_max[k] = 0.0
+
+    def _select_mode(self, v_ms: float, tau_nm: float) -> str:     # [関数定義] _select_mode の処理実行ブロック
+        mode = str(self.drive_mode or 'default').lower()
+        if mode in ('eco', 'power'):
+            return mode                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        # auto
+        eco_max = self.tau_max.get('eco', self.tau_max.get('default', 0.0))
+        margin = float(self.drive_mode_tau_margin or 0.0)
+        if tau_nm > (eco_max + margin):
+            return 'power' if 'power' in self.maps_drive else 'default'  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return 'eco' if 'eco' in self.maps_drive else 'default'    # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def select_drive_mode(self, v_ms: float, tau_nm: float) -> str:  # [関数定義] select_drive_mode の処理実行ブロック
+        return self._select_mode(v_ms, abs(tau_nm))                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def R_int(self, T_C, z):                                       # [関数定義] R_int の処理実行ブロック
+        if _is_symbolic(T_C) or _is_symbolic(z):
+            R0=0.015; R_T=0.0002*(25.0-T_C); R_z=0.01*(1.0-z)
+            return (R0+R_T+R_z) * float(self.p.rint_scale)         # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        else:
+            return float(self.p.rint_scale) * float(bilinear_interp(self.Tg, self.zg, self.Rmap, T_C, z))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def pv_power_mppt(self, G_poa, T_cell_C):                      # [関数定義] pv_power_mppt の処理実行ブロック
+        if self.panel_eff_map:
+            eta_panel = bilinear_interp(self.Gg, self.Tcg, self.Z_panel, float(G_poa), float(T_cell_C))
+            eta_panel = max(0.0, float(eta_panel))
+        else:
+            eta_panel = self.p.pv_eta_ref*(1.0+self.p.pv_mu_p*(T_cell_C-25.0))
+            eta_panel = ca.fmax(0.0, eta_panel)
+        eta_panel *= float(self.p.panel_gain)
+        P_pv = eta_panel*self.p.pv_area*G_poa
+        if self.mppt_eff_map:
+            eta_mppt = bilinear_interp(self.Gm, self.Tm, self.Z_mppt, float(G_poa), float(T_cell_C))
+            eta_mppt = max(0.0, float(eta_mppt))
+            return eta_mppt*P_pv                                   # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return self.p.mppt_eta*P_pv                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def _scaled_slope_pct(self, slope_pct):                        # [関数定義] _scaled_slope_pct の処理実行ブロック
+        return slope_pct * float(self.p.grade_scale)               # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def charge_efficiency(self, P_pack) -> float:                  # [関数定義] charge_efficiency の処理実行ブロック
+        try:
+            p_pack = float(P_pack)
+        except Exception:
+            return 1.0                                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        return float(self.p.eta_charge) if p_pack < 0.0 else 1.0   # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def soc_step(self, z: float, P_pack: float, dt_sec: float) -> float:  # [関数定義] soc_step の処理実行ブロック
+        eta = self.charge_efficiency(P_pack)
+        return float(z) - eta * (float(P_pack) * float(dt_sec) / 3600.0) / max(float(self.p.E_nom_Wh), 1.0e-6)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def ocv_from_soc(self, z):                                     # [関数定義] ocv_from_soc の処理実行ブロック
+        if _is_symbolic(z) or not self.ocv_soc_map:
+            z_clamped = ca.fmin(self.p.soc_max, ca.fmax(self.p.soc_min, z))
+            return self.p.V_min + (self.p.V_max - self.p.V_min) * z_clamped  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        zc = float(np.clip(z, self.p.soc_min, self.p.soc_max))
+        return float(np.interp(zc, self.soc_grid, self.ocv_grid))  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def load_ocv_map(self, path: str) -> bool:                     # [関数定義] load_ocv_map の処理実行ブロック
+        try:
+            self.soc_grid, self.ocv_grid = read_1d_map(path)
+            self.ocv_soc_map = True
+            return True                                            # [戻り値] 計算結果・計算状態の呼び出し元への返却
+        except Exception:
+            self.ocv_soc_map = None
+            return False                                           # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def resistive_forces(self, v_ms, slope_pct, headwind_ms=0.0):  # [関数定義] resistive_forces の処理実行ブロック
+        if _is_symbolic(v_ms) or _is_symbolic(slope_pct) or _is_symbolic(headwind_ms):
+            v_rel = ca.fmax(0.0, v_ms + headwind_ms)
+            theta = ca.atan(self._scaled_slope_pct(slope_pct) / 100.0)
+            F_aero = 0.5 * self.p.rho * self.p.CdA * v_rel ** 2
+            N = self.p.m * self.p.g * ca.cos(theta)
+            Crr_eff = self.p.Crr
+            if self.p.Crr_per_wheel and self.p.wheel_count:
+                Crr_eff = self.p.Crr_per_wheel * float(self.p.wheel_count)
+            F_roll = Crr_eff * N
+            F_grade = self.p.m * self.p.g * ca.sin(theta)
+            F_total = F_aero + F_roll + F_grade
+            return dict(F_aero=F_aero, F_roll=F_roll, F_grade=F_grade,  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+                        F_total=F_total, theta=theta)
+        v_rel = max(0.0, float(v_ms) + float(headwind_ms))
+        theta = math.atan(float(self._scaled_slope_pct(slope_pct)) / 100.0)
+        F_aero = 0.5 * self.p.rho * self.p.CdA * v_rel ** 2
+        N = self.p.m * self.p.g * math.cos(theta)
+        Crr_eff = self.p.Crr
+        if self.p.Crr_per_wheel and self.p.wheel_count:
+            Crr_eff = self.p.Crr_per_wheel * float(self.p.wheel_count)
+        F_roll = Crr_eff * N
+        F_grade = self.p.m * self.p.g * math.sin(theta)
+        F_total = F_aero + F_roll + F_grade
+        return dict(F_aero=F_aero, F_roll=F_roll, F_grade=F_grade,  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+                    F_total=F_total, theta=theta)
+
+    def battery_iv(self, P_pack, z, Tbat_C):                       # [関数定義] battery_iv の処理実行ブロック
+        OCV = self.ocv_from_soc(z)
+        Rint = self.R_int(Tbat_C, ca.fmin(0.95, ca.fmax(0.1, z)))
+        Rline = float(self.p.r_line_ohm)
+        Rtot = Rint + Rline
+        a = Rtot
+        b = -OCV
+        c = P_pack
+        disc = ca.fmax(b * b - 4 * a * c, 0.0)
+        I = (OCV - ca.sqrt(disc)) / (2 * Rtot)
+        V = OCV - I * Rtot
+        return dict(I=I, V=V, OCV=OCV, Rint=Rint, Rline=Rline)     # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def mech_power(self, v_ms, slope_pct, headwind_ms=0.0):        # [関数定義] mech_power の処理実行ブロック
+        v_rel = ca.fmax(0.0, v_ms + headwind_ms)
+        P_aero = 0.5*self.p.rho*self.p.CdA*v_rel**3
+        theta  = ca.atan(self._scaled_slope_pct(slope_pct)/100.0)
+        N = self.p.m*self.p.g*ca.cos(theta)
+        Crr_eff = self.p.Crr
+        if self.p.Crr_per_wheel and self.p.wheel_count:
+            Crr_eff = self.p.Crr_per_wheel * float(self.p.wheel_count)
+        P_roll = Crr_eff*N*v_ms
+        P_grade= self.p.m*self.p.g*ca.sin(theta)*v_ms
+        drive_power = (P_aero + P_roll + P_grade) * float(self.drive_power_gain)
+        aux_power = float(self.aux_power_override_w) if self.aux_power_override_w is not None else float(self.p.P_aux)
+        return drive_power + aux_power                             # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def torque_from_mech(self, P_mech, v_ms, wheel_radius=None, ratio=None):  # [関数定義] torque_from_mech の処理実行ブロック
+        if wheel_radius is None:
+            wheel_radius = self.p.wheel_radius
+        if ratio is None:
+            ratio = self.p.gear_ratio
+        eps=1e-3
+        omega_w = v_ms/wheel_radius
+        T_w = P_mech/(omega_w+eps)
+        T_m = T_w/ratio
+        return T_m, omega_w*ratio                                  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+    def electrical_balance(self, v_ms, slope_pct, z, Tbat_C, G_poa, Tcell_C, headwind_ms=0.0):  # [関数定義] electrical_balance の処理実行ブロック
+        P_pv = self.pv_power_mppt(G_poa, Tcell_C)
+        P_mech = self.mech_power(v_ms, slope_pct, headwind_ms)
+        P_mech_pos = ca.fmax(P_mech, 0.0)
+        P_mech_neg = ca.fmax(-P_mech, 0.0)
+        Tm_drv, _ = self.torque_from_mech(P_mech_pos, v_ms)
+        eff_drv = self.eff_drive(v_ms, Tm_drv)
+        P_dc_to_drv = P_mech_pos/(eff_drv*self.p.gear_eta*self.p.inverter_eta)
+        Tm_reg, _ = self.torque_from_mech(P_mech_neg, v_ms)
+        eff_reg = self.eff_regen(v_ms, Tm_reg)
+        P_reg_to_dc = eff_reg*self.p.gear_eta*self.p.inverter_eta*P_mech_neg
+        P_pack = P_dc_to_drv - P_reg_to_dc - P_pv
+        OCV = self.ocv_from_soc(z)
+        Rint = self.R_int(Tbat_C, ca.fmin(0.95, ca.fmax(0.1, z)))
+        Rline = float(self.p.r_line_ohm); Rtot = Rint + Rline
+        a = Rtot; b=-OCV; c=P_pack
+        disc = ca.fmax(b*b-4*a*c, 0.0)
+        I = (OCV - ca.sqrt(disc))/(2*Rtot)
+        V = OCV - I*Rtot
+        losses_line = I*I*Rline; losses_int = I*I*Rint
+        aux_power = float(self.aux_power_override_w) if self.aux_power_override_w is not None else float(self.p.P_aux)
+        P_mech_wheel = P_mech - aux_power
+        return dict(P_pv=P_pv, P_mech=P_mech, P_mech_wheel=P_mech_wheel,  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+                    P_pack=P_pack, I=I, V=V,
+                    losses_line=losses_line, losses_int=losses_int,
+                    OCV=OCV, Rint=Rint, Rline=Rline,
+                    P_dc_to_drv=P_dc_to_drv, P_reg_to_dc=P_reg_to_dc,
+                    eff_drv=eff_drv, eff_reg=eff_reg)
+
+# =============================================================================
+# 【統合ユーティリティ】マップ読み込み・2D/1D線形補間関数群
+# =============================================================================
+import numpy as np                                                 # [数値計算] 行列計算・ベクトル処理用 NumPy ライブラリのインポート
+import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
+def bilinear_interp(xg, yg, Z, x, y):                              # [関数定義] bilinear_interp の処理実行ブロック
+    xg = np.asarray(xg); yg=np.asarray(yg); Z=np.asarray(Z)
+    x = np.clip(x, xg[0], xg[-1]); y=np.clip(y, yg[0], yg[-1])
+    i = np.searchsorted(xg, x)-1; i=np.clip(i,0,len(xg)-2)
+    j = np.searchsorted(yg, y)-1; j=np.clip(j,0,len(yg)-2)
+    x0,x1=xg[i],xg[i+1]; y0,y1=yg[j],yg[j+1]
+    Z00=Z[i,j]; Z10=Z[i+1,j]; Z01=Z[i,j+1]; Z11=Z[i+1,j+1]
+    wx=0 if x1==x0 else (x-x0)/(x1-x0)
+    wy=0 if y1==y0 else (y-y0)/(y1-y0)
+    return (1-wx)*(1-wy)*Z00 + wx*(1-wy)*Z10 + (1-wx)*wy*Z01 + wx*wy*Z11  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+def read_eff_map(path):                                            # [関数定義] read_eff_map の処理実行ブロック
+    df = pd.read_csv(path, index_col=0)
+    return df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+def read_Rint_map(path):                                           # [関数定義] read_Rint_map の処理実行ブロック
+    df = pd.read_csv(path, index_col=0)
+    return df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+def read_map(path):                                                # [関数定義] read_map の処理実行ブロック
+    df = pd.read_csv(path, index_col=0)
+    return df.index.values.astype(float), df.columns.values.astype(float), df.values.astype(float)  # [戻り値] 計算結果・計算状態の呼び出し元への返却
+
+def read_1d_map(path):                                             # [関数定義] read_1d_map の処理実行ブロック
+    df = pd.read_csv(path)
+    if df.shape[1] >= 2:
+        x = df.iloc[:, 0].values.astype(float)
+        y = df.iloc[:, 1].values.astype(float)
+        return x, y                                                # [戻り値] 計算結果・計算状態の呼び出し元への返却
+    df = pd.read_csv(path, index_col=0)
+    x = df.index.values.astype(float)
+    y = df.iloc[:, 0].values.astype(float)
+    return x, y                                                    # [戻り値] 計算結果・計算状態の呼び出し元への返却

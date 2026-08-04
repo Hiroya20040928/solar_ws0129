@@ -4,8 +4,6 @@ from sensor_msgs.msg import NavSatFix
 from std_msgs.msg import Float32
 import pandas as pd                                                # [データ処理] 時系列データ解析・表計算用 Pandas ライブラリのインポート
 
-from .route_utils import interpolate_route_with_alt
-from .path_utils import resolve_path
 
 class GPSSimNode(Node):                                            # [クラス定義] GPSSimNode オブジェクトの設計
     def __init__(self):                                            # [関数定義] __init__ の処理実行ブロック

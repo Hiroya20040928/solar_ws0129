@@ -7,11 +7,11 @@ from datetime import datetime
 from pathlib import Path
 
 try:
-    from .build_bwsc2025_fitted_package import compile_tex
-    from . import create_solarcar_only_package as base
-except ImportError:
     from build_bwsc2025_fitted_package import compile_tex
     import create_solarcar_only_package as base
+except ImportError:
+    pass
+
 
 
 ROOT = base.ROOT

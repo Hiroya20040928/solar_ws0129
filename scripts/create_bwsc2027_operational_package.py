@@ -1,7 +1,7 @@
+from __future__ import annotations
 #!/usr/bin/env python3
 """Create the gated BWSC 2027 pre-season operations package."""
 
-from __future__ import annotations
 
 import argparse
 import csv

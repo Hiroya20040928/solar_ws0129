@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
 from __future__ import annotations
+#!/usr/bin/env python3
 
 import argparse
 import json
@@ -31,8 +31,6 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from mpc_solarcar.schedule_utils import DriveSchedule
-from mpc_solarcar.upper_cost import UpperCostConfig, active_upper_cost_terms, load_upper_cost_config
 
 
 DEFAULT_PROFILE = ROOT / "project_packages" / "bwsc2025_fitted_mle4" / "profile.yaml"

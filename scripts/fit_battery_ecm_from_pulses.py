@@ -1,3 +1,4 @@
+from __future__ import annotations
 #!/usr/bin/env python3
 """Identify a passive pack-level 1-RC battery model from rested pulse tests.
 
@@ -11,7 +12,6 @@ and measurement leads.  Those contributions cannot be separated from a
 two-terminal pack pulse and are therefore not assigned invented values.
 """
 
-from __future__ import annotations
 
 import argparse
 import base64

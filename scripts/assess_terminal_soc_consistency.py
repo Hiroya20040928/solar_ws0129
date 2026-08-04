@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
 from __future__ import annotations
+#!/usr/bin/env python3
 
 import argparse
 import math                                                        # [数学演算] 標準数学関数 (sqrt, sin, cos 等) のインポート
