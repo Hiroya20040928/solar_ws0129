@@ -1,0 +1,10 @@
+[Unit]
+Description=SolarCar Telemetry WiFi UDP Sender
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/solarcar/3_run_live_race_mpc.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

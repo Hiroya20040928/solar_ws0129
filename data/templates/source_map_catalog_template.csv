@@ -1,0 +1,2 @@
+map_id,type,file_path,description
+ocv_v1,ocv,data/templates/ocv_soc_curve_template.csv,Nominal OCV Curve

@@ -1,0 +1,4 @@
+events:
+  - s_km: 300.0
+    type: 'control_stop'
+    duration_sec: 1800.0

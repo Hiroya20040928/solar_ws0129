@@ -1,0 +1,5 @@
+schedule:
+  start_time_utc: '2027-10-18T08:00:00'
+  end_time_utc: '2027-10-24T17:00:00'
+  daily_drive_start: '08:00'
+  daily_drive_end: '17:00'

@@ -1,0 +1,3 @@
+sources:
+  dem_provider: 'Geoscience Australia DEM 1Sec'
+  weather_provider: 'Open-Meteo Historical'

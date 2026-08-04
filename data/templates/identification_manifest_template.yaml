@@ -1,0 +1,4 @@
+manifest:
+  version: '2027.1'
+  vehicle_id: 'YATA_2027'
+  battery_id: 'CATL_LFP_25S'

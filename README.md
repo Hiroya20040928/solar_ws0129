@@ -97,3 +97,49 @@ python 3_run_live_race_mpc.py
 
 ---
 - SolarCar Energy Management System Edition
+
+---
+
+## 📋 5. 全入力テンプレート一覧 (`data/templates/`)
+
+本システムにインポート・読み込み可能な**すべてのデータ形式（計32種類）の完全なテンプレート**が `data/templates/` 内に備わっています。
+
+### 📊 ① コース・走行・試験データ CSV
+- `data/templates/route_profile_template.csv`: 3,000 km レースコース標高・距離・速度制限
+- `data/templates/battery_pulse_template.csv`: 電池 1-RC パルス放電試験データ
+- `data/templates/battery_rest_template.csv`: 電池 OCV 緩和試験データ
+- `data/templates/drive_timeseries_template.csv`: 走行データ時系列 (電力・車速・電圧・電流・SoC)
+- `data/templates/speed_profile_template.csv`: 目標速度プロファイル
+- `data/templates/observed_replay_log_template.csv`: 3,000 km Replay 検証用実測ログ
+
+### ⚡ ② 車両・電池・モータ・太陽電池マップ CSV
+- `data/templates/ocv_soc_curve_template.csv`: OCV-SoC 曲線マップ ($V_{oc}(SoC)$)
+- `data/templates/rint_map_template.csv`: 内部抵抗 $R_0(SoC, T)$ マップ
+- `data/templates/r1_map_template.csv`: 偏極抵抗 $R_1(SoC, T)$ マップ
+- `data/templates/tau_map_template.csv`: 偏極時定数 $\tau(SoC, T)$ マップ
+- `data/templates/panel_eff_map_template.csv`: 太陽電池パネル効率マップ $\eta_{panel}(T, G)$
+- `data/templates/mppt_eff_map_template.csv`: MPPT 変換効率マップ $\eta_{mppt}(P_{in})$
+- `data/templates/drive_eff_map_template.csv`: 駆動インバータ・モータ効率マップ $\eta_{drive}(v, \tau)$
+- `data/templates/regen_eff_map_template.csv`: 回生ブレーキ変換効率マップ $\eta_{regen}(v, \tau)$
+- `data/templates/motor_tau_limit_template.csv`: モータトルク上下限値マップ $\tau_{max}(v)$
+- `data/templates/aux_load_profile_template.csv`: 補機消費電力プロファイル $P_{aux}(t)$
+- `data/templates/panel_sweep_template.csv`: 太陽電池アレイ方角・傾斜角感度テスト
+- `data/templates/source_map_catalog_template.csv`: マップソースカタログデータ
+- `data/templates/bom_hourly_solar_route_template.csv`: 気象局 (BOM) 1時間毎気象データ
+
+### ⚙️ ③ 設定・アノテーション YAML
+- `data/templates/solar_params_template.yaml`: 太陽電池パラメータ仕様
+- `data/templates/battery_thermal_template.yaml`: 電池熱モデルパラメータ仕様
+- `data/templates/identification_manifest_template.yaml`: 同定実験マニフェスト
+- `data/templates/counterfactual_no_trouble_template.yaml`: 反実仮想トラブルフリー設定
+- `data/templates/grounded_map_sources_template.yaml`: 地形・気象ソース設定
+- `data/templates/actual_event_annotations_template.yaml`: 実車イベント（コントロールストップ等）注釈
+- `data/templates/drive_schedule_template.yaml`: レース走行スケジュール設定
+
+### 📡 ④ ネットワーク・マイコン（ESP32 / systemd）テンプレート
+- `data/templates/network/planner_command_example.json`: 制御指令 JSON フォーマット
+- `data/templates/network/vehicle_state_example.json`: 車両状態 JSON フォーマット
+- `data/templates/network/chase_state_example.json`: 伴走車気象 JSON フォーマット
+- `data/templates/network/esp32_planner_receiver_example.ino`: ESP32 マイコン用 UDP 受信 C++ コード
+- `data/templates/network/vehicle_sender.service.example`: Linux systemd 自動起動サービス
+- `data/templates/network/chase_sender.service.example`: 伴走車用 systemd 自動起動サービス

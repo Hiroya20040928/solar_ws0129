@@ -1,0 +1,4 @@
+thermal:
+  mass_kg: 35.0
+  cp_j_per_kg_k: 900.0
+  r_th_k_per_w: 1.2

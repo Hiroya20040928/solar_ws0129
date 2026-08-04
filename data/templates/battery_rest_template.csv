@@ -1,0 +1,3 @@
+time_s,phase,current_a,voltage_v,temp_c
+0.0,rest,0.0,105.2,25.0
+600.0,rest,0.0,105.2,25.0

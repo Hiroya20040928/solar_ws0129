@@ -1,0 +1,4 @@
+time_s,phase,current_a,voltage_v,temp_c,soc_true
+0.0,pre_rest,0.0,105.2,25.0,0.95
+10.0,pulse,-35.0,101.8,25.1,0.949
+60.0,post_rest,0.0,104.1,25.8,0.940

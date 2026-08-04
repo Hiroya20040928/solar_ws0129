@@ -1,0 +1,10 @@
+[Unit]
+Description=Chase Vehicle Weather & GHI UDP Sender
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/solarcar/chase_sender.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

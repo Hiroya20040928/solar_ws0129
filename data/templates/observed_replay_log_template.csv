@@ -1,0 +1,2 @@
+time_utc,s_km,v_kmh,p_solar_raw_w,p_batt_w,v_batt_v,i_batt_a,soc_obs
+2027-10-18T08:00:00,0.0,75.0,850.0,1200.0,102.4,11.7,0.95

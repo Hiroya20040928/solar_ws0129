@@ -1,0 +1,6 @@
+{
+  "mode": "target_speed",
+  "v_ref_kmh": 75.0,
+  "torque_limit_nm": 45.0,
+  "regen_allowed": true
+}

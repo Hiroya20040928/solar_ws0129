@@ -1,0 +1,5 @@
+panel:
+  area_m2: 4.0
+  nominal_efficiency: 0.243
+  temp_coeff_per_c: -0.0035
+  ref_temp_c: 25.0
